@@ -524,7 +524,7 @@ h1 {
 #view-metronome .beat[data-l="1"] i:nth-child(3)::after, #view-metronome .beat[data-l="2"] i:nth-child(3)::after, #view-metronome .beat[data-l="3"] i:nth-child(3)::after { background: var(--on-accent); }
 #view-metronome .beat {
   flex: 0 1 80px; min-width: 0; height: 104px; padding: 5px;
-  display: grid; grid-template-rows: 1fr 1fr 1fr; gap: 5px;
+  display: grid; grid-template-rows: 1fr 1fr 1fr; gap: 5px; align-items: stretch;
   border: 2px solid var(--line); border-radius: 18px;
   background: var(--panel); cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -579,7 +579,7 @@ h1 {
 #view-metronome select {
   background: var(--panel); color: var(--fg);
   border: 1px solid var(--line); border-radius: 10px;
-  padding: 0 12px; height: 38px; font: 500 14px var(--font-mono);
+  padding: 0 12px; height: 44px; font: 500 15px var(--font-mono);
 }
 #view-metronome #mSub { font: 400 20px/1 system-ui, 'Segoe UI Symbol', sans-serif; width: 56px; padding: 0 10px; }
 #view-metronome .tap {
@@ -782,6 +782,15 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 <meta name="apple-mobile-web-app-title" content="Violin Toolkit">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Violin Toolkit">
+<meta property="og:description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta property="og:url" content="https://trix69.github.io/violin-toolkit/">
+<meta property="og:image" content="https://trix69.github.io/violin-toolkit/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
 <div class="shell" id="shell" data-view="board">
@@ -1311,6 +1320,12 @@ function yin(buf, sr) {
 
   async function startMic(auto) {
     if (starting || running) return;
+    // opening the tuner only starts listening if the mic was allowed before; otherwise wait for Start tuning
+    if (auto) {
+      var granted = false;
+      try { granted = (await navigator.permissions.query({ name: 'microphone' })).state === 'granted'; } catch (e) {}
+      if (!granted || running || starting) return;
+    }
     starting = true;
     stopTone();
     setStatus('Requesting microphone…');

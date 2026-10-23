@@ -10,6 +10,15 @@ head_add = '''<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Violin Toolkit">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Violin Toolkit">
+<meta property="og:description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta property="og:url" content="https://trix69.github.io/violin-toolkit/">
+<meta property="og:image" content="https://trix69.github.io/violin-toolkit/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 '''
 # drop the old data-URI apple-touch-icon so the real file is used
 src = re.sub(r'<link rel="apple-touch-icon"[^>]*>', '', src)
@@ -25,7 +34,7 @@ os.makedirs(ROOT + 'screenshots', exist_ok=True)
 for f in ('fingerboard.png', 'tuner.png', 'metronome.png'):
     if os.path.exists(SRC + 'screenshots/' + f):
         shutil.copy(SRC + 'screenshots/' + f, ROOT + 'screenshots/' + f)
-for f in ('icon-192.png', 'icon-512.png', 'apple-touch-icon.png'):
+for f in ('icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'og-image.png'):
     shutil.copy(SRC + 'icons/' + f, ROOT + f)
 open(ROOT + 'index.html', 'w', encoding='utf-8').write(out)
 json.dump({

@@ -10,7 +10,7 @@
 #view-metronome .beat[data-l="1"] i:nth-child(3)::after, #view-metronome .beat[data-l="2"] i:nth-child(3)::after, #view-metronome .beat[data-l="3"] i:nth-child(3)::after { background: var(--on-accent); }
 #view-metronome .beat {
   flex: 0 1 80px; min-width: 0; height: 104px; padding: 5px;
-  display: grid; grid-template-rows: 1fr 1fr 1fr; gap: 5px;
+  display: grid; grid-template-rows: 1fr 1fr 1fr; gap: 5px; align-items: stretch;
   border: 2px solid var(--line); border-radius: 18px;
   background: var(--panel); cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -65,7 +65,7 @@
 #view-metronome select {
   background: var(--panel); color: var(--fg);
   border: 1px solid var(--line); border-radius: 10px;
-  padding: 0 12px; height: 38px; font: 500 14px var(--font-mono);
+  padding: 0 12px; height: 44px; font: 500 15px var(--font-mono);
 }
 #view-metronome #mSub { font: 400 20px/1 system-ui, 'Segoe UI Symbol', sans-serif; width: 56px; padding: 0 10px; }
 #view-metronome .tap {

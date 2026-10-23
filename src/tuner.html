@@ -539,6 +539,12 @@ function yin(buf, sr) {
 
   async function startMic(auto) {
     if (starting || running) return;
+    // opening the tuner only starts listening if the mic was allowed before; otherwise wait for Start tuning
+    if (auto) {
+      var granted = false;
+      try { granted = (await navigator.permissions.query({ name: 'microphone' })).state === 'granted'; } catch (e) {}
+      if (!granted || running || starting) return;
+    }
     starting = true;
     stopTone();
     setStatus('Requesting microphone…');
