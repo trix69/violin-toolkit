@@ -318,6 +318,13 @@ h1 {
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
+#view-board .note::before {
+  
+  content: ''; position: absolute; left: 50%; top: 50%;
+  width: calc(var(--hx, var(--r)) * 2); height: calc(var(--hy, var(--r)) * 2);
+  transform: translate(-50%, -50%);
+  border-radius: calc(var(--r) * 0.9);
+}
 #view-board .note::after {
   content: attr(data-label);
   font: 700 var(--fs, 22px)/1 var(--font-note);
@@ -1554,6 +1561,28 @@ function yin(buf, sr) {
     st.setProperty('--k', K.toFixed(3) + 'px');
     st.setProperty('--span', Math.round(K * mm(MAXN)) + 'px');
     st.setProperty('--fs', Math.round(r * 0.95) + 'px');
+    curK = K; curR = r;
+    hitAreas();
+  }
+
+  /* Each note gets a transparent touch area bigger than its circle: up to 16px wider on each side
+     and 22px taller, but never past halfway to the next string or the next note on the same string,
+     so neighbouring areas never overlap. */
+  var curK = 3, curR = 19;
+  function hitAreas() {
+    if (!buttons.length || !board.clientWidth) return;
+    var r = curR, K = curK;
+    function y(n) { return n === 0 ? r + 4 : (r + 4) + mm(n) * K; }
+    var hx = Math.min(r + 16, Math.floor(board.clientWidth / 4 / 2) - 1);
+    notes.forEach(function (nt, i) {
+      var b = buttons[i];
+      if (!b) return;
+      var up = nt.n > 0 ? (y(nt.n) - y(nt.n - 1)) / 2 : 1e9;
+      var down = nt.n < MAXN ? (y(nt.n + 1) - y(nt.n)) / 2 : 1e9;
+      var hy = Math.max(r, Math.min(r + 22, up, down));
+      b.style.setProperty('--hx', hx + 'px');
+      b.style.setProperty('--hy', hy.toFixed(1) + 'px');
+    });
   }
 
   /* ---------- Board ---------- */
@@ -1589,6 +1618,7 @@ function yin(buf, sr) {
     });
     board.innerHTML = html;
     buttons = Array.prototype.slice.call(board.querySelectorAll('.note'));
+    hitAreas();
     Array.prototype.forEach.call(keysEl.children, function (b) {
       b.setAttribute('aria-pressed', b.dataset.id === state.key ? 'true' : 'false');
     });
