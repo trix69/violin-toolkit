@@ -2525,10 +2525,31 @@ function yin(buf, sr) {
   obs.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
 })();
 </script>
+<style>
+.offline-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);transform:translateX(-50%);z-index:300;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:var(--fg,#16201b);color:var(--bg,#fff);font:500 14px/1.3 var(--font-note,system-ui,sans-serif);box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;transition:opacity .3s;pointer-events:none;text-align:center}
+.offline-toast.on{opacity:1}
+</style>
 <script>
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
-}
+(function () {
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  function toast() {
+    try { if (localStorage.getItem('violin-offline-ready')) return; localStorage.setItem('violin-offline-ready', '1'); } catch (e) {}
+    var zh = window.I18N && I18N.lang === 'zh';
+    var t = document.createElement('div'); t.className = 'offline-toast'; t.setAttribute('role', 'status');
+    t.textContent = zh ? '已可离线使用' : 'Ready to use offline';
+    document.body.appendChild(t);
+    requestAnimationFrame(function () { t.classList.add('on'); });
+    setTimeout(function () { t.classList.remove('on'); setTimeout(function () { t.remove(); }, 400); }, 3500);
+  }
+  function check() {
+    caches.keys().then(function (ks) {
+      var k = ks.filter(function (n) { return n.indexOf('violin-toolkit-') === 0; })[0];
+      return k ? caches.open(k).then(function (c) { return c.match('index.html'); }) : null;
+    }).then(function (hit) { if (hit) toast(); }).catch(function () {});
+  }
+  navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; })
+    .then(function () { setTimeout(check, 600); }).catch(function () {});
+})();
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 {
   "name": "Violin Toolkit",
-  "short_name": "Violin",
+  "short_name": "Violin Toolkit",
   "description": "Violin tuner, fingerboard chart and metronome.",
   "start_url": "./",
   "scope": "./",
