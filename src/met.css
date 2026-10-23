@@ -5,8 +5,9 @@
   background: var(--muted);
   -webkit-mask: var(--glyph) center / auto 78% no-repeat; mask: var(--glyph) center / auto 78% no-repeat;
 }
-#view-metronome .beat i:nth-child(3) { --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%279%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%209%2018%29%27/%3E%3Crect%20x%3D%2711.6%27%20y%3D%273%27%20width%3D%271.8%27%20height%3D%2715.5%27/%3E%3C/svg%3E"); }
-#view-metronome .beats[data-sub="2"] .beat i:nth-child(3) { --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%276%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%206%2018%29%27/%3E%3Cellipse%20cx%3D%2716%27%20cy%3D%2716%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%2016%2016%29%27/%3E%3Crect%20x%3D%278.5%27%20y%3D%274.5%27%20width%3D%271.8%27%20height%3D%2714%27/%3E%3Crect%20x%3D%2718.4%27%20y%3D%272.2%27%20width%3D%271.8%27%20height%3D%2713.8%27/%3E%3Cpolygon%20points%3D%278.5%2C4.5%2020.2%2C2.2%2020.2%2C6.2%208.5%2C8.5%27/%3E%3C/svg%3E"); }
+#view-metronome { --g1: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%279%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%209%2018%29%27/%3E%3Crect%20x%3D%2711.6%27%20y%3D%273%27%20width%3D%271.8%27%20height%3D%2715.5%27/%3E%3C/svg%3E"); --g2: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%276%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%206%2018%29%27/%3E%3Cellipse%20cx%3D%2716%27%20cy%3D%2716%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%2016%2016%29%27/%3E%3Crect%20x%3D%278.5%27%20y%3D%274.5%27%20width%3D%271.8%27%20height%3D%2714%27/%3E%3Crect%20x%3D%2718.4%27%20y%3D%272.2%27%20width%3D%271.8%27%20height%3D%2713.8%27/%3E%3Cpolygon%20points%3D%278.5%2C4.5%2020.2%2C2.2%2020.2%2C6.2%208.5%2C8.5%27/%3E%3C/svg%3E"); }
+#view-metronome .beat i:nth-child(3) { --glyph: var(--g1); }
+#view-metronome .beats[data-sub="2"] .beat i:nth-child(3) { --glyph: var(--g2); }
 #view-metronome .beat[data-l="1"] i:nth-child(3)::after, #view-metronome .beat[data-l="2"] i:nth-child(3)::after, #view-metronome .beat[data-l="3"] i:nth-child(3)::after { background: var(--on-accent); }
 #view-metronome .beat {
   flex: 0 1 80px; min-width: 0; height: 104px; padding: 5px;
@@ -60,16 +61,48 @@
 #view-metronome .dial:focus-visible .knob { stroke: var(--fg); }
 
 #view-metronome .bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-#view-metronome .sig { --sg: 8px; --sw: 11px; display: inline-flex; align-items: center; gap: var(--sg); }
-#view-metronome .sig span { width: var(--sw); text-align: center; font: 500 18px var(--font-mono); color: var(--muted); }
-/* the clicks-per-beat menu sits as far from the note value as the note value does from the beats (gap + slash + gap) */
-#view-metronome .sig #mSub { margin-left: calc(var(--sg) + var(--sw)); }
+/* time signature drawn on a small staff: clef, the two numbers stacked, then the note that clicks.
+   Each part is a real <select> laid invisibly over what is drawn, so tapping it opens the usual menu. */
+#view-metronome .sig {
+  --sp: 12px;                                   /* space between staff lines */
+  position: relative; display: flex; align-items: stretch; height: calc(var(--sp) * 10); padding: 0 8px 0 50px;
+  border: 1px solid var(--line); border-radius: 14px; color: var(--fg);
+  background:
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 3 - .5px) / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 4 - .5px) / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 5 - .5px) / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 6 - .5px) / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 7 - .5px) / 100% 1px no-repeat,
+    var(--panel);
+  background-origin: border-box;
+}
+/* the clef path is drawn on lines 40..80 (10 apart); scale it to --sp and line it up with the staff */
+#view-metronome .sig .clef { position: absolute; left: 6px; top: calc(var(--sp) * 3 - var(--sp) * 4); width: calc(var(--sp) * 4.6); height: calc(var(--sp) * 12); overflow: visible; pointer-events: none; }
+#view-metronome .frac { display: grid; grid-template-rows: 1fr 1fr; }
+#view-metronome .pick { position: relative; display: flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 10px; cursor: pointer; }
+#view-metronome .pick::after {                 /* small chevron: this opens a menu */
+  content: ""; width: 9px; height: 6px; background: var(--muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+#view-metronome .pick:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+#view-metronome .pick:has(select:focus-visible) { outline: 3px solid var(--accent); outline-offset: -2px; }
+#view-metronome .pick select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+#view-metronome .frac .pick:first-child { align-items: flex-end; }
+#view-metronome .frac .pick:last-child { align-items: flex-start; }
+#view-metronome .sig .num { font: 900 calc(var(--sp) * 2.75)/calc(var(--sp) * 2) 'Times New Roman', 'Noto Serif', Georgia, serif; min-width: .6em; text-align: center; }
+#view-metronome .frac .pick:first-child::after { align-self: center; margin-top: calc(var(--sp) * 2); }
+#view-metronome .frac .pick:last-child::after { align-self: center; margin-bottom: calc(var(--sp) * 2); }
+#view-metronome .sig .glyph {
+  width: calc(var(--sp) * 2.4); height: calc(var(--sp) * 3.6); margin-top: calc(var(--sp) * -.6); background: var(--fg);
+  -webkit-mask: var(--g1) center / contain no-repeat; mask: var(--g1) center / contain no-repeat;
+}
+#view-metronome .sig[data-sub="2"] .glyph { width: calc(var(--sp) * 3.6); -webkit-mask-image: var(--g2); mask-image: var(--g2); }
 #view-metronome select {
   background: var(--panel); color: var(--fg);
   border: 1px solid var(--line); border-radius: 10px;
   padding: 0 12px; height: 44px; font: 500 15px var(--font-mono);
 }
-#view-metronome #mSub { font: 400 20px/1 system-ui, 'Segoe UI Symbol', sans-serif; width: 56px; padding: 0 10px; }
 #view-metronome .tap {
   min-width: 84px; height: 40px; padding: 0 18px;
   border: 1px solid var(--line); border-radius: 10px;
@@ -93,7 +126,6 @@
   #view-metronome .dial { width: min(100%, 520px); }
   #view-metronome select { height: 48px; font-size: 17px; padding: 0 16px; }
   #view-metronome #mSub { font-size: 24px; width: 72px; }
-  #view-metronome .sig { --sg: 12px; --sw: 13px; }
-  #view-metronome .sig span { font-size: 22px; }
+  #view-metronome .sig { --sp: 13px; }
   #view-metronome .tap { height: 48px; min-width: 120px; font-size: 18px; }
 }

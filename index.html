@@ -519,8 +519,9 @@ h1 {
   background: var(--muted);
   -webkit-mask: var(--glyph) center / auto 78% no-repeat; mask: var(--glyph) center / auto 78% no-repeat;
 }
-#view-metronome .beat i:nth-child(3) { --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%279%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%209%2018%29%27/%3E%3Crect%20x%3D%2711.6%27%20y%3D%273%27%20width%3D%271.8%27%20height%3D%2715.5%27/%3E%3C/svg%3E"); }
-#view-metronome .beats[data-sub="2"] .beat i:nth-child(3) { --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%276%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%206%2018%29%27/%3E%3Cellipse%20cx%3D%2716%27%20cy%3D%2716%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%2016%2016%29%27/%3E%3Crect%20x%3D%278.5%27%20y%3D%274.5%27%20width%3D%271.8%27%20height%3D%2714%27/%3E%3Crect%20x%3D%2718.4%27%20y%3D%272.2%27%20width%3D%271.8%27%20height%3D%2713.8%27/%3E%3Cpolygon%20points%3D%278.5%2C4.5%2020.2%2C2.2%2020.2%2C6.2%208.5%2C8.5%27/%3E%3C/svg%3E"); }
+#view-metronome { --g1: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%279%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%209%2018%29%27/%3E%3Crect%20x%3D%2711.6%27%20y%3D%273%27%20width%3D%271.8%27%20height%3D%2715.5%27/%3E%3C/svg%3E"); --g2: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%276%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%206%2018%29%27/%3E%3Cellipse%20cx%3D%2716%27%20cy%3D%2716%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%2016%2016%29%27/%3E%3Crect%20x%3D%278.5%27%20y%3D%274.5%27%20width%3D%271.8%27%20height%3D%2714%27/%3E%3Crect%20x%3D%2718.4%27%20y%3D%272.2%27%20width%3D%271.8%27%20height%3D%2713.8%27/%3E%3Cpolygon%20points%3D%278.5%2C4.5%2020.2%2C2.2%2020.2%2C6.2%208.5%2C8.5%27/%3E%3C/svg%3E"); }
+#view-metronome .beat i:nth-child(3) { --glyph: var(--g1); }
+#view-metronome .beats[data-sub="2"] .beat i:nth-child(3) { --glyph: var(--g2); }
 #view-metronome .beat[data-l="1"] i:nth-child(3)::after, #view-metronome .beat[data-l="2"] i:nth-child(3)::after, #view-metronome .beat[data-l="3"] i:nth-child(3)::after { background: var(--on-accent); }
 #view-metronome .beat {
   flex: 0 1 80px; min-width: 0; height: 104px; padding: 5px;
@@ -574,16 +575,48 @@ h1 {
 #view-metronome .dial:focus-visible .knob { stroke: var(--fg); }
 
 #view-metronome .bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-#view-metronome .sig { --sg: 8px; --sw: 11px; display: inline-flex; align-items: center; gap: var(--sg); }
-#view-metronome .sig span { width: var(--sw); text-align: center; font: 500 18px var(--font-mono); color: var(--muted); }
-/* the clicks-per-beat menu sits as far from the note value as the note value does from the beats (gap + slash + gap) */
-#view-metronome .sig #mSub { margin-left: calc(var(--sg) + var(--sw)); }
+/* time signature drawn on a small staff: clef, the two numbers stacked, then the note that clicks.
+   Each part is a real <select> laid invisibly over what is drawn, so tapping it opens the usual menu. */
+#view-metronome .sig {
+  --sp: 12px;                                   /* space between staff lines */
+  position: relative; display: flex; align-items: stretch; height: calc(var(--sp) * 10); padding: 0 8px 0 50px;
+  border: 1px solid var(--line); border-radius: 14px; color: var(--fg);
+  background:
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 3 - .5px) / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 4 - .5px) / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 5 - .5px) / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 6 - .5px) / 100% 1px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--fg) 55%, transparent) 0 0) 0 calc(var(--sp) * 7 - .5px) / 100% 1px no-repeat,
+    var(--panel);
+  background-origin: border-box;
+}
+/* the clef path is drawn on lines 40..80 (10 apart); scale it to --sp and line it up with the staff */
+#view-metronome .sig .clef { position: absolute; left: 6px; top: calc(var(--sp) * 3 - var(--sp) * 4); width: calc(var(--sp) * 4.6); height: calc(var(--sp) * 12); overflow: visible; pointer-events: none; }
+#view-metronome .frac { display: grid; grid-template-rows: 1fr 1fr; }
+#view-metronome .pick { position: relative; display: flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 10px; cursor: pointer; }
+#view-metronome .pick::after {                 /* small chevron: this opens a menu */
+  content: ""; width: 9px; height: 6px; background: var(--muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+#view-metronome .pick:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+#view-metronome .pick:has(select:focus-visible) { outline: 3px solid var(--accent); outline-offset: -2px; }
+#view-metronome .pick select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+#view-metronome .frac .pick:first-child { align-items: flex-end; }
+#view-metronome .frac .pick:last-child { align-items: flex-start; }
+#view-metronome .sig .num { font: 900 calc(var(--sp) * 2.75)/calc(var(--sp) * 2) 'Times New Roman', 'Noto Serif', Georgia, serif; min-width: .6em; text-align: center; }
+#view-metronome .frac .pick:first-child::after { align-self: center; margin-top: calc(var(--sp) * 2); }
+#view-metronome .frac .pick:last-child::after { align-self: center; margin-bottom: calc(var(--sp) * 2); }
+#view-metronome .sig .glyph {
+  width: calc(var(--sp) * 2.4); height: calc(var(--sp) * 3.6); margin-top: calc(var(--sp) * -.6); background: var(--fg);
+  -webkit-mask: var(--g1) center / contain no-repeat; mask: var(--g1) center / contain no-repeat;
+}
+#view-metronome .sig[data-sub="2"] .glyph { width: calc(var(--sp) * 3.6); -webkit-mask-image: var(--g2); mask-image: var(--g2); }
 #view-metronome select {
   background: var(--panel); color: var(--fg);
   border: 1px solid var(--line); border-radius: 10px;
   padding: 0 12px; height: 44px; font: 500 15px var(--font-mono);
 }
-#view-metronome #mSub { font: 400 20px/1 system-ui, 'Segoe UI Symbol', sans-serif; width: 56px; padding: 0 10px; }
 #view-metronome .tap {
   min-width: 84px; height: 40px; padding: 0 18px;
   border: 1px solid var(--line); border-radius: 10px;
@@ -607,8 +640,7 @@ h1 {
   #view-metronome .dial { width: min(100%, 520px); }
   #view-metronome select { height: 48px; font-size: 17px; padding: 0 16px; }
   #view-metronome #mSub { font-size: 24px; width: 72px; }
-  #view-metronome .sig { --sg: 12px; --sw: 13px; }
-  #view-metronome .sig span { font-size: 22px; }
+  #view-metronome .sig { --sp: 13px; }
   #view-metronome .tap { height: 48px; min-width: 120px; font-size: 18px; }
 }
 
@@ -881,13 +913,15 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     </div>
     <div class="bottom">
       <div class="sig" role="group" aria-label="Time signature">
-        <select id="mNum" aria-label="Beats per bar"></select>
-        <span>/</span>
-        <select id="mDen" aria-label="Note value"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select>
-        <select id="mSub" aria-label="Clicks per beat">
+        <svg class="clef" viewBox="0 0 46 120" aria-hidden="true"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></svg>
+        <div class="frac">
+          <label class="pick"><span class="num" id="mNumTxt" aria-hidden="true"></span><select id="mNum" aria-label="Beats per bar"></select></label>
+          <label class="pick"><span class="num" id="mDenTxt" aria-hidden="true"></span><select id="mDen" aria-label="Note value"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></label>
+        </div>
+        <label class="pick note"><span class="glyph" aria-hidden="true"></span><select id="mSub" aria-label="Clicks per beat">
           <option value="1">♩</option>
           <option value="2">♫</option>
-        </select>
+        </select></label>
       </div>
       <button type="button" class="tap" id="mTap">Tap</button>
     </div>
@@ -2193,9 +2227,12 @@ function yin(buf, sr) {
   for (var n = 1; n <= 8; n++) { var o = document.createElement('option'); o.value = n; o.textContent = n; numSel.appendChild(o); }
   var subSel = $('mSub');
   numSel.value = state.num; denSel.value = state.den; subSel.value = String(state.sub);
-  numSel.addEventListener('change', function () { state.num = +numSel.value; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); persist(); });
-  subSel.addEventListener('change', function () { state.sub = +subSel.value; beatsEl.dataset.sub = state.sub; persist(); });
-  denSel.addEventListener('change', function () { state.den = +denSel.value; drawTempo(); persist(); });
+  var sigEl = numSel.closest('.sig');
+  function drawSig() { $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den; sigEl.dataset.sub = state.sub; }
+  drawSig();
+  numSel.addEventListener('change', function () { state.num = +numSel.value; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });
+  subSel.addEventListener('change', function () { state.sub = +subSel.value; beatsEl.dataset.sub = state.sub; drawSig(); persist(); });
+  denSel.addEventListener('change', function () { state.den = +denSel.value; drawTempo(); drawSig(); persist(); });
 
   function holdRepeat(btn, delta) {
     var t1 = 0, t2 = 0;
