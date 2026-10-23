@@ -211,10 +211,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 }
 .note::before {
   /* invisible, larger touch area than the circle; --hx / --hy are set in hitAreas() */
-  content: ''; position: absolute; left: 50%; top: 50%;
-  width: calc(var(--hx, var(--r)) * 2); height: calc(var(--hy, var(--r)) * 2);
-  transform: translate(-50%, -50%);
-  border-radius: calc(var(--r) * 0.9);
+  content: ''; position: absolute;
+  left: calc(50% - var(--hx, var(--r))); width: calc(var(--hx, var(--r)) * 2);
+  top: calc(50% - var(--hu, var(--r))); height: calc(var(--hu, var(--r)) + var(--hd, var(--r)));
 }
 .note::after {
   content: attr(data-label);
@@ -451,23 +450,24 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     hitAreas();
   }
 
-  /* Each note gets a transparent touch area bigger than its circle: up to 16px wider on each side
-     and 22px taller, but never past halfway to the next string or the next note on the same string,
-     so neighbouring areas never overlap. */
+  /* Each note gets a transparent touch area bigger than its circle. The areas tile the board:
+     every note owns the space out to the halfway line with its neighbours (left, right, above and
+     below), so the areas are as large as they can be without ever overlapping. Near the open
+     strings the notes are further apart, so those areas are the tallest. */
   var curK = 3, curR = 19;
   function hitAreas() {
     if (!buttons.length || !board.clientWidth) return;
     var r = curR, K = curK;
     function y(n) { return n === 0 ? r + 4 : (r + 4) + mm(n) * K; }
-    var hx = Math.min(r + 16, Math.floor(board.clientWidth / 4 / 2) - 1);
+    var hx = board.clientWidth / 4 / 2 - 0.5;
     notes.forEach(function (nt, i) {
       var b = buttons[i];
       if (!b) return;
-      var up = nt.n > 0 ? (y(nt.n) - y(nt.n - 1)) / 2 : 1e9;
-      var down = nt.n < MAXN ? (y(nt.n + 1) - y(nt.n)) / 2 : 1e9;
-      var hy = Math.max(r, Math.min(r + 22, up, down));
-      b.style.setProperty('--hx', hx + 'px');
-      b.style.setProperty('--hy', hy.toFixed(1) + 'px');
+      var up = nt.n > 0 ? (y(nt.n) - y(nt.n - 1)) / 2 : r + 4;
+      var down = nt.n < MAXN ? (y(nt.n + 1) - y(nt.n)) / 2 : r + 10;
+      b.style.setProperty('--hx', hx.toFixed(1) + 'px');
+      b.style.setProperty('--hu', Math.max(r, up - 0.5).toFixed(1) + 'px');
+      b.style.setProperty('--hd', Math.max(r, down - 0.5).toFixed(1) + 'px');
     });
   }
 
