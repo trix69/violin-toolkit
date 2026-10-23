@@ -40,7 +40,7 @@
 #view-metronome .top .beats { flex: 1; min-width: 0; padding-inline: 0; }
 #view-metronome .beats:has(.beat:nth-child(6)) { gap: 5px; }
 #view-metronome .tempo { flex: none; display: grid; justify-items: center; gap: 6px; }
-#view-metronome .mark { display: flex; align-items: center; gap: 2px; }
+#view-metronome .mark { display: flex; align-items: center; gap: 6px; }
 #view-metronome .eq { font: 500 26px/1 var(--font-note); color: var(--muted); }
 #view-metronome .tname { padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--line) 55%, transparent); }
 /* the beat boxes show only the accent bars; the notes are on the staff below */
@@ -75,14 +75,8 @@
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp)) / 100% 1px no-repeat,
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp) * 2) / 100% 1px no-repeat;
 }
-/* the click note beside the tempo: tap to swap one click (crotchet) and two (beamed quavers) */
-#view-metronome .tnote {
-  --sp: 9px; display: flex; align-items: center; justify-content: center; min-width: 44px; height: 56px; padding: 0 2px;
-  border: 0; border-radius: 10px; background: none; color: var(--fg); cursor: pointer;
-  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-}
-#view-metronome .tnote:active { color: var(--accent); }
-#view-metronome .tnote:focus-visible { outline: 3px solid var(--accent); outline-offset: -2px; }
+/* the beat note beside the tempo (half, crotchet or quaver, from the time signature) */
+#view-metronome .tnote { --sp: 9px; display: flex; align-items: center; justify-content: center; min-width: 30px; height: 56px; color: var(--fg); }
 #view-metronome .nglyph svg { display: block; height: calc(var(--sp) * 4.4); width: auto; fill: currentColor; }
 /* the score: clef and time signature, start repeat, one note per beat, end repeat */
 /* the score lines up with the row above (positions come from layoutScore() in met.js):

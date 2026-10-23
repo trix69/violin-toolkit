@@ -554,7 +554,7 @@ h1 {
 #view-metronome .top .beats { flex: 1; min-width: 0; padding-inline: 0; }
 #view-metronome .beats:has(.beat:nth-child(6)) { gap: 5px; }
 #view-metronome .tempo { flex: none; display: grid; justify-items: center; gap: 6px; }
-#view-metronome .mark { display: flex; align-items: center; gap: 2px; }
+#view-metronome .mark { display: flex; align-items: center; gap: 6px; }
 #view-metronome .eq { font: 500 26px/1 var(--font-note); color: var(--muted); }
 #view-metronome .tname { padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--line) 55%, transparent); }
 /* the beat boxes show only the accent bars; the notes are on the staff below */
@@ -589,14 +589,8 @@ h1 {
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp)) / 100% 1px no-repeat,
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp) * 2) / 100% 1px no-repeat;
 }
-/* the click note beside the tempo: tap to swap one click (crotchet) and two (beamed quavers) */
-#view-metronome .tnote {
-  --sp: 9px; display: flex; align-items: center; justify-content: center; min-width: 44px; height: 56px; padding: 0 2px;
-  border: 0; border-radius: 10px; background: none; color: var(--fg); cursor: pointer;
-  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-}
-#view-metronome .tnote:active { color: var(--accent); }
-#view-metronome .tnote:focus-visible { outline: 3px solid var(--accent); outline-offset: -2px; }
+/* the beat note beside the tempo (half, crotchet or quaver, from the time signature) */
+#view-metronome .tnote { --sp: 9px; display: flex; align-items: center; justify-content: center; min-width: 30px; height: 56px; color: var(--fg); }
 #view-metronome .nglyph svg { display: block; height: calc(var(--sp) * 4.4); width: auto; fill: currentColor; }
 /* the score: clef and time signature, start repeat, one note per beat, end repeat */
 /* the score lines up with the row above (positions come from layoutScore() in met.js):
@@ -912,7 +906,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     <div class="top">
       <div class="tempo">
         <div class="mark">
-          <button type="button" class="tnote" id="mNote"><span class="vh">Clicks per beat</span><span class="vh" id="mSubTxt">1</span><span class="nglyph" id="mNoteG" aria-hidden="true"></span></button>
+          <span class="tnote" id="mNote" aria-hidden="true"><span class="nglyph" id="mNoteG"></span></span>
           <span class="eq" aria-hidden="true">=</span>
           <div class="bpm" id="mBpm" aria-live="off">80</div>
         </div>
@@ -2158,7 +2152,6 @@ function yin(buf, sr) {
     if (s.bpm >= MIN && s.bpm <= MAX) state.bpm = Math.round(s.bpm);
     if (s.num >= 1 && s.num <= 8) state.num = s.num;
     if ([2, 4, 8].indexOf(s.den) >= 0) state.den = s.den;
-    if (s.sub === 1 || s.sub === 2) state.sub = s.sub;
     if (Array.isArray(s.levels)) state.levels = s.levels.slice(0, 8);
   } catch (e) {}
   function fixLevels() {
@@ -2245,27 +2238,30 @@ function yin(buf, sr) {
 
   /* ---------- controls ---------- */
   /* engraved notes, in staff spaces of 10 units with the middle line at y = 0: head in the space below it (A),
-     stem up 3.5 spaces; two clicks per beat are a pair of quavers joined by a beam */
-  var HEAD = '<ellipse rx="6" ry="4.3" transform="translate(@ 5) rotate(-20)"/>';
-  var STEM = '<rect x="@" y="-30" width="1.3" height="34"/>';
-  function head(x) { return HEAD.replace('@', x); }
-  function stem(x) { return STEM.replace('@', x - 1.3); }
-  function noteSvg(sub, vb) {
-    var body = sub === 2
-      ? head(6.5) + head(22.5) + stem(12.2) + stem(28.2) + '<polygon points="10.9,-30 28.2,-30 28.2,-25 10.9,-25"/>'
-      : head(6.5) + stem(12.2);
-    return '<svg viewBox="0 ' + vb + ' ' + (sub === 2 ? 30 : 14) + ' ' + (vb === -50 ? 100 : 42) + '">' + body + '</svg>';
+     stem up 3.5 spaces. The time signature's lower number picks the note: 2 half, 4 crotchet, 8 quaver. */
+  function ellipse(cx, cy, rx, ry, deg) {        /* an ellipse as a path, so a hollow head can be one even-odd shape */
+    var t = deg * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+    var x1 = (cx - rx * c).toFixed(2), y1 = (cy - rx * s).toFixed(2), x2 = (cx + rx * c).toFixed(2), y2 = (cy + rx * s).toFixed(2);
+    return 'M' + x1 + ' ' + y1 + 'A' + rx + ' ' + ry + ' ' + deg + ' 1 0 ' + x2 + ' ' + y2 + 'A' + rx + ' ' + ry + ' ' + deg + ' 1 0 ' + x1 + ' ' + y1 + 'Z';
+  }
+  function noteSvg(den, vb) {
+    var head = den === 2
+      ? '<path fill-rule="evenodd" d="' + ellipse(6.5, 5, 6, 4.3, -20) + ellipse(6.5, 5, 4.4, 2.1, -35) + '"/>'
+      : '<path d="' + ellipse(6.5, 5, 6, 4.3, -20) + '"/>';
+    var body = head + '<rect x="10.9" y="-30" width="1.3" height="34"/>';
+    if (den === 8) body += '<path d="M10.9 -30H12.2C12.8 -24.5 20.6 -21.5 18.6 -10.5C19.4 -17.5 15.4 -20.6 12.2 -21.8H10.9Z"/>';   /* flag */
+    return '<svg viewBox="0 ' + vb + ' ' + (den === 8 ? 20 : 14) + ' ' + (vb === -50 ? 100 : 42) + '">' + body + '</svg>';
   }
   function drawSig() {
     $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den;
-    $('mSubTxt').textContent = state.sub; $('mNoteG').innerHTML = noteSvg(state.sub, -32);
+    $('mNoteG').innerHTML = noteSvg(state.den, -32);
   }
   drawSig();
 
   /* one note per beat between the repeat signs, faded when the beat is muted */
   var notesEl = $('mNotes'), scoreEl = $('mScore');
   function drawNotes() {
-    var svg = noteSvg(state.sub, -50), html = '';
+    var svg = noteSvg(state.den, -50), html = '';
     state.levels.forEach(function (lv, k) { html += '<span class="' + (lv === 0 ? 'muted' : '') + (k === lastNow && playing ? ' now' : '') + '">' + svg + '</span>'; });
     notesEl.innerHTML = html;
     layoutScore();
@@ -2288,8 +2284,7 @@ function yin(buf, sr) {
   drawSig();
   /* tap the top number: 1 more beat per bar, after 8 back to 1. Tap the bottom one: 4, 8, 2, 4 ... */
   $('mNum').addEventListener('click', function () { state.num = state.num % 8 + 1; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });
-  $('mNote').addEventListener('click', function () { state.sub = state.sub === 2 ? 1 : 2; beatsEl.dataset.sub = state.sub; drawSig(); drawNotes(); persist(); });
-  $('mDen').addEventListener('click', function () { state.den = { 2: 4, 4: 8, 8: 2 }[state.den] || 4; drawTempo(); drawSig(); persist(); });
+  $('mDen').addEventListener('click', function () { state.den = { 2: 4, 4: 8, 8: 2 }[state.den] || 4; drawTempo(); drawSig(); drawNotes(); persist(); });
 
 
   /* drag on the dial */
