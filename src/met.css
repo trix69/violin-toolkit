@@ -39,6 +39,7 @@
 #view-metronome .top { display: flex; align-items: center; gap: 24px; padding-right: 20px; }
 #view-metronome .top .beats { flex: 1; min-width: 0; padding-inline: 0; }
 #view-metronome .beats:has(.beat:nth-child(6)) { gap: 5px; }
+#view-metronome .beats:has(> .beat:only-child) { justify-content: center; }   /* one beat: in the middle of the bar */
 #view-metronome .tempo { flex: none; display: grid; justify-items: center; gap: 6px; }
 #view-metronome .mark { display: flex; align-items: center; gap: 6px; }
 #view-metronome .eq { font: 500 26px/1 var(--font-note); color: var(--muted); }
