@@ -62,7 +62,18 @@
 #view-metronome .dial .play:focus-visible { outline: none; stroke: var(--fg); stroke-width: 3; }
 #view-metronome .dial:focus-visible .knob { stroke: var(--fg); }
 
-#view-metronome .bottom { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+#view-metronome .bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+#view-metronome .symbtn { display: inline-flex; align-items: center; gap: 8px; }
+#view-metronome .symico { font: 400 18px/1 'Times New Roman', 'Noto Serif', Georgia, serif; letter-spacing: 1px; }
+/* Symbols overlay: violin notation at a glance */
+#symbols .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
+#symbols h3:first-of-type { margin-top: 4px; }
+#symbols .sym-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(var(--c), minmax(0, 1fr)); gap: 8px; }
+#symbols .sym-grid li { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 10px 6px 12px; border: 1px solid var(--line); border-radius: 12px; text-align: center; }
+#symbols .sym { display: grid; place-items: center; height: 48px; color: var(--fg); }
+#symbols .sym svg { height: 46px; width: auto; fill: currentColor; }
+#symbols b { font: 600 14px/1.25 var(--font-note); }
+#symbols small { font: 400 12px/1.35 var(--font-note); color: var(--muted); }
 /* small staves: the clef and time signature (a box the size of a beat), and the note that clicks (beside the tempo).
    Staff lines are drawn around the vertical centre, --sp apart. */
 #view-metronome .staff {

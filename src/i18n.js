@@ -20,6 +20,11 @@
     'in tune': '音准正确', 'off the board': '超出指板',
     'no sharps or flats': '无升降号', 'no ♯ or ♭': '无升降号',
     /* metronome */
+    'Symbols': '符号', 'Notes': '音符', 'Bowing': '弓法', 'Accidentals': '变音记号',
+    'Quaver (eighth note)': '八分音符', 'Crotchet (quarter note)': '四分音符', 'Minim (half note)': '二分音符', 'Semibreve (whole note)': '全音符',
+    '½ beat in 4/4': '4/4 拍中占半拍', '1 beat in 4/4': '4/4 拍中占 1 拍', '2 beats in 4/4': '4/4 拍中占 2 拍', '4 beats in 4/4': '4/4 拍中占 4 拍',
+    'Up bow': '上弓', 'Push: from the tip towards the frog': '推弓：从弓尖向弓根', 'Down bow': '下弓', 'Pull: from the frog towards the tip': '拉弓：从弓根向弓尖',
+    'Flat': '降号', 'One semitone lower': '降低半音', 'Natural': '还原号', 'Cancels a sharp or flat': '取消升号或降号', 'Sharp': '升号', 'One semitone higher': '升高半音',
     'Tap': '点拍', 'Slower': '减慢', 'Faster': '加快', 'Time signature': '拍号', 'Beats per bar': '每小节拍数',
     'Note value': '音符时值', 'Clicks per beat': '每拍点击数', 'Tempo': '速度', 'Start': '开始', 'Stop': '停止',
     'Beats. Tap a beat to change its accent.': '节拍。点按某一拍可更改其重音。',

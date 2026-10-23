@@ -182,6 +182,14 @@
     if (taps.length >= 2) setBpm(60000 / ((taps[taps.length - 1] - taps[0]) / (taps.length - 1)));
   });
 
+  /* ---------- symbols overlay ---------- */
+  var symSheet = $('symbols'), symBtn = $('mSym');
+  function closeSym() { symSheet.hidden = true; document.removeEventListener('keydown', onSymKey); try { symBtn.focus(); } catch (e) {} }
+  function onSymKey(e) { if (e.key === 'Escape') closeSym(); else if (e.key === 'Tab') { e.preventDefault(); $('symDone').focus(); } }
+  symBtn.addEventListener('click', function () { symSheet.hidden = false; document.addEventListener('keydown', onSymKey); $('symCard').focus(); });
+  $('symDone').addEventListener('click', closeSym);
+  symSheet.addEventListener('click', function (e) { if (e.target === symSheet) closeSym(); });
+
   /* ---------- audio ---------- */
   var ctx = null, timer = 0, nextT = 0, beatIdx = 0, subIdx = 0, queue = [], raf = 0, lastNow = -1;
   function click(t, level) {

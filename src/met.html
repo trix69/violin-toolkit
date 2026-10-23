@@ -32,5 +32,30 @@
       </svg>
     </div>
     <div class="bottom">
+      <button type="button" class="tap symbtn" id="mSym" aria-haspopup="dialog"><span class="symico" aria-hidden="true">♩♯</span>Symbols</button>
       <button type="button" class="tap" id="mTap">Tap</button>
+    </div>
+    <div class="sheet" id="symbols" role="dialog" aria-modal="true" aria-labelledby="symTitle" hidden>
+      <div class="sheet-card" id="symCard" tabindex="-1">
+        <h2 id="symTitle">Symbols</h2>
+        <h3>Notes</h3>
+        <ul class="sym-grid" style="--c: 2">
+          <li><span class="sym"><svg viewBox="0 -21 20 42" aria-hidden="true"><path d="M0.86 10.05A6 4.3 -20 1 0 12.14 5.95A6 4.3 -20 1 0 0.86 10.05Z"/><rect x="10.9" y="-19" width="1.3" height="27"/><path d="M10.9 -19H12.2C12.8 -13.5 20.6 -10.5 18.6 0.5C19.4 -6.5 15.4 -9.6 12.2 -10.8H10.9Z"/></svg></span><b>Quaver (eighth note)</b><small>½ beat in 4/4</small></li>
+          <li><span class="sym"><svg viewBox="0 -21 14 42" aria-hidden="true"><path d="M0.86 10.05A6 4.3 -20 1 0 12.14 5.95A6 4.3 -20 1 0 0.86 10.05Z"/><rect x="10.9" y="-19" width="1.3" height="27"/></svg></span><b>Crotchet (quarter note)</b><small>1 beat in 4/4</small></li>
+          <li><span class="sym"><svg viewBox="0 -21 14 42" aria-hidden="true"><path fill-rule="evenodd" d="M0.86 10.05A6 4.3 -20 1 0 12.14 5.95A6 4.3 -20 1 0 0.86 10.05ZM2.90 10.52A4.4 2.1 -35 1 0 10.10 5.48A4.4 2.1 -35 1 0 2.90 10.52Z"/><rect x="10.9" y="-19" width="1.3" height="27"/></svg></span><b>Minim (half note)</b><small>2 beats in 4/4</small></li>
+          <li><span class="sym"><svg viewBox="0 -21 20 42" aria-hidden="true"><path fill-rule="evenodd" d="M2.00 0.00A8 5 0 1 0 18.00 0.00A8 5 0 1 0 2.00 0.00ZM8.10 -3.29A3.8 2.8 60 1 0 11.90 3.29A3.8 2.8 60 1 0 8.10 -3.29Z"/></svg></span><b>Semibreve (whole note)</b><small>4 beats in 4/4</small></li>
+        </ul>
+        <h3>Bowing</h3>
+        <ul class="sym-grid" style="--c: 2">
+          <li><span class="sym"><svg viewBox="0 -21 20 42" aria-hidden="true"><path d="M3.5 -13L10 7L16.5 -13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="miter"/></svg></span><b>Up bow</b><small>Push: from the tip towards the frog</small></li>
+          <li><span class="sym"><svg viewBox="0 -21 20 42" aria-hidden="true"><path d="M2 -12H18V6H16.6V-8.5H3.4V6H2Z"/></svg></span><b>Down bow</b><small>Pull: from the frog towards the tip</small></li>
+        </ul>
+        <h3>Accidentals</h3>
+        <ul class="sym-grid" style="--c: 3">
+          <li><span class="sym"><svg viewBox="0 -21 20 42" aria-hidden="true"><path d="M7 -19V7C13 3.5 17 -1 14.5 -4.5C12.5 -7 9 -5.5 7 -2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span><b>Flat</b><small>One semitone lower</small></li>
+          <li><span class="sym"><svg viewBox="0 -21 20 42" aria-hidden="true"><path d="M6 -16V6M14 -6V16" stroke="currentColor" stroke-width="1.4"/><path d="M6 -2.5L14 -5.5M6 5.5L14 2.5" stroke="currentColor" stroke-width="3.2"/></svg></span><b>Natural</b><small>Cancels a sharp or flat</small></li>
+          <li><span class="sym"><svg viewBox="0 -21 20 42" aria-hidden="true"><path d="M7.5 -14V15M12.5 -16V13" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 -2L16.5 -6.5M3.5 7L16.5 2.5" stroke="currentColor" stroke-width="3.2"/></svg></span><b>Sharp</b><small>One semitone higher</small></li>
+        </ul>
+        <button type="button" class="sheet-done" id="symDone">Done</button>
+      </div>
     </div>
