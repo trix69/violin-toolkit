@@ -2,6 +2,14 @@
   "name": "Violin Toolkit",
   "short_name": "Violin Toolkit",
   "description": "Violin tuner, fingerboard chart and metronome.",
+  "id": "/violin-toolkit/",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "music",
+    "education",
+    "utilities"
+  ],
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -26,6 +34,29 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/fingerboard.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Fingerboard: press and hold any note"
+    },
+    {
+      "src": "screenshots/tuner.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tuner for G, D, A and E"
+    },
+    {
+      "src": "screenshots/metronome.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Metronome with tap tempo"
     }
   ]
 }

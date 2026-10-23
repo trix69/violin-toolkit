@@ -21,17 +21,27 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 </script>
 '''
 out = src.replace('</head>', head_add + '</head>').replace('</body>', reg + '</body>')
+os.makedirs(ROOT + 'screenshots', exist_ok=True)
+for f in ('fingerboard.png', 'tuner.png', 'metronome.png'):
+    if os.path.exists(SRC + 'screenshots/' + f):
+        shutil.copy(SRC + 'screenshots/' + f, ROOT + 'screenshots/' + f)
 for f in ('icon-192.png', 'icon-512.png', 'apple-touch-icon.png'):
     shutil.copy(SRC + 'icons/' + f, ROOT + f)
 open(ROOT + 'index.html', 'w', encoding='utf-8').write(out)
 json.dump({
   "name": "Violin Toolkit", "short_name": "Violin Toolkit", "description": "Violin tuner, fingerboard chart and metronome.",
+  "id": "/violin-toolkit/", "lang": "en", "dir": "ltr", "categories": ["music", "education", "utilities"],
   "start_url": "./", "scope": "./", "display": "standalone", "orientation": "portrait",
   "background_color": "#16201b", "theme_color": "#2f7679",
   "icons": [
     {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
     {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
     {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "screenshots": [
+    {"src": "screenshots/fingerboard.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Fingerboard: press and hold any note"},
+    {"src": "screenshots/tuner.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Tuner for G, D, A and E"},
+    {"src": "screenshots/metronome.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Metronome with tap tempo"}
   ]}, open(ROOT + 'manifest.webmanifest', 'w'), indent=2)
 open(ROOT + 'sw.js', 'w').write('''/* Violin Toolkit service worker. VERSION changes on every build, which makes phones update. */
 const VERSION = 'violin-toolkit-%s';

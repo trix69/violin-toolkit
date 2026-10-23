@@ -653,6 +653,8 @@ html[lang="zh-CN"] {
 .tab[aria-current="page"].live::after { background: var(--on-accent); box-shadow: 0 0 0 2px var(--accent); }
 .appsub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 480px) { .appsub { letter-spacing: -0.02em; font-size: 11px; } }
+/* narrow Android phones (360 px): keep the title clear of the tool buttons */
+@media (max-width: 380px) { .appbar h1 { font-size: 23px; } .appbar { gap: 8px; } .tabs { gap: 4px; } }
 @media (max-width: 480px) { .tab { width: 40px; height: 40px; } .tabs { gap: 5px; } .tab svg { width: 22px; height: 22px; } }
 /* ---- settings sheet ---- */
 .tab-set { margin-left: 2px; }
