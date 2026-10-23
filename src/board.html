@@ -14,15 +14,15 @@
   --line: #C8D1CA;
   --accent: #16201B;
   --on-accent: #ECEFEB;
-  --board: #201C1A;
-  --board-text: #B9B1A2;
-  --board-line: rgba(233, 226, 210, 0.2);
+  --board: #46524C;   /* same as the tuner */
+  --board-text: #C9D3CC;
+  --board-line: rgba(233, 240, 235, 0.22);
   --string: #D9D1BF;
   --nut: #EDE6D3;
   --ink: #15110F;
   --board-good: #6FD6A0;
-  --off: #59534D;
-  --off-ink: #E4DCCB;
+  --off: #6A7770;
+  --off-ink: #E6EEE8;
   --g: #E3A24C;
   --d: #74C493;
   --a: #66AEE6;
@@ -40,7 +40,8 @@
     --line: #2A3830;
     --accent: #E5ECE7;
     --on-accent: #0E1512;
-    --board: #171412;
+    --board: #2C3833;
+    --off: #52625A;
     color-scheme: dark;
   }
 }
@@ -52,7 +53,8 @@
   --line: #2A3830;
   --accent: #E5ECE7;
   --on-accent: #0E1512;
-  --board: #171412;
+  --board: #2C3833;
+  --off: #52625A;
   color-scheme: dark;
 }
 
@@ -151,7 +153,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .stage {
   --r: 20px; --head: 50px; --oy: 24px; --k: 3.5px; --span: 400px; --fs: 19px;
   display: grid; grid-template-columns: 1fr 56px;
-  background: color-mix(in srgb, var(--board) 84%, transparent);
+  background: var(--board);
   border-radius: 16px;
   padding-block: 8px;
   overflow: hidden;
