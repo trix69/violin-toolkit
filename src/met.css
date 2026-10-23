@@ -60,8 +60,10 @@
 #view-metronome .dial:focus-visible .knob { stroke: var(--fg); }
 
 #view-metronome .bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-#view-metronome .sig { display: inline-flex; align-items: center; gap: 8px; }
-#view-metronome .sig span { font: 500 18px var(--font-mono); color: var(--muted); }
+#view-metronome .sig { --sg: 8px; --sw: 11px; display: inline-flex; align-items: center; gap: var(--sg); }
+#view-metronome .sig span { width: var(--sw); text-align: center; font: 500 18px var(--font-mono); color: var(--muted); }
+/* the clicks-per-beat menu sits as far from the note value as the note value does from the beats (gap + slash + gap) */
+#view-metronome .sig #mSub { margin-left: calc(var(--sg) + var(--sw)); }
 #view-metronome select {
   background: var(--panel); color: var(--fg);
   border: 1px solid var(--line); border-radius: 10px;
@@ -91,7 +93,7 @@
   #view-metronome .dial { width: min(100%, 520px); }
   #view-metronome select { height: 48px; font-size: 17px; padding: 0 16px; }
   #view-metronome #mSub { font-size: 24px; width: 72px; }
-  #view-metronome .sig { gap: 12px; }
+  #view-metronome .sig { --sg: 12px; --sw: 13px; }
   #view-metronome .sig span { font-size: 22px; }
   #view-metronome .tap { height: 48px; min-width: 120px; font-size: 18px; }
 }
