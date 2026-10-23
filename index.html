@@ -202,6 +202,8 @@ h1 {
 .tab:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .shell, .shell * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
 #view-tuner { padding-bottom: 16px; font: 400 16px/1.5 var(--t-body); }
+#view-board .a4v { font: 500 14px var(--font-mono); color: var(--fg); white-space: nowrap; }
+#view-tuner .a4v { font: 500 14px var(--t-mono); color: var(--t-fg); letter-spacing: 0; white-space: nowrap; }
 
 /* ---- fingerboard ---- */
 #view-board .app { display: grid; gap: 10px; }
@@ -922,13 +924,10 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
         <span class="track" aria-hidden="true"></span>
       </button>
     </div>
-    <label class="inl" for="tuning">
+    <span class="inl">
       <span class="lbl lbl-a4">A4</span>
-      <select id="tuning">
-        <option value="442">442 Hz</option>
-        <option value="440">440 Hz</option>
-      </select>
-    </label>
+      <span class="a4v" id="tuning">442 Hz</span>
+    </span>
   </div>
 
   <div class="majorrow" role="group" aria-labelledby="keyLabel">
@@ -1025,7 +1024,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <button id="m-violin" type="button" aria-pressed="true">Violin</button>
       <button id="m-chrom" type="button" aria-pressed="false">Chromatic</button>
     </div>
-    <label class="a4">A4 <select id="a4"></select></label>
+    <span class="a4">A4 <span class="a4v" id="a4">442 Hz</span></span>
   </section>
 
   <section class="panel" aria-label="Tuner">
@@ -1101,6 +1100,11 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     <div class="segc two" role="radiogroup" aria-labelledby="lblNames" id="segNames">
       <button type="button" role="radio" aria-checked="false" data-names="letter">Pitch names</button>
       <button type="button" role="radio" aria-checked="false" data-names="solfege">Solfège</button>
+    </div>
+    <h3 id="lblA4">Tuning pitch (A4)</h3>
+    <div class="segc two" role="radiogroup" aria-labelledby="lblA4" id="segA4">
+      <button type="button" role="radio" aria-checked="false" data-a4="442">442 Hz</button>
+      <button type="button" role="radio" aria-checked="false" data-a4="440">440 Hz</button>
     </div>
     <h3 id="lblApp">Appearance</h3>
     <div class="segc" role="radiogroup" aria-labelledby="lblApp" id="segApp">
@@ -1586,19 +1590,13 @@ function yin(buf, sr) {
 
   /* ---------- settings ---------- */
   var sel = $('a4');
-  A4S.forEach(function (v) {
-    var o = document.createElement('option');
-    o.value = v; o.textContent = v + ' Hz';
-    if (v === a4) o.selected = true;
-    sel.appendChild(o);
-  });
+  sel.textContent = a4 + ' Hz';
   function refreshFoot() {
     $('foot').textContent = 'Open strings at A4 = ' + a4 + ' Hz: G3 ' + hz(55).toFixed(1) + ' · D4 ' + hz(62).toFixed(1) + ' · A4 ' + hz(69).toFixed(1) + ' · E5 ' + hz(76).toFixed(1) + ' Hz. 100 cents make a semitone; within 3 cents counts as in tune.';
   }
-  sel.addEventListener('change', function () { APP.setA4(+sel.value); });
   APP.onA4.push(function (v) {
     a4 = v;
-    sel.value = String(v);
+    sel.textContent = v + ' Hz';
     if (tone) tone.osc.frequency.value = hz(STR[tone.i].midi);
     refreshStrings(); refreshFoot();
     if (last) setFreq(last);
@@ -1913,15 +1911,14 @@ function yin(buf, sr) {
     });
   });
   showVib();
-  tuningSel.value = String(state.tuning);
+  tuningSel.textContent = state.tuning + ' Hz';
   vibBtn.addEventListener('click', function () {
     state.vibrato = !state.vibrato;
     persist();
     showVib();
     voices.forEach(applyVib);
   });
-  tuningSel.addEventListener('change', function () { APP.setA4(+tuningSel.value); });
-  APP.onA4.push(function (v) { state.tuning = v; tuningSel.value = String(v); });
+  APP.onA4.push(function (v) { state.tuning = v; tuningSel.textContent = v + ' Hz'; });
 
   /* ---------- Audio ---------- */
   var ctx = null, master = null;
@@ -2527,11 +2524,13 @@ function yin(buf, sr) {
   var sheet = document.getElementById('sheet'), sheetCard = document.getElementById('sheetCard');
   var segLang = document.getElementById('segLang');
   var segNames = document.getElementById('segNames');
+  var segA4 = document.getElementById('segA4');
   var segApp = document.getElementById('segApp'), swatches = document.getElementById('swatches');
   var openBtn = document.getElementById('openSettings');
   function syncSheet() {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
     Array.prototype.forEach.call(segLang.children, function (b) { b.setAttribute('aria-checked', b.dataset.lang === I18N.lang ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segA4.children, function (b) { b.setAttribute('aria-checked', +b.dataset.a4 === APP.a4 ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
   }
@@ -2618,6 +2617,10 @@ function yin(buf, sr) {
   segNames.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     I18N.setNames(b.dataset.names); syncSheet();
+  });
+  segA4.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    APP.setA4(+b.dataset.a4); syncSheet();
   });
   segApp.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
@@ -2750,7 +2753,7 @@ function yin(buf, sr) {
     'Tap Install to confirm.': '点按“安装”确认。',
     'Open it from the new icon once while you have internet.': '在有网络时，从新图标打开一次。',
     'Use the app at least once with internet. After that, it also works offline.': '请至少在有网络时使用一次，之后也可离线使用。',
-    'Support': '支持', 'Note names': '音符名称', 'Pitch names': '音名', 'Solfège': '唱名',
+    'Support': '支持', 'Note names': '音符名称', 'Tuning pitch (A4)': '标准音高 (A4)', 'Pitch names': '音名', 'Solfège': '唱名',
     'Buy me a coffee': '请我喝杯咖啡',
     'Like this app?': '喜欢这个应用？', 'Star on GitHub': '在 GitHub 上点个星',
     'QR code for buymeacoffee.com/trinks': 'buymeacoffee.com/trinks 二维码',

@@ -158,17 +158,31 @@ body[data-view="tuner"] { background: var(--t-bg); color: var(--t-fg); }
 .tab:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .shell, .shell * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
 #view-tuner { padding-bottom: 16px; font: 400 16px/1.5 var(--t-body); }
+#view-board .a4v { font: 500 14px var(--font-mono); color: var(--fg); white-space: nowrap; }
+#view-tuner .a4v { font: 500 14px var(--t-mono); color: var(--t-fg); letter-spacing: 0; white-space: nowrap; }
 '''
 
 # ---------------------------------------------------------------- board HTML
 b_main = board[board.index('<main class="app">'):board.index('</main>') + len('</main>')]
 b_main = re.sub(r'\n  <header>.*?</header>\n', '\n', b_main, flags=re.S)
 b_main = b_main.replace('<main class="app">', '<div class="app">').replace('</main>', '</div>')
+# A4 is chosen once in Settings; the board only shows it
+b_main = must(b_main, """    <label class="inl" for="tuning">
+      <span class="lbl lbl-a4">A4</span>
+      <select id="tuning">
+        <option value="442">442 Hz</option>
+        <option value="440">440 Hz</option>
+      </select>
+    </label>""", """    <span class="inl">
+      <span class="lbl lbl-a4">A4</span>
+      <span class="a4v" id="tuning">442 Hz</span>
+    </span>""")
 assert '<header' not in b_main
 
 # ---------------------------------------------------------------- tuner HTML
 t_body = tuner[tuner.index('</header>') + len('</header>'):tuner.index('</main>')]
 t_body = t_body.strip('\n')
+t_body = must(t_body, '<label class="a4">A4 <select id="a4"></select></label>', '<span class="a4">A4 <span class="a4v" id="a4">442 Hz</span></span>')
 # move the Start tuning row to the top of the panel so it is visible on small screens
 a0 = t_body.index('    <div class="actions">')
 a1 = t_body.index('</div>', t_body.index('id="status"', a0)) + len('</div>')
@@ -185,9 +199,9 @@ b_js = board[board.index('<script>') + 8:board.rindex('</script>')]
 b_js = must(b_js, "var state = { key: 'G', vibrato: true, tuning: 442, pos: '1' };", "var state = { key: 'G', vibrato: true, tuning: APP.a4, pos: '1' };")
 b_js = must(b_js, "    if (['440', '442'].indexOf(String(saved.tuning)) >= 0) state.tuning = +saved.tuning;\n", "")
 b_js = must(b_js, "key: state.key, vibrato: state.vibrato, tuning: state.tuning", "key: state.key, vibrato: state.vibrato")
+b_js = must(b_js, "  tuningSel.value = String(state.tuning);", "  tuningSel.textContent = state.tuning + ' Hz';")
 b_js = must(b_js, "  tuningSel.addEventListener('change', function () { state.tuning = +tuningSel.value; persist(); });",
-            "  tuningSel.addEventListener('change', function () { APP.setA4(+tuningSel.value); });\n"
-            "  APP.onA4.push(function (v) { state.tuning = v; tuningSel.value = String(v); });")
+            "  APP.onA4.push(function (v) { state.tuning = v; tuningSel.textContent = v + ' Hz'; });")
 b_js = must(b_js, "  render();\n  setTimeout(layout, 300);\n})();",
             "  render();\n  setTimeout(layout, 300);\n\n"
             "  APP.views.board = {\n"
@@ -347,16 +361,21 @@ t_start = tuner.index('<script>') + 8
 t_js = tuner[t_start:tuner.index('</script>', t_start)]
 t_js = must(t_js, "  var a4 = 442, mode = 'violin';", "  var a4 = APP.a4, mode = 'violin';")
 t_js = must(t_js, "    var sa = +localStorage.getItem('vt-a4-v2');\n    if (A4S.indexOf(sa) >= 0) a4 = sa;\n", "")
+t_js = must(t_js, """  A4S.forEach(function (v) {
+    var o = document.createElement('option');
+    o.value = v; o.textContent = v + ' Hz';
+    if (v === a4) o.selected = true;
+    sel.appendChild(o);
+  });""", "  sel.textContent = a4 + ' Hz';")
 t_js = must(t_js, """  sel.addEventListener('change', function () {
     a4 = +sel.value;
     try { localStorage.setItem('vt-a4-v2', String(a4)); } catch (e) {}
     if (tone) tone.osc.frequency.value = hz(STR[tone.i].midi);
     refreshStrings(); refreshFoot();
     if (last) setFreq(last);
-  });""", """  sel.addEventListener('change', function () { APP.setA4(+sel.value); });
-  APP.onA4.push(function (v) {
+  });""", """  APP.onA4.push(function (v) {
     a4 = v;
-    sel.value = String(v);
+    sel.textContent = v + ' Hz';
     if (tone) tone.osc.frequency.value = hz(STR[tone.i].midi);
     refreshStrings(); refreshFoot();
     if (last) setFreq(last);
@@ -419,11 +438,13 @@ nav_js = """(function () {
   var sheet = document.getElementById('sheet'), sheetCard = document.getElementById('sheetCard');
   var segLang = document.getElementById('segLang');
   var segNames = document.getElementById('segNames');
+  var segA4 = document.getElementById('segA4');
   var segApp = document.getElementById('segApp'), swatches = document.getElementById('swatches');
   var openBtn = document.getElementById('openSettings');
   function syncSheet() {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
     Array.prototype.forEach.call(segLang.children, function (b) { b.setAttribute('aria-checked', b.dataset.lang === I18N.lang ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segA4.children, function (b) { b.setAttribute('aria-checked', +b.dataset.a4 === APP.a4 ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
   }
@@ -510,6 +531,10 @@ nav_js = """(function () {
   segNames.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     I18N.setNames(b.dataset.names); syncSheet();
+  });
+  segA4.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    APP.setA4(+b.dataset.a4); syncSheet();
   });
   segApp.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
@@ -681,6 +706,11 @@ markup = f"""
     <div class="segc two" role="radiogroup" aria-labelledby="lblNames" id="segNames">
       <button type="button" role="radio" aria-checked="false" data-names="letter">Pitch names</button>
       <button type="button" role="radio" aria-checked="false" data-names="solfege">Solfège</button>
+    </div>
+    <h3 id="lblA4">Tuning pitch (A4)</h3>
+    <div class="segc two" role="radiogroup" aria-labelledby="lblA4" id="segA4">
+      <button type="button" role="radio" aria-checked="false" data-a4="442">442 Hz</button>
+      <button type="button" role="radio" aria-checked="false" data-a4="440">440 Hz</button>
     </div>
     <h3 id="lblApp">Appearance</h3>
     <div class="segc" role="radiogroup" aria-labelledby="lblApp" id="segApp">

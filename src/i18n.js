@@ -72,7 +72,7 @@
     'Tap Install to confirm.': '点按“安装”确认。',
     'Open it from the new icon once while you have internet.': '在有网络时，从新图标打开一次。',
     'Use the app at least once with internet. After that, it also works offline.': '请至少在有网络时使用一次，之后也可离线使用。',
-    'Support': '支持', 'Note names': '音符名称', 'Pitch names': '音名', 'Solfège': '唱名',
+    'Support': '支持', 'Note names': '音符名称', 'Tuning pitch (A4)': '标准音高 (A4)', 'Pitch names': '音名', 'Solfège': '唱名',
     'Buy me a coffee': '请我喝杯咖啡',
     'Like this app?': '喜欢这个应用？', 'Star on GitHub': '在 GitHub 上点个星',
     'QR code for buymeacoffee.com/trinks': 'buymeacoffee.com/trinks 二维码',
