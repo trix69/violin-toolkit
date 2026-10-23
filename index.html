@@ -548,25 +548,18 @@ h1 {
 #view-metronome .beat.now[data-l="3"] i { background: var(--accent); }
 #view-metronome .beat:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-#view-metronome .tempo { display: grid; grid-template-columns: auto auto 56px 1fr 56px; align-items: center; gap: 8px; }
+/* top row: "note = bpm" with the tempo name under it, then the beats */
+#view-metronome .top { display: flex; align-items: center; gap: 10px; }
+#view-metronome .top .beats { flex: 1; min-width: 0; padding-inline: 0; }
+#view-metronome .beats:has(.beat:nth-child(6)) { gap: 5px; }
+#view-metronome .tempo { flex: none; display: grid; justify-items: center; gap: 6px; }
+#view-metronome .mark { display: flex; align-items: center; gap: 2px; }
 #view-metronome .eq { font: 500 26px/1 var(--font-note); color: var(--muted); }
-/* time signature box, then the beats */
-#view-metronome .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 104px; padding: 20px 8px 6px; }
-/* the beats sit directly in the bar's row, so the time signature box sizes exactly like a beat */
-#view-metronome .bar .beats { display: contents; }
-#view-metronome .bar:has(.beat:nth-child(6)) { gap: 5px; }
-#view-metronome .bar:has(.beat:nth-child(5)) .sig { min-width: 62px; }   /* many beats: keep the clef readable */
-#view-metronome .step {
-  height: 56px; border: 1px solid var(--line); border-radius: 14px;
-  background: var(--panel); color: var(--fg);
-  font: 500 28px/1 var(--font-note); cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-#view-metronome .step:active { background: var(--line); }
-#view-metronome .step:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-#view-metronome .readout { text-align: center; }
-#view-metronome .bpm { font: 700 64px/1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-#view-metronome .tname { margin-top: 4px; font: 500 13px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+#view-metronome .tname { padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--line) 55%, transparent); }
+/* the beat boxes show only the accent bars; the notes are on the staff below */
+#view-metronome .top .beat i:nth-child(3)::after { display: none; }
+#view-metronome .bpm { min-width: 2.2ch; text-align: center; font: 700 44px/1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+#view-metronome .tname { font: 500 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
 #view-metronome .dialwrap { display: grid; justify-items: center; }
 #view-metronome .dial { width: min(100%, 340px); height: auto; touch-action: none; cursor: grab; }
@@ -595,19 +588,23 @@ h1 {
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp)) / 100% 1px no-repeat,
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp) * 2) / 100% 1px no-repeat;
 }
-#view-metronome .tnote { height: calc(var(--sp) * 10); }
-#view-metronome .sig {
-  --pad: 5px;   /* same padding as a beat, so flex shrinks both alike */
-  flex: 0 1 80px; min-width: 0; height: 104px; padding: var(--pad); box-sizing: border-box; container-type: size;
-  border: 2px solid var(--line); border-radius: 18px; background: var(--panel); overflow: hidden;
+#view-metronome .tnote { --sp: 8px; height: calc(var(--sp) * 7); padding: 0 2px; }
+/* the score: clef and time signature, then one note under each beat (placed by script) */
+#view-metronome .score {
+  --sp: 10px; position: relative; height: calc(var(--sp) * 10);
+  border: 1px solid var(--line); border-radius: 14px; background-color: var(--panel);
 }
-/* --sp follows the box: the clef (about 9 spaces tall) fills the height, clef and numbers fill the width */
-#view-metronome .sigstaff {
-  --sp: min(calc((100cqw + var(--pad) * 2 - 8px) / 5.6), calc((100cqh + var(--pad) * 2 - 4px) / 9.9));
-  height: calc(100% + var(--pad) * 2); margin: calc(var(--pad) * -1); display: flex; align-items: center; justify-content: center; gap: calc(var(--sp) * .15);
-}
+#view-metronome .sig { position: absolute; left: 6px; top: 0; bottom: 0; display: flex; align-items: center; gap: calc(var(--sp) * .2); }
 /* the clef path is drawn on lines 40..80 (10 apart); its middle line (60) lands on the staff's middle */
 #view-metronome .sig .clef { flex: none; width: calc(var(--sp) * 3.4); height: calc(var(--sp) * 12); pointer-events: none; }
+#view-metronome .notes > i {
+  position: absolute; top: calc(50% - var(--sp) * 3); width: min(calc(var(--sp) * 4), var(--w, 999px)); height: calc(var(--sp) * 4); transform: translateX(-50%);
+  background: var(--fg); -webkit-mask: var(--g1) center / contain no-repeat; mask: var(--g1) center / contain no-repeat;
+  transition: background-color 80ms;
+}
+#view-metronome .notes[data-sub="2"] > i { -webkit-mask-image: var(--g2); mask-image: var(--g2); }
+#view-metronome .notes > i.muted { opacity: .3; }
+#view-metronome .notes > i.now { background: var(--accent); }
 #view-metronome .frac { align-self: stretch; display: grid; grid-template-rows: 1fr 1fr; }
 #view-metronome .tsn {
   display: flex; justify-content: center; padding: 0 2px; border: 0; border-radius: 8px; background: none; color: var(--fg); cursor: pointer;
@@ -654,16 +651,14 @@ h1 {
   #view-metronome .beats { min-height: 156px; padding: 28px 10px 8px; }
   #view-metronome .beat { flex: 0 1 124px; height: 150px; padding: 7px; gap: 7px; border-radius: 24px; }
   #view-metronome .beat i { border-radius: 13px; }
-  #view-metronome .tempo { grid-template-columns: auto auto 80px 1fr 80px; gap: 16px; }
+  #view-metronome .top { gap: 20px; }
   #view-metronome .eq { font-size: 34px; }
-  #view-metronome .step { height: 80px; border-radius: 18px; font-size: 40px; }
-  #view-metronome .bpm { font-size: 112px; }
-  #view-metronome .tname { font-size: 16px; margin-top: 8px; }
+  #view-metronome .bpm { font-size: 80px; }
+  #view-metronome .tname { font-size: 15px; }
   #view-metronome .dial { width: min(100%, 520px); }
   #view-metronome select { height: 48px; font-size: 17px; padding: 0 16px; }
-  #view-metronome .tnote { --sp: 13px; }
-  #view-metronome .bar { min-height: 156px; padding: 28px 10px 8px; }
-  #view-metronome .sig { --pad: 7px; flex: 0 1 124px; height: 150px; border-radius: 24px; }
+  #view-metronome .tnote { --sp: 11px; }
+  #view-metronome .score { --sp: 14px; }
   #view-metronome .tap { height: 48px; min-width: 120px; font-size: 18px; }
 }
 
@@ -915,30 +910,29 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
   </section>
 
   <section id="view-metronome" aria-label="Metronome" hidden>
-    <div class="tempo">
-      <label class="pick staff tnote" id="mNote"><span class="glyph" aria-hidden="true"></span><select id="mSub" aria-label="Clicks per beat">
-        <option value="1">♩</option>
-        <option value="2">♫</option>
-      </select></label>
-      <span class="eq" aria-hidden="true">=</span>
-      <button type="button" class="step" id="mMinus" aria-label="Slower">−</button>
-      <div class="readout">
-        <div class="bpm" id="mBpm" aria-live="off">80</div>
+    <div class="top">
+      <div class="tempo">
+        <div class="mark">
+          <label class="pick tnote" id="mNote"><span class="glyph" aria-hidden="true"></span><select id="mSub" aria-label="Clicks per beat">
+            <option value="1">♩</option>
+            <option value="2">♫</option>
+          </select></label>
+          <span class="eq" aria-hidden="true">=</span>
+          <div class="bpm" id="mBpm" aria-live="off">80</div>
+        </div>
         <div class="tname" id="mName">Andante</div>
       </div>
-      <button type="button" class="step" id="mPlus" aria-label="Faster">+</button>
+      <div class="beats" id="mBeats" role="group" aria-label="Beats. Tap a beat to change its accent."></div>
     </div>
-    <div class="bar">
+    <div class="score staff" id="mScore">
       <div class="sig" role="group" aria-label="Time signature">
-        <div class="staff sigstaff">
-          <svg class="clef" viewBox="3 0 34 120" aria-hidden="true"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></svg>
-          <div class="frac">
-            <button type="button" class="tsn top" id="mNum"><span class="vh">Beats per bar</span> <span id="mNumTxt">4</span></button>
-            <button type="button" class="tsn bot" id="mDen"><span class="vh">Note value</span> <span id="mDenTxt">4</span></button>
-          </div>
+        <svg class="clef" viewBox="3 0 34 120" aria-hidden="true"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></svg>
+        <div class="frac">
+          <button type="button" class="tsn top" id="mNum"><span class="vh">Beats per bar</span> <span id="mNumTxt">4</span></button>
+          <button type="button" class="tsn bot" id="mDen"><span class="vh">Note value</span> <span id="mDenTxt">4</span></button>
         </div>
       </div>
-      <div class="beats" id="mBeats" role="group" aria-label="Beats. Tap a beat to change its accent."></div>
+      <div class="notes" id="mNotes" aria-hidden="true"></div>
     </div>
     <div class="dialwrap">
       <svg class="dial" id="mDial" viewBox="0 0 300 232" role="slider" aria-label="Tempo" aria-valuemin="40" aria-valuemax="250" aria-valuenow="76" tabindex="0">
@@ -2215,6 +2209,7 @@ function yin(buf, sr) {
       setBeatLabel(b, i, lv);
       beatsEl.appendChild(b);
     });
+    drawNotes();
   }
   var LV = ['muted', 'normal', 'medium', 'accent'];
   function setBeatLabel(b, i, lv) { b.setAttribute('aria-label', 'Beat ' + (i + 1) + ', ' + LV[lv] + '. Tap to change.'); }
@@ -2223,7 +2218,7 @@ function yin(buf, sr) {
     var i = +b.dataset.i;
     state.levels[i] = (state.levels[i] + 1) % 4;
     b.dataset.l = state.levels[i]; setBeatLabel(b, i, state.levels[i]);
-    persist();
+    drawNotes(); persist();
   });
 
   function drawTempo() {
@@ -2253,26 +2248,33 @@ function yin(buf, sr) {
   /* ---------- controls ---------- */
   var subSel = $('mSub');
   subSel.value = String(state.sub);
-  function drawSig() { $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den; $('mNote').dataset.sub = state.sub; }
+  function drawSig() { $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den; $('mNote').dataset.sub = state.sub; notesEl.dataset.sub = state.sub; }
+
+  /* one note on the staff under each beat box, faded when the beat is muted */
+  var notesEl = $('mNotes'), scoreEl = $('mScore');
+  function drawNotes() {
+    var beats = beatsEl.children, s0 = scoreEl.getBoundingClientRect();
+    if (notesEl.children.length !== beats.length) {
+      notesEl.innerHTML = '';
+      for (var k = 0; k < beats.length; k++) notesEl.appendChild(document.createElement('i'));
+    }
+    Array.prototype.forEach.call(beats, function (b, k) {
+      var r = b.getBoundingClientRect(), n = notesEl.children[k];
+      n.style.left = (r.left + r.width / 2 - s0.left) + 'px';
+      n.style.setProperty('--w', r.width + 'px');   /* never wider than its beat, so notes don't overlap */
+      n.classList.toggle('muted', b.dataset.l === '0');
+      n.classList.toggle('now', b.classList.contains('now'));
+    });
+  }
+  /* re-place when the score or the beat row changes size (also after the web font widens the tempo) */
+  if (window.ResizeObserver) { var ro = new ResizeObserver(drawNotes); ro.observe(scoreEl); ro.observe(beatsEl); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawNotes);
   drawSig();
   /* tap the top number: 1 more beat per bar, after 8 back to 1. Tap the bottom one: 4, 8, 2, 4 ... */
   $('mNum').addEventListener('click', function () { state.num = state.num % 8 + 1; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });
   subSel.addEventListener('change', function () { state.sub = +subSel.value; beatsEl.dataset.sub = state.sub; drawSig(); persist(); });
   $('mDen').addEventListener('click', function () { state.den = { 2: 4, 4: 8, 8: 2 }[state.den] || 4; drawTempo(); drawSig(); persist(); });
 
-  function holdRepeat(btn, delta) {
-    var t1 = 0, t2 = 0;
-    function stop() { clearTimeout(t1); clearInterval(t2); t1 = t2 = 0; }
-    btn.addEventListener('pointerdown', function (e) {
-      e.preventDefault();
-      setBpm(state.bpm + delta);
-      stop();
-      t1 = setTimeout(function () { t2 = setInterval(function () { setBpm(state.bpm + delta); }, 70); }, 400);
-    });
-    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { btn.addEventListener(ev, stop); });
-    btn.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setBpm(state.bpm + delta); } });
-  }
-  holdRepeat($('mMinus'), -1); holdRepeat($('mPlus'), 1);
 
   /* drag on the dial */
   var dragging = false;
@@ -2344,6 +2346,7 @@ function yin(buf, sr) {
     if (i === lastNow) return;
     lastNow = i;
     Array.prototype.forEach.call(beatsEl.children, function (b, k) { b.classList.toggle('now', k === i); });
+    Array.prototype.forEach.call(notesEl.children, function (n, k) { n.classList.toggle('now', k === i); });
   }
   function frame() {
     if (!playing) return;

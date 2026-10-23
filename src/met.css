@@ -34,25 +34,18 @@
 #view-metronome .beat.now[data-l="3"] i { background: var(--accent); }
 #view-metronome .beat:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-#view-metronome .tempo { display: grid; grid-template-columns: auto auto 56px 1fr 56px; align-items: center; gap: 8px; }
+/* top row: "note = bpm" with the tempo name under it, then the beats */
+#view-metronome .top { display: flex; align-items: center; gap: 10px; }
+#view-metronome .top .beats { flex: 1; min-width: 0; padding-inline: 0; }
+#view-metronome .beats:has(.beat:nth-child(6)) { gap: 5px; }
+#view-metronome .tempo { flex: none; display: grid; justify-items: center; gap: 6px; }
+#view-metronome .mark { display: flex; align-items: center; gap: 2px; }
 #view-metronome .eq { font: 500 26px/1 var(--font-note); color: var(--muted); }
-/* time signature box, then the beats */
-#view-metronome .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 104px; padding: 20px 8px 6px; }
-/* the beats sit directly in the bar's row, so the time signature box sizes exactly like a beat */
-#view-metronome .bar .beats { display: contents; }
-#view-metronome .bar:has(.beat:nth-child(6)) { gap: 5px; }
-#view-metronome .bar:has(.beat:nth-child(5)) .sig { min-width: 62px; }   /* many beats: keep the clef readable */
-#view-metronome .step {
-  height: 56px; border: 1px solid var(--line); border-radius: 14px;
-  background: var(--panel); color: var(--fg);
-  font: 500 28px/1 var(--font-note); cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-#view-metronome .step:active { background: var(--line); }
-#view-metronome .step:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-#view-metronome .readout { text-align: center; }
-#view-metronome .bpm { font: 700 64px/1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-#view-metronome .tname { margin-top: 4px; font: 500 13px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+#view-metronome .tname { padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--line) 55%, transparent); }
+/* the beat boxes show only the accent bars; the notes are on the staff below */
+#view-metronome .top .beat i:nth-child(3)::after { display: none; }
+#view-metronome .bpm { min-width: 2.2ch; text-align: center; font: 700 44px/1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+#view-metronome .tname { font: 500 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
 #view-metronome .dialwrap { display: grid; justify-items: center; }
 #view-metronome .dial { width: min(100%, 340px); height: auto; touch-action: none; cursor: grab; }
@@ -81,19 +74,23 @@
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp)) / 100% 1px no-repeat,
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp) * 2) / 100% 1px no-repeat;
 }
-#view-metronome .tnote { height: calc(var(--sp) * 10); }
-#view-metronome .sig {
-  --pad: 5px;   /* same padding as a beat, so flex shrinks both alike */
-  flex: 0 1 80px; min-width: 0; height: 104px; padding: var(--pad); box-sizing: border-box; container-type: size;
-  border: 2px solid var(--line); border-radius: 18px; background: var(--panel); overflow: hidden;
+#view-metronome .tnote { --sp: 8px; height: calc(var(--sp) * 7); padding: 0 2px; }
+/* the score: clef and time signature, then one note under each beat (placed by script) */
+#view-metronome .score {
+  --sp: 10px; position: relative; height: calc(var(--sp) * 10);
+  border: 1px solid var(--line); border-radius: 14px; background-color: var(--panel);
 }
-/* --sp follows the box: the clef (about 9 spaces tall) fills the height, clef and numbers fill the width */
-#view-metronome .sigstaff {
-  --sp: min(calc((100cqw + var(--pad) * 2 - 8px) / 5.6), calc((100cqh + var(--pad) * 2 - 4px) / 9.9));
-  height: calc(100% + var(--pad) * 2); margin: calc(var(--pad) * -1); display: flex; align-items: center; justify-content: center; gap: calc(var(--sp) * .15);
-}
+#view-metronome .sig { position: absolute; left: 6px; top: 0; bottom: 0; display: flex; align-items: center; gap: calc(var(--sp) * .2); }
 /* the clef path is drawn on lines 40..80 (10 apart); its middle line (60) lands on the staff's middle */
 #view-metronome .sig .clef { flex: none; width: calc(var(--sp) * 3.4); height: calc(var(--sp) * 12); pointer-events: none; }
+#view-metronome .notes > i {
+  position: absolute; top: calc(50% - var(--sp) * 3); width: min(calc(var(--sp) * 4), var(--w, 999px)); height: calc(var(--sp) * 4); transform: translateX(-50%);
+  background: var(--fg); -webkit-mask: var(--g1) center / contain no-repeat; mask: var(--g1) center / contain no-repeat;
+  transition: background-color 80ms;
+}
+#view-metronome .notes[data-sub="2"] > i { -webkit-mask-image: var(--g2); mask-image: var(--g2); }
+#view-metronome .notes > i.muted { opacity: .3; }
+#view-metronome .notes > i.now { background: var(--accent); }
 #view-metronome .frac { align-self: stretch; display: grid; grid-template-rows: 1fr 1fr; }
 #view-metronome .tsn {
   display: flex; justify-content: center; padding: 0 2px; border: 0; border-radius: 8px; background: none; color: var(--fg); cursor: pointer;
@@ -140,15 +137,13 @@
   #view-metronome .beats { min-height: 156px; padding: 28px 10px 8px; }
   #view-metronome .beat { flex: 0 1 124px; height: 150px; padding: 7px; gap: 7px; border-radius: 24px; }
   #view-metronome .beat i { border-radius: 13px; }
-  #view-metronome .tempo { grid-template-columns: auto auto 80px 1fr 80px; gap: 16px; }
+  #view-metronome .top { gap: 20px; }
   #view-metronome .eq { font-size: 34px; }
-  #view-metronome .step { height: 80px; border-radius: 18px; font-size: 40px; }
-  #view-metronome .bpm { font-size: 112px; }
-  #view-metronome .tname { font-size: 16px; margin-top: 8px; }
+  #view-metronome .bpm { font-size: 80px; }
+  #view-metronome .tname { font-size: 15px; }
   #view-metronome .dial { width: min(100%, 520px); }
   #view-metronome select { height: 48px; font-size: 17px; padding: 0 16px; }
-  #view-metronome .tnote { --sp: 13px; }
-  #view-metronome .bar { min-height: 156px; padding: 28px 10px 8px; }
-  #view-metronome .sig { --pad: 7px; flex: 0 1 124px; height: 150px; border-radius: 24px; }
+  #view-metronome .tnote { --sp: 11px; }
+  #view-metronome .score { --sp: 14px; }
   #view-metronome .tap { height: 48px; min-width: 120px; font-size: 18px; }
 }
