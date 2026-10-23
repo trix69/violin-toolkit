@@ -1,0 +1,97 @@
+#view-metronome { display: grid; gap: 14px; align-content: space-evenly; min-height: calc(100vh - 110px); min-height: calc(100dvh - 110px); max-width: 420px; margin: 0 auto; padding-bottom: 24px; color: var(--fg); font-family: var(--font-note); }
+#view-metronome .beats { display: flex; justify-content: space-between; gap: 10px; min-height: 104px; padding: 20px 8px 6px; }
+#view-metronome .beat i:nth-child(3)::after {
+  content: ""; display: block; width: 100%; height: 100%;
+  background: var(--muted);
+  -webkit-mask: var(--glyph) center / auto 78% no-repeat; mask: var(--glyph) center / auto 78% no-repeat;
+}
+#view-metronome .beat i:nth-child(3) { --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%279%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%209%2018%29%27/%3E%3Crect%20x%3D%2711.6%27%20y%3D%273%27%20width%3D%271.8%27%20height%3D%2715.5%27/%3E%3C/svg%3E"); }
+#view-metronome .beats[data-sub="2"] .beat i:nth-child(3) { --glyph: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%276%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%206%2018%29%27/%3E%3Cellipse%20cx%3D%2716%27%20cy%3D%2716%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%2016%2016%29%27/%3E%3Crect%20x%3D%278.5%27%20y%3D%274.5%27%20width%3D%271.8%27%20height%3D%2714%27/%3E%3Crect%20x%3D%2718.4%27%20y%3D%272.2%27%20width%3D%271.8%27%20height%3D%2713.8%27/%3E%3Cpolygon%20points%3D%278.5%2C4.5%2020.2%2C2.2%2020.2%2C6.2%208.5%2C8.5%27/%3E%3C/svg%3E"); }
+#view-metronome .beat[data-l="1"] i:nth-child(3)::after, #view-metronome .beat[data-l="2"] i:nth-child(3)::after, #view-metronome .beat[data-l="3"] i:nth-child(3)::after { background: var(--on-accent); }
+#view-metronome .beat {
+  flex: 0 1 80px; min-width: 0; height: 104px; padding: 5px;
+  display: grid; grid-template-rows: 1fr 1fr 1fr; gap: 5px;
+  border: 2px solid var(--line); border-radius: 18px;
+  background: var(--panel); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 80ms, box-shadow 80ms, border-color 80ms;
+}
+#view-metronome .beat i { display: block; border-radius: 9px; background: color-mix(in srgb, var(--line) 55%, transparent); }
+#view-metronome .beat[data-l="1"] i:nth-child(3),
+#view-metronome .beat[data-l="2"] i:nth-child(n+2),
+#view-metronome .beat[data-l="3"] i { background: var(--accent); }
+#view-metronome .beat[data-l="0"] { opacity: .55; }
+#view-metronome .beat.now {
+  transform: translateY(-5px) scale(1.08);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel));
+  box-shadow: 0 0 0 4px var(--accent), 0 10px 24px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+#view-metronome .beat.now i { background: color-mix(in srgb, var(--accent) 30%, var(--panel)); }
+#view-metronome .beat.now[data-l="1"] i:nth-child(3),
+#view-metronome .beat.now[data-l="2"] i:nth-child(n+2),
+#view-metronome .beat.now[data-l="3"] i { background: var(--accent); }
+#view-metronome .beat:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+#view-metronome .tempo { display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; gap: 8px; }
+#view-metronome .step {
+  height: 56px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--panel); color: var(--fg);
+  font: 500 28px/1 var(--font-note); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#view-metronome .step:active { background: var(--line); }
+#view-metronome .step:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+#view-metronome .readout { text-align: center; }
+#view-metronome .bpm { font: 700 64px/1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+#view-metronome .tname { margin-top: 4px; font: 500 13px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+#view-metronome .dialwrap { display: grid; justify-items: center; }
+#view-metronome .dial { width: min(100%, 340px); height: auto; touch-action: none; cursor: grab; }
+#view-metronome .dial text { font: 500 13px var(--font-mono); fill: var(--muted); text-anchor: middle; dominant-baseline: middle; }
+#view-metronome .dial .track { fill: none; stroke: var(--line); stroke-width: 12; stroke-linecap: round; }
+#view-metronome .dial .prog { fill: none; stroke: var(--accent); stroke-width: 12; stroke-linecap: round; }
+#view-metronome .dial .knob { fill: var(--accent); stroke: var(--bg); stroke-width: 4; }
+#view-metronome .dial .play { fill: var(--accent); cursor: pointer; }
+#view-metronome .dial .glyph { fill: var(--on-accent); pointer-events: none; }
+#view-metronome .dial .play:focus { outline: none; }
+#view-metronome .dial:focus { outline: none; }
+#view-metronome .dial .play:focus-visible { outline: none; stroke: var(--fg); stroke-width: 3; }
+#view-metronome .dial:focus-visible .knob { stroke: var(--fg); }
+
+#view-metronome .bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+#view-metronome .sig { display: inline-flex; align-items: center; gap: 8px; }
+#view-metronome .sig span { font: 500 18px var(--font-mono); color: var(--muted); }
+#view-metronome select {
+  background: var(--panel); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 0 12px; height: 38px; font: 500 14px var(--font-mono);
+}
+#view-metronome #mSub { font: 400 20px/1 system-ui, 'Segoe UI Symbol', sans-serif; width: 56px; padding: 0 10px; }
+#view-metronome .tap {
+  min-width: 84px; height: 40px; padding: 0 18px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--panel); color: var(--fg);
+  font: 500 15px var(--font-note); cursor: pointer;
+}
+#view-metronome .tap:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+#view-metronome .tap:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { #view-metronome .beat { transition: none; } }
+
+/* larger layout on wide screens: same width as the other tools */
+@media (min-width: 640px) {
+  #view-metronome { max-width: none; gap: 22px; padding-bottom: 32px; }
+  #view-metronome .beats { min-height: 156px; padding: 28px 10px 8px; }
+  #view-metronome .beat { flex: 0 1 124px; height: 150px; padding: 7px; gap: 7px; border-radius: 24px; }
+  #view-metronome .beat i { border-radius: 13px; }
+  #view-metronome .tempo { grid-template-columns: 80px 1fr 80px; gap: 16px; }
+  #view-metronome .step { height: 80px; border-radius: 18px; font-size: 40px; }
+  #view-metronome .bpm { font-size: 112px; }
+  #view-metronome .tname { font-size: 16px; margin-top: 8px; }
+  #view-metronome .dial { width: min(100%, 520px); }
+  #view-metronome select { height: 48px; font-size: 17px; padding: 0 16px; }
+  #view-metronome #mSub { font-size: 24px; width: 72px; }
+  #view-metronome .sig { gap: 12px; }
+  #view-metronome .sig span { font-size: 22px; }
+  #view-metronome .tap { height: 48px; min-width: 120px; font-size: 18px; }
+}

@@ -18,3 +18,24 @@ Shortcut links: `#tuner`, `#fingerboard`, `#metronome`, plus `#zh` or `#solfege`
 If it helps your practice, you can [buy me a coffee](https://buymeacoffee.com/trinks).
 
 If this helps your practice, a ⭐ on GitHub is appreciated.
+
+## Building from source
+
+The app is built from the files in `src/` into one HTML page.
+
+```
+python3 src/release.py
+```
+
+This needs Python 3 only. It writes the standalone page to `dist/violin-toolkit.html` (not committed), and refreshes `index.html`, `manifest.webmanifest`, `sw.js` and the icons in the repo root, which GitHub Pages serves. The service worker version is a build timestamp, so every build makes installed copies update.
+
+| File | What it is |
+| --- | --- |
+| `src/build.py` | Assembles the page: settings, start overlay, navigation, theme script |
+| `src/board.html` | Fingerboard source |
+| `src/tuner.html` | Tuner source |
+| `src/met.css`, `met.html`, `met.js` | Metronome |
+| `src/i18n.js` | English / 中文 and solfège translator, ordinal suffixes |
+| `src/make_pwa.py` | Writes the manifest, service worker and install page |
+| `src/favicon-tags.html`, `src/icons/` | Favicons and app icons |
+| `src/redirect/` | Redirect page for the old `violin-fingerboard.html` address |

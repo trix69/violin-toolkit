@@ -1,0 +1,31 @@
+    <div class="beats" id="mBeats" role="group" aria-label="Beats. Tap a beat to change its accent."></div>
+    <div class="tempo">
+      <button type="button" class="step" id="mMinus" aria-label="Slower">−</button>
+      <div class="readout">
+        <div class="bpm" id="mBpm" aria-live="off">80</div>
+        <div class="tname" id="mName">Andante</div>
+      </div>
+      <button type="button" class="step" id="mPlus" aria-label="Faster">+</button>
+    </div>
+    <div class="dialwrap">
+      <svg class="dial" id="mDial" viewBox="0 0 300 232" role="slider" aria-label="Tempo" aria-valuemin="40" aria-valuemax="250" aria-valuenow="76" tabindex="0">
+        <path class="track" id="mTrack"/>
+        <path class="prog" id="mProg"/>
+        <g id="mLabels"></g>
+        <circle class="play" id="mPlay" cx="150" cy="150" r="52" role="button" tabindex="0" aria-label="Start"/>
+        <path class="glyph" id="mGlyph"/>
+        <circle class="knob" id="mKnob" r="15"/>
+      </svg>
+    </div>
+    <div class="bottom">
+      <div class="sig" role="group" aria-label="Time signature">
+        <select id="mNum" aria-label="Beats per bar"></select>
+        <span>/</span>
+        <select id="mDen" aria-label="Note value"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select>
+        <select id="mSub" aria-label="Clicks per beat">
+          <option value="1">♩</option>
+          <option value="2">♫</option>
+        </select>
+      </div>
+      <button type="button" class="tap" id="mTap">Tap</button>
+    </div>
