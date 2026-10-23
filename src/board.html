@@ -91,6 +91,7 @@ h1 {
   color: var(--muted);
   white-space: nowrap;
 }
+.lbl-a4 { text-transform: none; }   /* a pitch name, not a caption: solfège La4 must not become LA4 */
 .majorrow { display: flex; align-items: center; gap: 10px; }
 .keys { flex: 1; min-width: 0; display: flex; gap: 4px; }
 .keys button {
@@ -330,7 +331,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       </button>
     </div>
     <label class="inl" for="tuning">
-      <span class="lbl">A4</span>
+      <span class="lbl lbl-a4">A4</span>
       <select id="tuning">
         <option value="442">442 Hz</option>
         <option value="440">440 Hz</option>

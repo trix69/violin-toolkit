@@ -130,6 +130,9 @@ chrome_css = '''
 ''' + body_rule + '''
 body[data-view="tuner"] { background: var(--t-bg); color: var(--t-fg); }
 .shell { max-width: 720px; margin: 0 auto; }
+.skip { position: absolute; left: 12px; top: -60px; z-index: 200; padding: 10px 14px; border-radius: 10px; background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-note); text-decoration: none; }
+.skip:focus { top: 12px; }
+#main:focus { outline: none; }
 .appbar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   margin-bottom: 10px;
@@ -281,7 +284,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 @keyframes offer-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 #howto { z-index: 120; }
-#howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); overflow-y: auto; }
+#howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
 .howto-lead { margin: 0 0 14px; font: 400 14px/1.5 var(--font-note); color: var(--muted); }
 .howto-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 10px; }
 .howto-steps li { counter-increment: st; display: flex; align-items: center; gap: 12px; font: 400 15px/1.4 var(--font-note); }
@@ -540,6 +543,17 @@ nav_js = """(function () {
   Array.prototype.forEach.call(launch.querySelectorAll('.launch-btn'), function (b) {
     b.addEventListener('click', function () { closeLaunch(b.dataset.view); });
   });
+  /* skip link: move focus without touching the address (a #main hash would read as a tool link) */
+  document.getElementById('skip').addEventListener('click', function (e) { e.preventDefault(); document.getElementById('main').focus(); });
+  window.addEventListener('hashchange', function () {
+    var t = (location.hash || '').replace('#', '').split(/[,&;]/).map(function (x) { return x.trim().toLowerCase().replace(/^(lang|names)=/, ''); });
+    var v = t.filter(function (x) { return map[x]; })[0];
+    if (v) { if (!launch.hidden) closeLaunch(null); show(map[v]); }
+    if (window.I18N) {
+      if (t.indexOf('zh') >= 0 || t.indexOf('cn') >= 0) I18N.set('zh'); else if (t.indexOf('en') >= 0) I18N.set('en');
+      if (t.indexOf('solfege') >= 0 || t.indexOf('sol') >= 0) I18N.setNames('solfege'); else if (t.indexOf('letter') >= 0) I18N.setNames('letter');
+    }
+  });
   if (!map[h]) {
     lastFocus = document.activeElement;
     launch.hidden = false;
@@ -570,17 +584,37 @@ init_js = '''<script>
       if (this.mode === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', this.mode);
       root.setAttribute('data-accent', this.accent);
       try { localStorage.setItem('violin-theme', JSON.stringify({ mode: this.mode, accent: this.accent })); } catch (e) {}
+      this.bar();
+    },
+    /* the phone's status bar takes the page background, so it matches light/dark */
+    bar: function () {
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
+      var bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+      if (bg) m.content = bg;
     }
   };
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { window.THEME.bar(); }); } catch (e) {}
   window.THEME.apply();
 })();
 </script>
 '''
 
-head = """<title>Violin Toolkit</title>
+import base64
+LATIN = ('U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,'
+         'U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD')
+def face(family, file, weight):
+    data = base64.b64encode(open(SP + 'fonts/' + file, 'rb').read()).decode()
+    return ("@font-face { font-family: '%s'; font-style: normal; font-weight: %s; font-display: swap;\n"
+            "  src: url(data:font/woff2;base64,%s) format('woff2'); unicode-range: %s; }\n" % (family, weight, data, LATIN))
+# fonts live in src/fonts (SIL Open Font License, see OFL.txt) and are inlined, so nothing is fetched from Google
+font_faces = (face('DM Sans', 'dm-sans-latin-wght-normal.woff2', '100 1000') + face('Outfit', 'outfit-latin-wght-normal.woff2', '100 900')
+              + face('DM Mono', 'dm-mono-latin-400-normal.woff2', '400') + face('DM Mono', 'dm-mono-latin-500-normal.woff2', '500'))
+
+head = f"""<title>Violin Toolkit</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Outfit:wght@500;600;700&display=swap">
+<style>
+{font_faces}</style>
 """
 
 ICON_BOARD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11"/><path d="M8.4 3.5L7.2 21M10.8 3.5l-.5 17.5M13.2 3.5l.5 17.5M15.6 3.5L16.8 21" opacity=".7"/><path d="M7.7 11h8.6M7.3 17h9.4" opacity=".7"/><circle cx="10.8" cy="7.3" r="1.3" fill="currentColor"/><circle cx="15.6" cy="14" r="1.3" fill="currentColor"/></svg>'
@@ -590,6 +624,7 @@ ICON_TUNER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5
 
 markup = f"""
 <div class="shell" id="shell" data-view="board">
+  <a class="skip" href="#main" id="skip">Skip to content</a>
   <header class="appbar">
     <div id="ttl-board">
       <h1>Fingerboard</h1>
@@ -611,6 +646,7 @@ markup = f"""
     </nav>
   </header>
 
+  <main id="main" tabindex="-1">
   <section id="view-board" aria-label="Violin fingerboard">
 {b_main}
   </section>
@@ -624,6 +660,7 @@ markup = f"""
 {t_body}
     </div>
   </section>
+  </main>
 
 </div>
 

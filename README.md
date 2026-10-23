@@ -12,7 +12,9 @@ No account, no ads, no tracking. After the first visit it works without an inter
 
 ## Use it
 Open the app link, then add it to your phone's home screen.
-Shortcut links: `#tuner`, `#fingerboard`, `#metronome`, plus `#zh` or `#solfege`, for example `…/#fingerboard,zh`.
+Shortcut links: `#tuner`, `#fingerboard` or `#metronome` open that tool. Add `#zh` / `#en` for 中文 or English, and `#solfege` / `#letter` for Do Re Mi or C D E note names, for example `…/#fingerboard,zh,solfege`. Language and note-name choices are remembered, so use `#en` or `#letter` to switch back. Links also work when you change them in an open tab.
+
+Fonts (DM Sans, DM Mono, Outfit) are built into the page, so nothing is loaded from Google or any other site.
 
 ## Support
 If it helps your practice, you can [buy me a coffee](https://buymeacoffee.com/trinks).

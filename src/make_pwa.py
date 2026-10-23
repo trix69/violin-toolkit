@@ -19,6 +19,18 @@ head_add = '''<link rel="manifest" href="manifest.webmanifest">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Violin Toolkit">
+<meta name="twitter:description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta name="twitter:image" content="https://trix69.github.io/violin-toolkit/og-image.png">
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Violin Toolkit",
+ "description": "Free violin tuner, fingerboard chart and metronome. Works offline, in English and Chinese.",
+ "url": "https://trix69.github.io/violin-toolkit/", "applicationCategory": "MusicApplication", "operatingSystem": "Any",
+ "inLanguage": ["en", "zh-CN"], "isAccessibleForFree": true,
+ "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+ "image": "https://trix69.github.io/violin-toolkit/og-image.png",
+ "screenshot": ["https://trix69.github.io/violin-toolkit/screenshots/fingerboard.png", "https://trix69.github.io/violin-toolkit/screenshots/tuner.png", "https://trix69.github.io/violin-toolkit/screenshots/metronome.png"]}
+</script>
 '''
 # drop the old data-URI apple-touch-icon so the real file is used
 src = re.sub(r'<link rel="apple-touch-icon"[^>]*>', '', src)

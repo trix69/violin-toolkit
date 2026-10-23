@@ -2,6 +2,7 @@
   var P = { '1st': '一把位', '2nd': '二把位', '3rd': '三把位' };
   var DICT = {
     /* chrome */
+    'Skip to content': '跳到内容',
     'Tools': '工具', 'Settings': '设置', 'Done': '完成',
     'Fingerboard': '指板', 'Tuner': '调音器', 'Metronome': '节拍器',
     'Violin Toolkit': '小提琴工具箱',
