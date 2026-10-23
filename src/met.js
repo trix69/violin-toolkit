@@ -115,12 +115,28 @@
   drawSig();
 
   /* one note per beat between the repeat signs, faded when the beat is muted */
-  var notesEl = $('mNotes');
+  var notesEl = $('mNotes'), scoreEl = $('mScore');
   function drawNotes() {
     var svg = noteSvg(state.sub, -50), html = '';
     state.levels.forEach(function (lv, k) { html += '<span class="' + (lv === 0 ? 'muted' : '') + (k === lastNow && playing ? ' now' : '') + '">' + svg + '</span>'; });
     notesEl.innerHTML = html;
+    layoutScore();
   }
+  /* line the score up with the row above: start repeat under the right end of the tempo number,
+     each note under the middle of its beat (never wider than the beat) */
+  function layoutScore() {
+    var s0 = scoreEl.getBoundingClientRect();
+    if (!s0.width) return;                               /* hidden view: done again when shown */
+    scoreEl.style.setProperty('--lead', Math.max(0, bpmEl.getBoundingClientRect().right - s0.left) + 'px');
+    Array.prototype.forEach.call(beatsEl.children, function (b, k) {
+      var r = b.getBoundingClientRect(), n = notesEl.children[k];
+      if (!n) return;
+      n.style.left = (r.left + r.width / 2 - s0.left) + 'px';
+      n.style.width = Math.max(0, r.width - 4) + 'px';
+    });
+  }
+  if (window.ResizeObserver) { var ro = new ResizeObserver(layoutScore); ro.observe(scoreEl); ro.observe(beatsEl); ro.observe(bpmEl); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutScore);
   drawSig();
   /* tap the top number: 1 more beat per bar, after 8 back to 1. Tap the bottom one: 4, 8, 2, 4 ... */
   $('mNum').addEventListener('click', function () { state.num = state.num % 8 + 1; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });

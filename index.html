@@ -549,7 +549,8 @@ h1 {
 #view-metronome .beat:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 /* top row: "note = bpm" with the tempo name under it, then the beats */
-#view-metronome .top { display: flex; align-items: center; gap: 10px; }
+/* the gaps leave room on the staff below for the repeat signs, which sit under them */
+#view-metronome .top { display: flex; align-items: center; gap: 24px; padding-right: 20px; }
 #view-metronome .top .beats { flex: 1; min-width: 0; padding-inline: 0; }
 #view-metronome .beats:has(.beat:nth-child(6)) { gap: 5px; }
 #view-metronome .tempo { flex: none; display: grid; justify-items: center; gap: 6px; }
@@ -598,17 +599,21 @@ h1 {
 #view-metronome .tnote:focus-visible { outline: 3px solid var(--accent); outline-offset: -2px; }
 #view-metronome .nglyph svg { display: block; height: calc(var(--sp) * 4.4); width: auto; fill: currentColor; }
 /* the score: clef and time signature, start repeat, one note per beat, end repeat */
+/* the score lines up with the row above (positions come from layoutScore() in met.js):
+   the start repeat begins under the right end of the tempo number, the clef and time signature are centred
+   before it, each note sits under its beat, and the end repeat closes the staff at its right edge */
 #view-metronome .score {
-  --sp: 10px; display: flex; align-items: center; height: calc(var(--sp) * 10); padding: 0 calc(var(--sp) * .6) 0 6px;
+  --sp: 10px; --lead: 120px; position: relative; height: calc(var(--sp) * 10);
   border: 1px solid var(--line); border-radius: 14px; background-color: var(--panel);
 }
-#view-metronome .sig { flex: none; align-self: stretch; display: flex; align-items: center; gap: calc(var(--sp) * .2); }
+#view-metronome .sig { position: absolute; left: 0; top: 0; bottom: 0; width: var(--lead); display: flex; align-items: center; justify-content: center; gap: calc(var(--sp) * .2); }
 /* the clef path is drawn on lines 40..80 (10 apart); its middle line (60) lands on the staff's middle */
 #view-metronome .sig .clef { flex: none; width: calc(var(--sp) * 3.4); height: calc(var(--sp) * 12); pointer-events: none; }
-#view-metronome .rep { flex: none; height: calc(var(--sp) * 4 + 1px); width: auto; fill: var(--fg); }
-#view-metronome .sig + .rep { margin-left: calc(var(--sp) * .8); }
-#view-metronome .notes { flex: 1; min-width: 0; align-self: stretch; display: flex; justify-content: space-around; }
-#view-metronome .notes > span { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; color: var(--fg); transition: color 80ms; }
+#view-metronome .rep { position: absolute; top: calc(50% - var(--sp) * 2 - .5px); height: calc(var(--sp) * 4 + 1px); width: calc(var(--sp) * 1.7); fill: var(--fg); }
+#view-metronome .rep.start { left: var(--lead); }
+#view-metronome .rep.end { right: 0; }
+#view-metronome .notes { position: absolute; inset: 0; pointer-events: none; }
+#view-metronome .notes > span { position: absolute; top: 0; bottom: 0; display: flex; justify-content: center; transform: translateX(-50%); color: var(--fg); transition: color 80ms; }
 #view-metronome .notes svg { display: block; height: 100%; max-width: 100%; fill: currentColor; }
 #view-metronome .notes > .muted { opacity: .3; }
 #view-metronome .notes > .now { color: var(--accent); }
@@ -644,7 +649,7 @@ h1 {
   #view-metronome .beats { min-height: 156px; padding: 28px 10px 8px; }
   #view-metronome .beat { flex: 0 1 124px; height: 150px; padding: 7px; gap: 7px; border-radius: 24px; }
   #view-metronome .beat i { border-radius: 13px; }
-  #view-metronome .top { gap: 20px; }
+  #view-metronome .top { gap: 32px; padding-right: 28px; }
   #view-metronome .eq { font-size: 34px; }
   #view-metronome .bpm { font-size: 80px; }
   #view-metronome .tname { font-size: 15px; }
@@ -922,9 +927,9 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
           <button type="button" class="tsn bot" id="mDen"><span class="vh">Note value</span> <span id="mDenTxt">4</span></button>
         </div>
       </div>
-      <svg class="rep" viewBox="0 -20 17 40" aria-hidden="true"><rect x="0" y="-20" width="5" height="40"/><rect x="8" y="-20" width="1.4" height="40"/><circle cx="14" cy="-5" r="2"/><circle cx="14" cy="5" r="2"/></svg>
+      <svg class="rep start" viewBox="0 -20 17 40" aria-hidden="true"><rect x="0" y="-20" width="5" height="40"/><rect x="8" y="-20" width="1.4" height="40"/><circle cx="14" cy="-5" r="2"/><circle cx="14" cy="5" r="2"/></svg>
       <div class="notes" id="mNotes" aria-hidden="true"></div>
-      <svg class="rep" viewBox="0 -20 17 40" aria-hidden="true"><circle cx="3" cy="-5" r="2"/><circle cx="3" cy="5" r="2"/><rect x="7.6" y="-20" width="1.4" height="40"/><rect x="12" y="-20" width="5" height="40"/></svg>
+      <svg class="rep end" viewBox="0 -20 17 40" aria-hidden="true"><circle cx="3" cy="-5" r="2"/><circle cx="3" cy="5" r="2"/><rect x="7.6" y="-20" width="1.4" height="40"/><rect x="12" y="-20" width="5" height="40"/></svg>
     </div>
     <div class="dialwrap">
       <svg class="dial" id="mDial" viewBox="0 0 300 232" role="slider" aria-label="Tempo" aria-valuemin="40" aria-valuemax="250" aria-valuenow="76" tabindex="0">
@@ -2257,12 +2262,28 @@ function yin(buf, sr) {
   drawSig();
 
   /* one note per beat between the repeat signs, faded when the beat is muted */
-  var notesEl = $('mNotes');
+  var notesEl = $('mNotes'), scoreEl = $('mScore');
   function drawNotes() {
     var svg = noteSvg(state.sub, -50), html = '';
     state.levels.forEach(function (lv, k) { html += '<span class="' + (lv === 0 ? 'muted' : '') + (k === lastNow && playing ? ' now' : '') + '">' + svg + '</span>'; });
     notesEl.innerHTML = html;
+    layoutScore();
   }
+  /* line the score up with the row above: start repeat under the right end of the tempo number,
+     each note under the middle of its beat (never wider than the beat) */
+  function layoutScore() {
+    var s0 = scoreEl.getBoundingClientRect();
+    if (!s0.width) return;                               /* hidden view: done again when shown */
+    scoreEl.style.setProperty('--lead', Math.max(0, bpmEl.getBoundingClientRect().right - s0.left) + 'px');
+    Array.prototype.forEach.call(beatsEl.children, function (b, k) {
+      var r = b.getBoundingClientRect(), n = notesEl.children[k];
+      if (!n) return;
+      n.style.left = (r.left + r.width / 2 - s0.left) + 'px';
+      n.style.width = Math.max(0, r.width - 4) + 'px';
+    });
+  }
+  if (window.ResizeObserver) { var ro = new ResizeObserver(layoutScore); ro.observe(scoreEl); ro.observe(beatsEl); ro.observe(bpmEl); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutScore);
   drawSig();
   /* tap the top number: 1 more beat per bar, after 8 back to 1. Tap the bottom one: 4, 8, 2, 4 ... */
   $('mNum').addEventListener('click', function () { state.num = state.num % 8 + 1; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });
