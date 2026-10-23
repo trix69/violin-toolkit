@@ -678,6 +678,20 @@ html[lang="zh-CN"] {
 .support-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .support-qr { display: none; width: 128px; height: 128px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
 @media (hover: hover) and (min-width: 700px) { .support-qr { display: block; } .support-btn { height: 128px; flex-direction: column; } }
+.howto-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
+.howto-btn:hover { border-color: var(--accent); }
+.howto-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.howto-btn svg, .howto-steps svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+#howto { z-index: 120; }
+#howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); overflow-y: auto; }
+.howto-lead { margin: 0 0 14px; font: 400 14px/1.5 var(--font-note); color: var(--muted); }
+.howto-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 10px; }
+.howto-steps li { counter-increment: st; display: flex; align-items: center; gap: 12px; font: 400 15px/1.4 var(--font-note); }
+.howto-steps li::before { content: counter(st); flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font: 700 13px var(--font-note); }
+.howto-steps li span { flex: 1; }
+.howto-steps li svg { color: var(--muted); width: 22px; height: 22px; }
+.howto-note { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); font: 400 13px/1.5 var(--font-note); color: var(--fg); }
+.howto-note a { color: var(--accent); }
 .sheet-done { margin-top: 20px; width: 100%; height: 46px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: 700 16px var(--font-note); cursor: pointer; }
 
 /* ---- accent colours (set by data-accent on <html>) ---- */
@@ -930,6 +944,8 @@ html[lang="zh-CN"] {
     </div>
     <h3 id="lblCol">Colour</h3>
     <div class="swatches" role="radiogroup" aria-labelledby="lblCol" id="swatches"><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="teal" style="--sw:#2F7377;--sw-d:#6DBBC0"><i></i><span>Calm teal</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="sage" style="--sw:#4F7A66;--sw-d:#86C2A5"><i></i><span>Sage green</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="slate" style="--sw:#4D6F93;--sw-d:#8DB0D6"><i></i><span>Slate blue</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="violet" style="--sw:#6A5F93;--sw-d:#B0A6DC"><i></i><span>Soft violet</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="classic" style="--sw:#16201B;--sw-d:#E5ECE7"><i></i><span>Classic</span></button></div>
+    <h3 id="lblOff">Offline</h3>
+    <button type="button" class="howto-btn" id="openHowto" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 8v6m0 0l-2.5-2.5M12 14l2.5-2.5"/><path d="M11 18.5h2"/></svg><span>Use offline on your phone</span></button>
     <h3 id="lblSup">Support</h3>
     <div class="support">
       <a class="support-btn" href="https://buymeacoffee.com/trinks" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">☕</span><span>Buy me a coffee</span></a>
@@ -939,6 +955,34 @@ html[lang="zh-CN"] {
   </div>
 </div>
 
+<div class="sheet" id="howto" role="dialog" aria-modal="true" aria-labelledby="howtoTitle" hidden>
+  <div class="sheet-card" id="howtoCard" tabindex="-1">
+    <h2 id="howtoTitle">Use offline</h2>
+    <p class="howto-lead">Save Violin Toolkit to your phone so it opens like an app, even without internet.</p>
+    <div class="segc two" role="radiogroup" aria-label="Device" id="segDev">
+      <button type="button" role="radio" aria-checked="false" data-dev="ios">iPhone / iPad</button>
+      <button type="button" role="radio" aria-checked="false" data-dev="android">Android</button>
+    </div>
+    <ol class="howto-steps" id="stepsIos" hidden>
+      <li><span>Open this page in Safari.</span></li>
+      <li><span>Tap the Share button.</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0 0L8 7m4-4l4 4"/><path d="M7 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1"/></svg></li>
+      <li><span>Scroll down and tap Add to Home Screen.</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg></li>
+      <li><span>Keep Open as Web App switched on, then tap Add.</span></li>
+      <li><span>Open it from the new Home Screen icon while online and wait for Ready to use offline.</span></li>
+    </ol>
+    <ol class="howto-steps" id="stepsAndroid" hidden>
+      <li><span>Open this page in Chrome.</span></li>
+      <li><span>Tap the menu button.</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></li>
+      <li><span>Tap Install app, or Add to Home screen.</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg></li>
+      <li><span>Tap Install to confirm.</span></li>
+      <li><span>Open it from the new icon while online and wait for Ready to use offline.</span></li>
+    </ol>
+    <p class="howto-note" id="howtoNote">After that, it works in airplane mode.</p>
+    <p class="howto-note" id="howtoSite" hidden>First open <a href="https://trix69.github.io/violin-toolkit/" target="_blank" rel="noopener noreferrer">trix69.github.io/violin-toolkit</a> on your phone, then follow these steps there.</p>
+    <p class="howto-note" id="howtoDesk" hidden>On a computer, Chrome and Edge show an install icon in the address bar.</p>
+    <button type="button" class="sheet-done" id="howtoDone">Done</button>
+  </div>
+</div>
 <div class="launch" id="launch" role="dialog" aria-modal="true" aria-labelledby="launchTitle" hidden>
   <div class="launch-card" id="launchCard" tabindex="-1">
     <h2 id="launchTitle">Violin Toolkit</h2>
@@ -2245,6 +2289,7 @@ function yin(buf, sr) {
     try { openBtn.focus(); } catch (e) {}
   }
   function onSheetKey(e) {
+    if (!document.getElementById('howto').hidden) return;
     if (e.key === 'Escape') { closeSheet(); return; }
     if (e.key === 'Tab') {
       var els = Array.prototype.slice.call(sheet.querySelectorAll('button'));
@@ -2253,6 +2298,45 @@ function yin(buf, sr) {
       else if (!e.shiftKey && i === els.length - 1) { e.preventDefault(); els[0].focus(); }
     }
   }
+  /* ---- how to use offline ---- */
+  var howto = document.getElementById('howto'), howtoCard = document.getElementById('howtoCard');
+  var segDev = document.getElementById('segDev'), openHowto = document.getElementById('openHowto');
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  if (standalone) { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }
+  function showDev(d) {
+    Array.prototype.forEach.call(segDev.children, function (b) { b.setAttribute('aria-checked', b.dataset.dev === d ? 'true' : 'false'); });
+    document.getElementById('stepsIos').hidden = d !== 'ios';
+    document.getElementById('stepsAndroid').hidden = d !== 'android';
+  }
+  function closeHowto() {
+    howto.hidden = true;
+    document.removeEventListener('keydown', onHowtoKey);
+    try { openHowto.focus(); } catch (e) {}
+  }
+  function onHowtoKey(e) {
+    if (e.key === 'Escape') { closeHowto(); return; }
+    if (e.key === 'Tab') {
+      var els = Array.prototype.slice.call(howto.querySelectorAll('button'));
+      var i = els.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); els[els.length - 1].focus(); }
+      else if (!e.shiftKey && i === els.length - 1) { e.preventDefault(); els[0].focus(); }
+    }
+  }
+  openHowto.addEventListener('click', function () {
+    showDev(isIOS ? 'ios' : 'android');
+    var onSite = location.protocol === 'https:' && /\.github\.io$/.test(location.hostname);
+    document.getElementById('howtoSite').hidden = onSite;
+    document.getElementById('howtoDesk').hidden = !(onSite && !isIOS && !isAndroid);
+    howto.hidden = false;
+    document.addEventListener('keydown', onHowtoKey);
+    howtoCard.focus();
+  });
+  segDev.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) showDev(b.dataset.dev); });
+  document.getElementById('howtoDone').addEventListener('click', closeHowto);
+  howto.addEventListener('click', function (e) { if (e.target === howto) closeHowto(); });
   openBtn.addEventListener('click', function () {
     syncSheet(); sheet.hidden = false;
     document.addEventListener('keydown', onSheetKey);
@@ -2359,6 +2443,22 @@ function yin(buf, sr) {
     'Requesting microphone…': '正在请求麦克风权限…',
     'Microphone was not enabled. Press Start tuning to try again, or allow it in your browser site settings.': '麦克风未启用。请点“开始调音”重试，或在浏览器的网站设置中允许使用麦克风。',
     'Microphone access was blocked. Allow it in your browser site settings and try again, or tune by ear with the reference tones below.': '麦克风访问被阻止。请在浏览器的网站设置中允许后重试，或使用下方参考音凭听觉调音。',
+    'First open': '请先在手机上打开', 'on your phone, then follow these steps there.': '，然后在那里按以下步骤操作。',
+    'Offline': '离线使用', 'Use offline on your phone': '在手机上离线使用', 'Use offline': '离线使用',
+    'Save Violin Toolkit to your phone so it opens like an app, even without internet.': '把小提琴工具箱保存到手机，像应用一样打开，没有网络也能用。',
+    'iPhone / iPad': 'iPhone / iPad', 'Android': 'Android',
+    'Open this page in Safari.': '用 Safari 打开此页面。',
+    'Tap the Share button.': '点按“分享”按钮。',
+    'Scroll down and tap Add to Home Screen.': '向下滑动，点按“添加到主屏幕”。',
+    'Keep Open as Web App switched on, then tap Add.': '保持“作为网页 App 打开”开启，然后点按“添加”。',
+    'Open it from the new Home Screen icon while online and wait for Ready to use offline.': '联网时从主屏幕新图标打开，等待出现“已可离线使用”。',
+    'Open this page in Chrome.': '用 Chrome 打开此页面。',
+    'Tap the menu button.': '点按菜单按钮。',
+    'Tap Install app, or Add to Home screen.': '点按“安装应用”或“添加到主屏幕”。',
+    'Tap Install to confirm.': '点按“安装”确认。',
+    'Open it from the new icon while online and wait for Ready to use offline.': '联网时从新图标打开，等待出现“已可离线使用”。',
+    'After that, it works in airplane mode.': '之后即使开启飞行模式也能使用。',
+    'On a computer, Chrome and Edge show an install icon in the address bar.': '在电脑上，Chrome 和 Edge 会在地址栏显示安装图标。',
     'Support': '支持', 'Note names': '音符名称', 'Pitch names': '音名', 'Solfège': '唱名',
     'Buy me a coffee': '请我喝杯咖啡',
     'QR code for buymeacoffee.com/trinks': 'buymeacoffee.com/trinks 二维码',
