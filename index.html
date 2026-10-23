@@ -682,6 +682,15 @@ html[lang="zh-CN"] {
 .howto-btn:hover { border-color: var(--accent); }
 .howto-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .howto-btn svg, .howto-steps svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.offer { position: fixed; z-index: 90; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); margin: 0 auto; max-width: 440px; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--fg); box-shadow: 0 10px 30px rgba(0,0,0,.25); font: 500 14px/1.35 var(--font-note); animation: offer-in .3s ease-out; -webkit-user-select: none; user-select: none; }
+.offer[hidden] { display: none; }
+.offer p { margin: 0; flex: 1; }
+.offer-go { flex: none; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); font: 700 14px var(--font-note); cursor: pointer; }
+.offer-x { flex: none; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.offer-x svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.offer-go:focus-visible, .offer-x:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@keyframes offer-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 #howto { z-index: 120; }
 #howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); overflow-y: auto; }
 .howto-lead { margin: 0 0 14px; font: 400 14px/1.5 var(--font-note); color: var(--muted); }
@@ -958,10 +967,11 @@ html[lang="zh-CN"] {
 <div class="sheet" id="howto" role="dialog" aria-modal="true" aria-labelledby="howtoTitle" hidden>
   <div class="sheet-card" id="howtoCard" tabindex="-1">
     <h2 id="howtoTitle">Use offline</h2>
-    <p class="howto-lead">Save Violin Toolkit to your phone so it opens like an app, even without internet.</p>
-    <div class="segc two" role="radiogroup" aria-label="Device" id="segDev">
+    <p class="howto-lead">Save Violin Toolkit so it opens like an app, even without internet.</p>
+    <div class="segc" role="radiogroup" aria-label="Device" id="segDev">
       <button type="button" role="radio" aria-checked="false" data-dev="ios">iPhone / iPad</button>
       <button type="button" role="radio" aria-checked="false" data-dev="android">Android</button>
+      <button type="button" role="radio" aria-checked="false" data-dev="desktop">Mac / PC</button>
     </div>
     <ol class="howto-steps" id="stepsIos" hidden>
       <li><span>Open this page in Safari.</span></li>
@@ -977,11 +987,21 @@ html[lang="zh-CN"] {
       <li><span>Tap Install to confirm.</span></li>
       <li><span>Open it from the new icon while online and wait for Ready to use offline.</span></li>
     </ol>
-    <p class="howto-note" id="howtoNote">After that, it works in airplane mode.</p>
-    <p class="howto-note" id="howtoSite" hidden>First open <a href="https://trix69.github.io/violin-toolkit/" target="_blank" rel="noopener noreferrer">trix69.github.io/violin-toolkit</a> on your phone, then follow these steps there.</p>
-    <p class="howto-note" id="howtoDesk" hidden>On a computer, Chrome and Edge show an install icon in the address bar.</p>
+    <ol class="howto-steps" id="stepsDesktop" hidden>
+      <li><span>Open this page in Chrome or Edge.</span></li>
+      <li><span>Click the install icon at the right end of the address bar.</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M12 7.5v6m0 0l-2.5-2.5M12 13.5l2.5-2.5"/><path d="M8 20.5h8"/></svg></li>
+      <li><span>Click Install to confirm.</span></li>
+      <li><span>Open it from its new icon while online and wait for Ready to use offline.</span></li>
+    </ol>
+    <p class="howto-note" id="howtoNote">After that, it works without internet.</p>
+    <p class="howto-note" id="howtoDesk" hidden>No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.</p>
     <button type="button" class="sheet-done" id="howtoDone">Done</button>
   </div>
+</div>
+<div class="offer" id="offer" role="region" aria-label="Offline use" hidden>
+  <p>Save Violin Toolkit for offline use.</p>
+  <button type="button" class="offer-go" id="offerGo">Show me how</button>
+  <button type="button" class="offer-x" id="offerX" aria-label="Dismiss"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 <div class="launch" id="launch" role="dialog" aria-modal="true" aria-labelledby="launchTitle" hidden>
   <div class="launch-card" id="launchCard" tabindex="-1">
@@ -2310,6 +2330,8 @@ function yin(buf, sr) {
     Array.prototype.forEach.call(segDev.children, function (b) { b.setAttribute('aria-checked', b.dataset.dev === d ? 'true' : 'false'); });
     document.getElementById('stepsIos').hidden = d !== 'ios';
     document.getElementById('stepsAndroid').hidden = d !== 'android';
+    document.getElementById('stepsDesktop').hidden = d !== 'desktop';
+    document.getElementById('howtoDesk').hidden = d !== 'desktop';
   }
   function closeHowto() {
     howto.hidden = true;
@@ -2326,10 +2348,8 @@ function yin(buf, sr) {
     }
   }
   openHowto.addEventListener('click', function () {
-    showDev(isIOS ? 'ios' : 'android');
-    var onSite = location.protocol === 'https:' && /\.github\.io$/.test(location.hostname);
-    document.getElementById('howtoSite').hidden = onSite;
-    document.getElementById('howtoDesk').hidden = !(onSite && !isIOS && !isAndroid);
+    document.getElementById('offer').hidden = true;
+    showDev(isIOS ? 'ios' : (isAndroid ? 'android' : 'desktop'));
     howto.hidden = false;
     document.addEventListener('keydown', onHowtoKey);
     howtoCard.focus();
@@ -2337,6 +2357,23 @@ function yin(buf, sr) {
   segDev.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) showDev(b.dataset.dev); });
   document.getElementById('howtoDone').addEventListener('click', closeHowto);
   howto.addEventListener('click', function (e) { if (e.target === howto) closeHowto(); });
+  /* ---- offline tip: only on a first visit, after 5 minutes of use, never when opened from a local file or an installed app ---- */
+  (function () {
+    var offer = document.getElementById('offer'), FIRST = 'violin-first-visit';
+    var seen = null;
+    try { seen = localStorage.getItem(FIRST); localStorage.setItem(FIRST, '1'); } catch (e) { return; }
+    if (seen || standalone || !('serviceWorker' in navigator) || !window.isSecureContext || location.protocol === 'file:') return;
+    var secs = 0, ready = false, timer;
+    navigator.serviceWorker.ready.then(function () { ready = true; }).catch(function () {});
+    function finish() { offer.hidden = true; clearInterval(timer); }
+    document.getElementById('offerX').addEventListener('click', finish);
+    document.getElementById('offerGo').addEventListener('click', function () { finish(); openHowto.click(); });
+    timer = setInterval(function () {
+      if (document.visibilityState !== 'visible' || !document.getElementById('launch').hidden) return;
+      secs += 1;
+      if (secs >= 300 && ready && sheet.hidden && howto.hidden) { offer.hidden = false; clearInterval(timer); }
+    }, 1000);
+  })();
   openBtn.addEventListener('click', function () {
     syncSheet(); sheet.hidden = false;
     document.addEventListener('keydown', onSheetKey);
@@ -2443,9 +2480,15 @@ function yin(buf, sr) {
     'Requesting microphone…': '正在请求麦克风权限…',
     'Microphone was not enabled. Press Start tuning to try again, or allow it in your browser site settings.': '麦克风未启用。请点“开始调音”重试，或在浏览器的网站设置中允许使用麦克风。',
     'Microphone access was blocked. Allow it in your browser site settings and try again, or tune by ear with the reference tones below.': '麦克风访问被阻止。请在浏览器的网站设置中允许后重试，或使用下方参考音凭听觉调音。',
-    'First open': '请先在手机上打开', 'on your phone, then follow these steps there.': '，然后在那里按以下步骤操作。',
+    'Mac / PC': 'Mac / PC',
+    'Open this page in Chrome or Edge.': '用 Chrome 或 Edge 打开此页面。',
+    'Click the install icon at the right end of the address bar.': '点击地址栏右端的安装图标。',
+    'Click Install to confirm.': '点击“安装”确认。',
+    'Open it from its new icon while online and wait for Ready to use offline.': '联网时从新图标打开，等待出现“已可离线使用”。',
+    'No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.': '没有安装图标？打开浏览器菜单，选择“安装小提琴工具箱”。在 Mac 的 Safari 中，请使用“文件”→“添加到 Dock”。Firefox 无法安装应用，但访问一次后，页面仍可在浏览器标签页中离线打开。',
+    'Save Violin Toolkit for offline use.': '保存小提琴工具箱，离线也能用。', 'Show me how': '查看方法', 'Dismiss': '关闭', 'Offline use': '离线使用',
     'Offline': '离线使用', 'Use offline on your phone': '在手机上离线使用', 'Use offline': '离线使用',
-    'Save Violin Toolkit to your phone so it opens like an app, even without internet.': '把小提琴工具箱保存到手机，像应用一样打开，没有网络也能用。',
+    'Save Violin Toolkit so it opens like an app, even without internet.': '保存小提琴工具箱，像应用一样打开，没有网络也能用。',
     'iPhone / iPad': 'iPhone / iPad', 'Android': 'Android',
     'Open this page in Safari.': '用 Safari 打开此页面。',
     'Tap the Share button.': '点按“分享”按钮。',
@@ -2457,8 +2500,7 @@ function yin(buf, sr) {
     'Tap Install app, or Add to Home screen.': '点按“安装应用”或“添加到主屏幕”。',
     'Tap Install to confirm.': '点按“安装”确认。',
     'Open it from the new icon while online and wait for Ready to use offline.': '联网时从新图标打开，等待出现“已可离线使用”。',
-    'After that, it works in airplane mode.': '之后即使开启飞行模式也能使用。',
-    'On a computer, Chrome and Edge show an install icon in the address bar.': '在电脑上，Chrome 和 Edge 会在地址栏显示安装图标。',
+    'After that, it works without internet.': '之后没有网络也能使用。',
     'Support': '支持', 'Note names': '音符名称', 'Pitch names': '音名', 'Solfège': '唱名',
     'Buy me a coffee': '请我喝杯咖啡',
     'QR code for buymeacoffee.com/trinks': 'buymeacoffee.com/trinks 二维码',
