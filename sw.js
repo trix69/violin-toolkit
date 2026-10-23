@@ -1,5 +1,5 @@
 /* Violin Toolkit service worker. VERSION changes on every build, which makes phones update. */
-const VERSION = 'violin-toolkit-20261023-144022';
+const VERSION = 'violin-toolkit-20261023-145333';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(async c => {

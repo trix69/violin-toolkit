@@ -978,22 +978,22 @@ html[lang="zh-CN"] {
       <li><span>Tap the Share button.</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0 0L8 7m4-4l4 4"/><path d="M7 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1"/></svg></li>
       <li><span>Scroll down and tap Add to Home Screen.</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg></li>
       <li><span>Keep Open as Web App switched on, then tap Add.</span></li>
-      <li><span>Open it from the new Home Screen icon while online and wait for Ready to use offline.</span></li>
+      <li><span>Open it from the new Home Screen icon once while you have internet.</span></li>
     </ol>
     <ol class="howto-steps" id="stepsAndroid" hidden>
       <li><span>Open this page in Chrome.</span></li>
       <li><span>Tap the menu button.</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></li>
       <li><span>Tap Install app, or Add to Home screen.</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg></li>
       <li><span>Tap Install to confirm.</span></li>
-      <li><span>Open it from the new icon while online and wait for Ready to use offline.</span></li>
+      <li><span>Open it from the new icon once while you have internet.</span></li>
     </ol>
     <ol class="howto-steps" id="stepsDesktop" hidden>
       <li><span>Open this page in Chrome or Edge.</span></li>
       <li><span>Click the install icon at the right end of the address bar.</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M12 7.5v6m0 0l-2.5-2.5M12 13.5l2.5-2.5"/><path d="M8 20.5h8"/></svg></li>
       <li><span>Click Install to confirm.</span></li>
-      <li><span>Open it from its new icon while online and wait for Ready to use offline.</span></li>
+      <li><span>Open it from its new icon once while you have internet.</span></li>
     </ol>
-    <p class="howto-note" id="howtoNote">After that, it works without internet.</p>
+    <p class="howto-note" id="howtoNote">Use the app at least once with internet. After that, it also works offline.</p>
     <p class="howto-note" id="howtoDesk" hidden>No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.</p>
     <button type="button" class="sheet-done" id="howtoDone">Done</button>
   </div>
@@ -2484,7 +2484,7 @@ function yin(buf, sr) {
     'Open this page in Chrome or Edge.': '用 Chrome 或 Edge 打开此页面。',
     'Click the install icon at the right end of the address bar.': '点击地址栏右端的安装图标。',
     'Click Install to confirm.': '点击“安装”确认。',
-    'Open it from its new icon while online and wait for Ready to use offline.': '联网时从新图标打开，等待出现“已可离线使用”。',
+    'Open it from its new icon once while you have internet.': '在有网络时，从新图标打开一次。',
     'No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.': '没有安装图标？打开浏览器菜单，选择“安装小提琴工具箱”。在 Mac 的 Safari 中，请使用“文件”→“添加到 Dock”。Firefox 无法安装应用，但访问一次后，页面仍可在浏览器标签页中离线打开。',
     'Save Violin Toolkit for offline use.': '保存小提琴工具箱，离线也能用。', 'Show me how': '查看方法', 'Dismiss': '关闭', 'Offline use': '离线使用',
     'Offline': '离线使用', 'Use offline on your phone': '在手机上离线使用', 'Use offline': '离线使用',
@@ -2494,13 +2494,13 @@ function yin(buf, sr) {
     'Tap the Share button.': '点按“分享”按钮。',
     'Scroll down and tap Add to Home Screen.': '向下滑动，点按“添加到主屏幕”。',
     'Keep Open as Web App switched on, then tap Add.': '保持“作为网页 App 打开”开启，然后点按“添加”。',
-    'Open it from the new Home Screen icon while online and wait for Ready to use offline.': '联网时从主屏幕新图标打开，等待出现“已可离线使用”。',
+    'Open it from the new Home Screen icon once while you have internet.': '在有网络时，从主屏幕新图标打开一次。',
     'Open this page in Chrome.': '用 Chrome 打开此页面。',
     'Tap the menu button.': '点按菜单按钮。',
     'Tap Install app, or Add to Home screen.': '点按“安装应用”或“添加到主屏幕”。',
     'Tap Install to confirm.': '点按“安装”确认。',
-    'Open it from the new icon while online and wait for Ready to use offline.': '联网时从新图标打开，等待出现“已可离线使用”。',
-    'After that, it works without internet.': '之后没有网络也能使用。',
+    'Open it from the new icon once while you have internet.': '在有网络时，从新图标打开一次。',
+    'Use the app at least once with internet. After that, it also works offline.': '请至少在有网络时使用一次，之后也可离线使用。',
     'Support': '支持', 'Note names': '音符名称', 'Pitch names': '音名', 'Solfège': '唱名',
     'Buy me a coffee': '请我喝杯咖啡',
     'QR code for buymeacoffee.com/trinks': 'buymeacoffee.com/trinks 二维码',
@@ -2667,31 +2667,10 @@ function yin(buf, sr) {
   obs.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
 })();
 </script>
-<style>
-.offline-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);transform:translateX(-50%);z-index:300;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:var(--fg,#16201b);color:var(--bg,#fff);font:500 14px/1.3 var(--font-note,system-ui,sans-serif);box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;transition:opacity .3s;pointer-events:none;text-align:center}
-.offline-toast.on{opacity:1}
-</style>
 <script>
-(function () {
-  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
-  function toast() {
-    try { if (localStorage.getItem('violin-offline-ready')) return; localStorage.setItem('violin-offline-ready', '1'); } catch (e) {}
-    var zh = window.I18N && I18N.lang === 'zh';
-    var t = document.createElement('div'); t.className = 'offline-toast'; t.setAttribute('role', 'status');
-    t.textContent = zh ? '已可离线使用' : 'Ready to use offline';
-    document.body.appendChild(t);
-    requestAnimationFrame(function () { t.classList.add('on'); });
-    setTimeout(function () { t.classList.remove('on'); setTimeout(function () { t.remove(); }, 400); }, 3500);
-  }
-  function check() {
-    caches.keys().then(function (ks) {
-      var k = ks.filter(function (n) { return n.indexOf('violin-toolkit-') === 0; })[0];
-      return k ? caches.open(k).then(function (c) { return c.match('index.html'); }) : null;
-    }).then(function (hit) { if (hit) toast(); }).catch(function () {});
-  }
-  navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; })
-    .then(function () { setTimeout(check, 600); }).catch(function () {});
-})();
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
 </script>
 </body>
 </html>
