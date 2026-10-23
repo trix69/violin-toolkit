@@ -16,3 +16,5 @@ Shortcut links: `#tuner`, `#fingerboard`, `#metronome`, plus `#zh` or `#solfege`
 
 ## Support
 If it helps your practice, you can [buy me a coffee](https://buymeacoffee.com/trinks).
+
+If this helps your practice, a ⭐ on GitHub is appreciated.

@@ -679,6 +679,7 @@ html[lang="zh-CN"] {
 .support-qr { display: none; width: 128px; height: 128px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
 @media (hover: hover) and (min-width: 700px) { .support-qr { display: block; } .support-btn { height: 128px; flex-direction: column; } }
 .howto-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
+a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .howto-btn:hover { border-color: var(--accent); }
 .howto-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .howto-btn svg, .howto-steps svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
@@ -955,6 +956,8 @@ html[lang="zh-CN"] {
     <div class="swatches" role="radiogroup" aria-labelledby="lblCol" id="swatches"><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="teal" style="--sw:#2F7377;--sw-d:#6DBBC0"><i></i><span>Calm teal</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="sage" style="--sw:#4F7A66;--sw-d:#86C2A5"><i></i><span>Sage green</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="slate" style="--sw:#4D6F93;--sw-d:#8DB0D6"><i></i><span>Slate blue</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="violet" style="--sw:#6A5F93;--sw-d:#B0A6DC"><i></i><span>Soft violet</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="classic" style="--sw:#16201B;--sw-d:#E5ECE7"><i></i><span>Classic</span></button></div>
     <h3 id="lblOff">Offline</h3>
     <button type="button" class="howto-btn" id="openHowto" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 8v6m0 0l-2.5-2.5M12 14l2.5-2.5"/><path d="M11 18.5h2"/></svg><span>Use offline on your phone</span></button>
+    <h3 id="lblStar">Like this app?</h3>
+    <a class="howto-btn" href="https://github.com/trix69/violin-toolkit" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg><span>Star on GitHub</span></a>
     <h3 id="lblSup">Support</h3>
     <div class="support">
       <a class="support-btn" href="https://buymeacoffee.com/trinks" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">☕</span><span>Buy me a coffee</span></a>
@@ -2503,6 +2506,7 @@ function yin(buf, sr) {
     'Use the app at least once with internet. After that, it also works offline.': '请至少在有网络时使用一次，之后也可离线使用。',
     'Support': '支持', 'Note names': '音符名称', 'Pitch names': '音名', 'Solfège': '唱名',
     'Buy me a coffee': '请我喝杯咖啡',
+    'Like this app?': '喜欢这个应用？', 'Star on GitHub': '在 GitHub 上点个星',
     'QR code for buymeacoffee.com/trinks': 'buymeacoffee.com/trinks 二维码',
     'Listening… bow an open string and hold it.': '聆听中……请拉一根空弦并保持。',
     'Listening. Pluck or bow one string at a time.': '聆听中。请一次只拨或拉一根弦。',
