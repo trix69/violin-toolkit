@@ -109,11 +109,12 @@
   font: 900 calc(var(--sp) * 3.6)/calc(var(--sp) * 2.5) 'Times New Roman', 'Noto Serif', Georgia, serif;
   -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; touch-action: manipulation;
 }
-#view-metronome .tsn.top { align-items: flex-end; }
-#view-metronome .tsn.bot { align-items: flex-start; }
+#view-metronome .tsn.hi { align-items: flex-end; }
+#view-metronome .tsn.lo { align-items: flex-start; }
 #view-metronome .tsn:active { color: var(--accent); }
 #view-metronome .tsn:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 #view-metronome .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#view-metronome .vh::after { content: " "; }   /* a space before the number in the spoken name, without a text node that would shift the digit */
 #view-metronome select {
   background: var(--panel); color: var(--fg);
   border: 1px solid var(--line); border-radius: 10px;
