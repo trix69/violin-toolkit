@@ -2582,15 +2582,21 @@ function yin(buf, sr) {
     }
     return null;
   }
-  function tr(s, el) {
+  /* English ordinals: raise and shrink the suffix (1st, 2nd, 3rd, 4th) with superscript letters */
+  var SUP = { s: '\u02e2', t: '\u1d57', n: '\u207f', d: '\u1d48', r: '\u02b3', h: '\u02b0' };
+  function ord(s) {
+    return s.replace(/(\d)(st|nd|rd|th)\b/g, function (m, d, x) { return d + x.replace(/./g, function (c) { return SUP[c]; }); });
+  }
+  function tr(s, el, isAttr) {
     var m = /^(\s*)([\s\S]*?)(\s*)$/.exec(s);
     if (!m[2]) return null;
     var out = lang === 'zh' ? lookup(m[2], el) : null;
     if (out == null) out = m[2];
     if (names === 'solfege') out = sol(out);
+    if (lang === 'en' && !isAttr) out = ord(out);
     return out === m[2] ? null : m[1] + out + m[3];
   }
-  function active() { return lang === 'zh' || names === 'solfege'; }
+  function active() { return true; }
 
   var textRec = new WeakMap(), attrRec = new WeakMap();
   function doText(n) {
@@ -2611,7 +2617,7 @@ function yin(buf, sr) {
     if (v == null) { if (rec) { delete recs[a]; } return; }
     if (active()) {
       var base = (rec && v === rec.t) ? rec.o : v;
-      var t = tr(base, el);
+      var t = tr(base, el, true);
       if (t != null) { recs[a] = { o: base, t: t }; attrRec.set(el, recs); if (t !== v) el.setAttribute(a, t); }
       else { if (rec && base !== v) el.setAttribute(a, base); delete recs[a]; }
     } else if (rec) {
