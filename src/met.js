@@ -99,8 +99,7 @@
   for (var n = 1; n <= 8; n++) { var o = document.createElement('option'); o.value = n; o.textContent = n; numSel.appendChild(o); }
   var subSel = $('mSub');
   numSel.value = state.num; denSel.value = state.den; subSel.value = String(state.sub);
-  var sigEl = numSel.closest('.sig');
-  function drawSig() { $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den; sigEl.dataset.sub = state.sub; }
+  function drawSig() { $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den; $('mNote').dataset.sub = state.sub; }
   drawSig();
   numSel.addEventListener('change', function () { state.num = +numSel.value; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });
   subSel.addEventListener('change', function () { state.sub = +subSel.value; beatsEl.dataset.sub = state.sub; drawSig(); persist(); });

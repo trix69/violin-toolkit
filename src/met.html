@@ -1,11 +1,25 @@
-    <div class="beats" id="mBeats" role="group" aria-label="Beats. Tap a beat to change its accent."></div>
     <div class="tempo">
+      <label class="pick staff tnote" id="mNote"><span class="glyph" aria-hidden="true"></span><select id="mSub" aria-label="Clicks per beat">
+        <option value="1">♩</option>
+        <option value="2">♫</option>
+      </select></label>
+      <span class="eq" aria-hidden="true">=</span>
       <button type="button" class="step" id="mMinus" aria-label="Slower">−</button>
       <div class="readout">
         <div class="bpm" id="mBpm" aria-live="off">80</div>
         <div class="tname" id="mName">Andante</div>
       </div>
       <button type="button" class="step" id="mPlus" aria-label="Faster">+</button>
+    </div>
+    <div class="bar">
+      <div class="sig staff" role="group" aria-label="Time signature">
+        <svg class="clef" viewBox="0 0 46 120" aria-hidden="true"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></svg>
+        <div class="frac">
+          <label class="pick"><span class="num" id="mNumTxt" aria-hidden="true"></span><select id="mNum" aria-label="Beats per bar"></select></label>
+          <label class="pick"><span class="num" id="mDenTxt" aria-hidden="true"></span><select id="mDen" aria-label="Note value"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></label>
+        </div>
+      </div>
+      <div class="beats" id="mBeats" role="group" aria-label="Beats. Tap a beat to change its accent."></div>
     </div>
     <div class="dialwrap">
       <svg class="dial" id="mDial" viewBox="0 0 300 232" role="slider" aria-label="Tempo" aria-valuemin="40" aria-valuemax="250" aria-valuenow="76" tabindex="0">
@@ -18,16 +32,5 @@
       </svg>
     </div>
     <div class="bottom">
-      <div class="sig" role="group" aria-label="Time signature">
-        <svg class="clef" viewBox="0 0 46 120" aria-hidden="true"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></svg>
-        <div class="frac">
-          <label class="pick"><span class="num" id="mNumTxt" aria-hidden="true"></span><select id="mNum" aria-label="Beats per bar"></select></label>
-          <label class="pick"><span class="num" id="mDenTxt" aria-hidden="true"></span><select id="mDen" aria-label="Note value"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></label>
-        </div>
-        <label class="pick note"><span class="glyph" aria-hidden="true"></span><select id="mSub" aria-label="Clicks per beat">
-          <option value="1">♩</option>
-          <option value="2">♫</option>
-        </select></label>
-      </div>
       <button type="button" class="tap" id="mTap">Tap</button>
     </div>
