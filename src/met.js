@@ -4,7 +4,6 @@
   var $ = function (id) { return document.getElementById(id); };
   var beatsEl = $('mBeats'), bpmEl = $('mBpm'), nameEl = $('mName'), dial = $('mDial');
   var prog = $('mProg'), knob = $('mKnob'), playEl = $('mPlay'), glyph = $('mGlyph');
-  var numSel = $('mNum'), denSel = $('mDen');
   var state = { bpm: 80, num: 4, den: 4, sub: 1, levels: [3, 1, 1, 1] };
   try {
     var s = JSON.parse(localStorage.getItem('violin-metronome-v2') || '{}');
@@ -96,14 +95,14 @@
   }
 
   /* ---------- controls ---------- */
-  for (var n = 1; n <= 8; n++) { var o = document.createElement('option'); o.value = n; o.textContent = n; numSel.appendChild(o); }
   var subSel = $('mSub');
-  numSel.value = state.num; denSel.value = state.den; subSel.value = String(state.sub);
+  subSel.value = String(state.sub);
   function drawSig() { $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den; $('mNote').dataset.sub = state.sub; }
   drawSig();
-  numSel.addEventListener('change', function () { state.num = +numSel.value; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });
+  /* tap the top number: 1 more beat per bar, after 8 back to 1. Tap the bottom one: 4, 8, 2, 4 ... */
+  $('mNum').addEventListener('click', function () { state.num = state.num % 8 + 1; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });
   subSel.addEventListener('change', function () { state.sub = +subSel.value; beatsEl.dataset.sub = state.sub; drawSig(); persist(); });
-  denSel.addEventListener('change', function () { state.den = +denSel.value; drawTempo(); drawSig(); persist(); });
+  $('mDen').addEventListener('click', function () { state.den = { 2: 4, 4: 8, 8: 2 }[state.den] || 4; drawTempo(); drawSig(); persist(); });
 
   function holdRepeat(btn, delta) {
     var t1 = 0, t2 = 0;
