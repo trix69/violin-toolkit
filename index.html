@@ -285,6 +285,7 @@ h1 {
   transform: translateY(-50%); line-height: 1.25;
 }
 #view-board .labels small { display: block; font-size: 8px; letter-spacing: 0.08em; opacity: 0.85; }
+#view-board .labels small.fing:lang(zh) { display: inline; font-size: inherit; letter-spacing: 0; opacity: 1; }
 #view-board .string {
   position: absolute; top: var(--oy); bottom: 0;
   left: var(--x); width: var(--w);
@@ -1649,7 +1650,7 @@ function yin(buf, sr) {
           return '<span style="--y:' + yFor(e.n) + '">' + e.text + '<small>' + e.sub + '</small></span>';
         }).join('') +
         P.at.map(function (n, i) {
-          return '<span style="--y:' + yFor(n) + '">' + ORD[i + 1] + '<small>finger</small></span>';
+          return '<span style="--y:' + yFor(n) + '">' + ORD[i + 1] + '<small class="fing">finger</small></span>';
         }).join(''));
     if (pc) { labels.innerHTML = PC_HTML; pcShow(pcCur); }
     updateSub();
