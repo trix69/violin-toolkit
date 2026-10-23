@@ -680,6 +680,8 @@ html[lang="zh-CN"] {
 .support-qr { display: none; width: 128px; height: 128px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
 @media (hover: hover) and (min-width: 700px) { .support-qr { display: block; } .support-btn { height: 128px; flex-direction: column; } }
 .howto-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
+/* keep the page in the same place on every tool, whether or not it needs a scrollbar */
+html { scrollbar-gutter: stable; }
 a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .howto-btn:hover { border-color: var(--accent); }
 .howto-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
