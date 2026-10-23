@@ -96,33 +96,35 @@
   }
 
   /* ---------- controls ---------- */
-  var subSel = $('mSub');
-  subSel.value = String(state.sub);
-  function drawSig() { $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den; $('mNote').dataset.sub = state.sub; notesEl.dataset.sub = state.sub; }
-
-  /* one note on the staff under each beat box, faded when the beat is muted */
-  var notesEl = $('mNotes'), scoreEl = $('mScore');
-  function drawNotes() {
-    var beats = beatsEl.children, s0 = scoreEl.getBoundingClientRect();
-    if (notesEl.children.length !== beats.length) {
-      notesEl.innerHTML = '';
-      for (var k = 0; k < beats.length; k++) notesEl.appendChild(document.createElement('i'));
-    }
-    Array.prototype.forEach.call(beats, function (b, k) {
-      var r = b.getBoundingClientRect(), n = notesEl.children[k];
-      n.style.left = (r.left + r.width / 2 - s0.left) + 'px';
-      n.style.setProperty('--w', r.width + 'px');   /* never wider than its beat, so notes don't overlap */
-      n.classList.toggle('muted', b.dataset.l === '0');
-      n.classList.toggle('now', b.classList.contains('now'));
-    });
+  /* engraved notes, in staff spaces of 10 units with the middle line at y = 0: head in the space below it (A),
+     stem up 3.5 spaces; two clicks per beat are a pair of quavers joined by a beam */
+  var HEAD = '<ellipse rx="6" ry="4.3" transform="translate(@ 5) rotate(-20)"/>';
+  var STEM = '<rect x="@" y="-30" width="1.3" height="34"/>';
+  function head(x) { return HEAD.replace('@', x); }
+  function stem(x) { return STEM.replace('@', x - 1.3); }
+  function noteSvg(sub, vb) {
+    var body = sub === 2
+      ? head(6.5) + head(22.5) + stem(12.2) + stem(28.2) + '<polygon points="10.9,-30 28.2,-30 28.2,-25 10.9,-25"/>'
+      : head(6.5) + stem(12.2);
+    return '<svg viewBox="0 ' + vb + ' ' + (sub === 2 ? 30 : 14) + ' ' + (vb === -50 ? 100 : 42) + '">' + body + '</svg>';
   }
-  /* re-place when the score or the beat row changes size (also after the web font widens the tempo) */
-  if (window.ResizeObserver) { var ro = new ResizeObserver(drawNotes); ro.observe(scoreEl); ro.observe(beatsEl); }
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawNotes);
+  function drawSig() {
+    $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den;
+    $('mSubTxt').textContent = state.sub; $('mNoteG').innerHTML = noteSvg(state.sub, -32);
+  }
+  drawSig();
+
+  /* one note per beat between the repeat signs, faded when the beat is muted */
+  var notesEl = $('mNotes');
+  function drawNotes() {
+    var svg = noteSvg(state.sub, -50), html = '';
+    state.levels.forEach(function (lv, k) { html += '<span class="' + (lv === 0 ? 'muted' : '') + (k === lastNow && playing ? ' now' : '') + '">' + svg + '</span>'; });
+    notesEl.innerHTML = html;
+  }
   drawSig();
   /* tap the top number: 1 more beat per bar, after 8 back to 1. Tap the bottom one: 4, 8, 2, 4 ... */
   $('mNum').addEventListener('click', function () { state.num = state.num % 8 + 1; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });
-  subSel.addEventListener('change', function () { state.sub = +subSel.value; beatsEl.dataset.sub = state.sub; drawSig(); persist(); });
+  $('mNote').addEventListener('click', function () { state.sub = state.sub === 2 ? 1 : 2; beatsEl.dataset.sub = state.sub; drawSig(); drawNotes(); persist(); });
   $('mDen').addEventListener('click', function () { state.den = { 2: 4, 4: 8, 8: 2 }[state.den] || 4; drawTempo(); drawSig(); persist(); });
 
 

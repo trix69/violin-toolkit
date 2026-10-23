@@ -1,10 +1,7 @@
     <div class="top">
       <div class="tempo">
         <div class="mark">
-          <label class="pick tnote" id="mNote"><span class="glyph" aria-hidden="true"></span><select id="mSub" aria-label="Clicks per beat">
-            <option value="1">♩</option>
-            <option value="2">♫</option>
-          </select></label>
+          <button type="button" class="tnote" id="mNote"><span class="vh">Clicks per beat</span> <span class="vh" id="mSubTxt">1</span><span class="nglyph" id="mNoteG" aria-hidden="true"></span></button>
           <span class="eq" aria-hidden="true">=</span>
           <div class="bpm" id="mBpm" aria-live="off">80</div>
         </div>
@@ -20,7 +17,9 @@
           <button type="button" class="tsn bot" id="mDen"><span class="vh">Note value</span> <span id="mDenTxt">4</span></button>
         </div>
       </div>
+      <svg class="rep" viewBox="0 -20 17 40" aria-hidden="true"><rect x="0" y="-20" width="5" height="40"/><rect x="8" y="-20" width="1.4" height="40"/><circle cx="14" cy="-5" r="2"/><circle cx="14" cy="5" r="2"/></svg>
       <div class="notes" id="mNotes" aria-hidden="true"></div>
+      <svg class="rep" viewBox="0 -20 17 40" aria-hidden="true"><circle cx="3" cy="-5" r="2"/><circle cx="3" cy="5" r="2"/><rect x="7.6" y="-20" width="1.4" height="40"/><rect x="12" y="-20" width="5" height="40"/></svg>
     </div>
     <div class="dialwrap">
       <svg class="dial" id="mDial" viewBox="0 0 300 232" role="slider" aria-label="Tempo" aria-valuemin="40" aria-valuemax="250" aria-valuenow="76" tabindex="0">

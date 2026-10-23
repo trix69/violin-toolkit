@@ -588,23 +588,30 @@ h1 {
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp)) / 100% 1px no-repeat,
     linear-gradient(var(--ln) 0 0) 0 calc(50% + var(--sp) * 2) / 100% 1px no-repeat;
 }
-#view-metronome .tnote { --sp: 8px; height: calc(var(--sp) * 7); padding: 0 2px; }
-/* the score: clef and time signature, then one note under each beat (placed by script) */
+/* the click note beside the tempo: tap to swap one click (crotchet) and two (beamed quavers) */
+#view-metronome .tnote {
+  --sp: 9px; display: flex; align-items: center; justify-content: center; min-width: 44px; height: 56px; padding: 0 2px;
+  border: 0; border-radius: 10px; background: none; color: var(--fg); cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+#view-metronome .tnote:active { color: var(--accent); }
+#view-metronome .tnote:focus-visible { outline: 3px solid var(--accent); outline-offset: -2px; }
+#view-metronome .nglyph svg { display: block; height: calc(var(--sp) * 4.4); width: auto; fill: currentColor; }
+/* the score: clef and time signature, start repeat, one note per beat, end repeat */
 #view-metronome .score {
-  --sp: 10px; position: relative; height: calc(var(--sp) * 10);
+  --sp: 10px; display: flex; align-items: center; height: calc(var(--sp) * 10); padding: 0 calc(var(--sp) * .6) 0 6px;
   border: 1px solid var(--line); border-radius: 14px; background-color: var(--panel);
 }
-#view-metronome .sig { position: absolute; left: 6px; top: 0; bottom: 0; display: flex; align-items: center; gap: calc(var(--sp) * .2); }
+#view-metronome .sig { flex: none; align-self: stretch; display: flex; align-items: center; gap: calc(var(--sp) * .2); }
 /* the clef path is drawn on lines 40..80 (10 apart); its middle line (60) lands on the staff's middle */
 #view-metronome .sig .clef { flex: none; width: calc(var(--sp) * 3.4); height: calc(var(--sp) * 12); pointer-events: none; }
-#view-metronome .notes > i {
-  position: absolute; top: calc(50% - var(--sp) * 3); width: min(calc(var(--sp) * 4), var(--w, 999px)); height: calc(var(--sp) * 4); transform: translateX(-50%);
-  background: var(--fg); -webkit-mask: var(--g1) center / contain no-repeat; mask: var(--g1) center / contain no-repeat;
-  transition: background-color 80ms;
-}
-#view-metronome .notes[data-sub="2"] > i { -webkit-mask-image: var(--g2); mask-image: var(--g2); }
-#view-metronome .notes > i.muted { opacity: .3; }
-#view-metronome .notes > i.now { background: var(--accent); }
+#view-metronome .rep { flex: none; height: calc(var(--sp) * 4 + 1px); width: auto; fill: var(--fg); }
+#view-metronome .sig + .rep { margin-left: calc(var(--sp) * .8); }
+#view-metronome .notes { flex: 1; min-width: 0; align-self: stretch; display: flex; justify-content: space-around; }
+#view-metronome .notes > span { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; color: var(--fg); transition: color 80ms; }
+#view-metronome .notes svg { display: block; height: 100%; max-width: 100%; fill: currentColor; }
+#view-metronome .notes > .muted { opacity: .3; }
+#view-metronome .notes > .now { color: var(--accent); }
 #view-metronome .frac { align-self: stretch; display: grid; grid-template-rows: 1fr 1fr; }
 #view-metronome .tsn {
   display: flex; justify-content: center; padding: 0 2px; border: 0; border-radius: 8px; background: none; color: var(--fg); cursor: pointer;
@@ -616,20 +623,6 @@ h1 {
 #view-metronome .tsn:active { color: var(--accent); }
 #view-metronome .tsn:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 #view-metronome .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-#view-metronome .pick { position: relative; display: flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 10px; cursor: pointer; }
-#view-metronome .pick::after {                 /* small chevron: this opens a menu */
-  content: ""; width: 9px; height: 6px; background: var(--muted);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center / contain no-repeat;
-          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center / contain no-repeat;
-}
-#view-metronome .pick:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
-#view-metronome .pick:has(select:focus-visible) { outline: 3px solid var(--accent); outline-offset: -2px; }
-#view-metronome .pick select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
-#view-metronome .tnote .glyph {
-  width: calc(var(--sp) * 3.6); height: calc(var(--sp) * 3.6); margin-top: calc(var(--sp) * -.6); background: var(--fg);
-  -webkit-mask: var(--g1) center / contain no-repeat; mask: var(--g1) center / contain no-repeat;
-}
-#view-metronome .tnote[data-sub="2"] .glyph { -webkit-mask-image: var(--g2); mask-image: var(--g2); }
 #view-metronome select {
   background: var(--panel); color: var(--fg);
   border: 1px solid var(--line); border-radius: 10px;
@@ -657,7 +650,7 @@ h1 {
   #view-metronome .tname { font-size: 15px; }
   #view-metronome .dial { width: min(100%, 520px); }
   #view-metronome select { height: 48px; font-size: 17px; padding: 0 16px; }
-  #view-metronome .tnote { --sp: 11px; }
+  #view-metronome .tnote { --sp: 12px; height: 72px; }
   #view-metronome .score { --sp: 14px; }
   #view-metronome .tap { height: 48px; min-width: 120px; font-size: 18px; }
 }
@@ -913,10 +906,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     <div class="top">
       <div class="tempo">
         <div class="mark">
-          <label class="pick tnote" id="mNote"><span class="glyph" aria-hidden="true"></span><select id="mSub" aria-label="Clicks per beat">
-            <option value="1">♩</option>
-            <option value="2">♫</option>
-          </select></label>
+          <button type="button" class="tnote" id="mNote"><span class="vh">Clicks per beat</span> <span class="vh" id="mSubTxt">1</span><span class="nglyph" id="mNoteG" aria-hidden="true"></span></button>
           <span class="eq" aria-hidden="true">=</span>
           <div class="bpm" id="mBpm" aria-live="off">80</div>
         </div>
@@ -932,7 +922,9 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
           <button type="button" class="tsn bot" id="mDen"><span class="vh">Note value</span> <span id="mDenTxt">4</span></button>
         </div>
       </div>
+      <svg class="rep" viewBox="0 -20 17 40" aria-hidden="true"><rect x="0" y="-20" width="5" height="40"/><rect x="8" y="-20" width="1.4" height="40"/><circle cx="14" cy="-5" r="2"/><circle cx="14" cy="5" r="2"/></svg>
       <div class="notes" id="mNotes" aria-hidden="true"></div>
+      <svg class="rep" viewBox="0 -20 17 40" aria-hidden="true"><circle cx="3" cy="-5" r="2"/><circle cx="3" cy="5" r="2"/><rect x="7.6" y="-20" width="1.4" height="40"/><rect x="12" y="-20" width="5" height="40"/></svg>
     </div>
     <div class="dialwrap">
       <svg class="dial" id="mDial" viewBox="0 0 300 232" role="slider" aria-label="Tempo" aria-valuemin="40" aria-valuemax="250" aria-valuenow="76" tabindex="0">
@@ -2246,33 +2238,35 @@ function yin(buf, sr) {
   }
 
   /* ---------- controls ---------- */
-  var subSel = $('mSub');
-  subSel.value = String(state.sub);
-  function drawSig() { $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den; $('mNote').dataset.sub = state.sub; notesEl.dataset.sub = state.sub; }
-
-  /* one note on the staff under each beat box, faded when the beat is muted */
-  var notesEl = $('mNotes'), scoreEl = $('mScore');
-  function drawNotes() {
-    var beats = beatsEl.children, s0 = scoreEl.getBoundingClientRect();
-    if (notesEl.children.length !== beats.length) {
-      notesEl.innerHTML = '';
-      for (var k = 0; k < beats.length; k++) notesEl.appendChild(document.createElement('i'));
-    }
-    Array.prototype.forEach.call(beats, function (b, k) {
-      var r = b.getBoundingClientRect(), n = notesEl.children[k];
-      n.style.left = (r.left + r.width / 2 - s0.left) + 'px';
-      n.style.setProperty('--w', r.width + 'px');   /* never wider than its beat, so notes don't overlap */
-      n.classList.toggle('muted', b.dataset.l === '0');
-      n.classList.toggle('now', b.classList.contains('now'));
-    });
+  /* engraved notes, in staff spaces of 10 units with the middle line at y = 0: head in the space below it (A),
+     stem up 3.5 spaces; two clicks per beat are a pair of quavers joined by a beam */
+  var HEAD = '<ellipse rx="6" ry="4.3" transform="translate(@ 5) rotate(-20)"/>';
+  var STEM = '<rect x="@" y="-30" width="1.3" height="34"/>';
+  function head(x) { return HEAD.replace('@', x); }
+  function stem(x) { return STEM.replace('@', x - 1.3); }
+  function noteSvg(sub, vb) {
+    var body = sub === 2
+      ? head(6.5) + head(22.5) + stem(12.2) + stem(28.2) + '<polygon points="10.9,-30 28.2,-30 28.2,-25 10.9,-25"/>'
+      : head(6.5) + stem(12.2);
+    return '<svg viewBox="0 ' + vb + ' ' + (sub === 2 ? 30 : 14) + ' ' + (vb === -50 ? 100 : 42) + '">' + body + '</svg>';
   }
-  /* re-place when the score or the beat row changes size (also after the web font widens the tempo) */
-  if (window.ResizeObserver) { var ro = new ResizeObserver(drawNotes); ro.observe(scoreEl); ro.observe(beatsEl); }
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawNotes);
+  function drawSig() {
+    $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den;
+    $('mSubTxt').textContent = state.sub; $('mNoteG').innerHTML = noteSvg(state.sub, -32);
+  }
+  drawSig();
+
+  /* one note per beat between the repeat signs, faded when the beat is muted */
+  var notesEl = $('mNotes');
+  function drawNotes() {
+    var svg = noteSvg(state.sub, -50), html = '';
+    state.levels.forEach(function (lv, k) { html += '<span class="' + (lv === 0 ? 'muted' : '') + (k === lastNow && playing ? ' now' : '') + '">' + svg + '</span>'; });
+    notesEl.innerHTML = html;
+  }
   drawSig();
   /* tap the top number: 1 more beat per bar, after 8 back to 1. Tap the bottom one: 4, 8, 2, 4 ... */
   $('mNum').addEventListener('click', function () { state.num = state.num % 8 + 1; fixLevels(); beatIdx = 0; drawBeats(); drawTempo(); drawSig(); persist(); });
-  subSel.addEventListener('change', function () { state.sub = +subSel.value; beatsEl.dataset.sub = state.sub; drawSig(); persist(); });
+  $('mNote').addEventListener('click', function () { state.sub = state.sub === 2 ? 1 : 2; beatsEl.dataset.sub = state.sub; drawSig(); drawNotes(); persist(); });
   $('mDen').addEventListener('click', function () { state.den = { 2: 4, 4: 8, 8: 2 }[state.den] || 4; drawTempo(); drawSig(); persist(); });
 
 
