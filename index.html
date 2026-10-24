@@ -1135,7 +1135,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.01"><span>Version 1.01</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.02" data-build="20261024-232312" data-cache="violin-toolkit-"><span>Version 1.02</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1210,11 +1210,15 @@ function median(a) {
   var m = s.length >> 1;
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
-// YIN pitch detector. Returns frequency in Hz, or 0 when no clear pitch (170 Hz to 1500 Hz range).
+// YIN pitch detector. Returns frequency in Hz, or 0 when no clear pitch (80 Hz to 1500 Hz range,
+// so a G string tuned far down, even an octave low, still reads as itself).
+var PITCH_LO = 80, PITCH_HI = 1500;
+// yin.first keeps the answer before the octave check, so Violin mode can choose between the two.
 function yin(buf, sr) {
   var n = buf.length, half = n >> 1;
-  var tauMax = Math.min(half - 1, Math.floor(sr / 170));
-  var tauMin = Math.max(2, Math.floor(sr / 1500));
+  yin.first = 0;
+  var tauMax = Math.min(half - 1, Math.floor(sr / PITCH_LO));
+  var tauMin = Math.max(2, Math.floor(sr / PITCH_HI));
   var d = new Float32Array(tauMax + 1);
   var tau, i, s, x;
   for (tau = 1; tau <= tauMax; tau++) {
@@ -1234,6 +1238,17 @@ function yin(buf, sr) {
     }
   }
   if (best < 0) return 0;
+  yin.first = sr / best;
+  // Octave check: on a plucked G string the 2nd or 3rd harmonic can be louder than the note itself,
+  // so the first dip sits at half or a third of the real period. A clean note dips to almost 0 there;
+  // a harmonic only dips part way, and the true period (2x or 3x further out) dips much deeper.
+  if (d[best] > 0.02) {
+    var first = best, k, j, m;
+    for (k = 2; k <= 3 && first * k + 2 <= tauMax; k++) {
+      for (m = j = first * k - 2; j <= first * k + 2; j++) if (d[j] < d[m]) m = j;
+      if (d[m] < d[best] * 0.5) best = m;
+    }
+  }
   var b = best;
   if (best > 1 && best < tauMax) {
     var a0 = d[best - 1], c0 = d[best + 1], m0 = d[best];
@@ -1241,6 +1256,33 @@ function yin(buf, sr) {
     if (den !== 0) b = best + (a0 - c0) / (2 * den);
   }
   return sr / b;
+}
+// Sympathetic-string guard. A plucked G fades fast while the open D (or A) string, set ringing by it,
+// keeps sounding quietly; without this the tuner would jump to D once the G has faded.
+// A different pitch is only accepted after a new attack (the level jumps) or while the sound is still
+// at least 40% as loud as the note's peak. Call feed() once per frame with the level and detected Hz;
+// it returns the Hz to show, or 0 to keep showing the current note.
+function noteGate() {
+  var env = [], note = 0, peak = 0;
+  return {
+    feed: function (rms, fr) {
+      env.push(rms);
+      if (env.length > 8) env.shift();                    // about 130 ms of history at 60 frames/s
+      if (rms > 0.01 && rms > env[0] * 1.8) { note = 0; peak = rms; }   // new attack: pluck, bow or a louder note
+      peak = Math.max(peak * 0.995, rms);                  // halves in about 2 s, so later quiet notes still get in
+      if (!fr) return 0;
+      if (note) {
+        // two strings sounding together repeat at a lower common period (E + A at A3, G + D at G2):
+        // a reading 2, 3 or 4 times below the note is the note plus a ringing string, not a new note
+        var r = note / fr, k = Math.round(r);
+        if (k >= 2 && k <= 4 && Math.abs(1200 * Math.log2(r / k)) < 30) return 0;
+        if (Math.abs(1200 * Math.log2(fr / note)) > 100 && rms < peak * 0.4) return 0;
+      }
+      note = fr;
+      return fr;
+    },
+    reset: function () { env.length = 0; note = 0; peak = 0; }
+  };
 }
 </script>
 <script>
@@ -1321,6 +1363,13 @@ function yin(buf, sr) {
     }
   }
   function mark(idx, ok) { hitIdx = idx; hitOk = ok; paintStrings(); }
+
+  /* Violin mode: the octave check can also be fooled by two strings sounding together (G + D repeat
+     together at G2), so keep whichever answer is closer to an open string; a tie goes to the octave-checked one. */
+  function nearerString(first, checked) {
+    function off(f) { return Math.min.apply(null, STR.map(function (s) { return Math.abs(1200 * Math.log2(f / hz(s.midi))); })); }
+    return off(first) < off(checked) ? first : checked;
+  }
 
   function setFreq(fr) {
     last = fr;
@@ -1405,7 +1454,7 @@ function yin(buf, sr) {
 
   /* ---------- audio engine ---------- */
   var ctx = null, stream = null, src = null, an = null, buf = null, running = false;
-  var hist = [], lastVoiced = 0, frame = 0, raf = 0;
+  var hist = [], lastVoiced = 0, frame = 0, raf = 0, gate = noteGate();
   var goBtn = $('go');
 
   function ensureCtx() {
@@ -1426,8 +1475,10 @@ function yin(buf, sr) {
         for (i = 0; i < buf.length; i++) s += buf[i] * buf[i];
         var rms = Math.sqrt(s / buf.length);
         var fr = rms > 0.006 ? yin(buf, ctx.sampleRate) : 0;
+        if (fr && mode === 'violin' && yin.first !== fr) fr = nearerString(yin.first, fr);
+        fr = gate.feed(rms, fr);
         var now = performance.now();
-        if (fr > 150 && fr < 1500) {
+        if (fr > PITCH_LO && fr < PITCH_HI) {
           hist.push(fr);
           if (hist.length > 5) hist.shift();
           lastVoiced = now;
@@ -1494,7 +1545,7 @@ function yin(buf, sr) {
         an.smoothingTimeConstant = 0;
         src.connect(an);
         buf = new Float32Array(an.fftSize);
-        hist.length = 0;
+        hist.length = 0; gate.reset();
         lastVoiced = 0;
         running = true;
         setGo(true);
@@ -2649,14 +2700,18 @@ function yin(buf, sr) {
       if (!sw || !sw.controller) { location.reload(); return; }
       busy = true; say('Checking…');
       fetch('version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
-        if (num(j.version) <= num(btn.dataset.version)) { busy = false; say('Up to date'); return; }
+        /* a different build stamp means a new release (test builds keep the same version number) */
+        var newer = j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version);
+        if (!newer) { busy = false; say('Up to date'); return; }
         say('Updating to ' + j.version + '…');
         return sw.getRegistration().then(function (reg) { return reg && swapIn(reg); }).then(function () {
           /* belt and braces: also put the fresh page into every saved copy before reloading */
           return fetch('index.html', { cache: 'no-store' }).then(function (r) {
             if (!r.ok) return;
+            /* only this site's caches (data-cache prefix + build stamp); the test site shares the origin */
+            var mine = new RegExp('^' + (btn.dataset.cache || 'violin-toolkit-') + '\d{8}-\d{6}$');
             return caches.keys().then(function (ks) {
-              return Promise.all(ks.filter(function (k) { return k.indexOf('violin-toolkit-') === 0; })
+              return Promise.all(ks.filter(function (k) { return mine.test(k); })
                 .map(function (k) { return caches.open(k).then(function (c) { return c.put('index.html', r.clone()); }); }));
             });
           }).catch(function () {});
@@ -2824,7 +2879,7 @@ function yin(buf, sr) {
     return m ? (m[2] === 'sharp' ? '偏高 ' : '偏低 ') + m[1] + '¢' : s;
   }
   var RX = [
-    [/^Version ([\d.]+)$/, function (m, v) { return '版本 ' + v; }],
+    [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
     [/^(.+) major · (1st|2nd|3rd) position$/, function (m, k, p) { return k + '大调 · ' + P[p]; }],
     [/^(.+) major · Pitch Check(?: · (.+))?$/, function (m, k, s) { return k + '大调 · 音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],

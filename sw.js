@@ -1,5 +1,7 @@
 /* Violin Toolkit service worker. VERSION changes on every build, which makes phones update. */
-const VERSION = 'violin-toolkit-20261024-124225';
+const VERSION = 'violin-toolkit-20261024-232312';
+/* only this site's saved copies: production and test share trix69.github.io, so never touch the other's */
+const MINE = k => /^violin-toolkit-\d{8}-\d{6}$/.test(k);
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(async c => {
@@ -9,11 +11,13 @@ self.addEventListener('install', e => {
   }).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && k.indexOf('violin-toolkit-') === 0).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && MINE(k)).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 async function page() {
   const c = await caches.open(VERSION);
-  return (await c.match('index.html')) || (await caches.match('index.html')) || (await c.match('./'));
+  const hit = (await c.match('index.html')) || (await c.match('./'));
+  if (hit) return hit;
+  for (const k of (await caches.keys()).filter(MINE)) { const r = await (await caches.open(k)).match('index.html'); if (r) return r; }
 }
 self.addEventListener('fetch', e => {
   const req = e.request;
