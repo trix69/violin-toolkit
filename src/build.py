@@ -158,8 +158,9 @@ body[data-view="tuner"] { background: var(--t-bg); color: var(--t-fg); }
 .tab:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .shell, .shell * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
 #view-tuner { padding-bottom: 16px; font: 400 16px/1.5 var(--t-body); }
-#view-board .a4v { font: 500 14px var(--font-mono); color: var(--fg); white-space: nowrap; }
-#view-tuner .a4v { font: 500 14px var(--t-mono); color: var(--t-fg); letter-spacing: 0; white-space: nowrap; }
+/* A4 value: same face and size as the fingerboard's "Auto vibrato" label (.lbl), but Hz keeps its case */
+#view-board .a4v { font: 500 13px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--muted); white-space: nowrap; }
+#view-tuner .a4v { white-space: nowrap; }
 '''
 
 # ---------------------------------------------------------------- board HTML
@@ -311,6 +312,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .howto-note { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); font: 400 13px/1.5 var(--font-note); color: var(--fg); }
 .howto-note a { color: var(--accent); }
 .sheet > .sheet-card { max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
+.ver { margin: 14px 0 0; text-align: center; font: 500 12px var(--font-mono); letter-spacing: 0.04em; color: var(--muted); }
 .sheet-done { position: sticky; bottom: 0; box-shadow: 0 -10px 12px var(--panel); }
 .sheet-done { margin-top: 18px; width: 100%; height: 46px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: 700 16px var(--font-note); cursor: pointer; }
 """
@@ -354,6 +356,7 @@ met_css += '\n/* tuner gauge: wider on large screens */\n#view-tuner .panel > .a
 met_html = open(SP + 'met.html').read()
 met_js = open(SP + 'met.js').read()
 i18n_js = open(SP + 'i18n.js').read()
+app_version = open(SP + 'VERSION').read().strip()   # bumped by release.py, once per commit
 
 dsp_start = tuner.index('<script id="dsp">') + len('<script id="dsp">')
 dsp = tuner[dsp_start:tuner.index('</script>', dsp_start)]
@@ -735,6 +738,7 @@ markup = f"""
       </div>
       </div>
     </div>
+    <p class="ver">Version {app_version}</p>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
