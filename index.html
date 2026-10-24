@@ -804,6 +804,35 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .ver:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .sheet-done { position: sticky; bottom: 0; box-shadow: 0 -10px 12px var(--panel); }
 .sheet-done { margin-top: 18px; width: 100%; height: 46px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: 700 16px var(--font-note); cursor: pointer; }
+/* ---- first-use tips (coach.js) ---- */
+.coach { position: fixed; inset: 0; z-index: 105; cursor: pointer; touch-action: pinch-zoom; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+/* the spotlight: a clear rounded box whose huge shadow dims everything else */
+.coach-hole {
+  position: fixed; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 200vmax rgba(8, 14, 11, .62), 0 0 0 3px var(--accent) inset;
+  transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease;
+}
+.coach-tip {
+  position: fixed; box-sizing: border-box; padding: 14px 16px 12px; border-radius: 14px; cursor: default;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28); font-family: var(--font-note);
+  transition: top .25s ease, left .25s ease;
+}
+.coach-tip:focus { outline: none; }
+.coach-arrow { position: absolute; width: 14px; height: 14px; margin-left: -7px; background: var(--panel); border: 1px solid var(--line); transform: rotate(45deg); }
+.coach-arrow.up { top: -8px; border-right: 0; border-bottom: 0; }
+.coach-arrow.down { bottom: -8px; border-left: 0; border-top: 0; }
+.coach-arrow.lt { left: -8px !important; margin: -7px 0 0; border-right: 0; border-top: 0; }
+.coach-arrow.rt { right: -8px; left: auto !important; margin: -7px 0 0; border-left: 0; border-bottom: 0; }
+.coach-step { margin: 0 0 4px; font: 500 12px var(--font-mono); letter-spacing: .08em; color: var(--muted); }
+.coach-tip h2 { margin: 0 0 4px; font: 700 17px/1.25 var(--font-note); }
+.coach-tip p#coachText { margin: 0; font: 400 15px/1.45 var(--font-note); }
+.coach-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+.coach-btns button { height: 40px; padding: 0 16px; border-radius: 10px; font: 600 15px var(--font-note); cursor: pointer; }
+.coach-btns .coach-skip { border: 0; background: transparent; color: var(--muted); padding: 0 6px; }
+.coach-btns .coach-next { border: 0; background: var(--accent); color: var(--on-accent); min-width: 88px; }
+.coach-btns button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .coach-hole, .coach-tip { transition: none; } }
 
 /* ---- accent colours (set by data-accent on <html>) ---- */
 :root[data-accent="teal"]{--accent:#2F7377;--on-accent:#FFFFFF;--t-accent:#2F7377;--t-on-accent:#FFFFFF;}
@@ -1094,6 +1123,17 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 
 </div>
 
+<div class="coach" id="coach" hidden>
+  <div class="coach-hole" id="coachHole"></div>
+  <div class="coach-tip" id="coachTip" role="dialog" aria-modal="true" aria-labelledby="coachTitle" aria-describedby="coachText">
+    <span class="coach-arrow" id="coachArrow" aria-hidden="true"></span>
+    <p class="coach-step" id="coachStep"></p>
+    <h2 id="coachTitle"></h2>
+    <p id="coachText"></p>
+    <div class="coach-btns"><button type="button" class="coach-skip" id="coachSkip">Skip</button><button type="button" class="coach-next" id="coachNext">Next</button></div>
+  </div>
+</div>
+
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
   <div class="sheet-card" id="sheetCard" tabindex="-1">
     <h2 id="sheetTitle">Settings</h2>
@@ -1120,6 +1160,8 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     </div>
     <h3 id="lblCol">Colour</h3>
     <div class="swatches" role="radiogroup" aria-labelledby="lblCol" id="swatches"><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="teal" style="--sw:#2F7377;--sw-d:#6DBBC0"><i></i><span>Calm teal</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="sage" style="--sw:#4F7A66;--sw-d:#86C2A5"><i></i><span>Sage green</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="slate" style="--sw:#4D6F93;--sw-d:#8DB0D6"><i></i><span>Slate blue</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="violet" style="--sw:#6A5F93;--sw-d:#B0A6DC"><i></i><span>Soft violet</span></button><button type="button" class="swatch" role="radio" aria-checked="false" data-accent="classic" style="--sw:#16201B;--sw-d:#E5ECE7"><i></i><span>Classic</span></button></div>
+    <h3 id="lblHelp">Help</h3>
+    <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <h3 id="lblOff">Offline</h3>
     <button type="button" class="howto-btn" id="openHowto" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 8v6m0 0l-2.5-2.5M12 14l2.5-2.5"/><path d="M11 18.5h2"/></svg><span>Use offline on your phone</span></button>
     <div class="pair">
@@ -1135,7 +1177,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.03" data-build="20261024-234336" data-cache="violin-toolkit-"><span>Version 1.03</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.04" data-build="20261025-003558" data-cache="violin-toolkit-"><span>Version 1.04</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -2540,6 +2582,7 @@ function noteGate() {
 
   function show(name) {
     if (name === cur || !APP.views[name]) return;
+    if (APP.coach) APP.coach.interrupt();   /* a tour for the old tool stops (not marked seen); the new tool's may start below */
     if (cur && APP.views[cur]) APP.views[cur].hide();
     cur = name;
     /* the tuner listens through the microphone, so the metronome stops when it opens; the fingerboard leaves it running */
@@ -2556,6 +2599,7 @@ function noteGate() {
     shell.setAttribute('data-view', name);
     document.body.setAttribute('data-view', name);
     APP.views[name].show();
+    if (APP.coach) APP.coach.maybe(name);
   }
 
   tabs.forEach(function (b) {
@@ -2620,6 +2664,11 @@ function noteGate() {
       else if (!e.shiftKey && i === els.length - 1) { e.preventDefault(); els[0].focus(); }
     }
   }
+  document.getElementById('showTips').addEventListener('click', function () {
+    closeSheet();
+    APP.coach.reset();
+    APP.coach.maybe(cur);
+  });
   openHowto.addEventListener('click', function () {
     document.getElementById('offer').hidden = true;
     showDev(isIOS ? 'ios' : (isAndroid ? 'android' : 'desktop'));
@@ -2727,6 +2776,7 @@ function noteGate() {
     document.removeEventListener('keydown', onKey);
     if (choice) show(choice);
     if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
+    if (APP.coach) APP.coach.maybe(cur);   /* first-use tips wait until the start overlay is gone */
   }
   function onKey(e) {
     if (e.key === 'Escape') { closeLaunch(null); return; }
@@ -2757,6 +2807,191 @@ function noteGate() {
     document.addEventListener('keydown', onKey);
     document.getElementById('launchCard').focus();
   }
+})();
+</script>
+<script>
+/* First-use tips: the first time each tool opens, a short tour dims the page, spotlights one
+   control at a time and explains it in a bubble. Finished or skipped tours are remembered in
+   localStorage (violin-tips-seen); Settings > Show tips again clears that.
+   nav_js calls APP.coach.maybe(view) after showing a tool and after the start overlay closes. */
+(function () {
+  var KEY = 'violin-tips-seen';
+  var TOURS = {
+    tuner: [
+      { sel: '#go', title: 'Start tuning', text: 'Tap here, then bow or pluck an open string. The tuner listens through the microphone.' },
+      { sel: '#gauge', title: 'Read the needle', text: 'In the middle and green means in tune. Left of centre is flat, right is sharp.' },
+      { sel: '#strings', title: 'Hear a string', text: 'Tap a string name on the scroll to play its pitch. Tap it again to stop.' },
+      { sel: '#view-tuner .seg', title: 'Violin or Chromatic', text: 'Violin finds the nearest open string. Chromatic shows any note you play.' }
+    ],
+    board: [
+      { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
+      { sel: '#keys', title: 'Choose a key', text: 'Notes in the key are coloured; the others are greyed out.' },
+      { sel: '#posbar', title: 'Positions and Pitch Check', text: 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.' }
+    ],
+    metronome: [
+      { sel: '#mDial', title: 'Start and set the tempo', text: 'Tap the middle to start or stop. Drag around the dial to change the speed.' },
+      { sel: '#view-metronome .sig', title: 'Time signature', text: 'Tap the top number to change the beats per bar, and the bottom number to change the note value.' },
+      { sel: '#mBeats', title: 'Accents', text: 'Tap a beat to change how loudly it clicks: accent, medium, normal or muted.' },
+      { sel: '#mTap', title: 'Tap tempo', text: 'Tap in time a few times to set the tempo from your own beat.' }
+    ]
+  };
+  var root = document.getElementById('coach'), hole = document.getElementById('coachHole'), tip = document.getElementById('coachTip');
+  var arrow = document.getElementById('coachArrow'), stepEl = document.getElementById('coachStep');
+  var titleEl = document.getElementById('coachTitle'), textEl = document.getElementById('coachText');
+  var skipBtn = document.getElementById('coachSkip'), nextBtn = document.getElementById('coachNext');
+  var tour = null, view = '', idx = 0, target = null, lastFocus = null, timer = 0, scrolled = false, inerted = [];
+
+  /* names of the tools whose tour is done; "*" means all (the store-screenshot script sets that) */
+  function seen() {
+    try { var v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function isSeen(v) { var s = seen(); return s.indexOf(v) >= 0 || s.indexOf('*') >= 0; }
+  function remember(v) {
+    var s = seen();
+    if (s.indexOf(v) < 0) s.push(v);
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+  }
+  /* wait while anything else is on top: the start overlay, the offline tip, Settings, Use offline, Symbols */
+  function busy() {
+    var l = document.getElementById('launch'), off = document.getElementById('offer');
+    if ((l && !l.hidden) || (off && !off.hidden)) return true;
+    return Array.prototype.some.call(document.querySelectorAll('.sheet'), function (s) { return !s.hidden; });
+  }
+
+  /* Put the bubble next to the spotlight without covering it: below, above, scrolled so it fits
+     below, beside (wide screens), and only when none of those can work, over the lower part. */
+  function place() {
+    if (!tour || !target) return;
+    var vw = document.documentElement.clientWidth, vh = window.innerHeight, g = 16, gap = 12, pad = 6;
+    var w = Math.min(320, vw - 2 * g);
+    tip.style.width = w + 'px';            /* width first, so the height read below is the wrapped height */
+    var h = tip.offsetHeight;
+    var r = target.getBoundingClientRect();
+    if (r.bottom <= 0 || r.top >= vh) {   /* scrolled away anyway (e.g. the browser bar resized): bring it back */
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      r = target.getBoundingClientRect();
+    }
+    /* clamp both ends of each pair so they can't cross when the target is partly off screen */
+    var top = Math.max(4, Math.min(vh - 4, r.top - pad)), bottom = Math.max(top, Math.min(vh - 4, r.bottom + pad));
+    var left = Math.max(4, Math.min(vw - 4, r.left - pad)), right = Math.max(left, Math.min(vw - 4, r.right + pad));
+    hole.style.cssText = 'top:' + top + 'px;left:' + left + 'px;width:' + Math.max(0, right - left) + 'px;height:' + Math.max(0, bottom - top) + 'px';
+    var cx = (left + right) / 2, cy = (top + bottom) / 2, x, y, side = '';
+    if (bottom + gap + h <= vh - g) { y = bottom + gap; side = 'below'; }
+    else if (top - gap - h >= g) { y = top - gap - h; side = 'above'; }
+    else if (!scrolled && (r.height + 2 * pad) + gap + h + 2 * g <= vh) {
+      /* the page can make room: scroll once so the target sits near the top with the bubble under it */
+      scrolled = true;
+      window.scrollBy(0, r.top - pad - g);
+      return place();
+    }
+    else if (vw - right - gap - g >= w) { x = right + gap; side = 'right'; }
+    else if (left - gap - g >= w) { x = left - gap - w; side = 'left'; }
+    if (side === 'below' || side === 'above') x = Math.max(g, Math.min(vw - g - w, cx - w / 2));
+    else if (side) y = Math.max(g, Math.min(vh - g - h, cy - h / 2));
+    else {
+      /* no room anywhere (a tall target on a short screen): sit at the top or bottom edge, whichever
+         hides less of the spotlight, without an arrow */
+      x = Math.max(g, Math.min(vw - g - w, cx - w / 2));
+      var upY = g, downY = vh - g - h;
+      var hid = function (y0) { return Math.max(0, Math.min(y0 + h, bottom) - Math.max(y0, top)); };
+      y = hid(upY) < hid(downY) ? upY : downY;
+    }
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    arrow.hidden = !side;
+    arrow.className = 'coach-arrow ' + ({ below: 'up', above: 'down', right: 'lt', left: 'rt' }[side] || '');
+    if (side === 'below' || side === 'above') { arrow.style.left = Math.max(14, Math.min(w - 14, cx - x)) + 'px'; arrow.style.top = ''; }
+    else { arrow.style.top = Math.max(14, Math.min(h - 14, cy - y)) + 'px'; arrow.style.left = ''; }
+  }
+  /* after a rotation or resize, bring the target back into view before placing */
+  function onResize() {
+    if (!target) return;
+    scrolled = false;
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    place();
+  }
+
+  function step(i) {
+    idx = i;
+    var s = tour[i];
+    target = document.querySelector(s.sel);
+    if (!target || !target.getClientRects().length) { if (i + 1 < tour.length) step(i + 1); else close(); return; }
+    scrolled = false;
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    stepEl.textContent = (i + 1) + ' / ' + tour.length;
+    titleEl.textContent = s.title;
+    textEl.textContent = s.text;
+    nextBtn.textContent = i + 1 < tour.length ? 'Next' : 'Got it';
+    requestAnimationFrame(function () { place(); try { nextBtn.focus({ preventScroll: true }); } catch (e) {} });
+  }
+  function next() { if (idx + 1 < tour.length) step(idx + 1); else close(); }
+  /* done = the person finished or skipped it (remembered); a tool switch only interrupts it */
+  function close(done) {
+    if (!tour) return;
+    if (done !== false) remember(view);
+    tour = null; target = null;
+    root.hidden = true;
+    inerted.forEach(function (el) { el.inert = false; });
+    inerted = [];
+    document.removeEventListener('keydown', onKey, true);
+    root.removeEventListener('wheel', noScroll);
+    root.removeEventListener('touchmove', noScroll);
+    window.removeEventListener('resize', onResize);
+    window.removeEventListener('scroll', place, true);
+    if (lastFocus && lastFocus.focus) { try { lastFocus.focus({ preventScroll: true }); } catch (e) {} }
+  }
+  /* the page behind must not scroll under the tour: inert stops clicks and focus, not scrolling */
+  var SCROLL_KEYS = { ArrowUp: 1, ArrowDown: 1, PageUp: 1, PageDown: 1, Home: 1, End: 1, ' ': 1 };
+  /* one finger or a wheel would scroll the page; two fingers are a pinch-zoom, which stays allowed */
+  function noScroll(e) { if (e.touches && e.touches.length > 1) return; e.preventDefault(); }
+  function onKey(e) {
+    if (SCROLL_KEYS[e.key] && !(e.key === ' ' && e.target.tagName === 'BUTTON')) { e.preventDefault(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+    else if (e.key === 'Tab') {   /* keep focus on Skip and Next, in tab order both ways */
+      if (e.shiftKey && document.activeElement !== nextBtn) { e.preventDefault(); nextBtn.focus(); }
+      else if (!e.shiftKey && document.activeElement !== skipBtn) { e.preventDefault(); skipBtn.focus(); }
+    }
+  }
+  function start(v) {
+    if (tour || !TOURS[v] || busy()) return;
+    tour = TOURS[v]; view = v; lastFocus = document.activeElement;
+    root.hidden = false;
+    /* the page behind is out of reach while the tour is up (screen readers and keyboard too) */
+    Array.prototype.forEach.call(document.body.children, function (el) {
+      if (el !== root && !el.inert && el.tagName !== 'SCRIPT') { el.inert = true; inerted.push(el); }
+    });
+    document.addEventListener('keydown', onKey, true);
+    root.addEventListener('wheel', noScroll, { passive: false });
+    root.addEventListener('touchmove', noScroll, { passive: false });
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', place, true);
+    step(0);
+  }
+
+  nextBtn.addEventListener('click', next);
+  skipBtn.addEventListener('click', function () { close(); });
+  /* a tap anywhere outside the bubble moves on too, so the dimmed page never feels stuck */
+  root.addEventListener('click', function (e) { if (!tip.contains(e.target)) next(); });
+
+  APP.coach = {
+    /* show this tool's tour once, after the page has settled and nothing else is open */
+    maybe: function (v) {
+      clearTimeout(timer);
+      if (isSeen(v)) return;
+      timer = setTimeout(function () {
+        if (document.body.getAttribute('data-view') === v && !isSeen(v)) start(v);
+      }, 500);
+    },
+    /* show() calls this first: a tour for the old tool closes without counting as seen */
+    interrupt: function () { clearTimeout(timer); close(false); },
+    /* Settings > Show tips again */
+    reset: function () {
+      try { localStorage.removeItem(KEY); } catch (e) {}
+    },
+    start: start
+  };
+  /* a link like #tuner skips the start overlay and shows the tool before this script has loaded */
+  APP.coach.maybe(document.body.getAttribute('data-view'));
 })();
 </script>
 <script>
@@ -2834,6 +3069,18 @@ function noteGate() {
     'Tap Install to confirm.': '点按“安装”确认。',
     'Open it from the new icon once while you have internet.': '在有网络时，从新图标打开一次。',
     'Use the app at least once with internet. After that, it also works offline.': '请至少在有网络时使用一次，之后也可离线使用。',
+    'Help': '帮助', 'Show tips again': '再次显示提示', 'Skip': '跳过', 'Next': '下一步', 'Got it': '知道了',
+    'Tap here, then bow or pluck an open string. The tuner listens through the microphone.': '点这里，然后拉奏或拨一根空弦。调音器会通过麦克风听音。',
+    'Read the needle': '看指针', 'In the middle and green means in tune. Left of centre is flat, right is sharp.': '指针在中间并变绿表示音准。偏左是偏低，偏右是偏高。',
+    'Hear a string': '听空弦音', 'Tap a string name on the scroll to play its pitch. Tap it again to stop.': '点琴头上的弦名播放它的音高，再点一次停止。',
+    'Violin or Chromatic': '小提琴或半音阶', 'Violin finds the nearest open string. Chromatic shows any note you play.': '小提琴模式找最接近的空弦；半音阶模式显示你拉的任何音。',
+    'Press and hold a note': '按住一个音', 'Touch any coloured note to hear its pitch for as long as you hold it.': '按住任何彩色的音，按多久就响多久。',
+    'Choose a key': '选择调', 'Notes in the key are coloured; the others are greyed out.': '调内的音是彩色的，其他的是灰色。',
+    'Positions and Pitch Check': '把位和音准检测', 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.': '在一把位、二把位、三把位之间切换。音准检测会边听边标出你拉到的音。',
+    'Start and set the tempo': '开始并设置速度', 'Tap the middle to start or stop. Drag around the dial to change the speed.': '点中间开始或停止，沿着转盘拖动改变速度。',
+    'Tap the top number to change the beats per bar, and the bottom number to change the note value.': '点上面的数字改变每小节拍数，点下面的数字改变音符时值。',
+    'Accents': '重音', 'Tap a beat to change how loudly it clicks: accent, medium, normal or muted.': '点一个拍子改变它的音量：重音、中、普通或静音。',
+    'Tap tempo': '点拍定速', 'Tap in time a few times to set the tempo from your own beat.': '按你的节奏点几下，就能按你的拍子设定速度。',
     'Support': '支持', 'Note names': '音符名称', 'Tuning pitch (A4)': '标准音高 (A4)', 'Pitch names': '音名', 'Solfège': '唱名',
     'Buy me a coffee': '请我喝杯咖啡',
     'Like this app?': '喜欢这个应用？', 'Star on GitHub': '在 GitHub 上点个星',
