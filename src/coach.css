@@ -1,5 +1,5 @@
 /* ---- first-use tips (coach.js) ---- */
-.coach { position: fixed; inset: 0; z-index: 105; cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+.coach { position: fixed; inset: 0; z-index: 105; cursor: pointer; touch-action: none; overscroll-behavior: contain; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 /* the spotlight: a clear rounded box whose huge shadow dims everything else */
 .coach-hole {
   position: fixed; border-radius: 14px; pointer-events: none;

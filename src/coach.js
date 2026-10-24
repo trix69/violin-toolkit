@@ -55,8 +55,13 @@
     tip.style.width = w + 'px';            /* width first, so the height read below is the wrapped height */
     var h = tip.offsetHeight;
     var r = target.getBoundingClientRect();
-    var top = Math.max(4, r.top - pad), left = Math.max(4, r.left - pad);
-    var bottom = Math.min(vh - 4, r.bottom + pad), right = Math.min(vw - 4, r.right + pad);
+    if (r.bottom <= 0 || r.top >= vh) {   /* scrolled away anyway (e.g. the browser bar resized): bring it back */
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      r = target.getBoundingClientRect();
+    }
+    /* clamp both ends of each pair so they can't cross when the target is partly off screen */
+    var top = Math.max(4, Math.min(vh - 4, r.top - pad)), bottom = Math.max(top, Math.min(vh - 4, r.bottom + pad));
+    var left = Math.max(4, Math.min(vw - 4, r.left - pad)), right = Math.max(left, Math.min(vw - 4, r.right + pad));
     hole.style.cssText = 'top:' + top + 'px;left:' + left + 'px;width:' + Math.max(0, right - left) + 'px;height:' + Math.max(0, bottom - top) + 'px';
     var cx = (left + right) / 2, cy = (top + bottom) / 2, x, y, side = '';
     if (bottom + gap + h <= vh - g) { y = bottom + gap; side = 'below'; }
@@ -116,11 +121,17 @@
     inerted.forEach(function (el) { el.inert = false; });
     inerted = [];
     document.removeEventListener('keydown', onKey, true);
+    root.removeEventListener('wheel', noScroll);
+    root.removeEventListener('touchmove', noScroll);
     window.removeEventListener('resize', onResize);
     window.removeEventListener('scroll', place, true);
     if (lastFocus && lastFocus.focus) { try { lastFocus.focus({ preventScroll: true }); } catch (e) {} }
   }
+  /* the page behind must not scroll under the tour: inert stops clicks and focus, not scrolling */
+  var SCROLL_KEYS = { ArrowUp: 1, ArrowDown: 1, PageUp: 1, PageDown: 1, Home: 1, End: 1, ' ': 1 };
+  function noScroll(e) { e.preventDefault(); }
   function onKey(e) {
+    if (SCROLL_KEYS[e.key] && !(e.key === ' ' && e.target.tagName === 'BUTTON')) { e.preventDefault(); return; }
     if (e.key === 'Escape') { e.preventDefault(); close(); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
     else if (e.key === 'Tab') {   /* keep focus on Skip and Next, in tab order both ways */
@@ -137,6 +148,8 @@
       if (el !== root && !el.inert && el.tagName !== 'SCRIPT') { el.inert = true; inerted.push(el); }
     });
     document.addEventListener('keydown', onKey, true);
+    root.addEventListener('wheel', noScroll, { passive: false });
+    root.addEventListener('touchmove', noScroll, { passive: false });
     window.addEventListener('resize', onResize);
     window.addEventListener('scroll', place, true);
     step(0);
