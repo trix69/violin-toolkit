@@ -360,6 +360,8 @@ met_css += '\n/* tuner gauge: wider on large screens */\n#view-tuner .panel > .a
 met_html = open(SP + 'met.html').read()
 met_js = open(SP + 'met.js').read()
 i18n_js = open(SP + 'i18n.js').read()
+coach_js = open(SP + 'coach.js').read()
+coach_css = open(SP + 'coach.css').read()
 app_version = open(SP + 'VERSION').read().strip()   # bumped by release.py, once per commit
 
 dsp_start = tuner.index('<script id="dsp">') + len('<script id="dsp">')
@@ -435,6 +437,7 @@ nav_js = """(function () {
     shell.setAttribute('data-view', name);
     document.body.setAttribute('data-view', name);
     APP.views[name].show();
+    if (APP.coach) APP.coach.maybe(name);
   }
 
   tabs.forEach(function (b) {
@@ -499,6 +502,11 @@ nav_js = """(function () {
       else if (!e.shiftKey && i === els.length - 1) { e.preventDefault(); els[0].focus(); }
     }
   }
+  document.getElementById('showTips').addEventListener('click', function () {
+    closeSheet();
+    APP.coach.reset();
+    APP.coach.maybe(cur);
+  });
   openHowto.addEventListener('click', function () {
     document.getElementById('offer').hidden = true;
     showDev(isIOS ? 'ios' : (isAndroid ? 'android' : 'desktop'));
@@ -606,6 +614,7 @@ nav_js = """(function () {
     document.removeEventListener('keydown', onKey);
     if (choice) show(choice);
     if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
+    if (APP.coach) APP.coach.maybe(cur);   /* first-use tips wait until the start overlay is gone */
   }
   function onKey(e) {
     if (e.key === 'Escape') { closeLaunch(null); return; }
@@ -740,6 +749,17 @@ markup = f"""
 
 </div>
 
+<div class="coach" id="coach" hidden>
+  <div class="coach-hole" id="coachHole"></div>
+  <div class="coach-tip" id="coachTip" role="dialog" aria-modal="true" aria-labelledby="coachTitle" aria-describedby="coachText">
+    <span class="coach-arrow" id="coachArrow" aria-hidden="true"></span>
+    <p class="coach-step" id="coachStep"></p>
+    <h2 id="coachTitle"></h2>
+    <p id="coachText"></p>
+    <div class="coach-btns"><button type="button" class="coach-skip" id="coachSkip">Skip</button><button type="button" class="coach-next" id="coachNext">Next</button></div>
+  </div>
+</div>
+
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
   <div class="sheet-card" id="sheetCard" tabindex="-1">
     <h2 id="sheetTitle">Settings</h2>
@@ -766,6 +786,8 @@ markup = f"""
     </div>
     <h3 id="lblCol">Colour</h3>
     <div class="swatches" role="radiogroup" aria-labelledby="lblCol" id="swatches">{swatch_html}</div>
+    <h3 id="lblHelp">Help</h3>
+    <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <h3 id="lblOff">Offline</h3>
     <button type="button" class="howto-btn" id="openHowto" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 8v6m0 0l-2.5-2.5M12 14l2.5-2.5"/><path d="M11 18.5h2"/></svg><span>Use offline on your phone</span></button>
     <div class="pair">
@@ -839,9 +861,9 @@ markup = f"""
 """
 
 doc = (head + '<style>\n' + b_tokens.strip() + '\n\n/* Tuner tokens, prefixed --t- so they never clash with the fingerboard */\n' + t_tokens.strip() + '\n'
-       + chrome_css + '\n/* ---- fingerboard ---- */\n' + board_css + '\n/* ---- tuner ---- */\n' + tuner_css + '\n/* ---- metronome ---- */\n' + met_css + launch_css + settings_css + accent_css + '</style>\n'
+       + chrome_css + '\n/* ---- fingerboard ---- */\n' + board_css + '\n/* ---- tuner ---- */\n' + tuner_css + '\n/* ---- metronome ---- */\n' + met_css + launch_css + settings_css + coach_css + accent_css + '</style>\n'
        + '\n' + init_js + markup
-       + '\n<script>\n' + app_js + '</script>\n<script>\n' + dsp + '</script>\n<script>' + t_js + '</script>\n<script>' + b_js + '</script>\n<script>\n' + met_js + '</script>\n<script>\n' + nav_js + '</script>\n<script>\n' + i18n_js + '</script>\n')
+       + '\n<script>\n' + app_js + '</script>\n<script>\n' + dsp + '</script>\n<script>' + t_js + '</script>\n<script>' + b_js + '</script>\n<script>\n' + met_js + '</script>\n<script>\n' + nav_js + '</script>\n<script>\n' + coach_js + '</script>\n<script>\n' + i18n_js + '</script>\n')
 
 open(DIST + 'violin-fingerboard.html', 'w', encoding='utf-8').write(doc)
 

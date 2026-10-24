@@ -1,0 +1,27 @@
+/* ---- first-use tips (coach.js) ---- */
+.coach { position: fixed; inset: 0; z-index: 105; cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+/* the spotlight: a clear rounded box whose huge shadow dims everything else */
+.coach-hole {
+  position: fixed; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 200vmax rgba(8, 14, 11, .62), 0 0 0 3px var(--accent) inset;
+  transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease;
+}
+.coach-tip {
+  position: fixed; box-sizing: border-box; padding: 14px 16px 12px; border-radius: 14px; cursor: default;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28); font-family: var(--font-note);
+  transition: top .25s ease, left .25s ease;
+}
+.coach-tip:focus { outline: none; }
+.coach-arrow { position: absolute; width: 14px; height: 14px; margin-left: -7px; background: var(--panel); border: 1px solid var(--line); transform: rotate(45deg); }
+.coach-arrow.up { top: -8px; border-right: 0; border-bottom: 0; }
+.coach-arrow.down { bottom: -8px; border-left: 0; border-top: 0; }
+.coach-step { margin: 0 0 4px; font: 500 12px var(--font-mono); letter-spacing: .08em; color: var(--muted); }
+.coach-tip h2 { margin: 0 0 4px; font: 700 17px/1.25 var(--font-note); }
+.coach-tip p#coachText { margin: 0; font: 400 15px/1.45 var(--font-note); }
+.coach-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+.coach-btns button { height: 40px; padding: 0 16px; border-radius: 10px; font: 600 15px var(--font-note); cursor: pointer; }
+.coach-btns .coach-skip { border: 0; background: transparent; color: var(--muted); padding: 0 6px; }
+.coach-btns .coach-next { border: 0; background: var(--accent); color: var(--on-accent); min-width: 88px; }
+.coach-btns button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .coach-hole, .coach-tip { transition: none; } }
