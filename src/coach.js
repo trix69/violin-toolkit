@@ -129,7 +129,8 @@
   }
   /* the page behind must not scroll under the tour: inert stops clicks and focus, not scrolling */
   var SCROLL_KEYS = { ArrowUp: 1, ArrowDown: 1, PageUp: 1, PageDown: 1, Home: 1, End: 1, ' ': 1 };
-  function noScroll(e) { e.preventDefault(); }
+  /* one finger or a wheel would scroll the page; two fingers are a pinch-zoom, which stays allowed */
+  function noScroll(e) { if (e.touches && e.touches.length > 1) return; e.preventDefault(); }
   function onKey(e) {
     if (SCROLL_KEYS[e.key] && !(e.key === ' ' && e.target.tagName === 'BUTTON')) { e.preventDefault(); return; }
     if (e.key === 'Escape') { e.preventDefault(); close(); }
