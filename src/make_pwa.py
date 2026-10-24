@@ -72,6 +72,11 @@ if TEST:
     unknown += sorted({m[1] for m in frag.findall(src)})
     if unknown:
         raise SystemExit('test build: decide whether these keys are shared settings or once-only: %s' % ', '.join(unknown))
+    # a prefix put together at runtime: `violin-${x}`, or 'violin' + '-x'
+    tpl = re.compile(r"""(?:violin|vt)[_-]\$\{""", re.I)
+    cat = re.compile(r"""(['"`])(?:violin|vt)\1\s*\+\s*(['"`])[_-]""", re.I)
+    if tpl.search(src) or cat.search(src):
+        raise SystemExit('test build: key prefix assembled at runtime, cannot be checked')
     # i18n.js sets the title when the language changes; keep the test marker there too
     src = src.replace("document.title = lang === 'zh' ? '小提琴工具箱' : 'Violin Toolkit';",
                       "document.title = (lang === 'zh' ? '小提琴工具箱' : 'Violin Toolkit') + ' (Test)';", 1)
