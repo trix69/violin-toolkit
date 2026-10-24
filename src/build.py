@@ -563,14 +563,18 @@ nav_js = """(function () {
       if (!sw || !sw.controller) { location.reload(); return; }
       busy = true; say('Checking…');
       fetch('version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
-        if (num(j.version) <= num(btn.dataset.version)) { busy = false; say('Up to date'); return; }
+        /* a different build stamp means a new release (test builds keep the same version number) */
+        var newer = j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version);
+        if (!newer) { busy = false; say('Up to date'); return; }
         say('Updating to ' + j.version + '…');
         return sw.getRegistration().then(function (reg) { return reg && swapIn(reg); }).then(function () {
           /* belt and braces: also put the fresh page into every saved copy before reloading */
           return fetch('index.html', { cache: 'no-store' }).then(function (r) {
             if (!r.ok) return;
+            /* only this site's caches (data-cache prefix + build stamp); the test site shares the origin */
+            var mine = new RegExp('^' + (btn.dataset.cache || 'violin-toolkit-') + '\\d{8}-\\d{6}$');
             return caches.keys().then(function (ks) {
-              return Promise.all(ks.filter(function (k) { return k.indexOf('violin-toolkit-') === 0; })
+              return Promise.all(ks.filter(function (k) { return mine.test(k); })
                 .map(function (k) { return caches.open(k).then(function (c) { return c.put('index.html', r.clone()); }); }));
             });
           }).catch(function () {});

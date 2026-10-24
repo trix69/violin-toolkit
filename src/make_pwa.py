@@ -1,13 +1,22 @@
-import re, json, time, shutil, os
+import re, json, time, shutil, os, sys
+import version
 SRC = os.path.dirname(os.path.abspath(__file__)) + '/'
 ROOT = os.path.dirname(SRC.rstrip('/')) + '/'   # the repo root is what GitHub Pages serves
 src = open(ROOT + 'dist/violin-toolkit.html', encoding='utf-8').read()
 ver = time.strftime('%Y%m%d-%H%M%S')
+# --test: build the test site (trix69.github.io/violin-toolkit-test/) into dist/test-site/ instead of the repo root.
+# Both sites share the trix69.github.io origin, so each keeps its own cache names (PREFIX) and only ever touches those.
+TEST = '--test' in sys.argv
+OUT = ROOT + 'dist/test-site/' if TEST else ROOT
+PREFIX = 'violin-toolkit-test-' if TEST else 'violin-toolkit-'
+NAME = 'Violin Toolkit (Test)' if TEST else 'Violin Toolkit'
+app_version = version.bumped(version.current()) if TEST else version.current()
+shown = app_version + ('-test' if TEST else '')
 head_add = '''<link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2f7679">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Violin Toolkit">
+<meta name="apple-mobile-web-app-title" content="%(name)s">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
@@ -32,6 +41,20 @@ head_add = '''<link rel="manifest" href="manifest.webmanifest">
  "screenshot": ["https://trix69.github.io/violin-toolkit/screenshots/fingerboard.png", "https://trix69.github.io/violin-toolkit/screenshots/tuner.png", "https://trix69.github.io/violin-toolkit/screenshots/metronome.png"]}
 </script>
 '''
+head_add = head_add.replace('%(name)s', NAME)
+if TEST:
+    head_add += '''<meta name="robots" content="noindex">
+<style>.test-ribbon { position: fixed; z-index: 300; top: 0; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 0 0 8px 8px; background: #c2410c; color: #fff; font: 700 11px/1.4 ui-monospace, monospace; letter-spacing: .1em; pointer-events: none; }</style>
+'''
+    src = src.replace('<title>Violin Toolkit</title>', '<title>Violin Toolkit (Test)</title>', 1)
+    # i18n.js sets the title when the language changes; keep the test marker there too
+    src = src.replace("document.title = lang === 'zh' ? '小提琴工具箱' : 'Violin Toolkit';",
+                      "document.title = (lang === 'zh' ? '小提琴工具箱' : 'Violin Toolkit') + ' (Test)';", 1)
+    src = src.replace('<body>', '<body><div class="test-ribbon" aria-hidden="true">TEST</div>', 1) if '<body>' in src else re.sub(r'(<body[^>]*>)', r'\1<div class="test-ribbon" aria-hidden="true">TEST</div>', src, 1)
+# the Settings version button: which build this is and which saved copies belong to this site
+src, n = re.subn(r'data-version="[^"]*"><span>Version [^<]*</span>',
+                 'data-version="%s" data-build="%s" data-cache="%s"><span>Version %s</span>' % (app_version, ver, PREFIX, shown), src)
+assert n == 1
 # drop the old data-URI apple-touch-icon so the real file is used
 src = re.sub(r'<link rel="apple-touch-icon"[^>]*>', '', src)
 assert src.count('</head>') == 1 and src.count('</body>') == 1
@@ -42,18 +65,18 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 </script>
 '''
 out = src.replace('</head>', head_add + '</head>').replace('</body>', reg + '</body>')
-os.makedirs(ROOT + 'screenshots', exist_ok=True)
+os.makedirs(OUT + 'screenshots', exist_ok=True)
 for f in ('fingerboard.png', 'tuner.png', 'metronome.png'):
     if os.path.exists(SRC + 'screenshots/' + f):
-        shutil.copy(SRC + 'screenshots/' + f, ROOT + 'screenshots/' + f)
+        shutil.copy(SRC + 'screenshots/' + f, OUT + 'screenshots/' + f)
 for f in ('icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'og-image.png'):
-    shutil.copy(SRC + 'icons/' + f, ROOT + f)
-open(ROOT + 'index.html', 'w', encoding='utf-8').write(out)
+    shutil.copy(SRC + 'icons/' + f, OUT + f)
+open(OUT + 'index.html', 'w', encoding='utf-8').write(out)
 # read by the Settings version button to see whether a newer release is online
-json.dump({'version': open(SRC + 'VERSION').read().strip()}, open(ROOT + 'version.json', 'w'))
+json.dump({'version': app_version, 'build': ver}, open(OUT + 'version.json', 'w'))
 json.dump({
-  "name": "Violin Toolkit", "short_name": "Violin Toolkit", "description": "Violin tuner, fingerboard chart and metronome.",
-  "id": "/violin-toolkit/", "lang": "en", "dir": "ltr", "categories": ["music", "education", "utilities"],
+  "name": NAME, "short_name": "VT Test" if TEST else "Violin Toolkit", "description": "Violin tuner, fingerboard chart and metronome.",
+  "id": "/violin-toolkit-test/" if TEST else "/violin-toolkit/", "lang": "en", "dir": "ltr", "categories": ["music", "education", "utilities"],
   "start_url": "./", "scope": "./", "display": "standalone", "orientation": "portrait",
   "background_color": "#16201b", "theme_color": "#2f7679",
   "icons": [
@@ -65,9 +88,11 @@ json.dump({
     {"src": "screenshots/fingerboard.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Fingerboard: press and hold any note"},
     {"src": "screenshots/tuner.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Tuner for G, D, A and E"},
     {"src": "screenshots/metronome.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Metronome with tap tempo"}
-  ]}, open(ROOT + 'manifest.webmanifest', 'w'), indent=2)
-open(ROOT + 'sw.js', 'w').write('''/* Violin Toolkit service worker. VERSION changes on every build, which makes phones update. */
-const VERSION = 'violin-toolkit-%s';
+  ]}, open(OUT + 'manifest.webmanifest', 'w'), indent=2)
+open(OUT + 'sw.js', 'w').write('''/* Violin Toolkit service worker. VERSION changes on every build, which makes phones update. */
+const VERSION = '%(prefix)s%(ver)s';
+/* only this site's saved copies: production and test share trix69.github.io, so never touch the other's */
+const MINE = k => /^%(prefix)s\\d{8}-\\d{6}$/.test(k);
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(async c => {
@@ -77,11 +102,13 @@ self.addEventListener('install', e => {
   }).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && k.indexOf('violin-toolkit-') === 0).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && MINE(k)).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 async function page() {
   const c = await caches.open(VERSION);
-  return (await c.match('index.html')) || (await caches.match('index.html')) || (await c.match('./'));
+  const hit = (await c.match('index.html')) || (await c.match('./'));
+  if (hit) return hit;
+  for (const k of (await caches.keys()).filter(MINE)) { const r = await (await caches.open(k)).match('index.html'); if (r) return r; }
 }
 self.addEventListener('fetch', e => {
   const req = e.request;
@@ -109,5 +136,5 @@ self.addEventListener('fetch', e => {
     return (await net) || Response.error();
   })());
 });
-''' % ver)
+''' % {'prefix': PREFIX, 'ver': ver})
 print('built', ver, len(out))

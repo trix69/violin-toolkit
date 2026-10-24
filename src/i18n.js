@@ -101,7 +101,7 @@
     return m ? (m[2] === 'sharp' ? '偏高 ' : '偏低 ') + m[1] + '¢' : s;
   }
   var RX = [
-    [/^Version ([\d.]+)$/, function (m, v) { return '版本 ' + v; }],
+    [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
     [/^(.+) major · (1st|2nd|3rd) position$/, function (m, k, p) { return k + '大调 · ' + P[p]; }],
     [/^(.+) major · Pitch Check(?: · (.+))?$/, function (m, k, s) { return k + '大调 · 音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
