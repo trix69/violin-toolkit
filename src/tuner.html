@@ -282,15 +282,17 @@ function median(a) {
   var m = s.length >> 1;
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
-// YIN pitch detector. Returns frequency in Hz, or 0 when no clear pitch (80 Hz to 1500 Hz range,
-// so a G string tuned far down, even an octave low, still reads as itself).
+// YIN pitch detector, shared by the tuner and the fingerboard's Pitch Check. Returns Hz, or 0 when
+// there is no clear pitch. Default range 80-1500 Hz, so a G string tuned far down (even an octave
+// low) still reads as itself; lo / hi override it.
+// After a call, yin.octave says whether the octave check changed the answer, and yin.first holds the
+// answer it replaced (both interpolated the same way), so Violin mode can choose between the two.
 var PITCH_LO = 80, PITCH_HI = 1500;
-// yin.first keeps the answer before the octave check, so Violin mode can choose between the two.
-function yin(buf, sr) {
+function yin(buf, sr, lo, hi) {
   var n = buf.length, half = n >> 1;
-  yin.first = 0;
-  var tauMax = Math.min(half - 1, Math.floor(sr / PITCH_LO));
-  var tauMin = Math.max(2, Math.floor(sr / PITCH_HI));
+  yin.first = 0; yin.octave = false;
+  var tauMax = Math.min(half - 1, Math.floor(sr / (lo || PITCH_LO)));
+  var tauMin = Math.max(2, Math.floor(sr / (hi || PITCH_HI)));
   var d = new Float32Array(tauMax + 1);
   var tau, i, s, x;
   for (tau = 1; tau <= tauMax; tau++) {
@@ -310,50 +312,57 @@ function yin(buf, sr) {
     }
   }
   if (best < 0) return 0;
-  yin.first = sr / best;
-  // Octave check: on a plucked G string the 2nd or 3rd harmonic can be louder than the note itself,
-  // so the first dip sits at half or a third of the real period. A clean note dips to almost 0 there;
-  // a harmonic only dips part way, and the true period (2x or 3x further out) dips much deeper.
+  // parabolic interpolation around a dip, for sub-sample accuracy
+  function hz(t) {
+    if (t > 1 && t < tauMax) {
+      var den = d[t - 1] - 2 * d[t] + d[t + 1];
+      if (den !== 0) return sr / (t + (d[t - 1] - d[t + 1]) / (2 * den));
+    }
+    return sr / t;
+  }
+  // Octave check: on a plucked G string the 2nd, 3rd or 4th harmonic can be louder than the note
+  // itself, so the first dip sits at a fraction of the real period. A clean note dips to almost 0
+  // there; a harmonic only dips part way, and the true period (2-4x further out) dips much deeper.
+  var first = best;
   if (d[best] > 0.02) {
-    var first = best, k, j, m;
-    for (k = 2; k <= 3 && first * k + 2 <= tauMax; k++) {
+    var k, j, m;
+    for (k = 2; k <= 4 && first * k + 2 <= tauMax; k++) {
       for (m = j = first * k - 2; j <= first * k + 2; j++) if (d[j] < d[m]) m = j;
       if (d[m] < d[best] * 0.5) best = m;
     }
   }
-  var b = best;
-  if (best > 1 && best < tauMax) {
-    var a0 = d[best - 1], c0 = d[best + 1], m0 = d[best];
-    var den = a0 - 2 * m0 + c0;
-    if (den !== 0) b = best + (a0 - c0) / (2 * den);
-  }
-  return sr / b;
+  yin.first = hz(first);
+  yin.octave = best !== first;
+  return yin.octave ? hz(best) : yin.first;
 }
 // Sympathetic-string guard. A plucked G fades fast while the open D (or A) string, set ringing by it,
 // keeps sounding quietly; without this the tuner would jump to D once the G has faded.
-// A different pitch is only accepted after a new attack (the level jumps) or while the sound is still
-// at least 40% as loud as the note's peak. Call feed() once per frame with the level and detected Hz;
-// it returns the Hz to show, or 0 to keep showing the current note.
+// feed(rms, hz, ms) once per analysed frame (any frame rate; ms = performance.now()). It returns the
+// Hz to use, or 0 to ignore this frame, as if nothing was heard: the display holds briefly, then the
+// caller's usual silence timeout takes it to idle. A different pitch is ignored only while the sound
+// is fading: no new attack, and the level either well below the note's peak or still falling.
 function noteGate() {
-  var env = [], note = 0, peak = 0;
+  var env = [], note = 0, peak = 0, lastT = 0;
   return {
-    feed: function (rms, fr) {
-      env.push(rms);
-      if (env.length > 8) env.shift();                    // about 130 ms of history at 60 frames/s
-      if (rms > 0.01 && rms > env[0] * 1.8) { note = 0; peak = rms; }   // new attack: pluck, bow or a louder note
-      peak = Math.max(peak * 0.995, rms);                  // halves in about 2 s, so later quiet notes still get in
+    feed: function (rms, fr, now) {
+      env.push({ t: now, rms: rms });
+      while (env.length > 1 && now - env[0].t > 130) env.shift();
+      if (rms > 0.01 && rms > env[0].rms * 1.8) { note = 0; peak = rms; }   // new attack: level jumped within ~130 ms
+      peak = Math.max(peak * Math.pow(0.5, (now - (lastT || now)) / 2000), rms);   // halves every 2 s, so later quiet notes get in
+      lastT = now;
       if (!fr) return 0;
       if (note) {
         // two strings sounding together repeat at a lower common period (E + A at A3, G + D at G2):
-        // a reading 2, 3 or 4 times below the note is the note plus a ringing string, not a new note
+        // while the note is still dying away, a reading 2-4x below it is that mixture, not a new note
+        // (a real lower note played softly holds its level, so it gets through)
         var r = note / fr, k = Math.round(r);
-        if (k >= 2 && k <= 4 && Math.abs(1200 * Math.log2(r / k)) < 30) return 0;
+        if (k >= 2 && k <= 4 && Math.abs(1200 * Math.log2(r / k)) < 30 && rms < env[0].rms * 0.9) return 0;
         if (Math.abs(1200 * Math.log2(fr / note)) > 100 && rms < peak * 0.4) return 0;
       }
       note = fr;
       return fr;
     },
-    reset: function () { env.length = 0; note = 0; peak = 0; }
+    reset: function () { env.length = 0; note = 0; peak = 0; lastT = 0; }
   };
 }
 </script>
@@ -549,10 +558,10 @@ function noteGate() {
         var s = 0, i;
         for (i = 0; i < buf.length; i++) s += buf[i] * buf[i];
         var rms = Math.sqrt(s / buf.length);
-        var fr = rms > 0.006 ? yin(buf, ctx.sampleRate) : 0;
-        if (fr && mode === 'violin' && yin.first !== fr) fr = nearerString(yin.first, fr);
-        fr = gate.feed(rms, fr);
         var now = performance.now();
+        var fr = rms > 0.006 ? yin(buf, ctx.sampleRate) : 0;
+        if (fr && mode === 'violin' && yin.octave) fr = nearerString(yin.first, fr);
+        fr = gate.feed(rms, fr, now);
         if (fr > PITCH_LO && fr < PITCH_HI) {
           hist.push(fr);
           if (hist.length > 5) hist.shift();
