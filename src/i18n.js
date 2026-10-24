@@ -82,7 +82,7 @@
     'Positions and Pitch Check': '把位和音准检测', 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.': '在一把位、二把位、三把位之间切换。音准检测会边听边标出你拉到的音。',
     'Start and set the tempo': '开始并设置速度', 'Tap the middle to start or stop. Drag around the dial to change the speed.': '点中间开始或停止，沿着转盘拖动改变速度。',
     'Tap the top number to change the beats per bar, and the bottom number to change the note value.': '点上面的数字改变每小节拍数，点下面的数字改变音符时值。',
-    'Accents': '重音', 'Tap a beat to change how loudly it clicks: strong, medium, normal or silent.': '点一个拍子改变它的音量：强、中、普通或静音。',
+    'Accents': '重音', 'Tap a beat to change how loudly it clicks: accent, medium, normal or muted.': '点一个拍子改变它的音量：重音、中、普通或静音。',
     'Tap tempo': '点拍定速', 'Tap in time a few times to set the tempo from your own beat.': '按你的节奏点几下，就能按你的拍子设定速度。',
     'Support': '支持', 'Note names': '音符名称', 'Tuning pitch (A4)': '标准音高 (A4)', 'Pitch names': '音名', 'Solfège': '唱名',
     'Buy me a coffee': '请我喝杯咖啡',

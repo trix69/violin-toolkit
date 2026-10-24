@@ -8,7 +8,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(executable_path=CHROME)
     ctx = b.new_context(viewport={'width': 360, 'height': 640}, device_scale_factor=3, has_touch=True, is_mobile=True)
     # store screenshots show the app itself, not the first-use tips
-    ctx.add_init_script("try { localStorage.setItem('violin-tips-seen', '[\"tuner\",\"board\",\"metronome\"]'); } catch (e) {}")
+    ctx.add_init_script("try { localStorage.setItem('violin-tips-seen', '[\"*\"]'); } catch (e) {}")
     for name in ('fingerboard', 'tuner', 'metronome'):
         pg = ctx.new_page()
         pg.goto('file://' + ROOT + 'dist/violin-toolkit.html#' + name + ',en')

@@ -19,7 +19,7 @@
     metronome: [
       { sel: '#mDial', title: 'Start and set the tempo', text: 'Tap the middle to start or stop. Drag around the dial to change the speed.' },
       { sel: '#view-metronome .sig', title: 'Time signature', text: 'Tap the top number to change the beats per bar, and the bottom number to change the note value.' },
-      { sel: '#mBeats', title: 'Accents', text: 'Tap a beat to change how loudly it clicks: strong, medium, normal or silent.' },
+      { sel: '#mBeats', title: 'Accents', text: 'Tap a beat to change how loudly it clicks: accent, medium, normal or muted.' },
       { sel: '#mTap', title: 'Tap tempo', text: 'Tap in time a few times to set the tempo from your own beat.' }
     ]
   };
@@ -27,40 +27,70 @@
   var arrow = document.getElementById('coachArrow'), stepEl = document.getElementById('coachStep');
   var titleEl = document.getElementById('coachTitle'), textEl = document.getElementById('coachText');
   var skipBtn = document.getElementById('coachSkip'), nextBtn = document.getElementById('coachNext');
-  var tour = null, view = '', idx = 0, target = null, lastFocus = null, timer = 0;
+  var tour = null, view = '', idx = 0, target = null, lastFocus = null, timer = 0, scrolled = false, inerted = [];
 
-  function seen() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } }
+  /* names of the tools whose tour is done; "*" means all (the store-screenshot script sets that) */
+  function seen() {
+    try { var v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function isSeen(v) { var s = seen(); return s.indexOf(v) >= 0 || s.indexOf('*') >= 0; }
   function remember(v) {
     var s = seen();
     if (s.indexOf(v) < 0) s.push(v);
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
   }
-  /* wait while anything else is on top: the start overlay, Settings, Use offline, Symbols */
+  /* wait while anything else is on top: the start overlay, the offline tip, Settings, Use offline, Symbols */
   function busy() {
-    var l = document.getElementById('launch');
-    if (l && !l.hidden) return true;
+    var l = document.getElementById('launch'), off = document.getElementById('offer');
+    if ((l && !l.hidden) || (off && !off.hidden)) return true;
     return Array.prototype.some.call(document.querySelectorAll('.sheet'), function (s) { return !s.hidden; });
   }
 
+  /* Put the bubble next to the spotlight without covering it: below, above, scrolled so it fits
+     below, beside (wide screens), and only when none of those can work, over the lower part. */
   function place() {
     if (!tour || !target) return;
-    var r = target.getBoundingClientRect(), pad = 6;
-    var vw = document.documentElement.clientWidth, vh = window.innerHeight, g = 16;
+    var vw = document.documentElement.clientWidth, vh = window.innerHeight, g = 16, gap = 12, pad = 6;
+    var w = Math.min(320, vw - 2 * g);
+    tip.style.width = w + 'px';            /* width first, so the height read below is the wrapped height */
+    var h = tip.offsetHeight;
+    var r = target.getBoundingClientRect();
     var top = Math.max(4, r.top - pad), left = Math.max(4, r.left - pad);
     var bottom = Math.min(vh - 4, r.bottom + pad), right = Math.min(vw - 4, r.right + pad);
-    hole.style.cssText = 'top:' + top + 'px;left:' + left + 'px;width:' + (right - left) + 'px;height:' + (bottom - top) + 'px';
-    /* bubble below the spotlight if it fits, else above, else over the lower part of the screen */
-    var w = Math.min(320, vw - 2 * g), h = tip.offsetHeight, y, below = true;
-    tip.style.width = w + 'px';
-    if (bottom + 12 + h <= vh - g) y = bottom + 12;
-    else if (top - 12 - h >= g) { y = top - 12 - h; below = false; }
-    else { y = vh - g - h; below = false; }
-    var cx = (left + right) / 2, x = Math.max(g, Math.min(vw - g - w, cx - w / 2));
+    hole.style.cssText = 'top:' + top + 'px;left:' + left + 'px;width:' + Math.max(0, right - left) + 'px;height:' + Math.max(0, bottom - top) + 'px';
+    var cx = (left + right) / 2, cy = (top + bottom) / 2, x, y, side = '';
+    if (bottom + gap + h <= vh - g) { y = bottom + gap; side = 'below'; }
+    else if (top - gap - h >= g) { y = top - gap - h; side = 'above'; }
+    else if (!scrolled && (r.height + 2 * pad) + gap + h + 2 * g <= vh) {
+      /* the page can make room: scroll once so the target sits near the top with the bubble under it */
+      scrolled = true;
+      window.scrollBy(0, r.top - pad - g);
+      return place();
+    }
+    else if (vw - right - gap - g >= w) { x = right + gap; side = 'right'; }
+    else if (left - gap - g >= w) { x = left - gap - w; side = 'left'; }
+    if (side === 'below' || side === 'above') x = Math.max(g, Math.min(vw - g - w, cx - w / 2));
+    else if (side) y = Math.max(g, Math.min(vh - g - h, cy - h / 2));
+    else {
+      /* no room anywhere (a tall target on a short screen): sit at the top or bottom edge, whichever
+         hides less of the spotlight, without an arrow */
+      x = Math.max(g, Math.min(vw - g - w, cx - w / 2));
+      var upY = g, downY = vh - g - h;
+      var hid = function (y0) { return Math.max(0, Math.min(y0 + h, bottom) - Math.max(y0, top)); };
+      y = hid(upY) < hid(downY) ? upY : downY;
+    }
     tip.style.left = x + 'px'; tip.style.top = y + 'px';
-    var spotOff = y >= bottom || y + h <= top;   /* the arrow only makes sense when the bubble sits clear of the spotlight */
-    arrow.hidden = !spotOff;
-    arrow.className = 'coach-arrow ' + (below ? 'up' : 'down');
-    arrow.style.left = Math.max(14, Math.min(w - 14, cx - x)) + 'px';
+    arrow.hidden = !side;
+    arrow.className = 'coach-arrow ' + ({ below: 'up', above: 'down', right: 'lt', left: 'rt' }[side] || '');
+    if (side === 'below' || side === 'above') { arrow.style.left = Math.max(14, Math.min(w - 14, cx - x)) + 'px'; arrow.style.top = ''; }
+    else { arrow.style.top = Math.max(14, Math.min(h - 14, cy - y)) + 'px'; arrow.style.left = ''; }
+  }
+  /* after a rotation or resize, bring the target back into view before placing */
+  function onResize() {
+    if (!target) return;
+    scrolled = false;
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    place();
   }
 
   function step(i) {
@@ -68,6 +98,7 @@
     var s = tour[i];
     target = document.querySelector(s.sel);
     if (!target || !target.getClientRects().length) { if (i + 1 < tour.length) step(i + 1); else close(); return; }
+    scrolled = false;
     target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     stepEl.textContent = (i + 1) + ' / ' + tour.length;
     titleEl.textContent = s.title;
@@ -76,36 +107,43 @@
     requestAnimationFrame(function () { place(); try { nextBtn.focus({ preventScroll: true }); } catch (e) {} });
   }
   function next() { if (idx + 1 < tour.length) step(idx + 1); else close(); }
-  function close() {
+  /* done = the person finished or skipped it (remembered); a tool switch only interrupts it */
+  function close(done) {
     if (!tour) return;
-    remember(view);
+    if (done !== false) remember(view);
     tour = null; target = null;
     root.hidden = true;
+    inerted.forEach(function (el) { el.inert = false; });
+    inerted = [];
     document.removeEventListener('keydown', onKey, true);
-    window.removeEventListener('resize', place);
+    window.removeEventListener('resize', onResize);
     window.removeEventListener('scroll', place, true);
     if (lastFocus && lastFocus.focus) { try { lastFocus.focus({ preventScroll: true }); } catch (e) {} }
   }
   function onKey(e) {
     if (e.key === 'Escape') { e.preventDefault(); close(); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
-    else if (e.key === 'Tab') {   /* keep focus on the two buttons */
-      e.preventDefault();
-      (document.activeElement === nextBtn ? skipBtn : nextBtn).focus();
+    else if (e.key === 'Tab') {   /* keep focus on Skip and Next, in tab order both ways */
+      if (e.shiftKey && document.activeElement !== nextBtn) { e.preventDefault(); nextBtn.focus(); }
+      else if (!e.shiftKey && document.activeElement !== skipBtn) { e.preventDefault(); skipBtn.focus(); }
     }
   }
   function start(v) {
     if (tour || !TOURS[v] || busy()) return;
     tour = TOURS[v]; view = v; lastFocus = document.activeElement;
     root.hidden = false;
+    /* the page behind is out of reach while the tour is up (screen readers and keyboard too) */
+    Array.prototype.forEach.call(document.body.children, function (el) {
+      if (el !== root && !el.inert && el.tagName !== 'SCRIPT') { el.inert = true; inerted.push(el); }
+    });
     document.addEventListener('keydown', onKey, true);
-    window.addEventListener('resize', place);
+    window.addEventListener('resize', onResize);
     window.addEventListener('scroll', place, true);
     step(0);
   }
 
   nextBtn.addEventListener('click', next);
-  skipBtn.addEventListener('click', close);
+  skipBtn.addEventListener('click', function () { close(); });
   /* a tap anywhere outside the bubble moves on too, so the dimmed page never feels stuck */
   root.addEventListener('click', function (e) { if (!tip.contains(e.target)) next(); });
 
@@ -113,11 +151,13 @@
     /* show this tool's tour once, after the page has settled and nothing else is open */
     maybe: function (v) {
       clearTimeout(timer);
-      if (seen().indexOf(v) >= 0) return;
+      if (isSeen(v)) return;
       timer = setTimeout(function () {
-        if (document.body.getAttribute('data-view') === v && seen().indexOf(v) < 0) start(v);
+        if (document.body.getAttribute('data-view') === v && !isSeen(v)) start(v);
       }, 500);
     },
+    /* show() calls this first: a tour for the old tool closes without counting as seen */
+    interrupt: function () { clearTimeout(timer); close(false); },
     /* Settings > Show tips again */
     reset: function () {
       try { localStorage.removeItem(KEY); } catch (e) {}

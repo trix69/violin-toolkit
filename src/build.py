@@ -421,6 +421,7 @@ nav_js = """(function () {
 
   function show(name) {
     if (name === cur || !APP.views[name]) return;
+    if (APP.coach) APP.coach.interrupt();   /* a tour for the old tool stops (not marked seen); the new tool's may start below */
     if (cur && APP.views[cur]) APP.views[cur].hide();
     cur = name;
     /* the tuner listens through the microphone, so the metronome stops when it opens; the fingerboard leaves it running */
