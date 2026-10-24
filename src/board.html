@@ -749,7 +749,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
 
   /* ---------- Pitch Check ---------- */
-  var mic = null, pcStatus = '', pcRaf = 0, pcLast = 0, hist = [], lastHeard = 0;
+  /* yin() and noteGate() come from the tuner's shared dsp script (src/tuner.html), loaded before this one */
+  var mic = null, pcStatus = '', pcRaf = 0, pcLast = 0, hist = [], lastHeard = 0, pcGate = noteGate();
 
   function clearHeard() {
     buttons.forEach(function (b) { b.classList.remove('heard'); });
@@ -759,7 +760,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (mic) return;
     var token = {};
     mic = token;
-    hist = [];
+    hist = []; pcGate.reset();
     pcStatus = 'starting microphone…';
     updateSub();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -812,39 +813,13 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     });
   }
 
-  /* YIN pitch detection on the latest 4096 samples, violin range about 190 to 3000 Hz */
-  function yin(buf, sr) {
-    var W = 2048;
-    var tauMax = Math.min(Math.floor(sr / 180), buf.length - W - 1);
-    var tauMin = Math.max(2, Math.floor(sr / 3000));
-    var d = new Float32Array(tauMax + 2);
-    var run = 0, tau, j, diff, sum;
-    d[0] = 1;
-    for (tau = 1; tau <= tauMax; tau++) {
-      sum = 0;
-      for (j = 0; j < W; j++) { diff = buf[j] - buf[j + tau]; sum += diff * diff; }
-      run += sum;
-      d[tau] = run ? sum * tau / run : 1;
-    }
-    for (tau = tauMin; tau < tauMax; tau++) {
-      if (d[tau] < 0.15) {
-        while (tau + 1 < tauMax && d[tau + 1] < d[tau]) tau++;
-        var a = d[tau - 1], b = d[tau], c = d[tau + 1];
-        var den = a + c - 2 * b;
-        var shift = den ? (a - c) / (2 * den) : 0;
-        return sr / (tau + shift);
-      }
-    }
-    return 0;
-  }
-
   function analyse(token) {
     token.an.getFloatTimeDomainData(token.buf);
     var buf = token.buf, i, e = 0;
     for (i = 0; i < buf.length; i++) e += buf[i] * buf[i];
     var rms = Math.sqrt(e / buf.length);
-    var f = rms > 0.01 ? yin(buf, ctx.sampleRate) : 0;
     var now = performance.now();
+    var f = pcGate.feed(rms, rms > 0.01 ? yin(buf, ctx.sampleRate, 150, 3000) : 0, now);
     if (!f || f < 180 || f > 3300) {
       if (now - lastHeard > 400 && pcStatus !== 'listening…') {
         hist = []; clearHeard(); pcStatus = 'listening…'; pcCur = null; pcShow(null); updateSub();

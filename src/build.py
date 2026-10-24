@@ -199,17 +199,6 @@ t_body = t_body[:u0] + t_body[u1:].lstrip('\n')
 
 # ---------------------------------------------------------------- scripts
 b_js = board[board.index('<script>') + 8:board.rindex('</script>')]
-# Pitch Check uses the tuner's shared detector (yin() and noteGate() in the dsp script, loaded first)
-# instead of its own older copy: octave check and the guard against open strings ringing along.
-y0 = b_js.index('  /* YIN pitch detection on the latest 4096 samples')
-y1 = b_js.index('  function analyse(token) {')
-b_js = b_js[:y0] + b_js[y1:]
-b_js = must(b_js, "  var mic = null, pcStatus = '', pcRaf = 0, pcLast = 0, hist = [], lastHeard = 0;",
-            "  var mic = null, pcStatus = '', pcRaf = 0, pcLast = 0, hist = [], lastHeard = 0, pcGate = noteGate();")
-b_js = must(b_js, """    var f = rms > 0.01 ? yin(buf, ctx.sampleRate) : 0;
-    var now = performance.now();""", """    var now = performance.now();
-    var f = pcGate.feed(rms, rms > 0.01 ? yin(buf, ctx.sampleRate, 150, 3000) : 0, now);""")
-b_js = must(b_js, "    mic = token;\n    hist = [];\n", "    mic = token;\n    hist = []; pcGate.reset();\n")
 b_js = must(b_js, "var state = { key: 'G', vibrato: true, tuning: 442, pos: '1' };", "var state = { key: 'G', vibrato: true, tuning: APP.a4, pos: '1' };")
 b_js = must(b_js, "    if (['440', '442'].indexOf(String(saved.tuning)) >= 0) state.tuning = +saved.tuning;\n", "")
 b_js = must(b_js, "key: state.key, vibrato: state.vibrato, tuning: state.tuning", "key: state.key, vibrato: state.vibrato")
