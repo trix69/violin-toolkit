@@ -58,13 +58,18 @@ if TEST:
         src = pat.sub(lambda m: m.group(1) + k + '-test' + m.group(1), src)
         if pat.search(src):
             raise SystemExit('test build: %s still used under the live name' % k)
-    # Every other quoted violin-* key must be one that is meant to be shared. A new key fails the
-    # build here until it is added to SHARED (a setting) or to the rename list above (once-only).
+    # Every other quoted violin-* / vt-* key must be one that is meant to be shared. A new key fails
+    # the build here until it is added to SHARED (a setting) or to the rename list above (once-only).
+    # Any case, - or _; a bare 'violin-' fragment means a key built by concatenation, also flagged.
     SHARED = {'violin-lang', 'violin-theme', 'violin-names', 'violin-a4', 'violin-metronome-v2',
               'violin-fingerboard-v2', 'vt-mode',
+              'vt-a4-v2',                                  # tuner.html's old A4 select, cut out by build.py
               'violin-toolkit-', 'violin-toolkit-test-'}   # cache-name prefixes (data-cache), not keys
-    found = {m[1] for m in re.findall(r"""(['"`])(violin-[a-z0-9-]+|vt-[a-z0-9-]+)\1""", src)}
+    keylike = re.compile(r"""(['"`])((?:violin|vt)[_-][A-Za-z0-9_-]+)\1""", re.I)
+    frag = re.compile(r"""(['"`])((?:violin|vt)[_-])\1""", re.I)
+    found = {m[1] for m in keylike.findall(src)}
     unknown = sorted(k for k in found if k not in SHARED and not k.endswith('-test'))
+    unknown += sorted({m[1] for m in frag.findall(src)})
     if unknown:
         raise SystemExit('test build: decide whether these keys are shared settings or once-only: %s' % ', '.join(unknown))
     # i18n.js sets the title when the language changes; keep the test marker there too
