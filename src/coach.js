@@ -1,6 +1,7 @@
 /* First-use tips: the first time each tool opens, a short tour dims the page, spotlights one
    control at a time and explains it in a bubble. Finished or skipped tours are remembered in
-   localStorage (violin-tips-seen); Settings > Show tips again clears that.
+   localStorage (violin-tips-seen; violin-tips-seen-test on the test site, renamed by make_pwa.py);
+   Settings > Show tips again clears that.
    nav_js calls APP.coach.maybe(view) after showing a tool and after the start overlay closes. */
 (function () {
   var KEY = 'violin-tips-seen';

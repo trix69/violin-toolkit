@@ -47,11 +47,26 @@ if TEST:
 <style>.test-ribbon { position: fixed; z-index: 300; top: 0; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 0 0 8px 8px; background: #c2410c; color: #fff; font: 700 11px/1.4 ui-monospace, monospace; letter-spacing: .1em; pointer-events: none; }</style>
 '''
     src = src.replace('<title>Violin Toolkit</title>', '<title>Violin Toolkit (Test)</title>', 1)
-    # The two sites share trix69.github.io, so they share localStorage. Once-only things must be
-    # remembered per site, or trying them on the test site uses them up on the live one.
+    # The two sites share trix69.github.io, so they share localStorage. Settings should follow the
+    # user between them; once-only records must not, or trying them on the test site uses them up
+    # on the live one. Rename those in the test page, in any quote style, and fail the build if
+    # one is missed. (SystemExit, not assert, so python -O can't skip the checks.)
     for k in ('violin-tips-seen', 'violin-first-visit'):
-        assert src.count("'%s'" % k) == 1, k
-        src = src.replace("'%s'" % k, "'%s-test'" % k)
+        pat = re.compile(r"""(['"`])%s\1""" % re.escape(k))
+        if not pat.search(src):
+            raise SystemExit('test build: key %s is no longer in the page' % k)
+        src = pat.sub(lambda m: m.group(1) + k + '-test' + m.group(1), src)
+        if pat.search(src):
+            raise SystemExit('test build: %s still used under the live name' % k)
+    # Every other quoted violin-* key must be one that is meant to be shared. A new key fails the
+    # build here until it is added to SHARED (a setting) or to the rename list above (once-only).
+    SHARED = {'violin-lang', 'violin-theme', 'violin-names', 'violin-a4', 'violin-metronome-v2',
+              'violin-fingerboard-v2', 'vt-mode',
+              'violin-toolkit-', 'violin-toolkit-test-'}   # cache-name prefixes (data-cache), not keys
+    found = {m[1] for m in re.findall(r"""(['"`])(violin-[a-z0-9-]+|vt-[a-z0-9-]+)\1""", src)}
+    unknown = sorted(k for k in found if k not in SHARED and not k.endswith('-test'))
+    if unknown:
+        raise SystemExit('test build: decide whether these keys are shared settings or once-only: %s' % ', '.join(unknown))
     # i18n.js sets the title when the language changes; keep the test marker there too
     src = src.replace("document.title = lang === 'zh' ? '小提琴工具箱' : 'Violin Toolkit';",
                       "document.title = (lang === 'zh' ? '小提琴工具箱' : 'Violin Toolkit') + ' (Test)';", 1)
