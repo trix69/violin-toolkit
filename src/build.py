@@ -161,6 +161,8 @@ body[data-view="tuner"] { background: var(--t-bg); color: var(--t-fg); }
 /* A4 value: same face and size as the fingerboard's "Auto vibrato" label (.lbl), but Hz keeps its case */
 #view-board .a4v { font: 500 13px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--muted); white-space: nowrap; }
 #view-tuner .a4v { white-space: nowrap; }
+/* "A4" and "= 442 Hz" are separate spans (A4 may become La4); a one-space gap makes them read "A4 = 442 Hz" */
+#view-board .inl:has(> .a4v), #view-tuner .a4 { gap: calc(1ch + 0.08em); }
 '''
 
 # ---------------------------------------------------------------- board HTML
@@ -176,14 +178,14 @@ b_main = must(b_main, """    <label class="inl" for="tuning">
       </select>
     </label>""", """    <span class="inl">
       <span class="lbl lbl-a4">A4</span>
-      <span class="a4v" id="tuning">442 Hz</span>
+      <span class="a4v" id="tuning">= 442 Hz</span>
     </span>""")
 assert '<header' not in b_main
 
 # ---------------------------------------------------------------- tuner HTML
 t_body = tuner[tuner.index('</header>') + len('</header>'):tuner.index('</main>')]
 t_body = t_body.strip('\n')
-t_body = must(t_body, '<label class="a4">A4 <select id="a4"></select></label>', '<span class="a4">A4 <span class="a4v" id="a4">442 Hz</span></span>')
+t_body = must(t_body, '<label class="a4">A4 <select id="a4"></select></label>', '<span class="a4">A4 <span class="a4v" id="a4">= 442 Hz</span></span>')
 # move the Start tuning row to the top of the panel so it is visible on small screens
 a0 = t_body.index('    <div class="actions">')
 a1 = t_body.index('</div>', t_body.index('id="status"', a0)) + len('</div>')
@@ -200,9 +202,9 @@ b_js = board[board.index('<script>') + 8:board.rindex('</script>')]
 b_js = must(b_js, "var state = { key: 'G', vibrato: true, tuning: 442, pos: '1' };", "var state = { key: 'G', vibrato: true, tuning: APP.a4, pos: '1' };")
 b_js = must(b_js, "    if (['440', '442'].indexOf(String(saved.tuning)) >= 0) state.tuning = +saved.tuning;\n", "")
 b_js = must(b_js, "key: state.key, vibrato: state.vibrato, tuning: state.tuning", "key: state.key, vibrato: state.vibrato")
-b_js = must(b_js, "  tuningSel.value = String(state.tuning);", "  tuningSel.textContent = state.tuning + ' Hz';")
+b_js = must(b_js, "  tuningSel.value = String(state.tuning);", "  tuningSel.textContent = '= ' + state.tuning + ' Hz';")
 b_js = must(b_js, "  tuningSel.addEventListener('change', function () { state.tuning = +tuningSel.value; persist(); });",
-            "  APP.onA4.push(function (v) { state.tuning = v; tuningSel.textContent = v + ' Hz'; });")
+            "  APP.onA4.push(function (v) { state.tuning = v; tuningSel.textContent = '= ' + v + ' Hz'; });")
 b_js = must(b_js, "  render();\n  setTimeout(layout, 300);\n})();",
             "  render();\n  setTimeout(layout, 300);\n\n"
             "  APP.views.board = {\n"
@@ -312,7 +314,9 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .howto-note { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); font: 400 13px/1.5 var(--font-note); color: var(--fg); }
 .howto-note a { color: var(--accent); }
 .sheet > .sheet-card { max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
-.ver { margin: 14px 0 0; text-align: center; font: 500 12px var(--font-mono); letter-spacing: 0.04em; color: var(--muted); }
+.ver { display: block; margin: 10px auto 0; padding: 6px 10px; min-height: 32px; border: 0; border-radius: 8px; background: transparent; text-align: center; font: 500 12px var(--font-mono); letter-spacing: 0.04em; color: var(--muted); cursor: pointer; }
+.ver #verMsg { text-decoration: underline; text-underline-offset: 3px; }
+.ver:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .sheet-done { position: sticky; bottom: 0; box-shadow: 0 -10px 12px var(--panel); }
 .sheet-done { margin-top: 18px; width: 100%; height: 46px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: 700 16px var(--font-note); cursor: pointer; }
 """
@@ -369,7 +373,7 @@ t_js = must(t_js, """  A4S.forEach(function (v) {
     o.value = v; o.textContent = v + ' Hz';
     if (v === a4) o.selected = true;
     sel.appendChild(o);
-  });""", "  sel.textContent = a4 + ' Hz';")
+  });""", "  sel.textContent = '= ' + a4 + ' Hz';")
 t_js = must(t_js, """  sel.addEventListener('change', function () {
     a4 = +sel.value;
     try { localStorage.setItem('vt-a4-v2', String(a4)); } catch (e) {}
@@ -378,7 +382,7 @@ t_js = must(t_js, """  sel.addEventListener('change', function () {
     if (last) setFreq(last);
   });""", """  APP.onA4.push(function (v) {
     a4 = v;
-    sel.textContent = v + ' Hz';
+    sel.textContent = '= ' + v + ' Hz';
     if (tone) tone.osc.frequency.value = hz(STR[tone.i].midi);
     refreshStrings(); refreshFoot();
     if (last) setFreq(last);
@@ -539,6 +543,41 @@ nav_js = """(function () {
     var b = e.target.closest('button'); if (!b) return;
     APP.setA4(+b.dataset.a4); syncSheet();
   });
+  /* Version line: tap to fetch the newest release into the offline copy and reload.
+     Without a service worker (local file, artifact) it just reloads. */
+  (function () {
+    var btn = document.getElementById('verBtn'), msg = document.getElementById('verMsg'), busy = false;
+    function num(v) { var p = String(v).split('.'); return +p[0] * 100 + +((p[1] || '0') + '0').slice(0, 2); }
+    function say(t) { msg.textContent = t; }
+    function swapIn(reg) {
+      /* the new sw.js caches the new page on install and takes over (skipWaiting + claim) */
+      return new Promise(function (done) {
+        var sw = navigator.serviceWorker, t = setTimeout(done, 15000);
+        sw.addEventListener('controllerchange', function () { clearTimeout(t); done(); });
+        reg.update().then(function () { if (!reg.installing && !reg.waiting) { clearTimeout(t); done(); } }, function () { clearTimeout(t); done(); });
+      });
+    }
+    btn.addEventListener('click', function () {
+      if (busy) return;
+      var sw = navigator.serviceWorker;
+      if (!sw || !sw.controller) { location.reload(); return; }
+      busy = true; say('Checking…');
+      fetch('version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+        if (num(j.version) <= num(btn.dataset.version)) { busy = false; say('Up to date'); return; }
+        say('Updating to ' + j.version + '…');
+        return sw.getRegistration().then(function (reg) { return reg && swapIn(reg); }).then(function () {
+          /* belt and braces: also put the fresh page into every saved copy before reloading */
+          return fetch('index.html', { cache: 'no-store' }).then(function (r) {
+            if (!r.ok) return;
+            return caches.keys().then(function (ks) {
+              return Promise.all(ks.filter(function (k) { return k.indexOf('violin-toolkit-') === 0; })
+                .map(function (k) { return caches.open(k).then(function (c) { return c.put('index.html', r.clone()); }); }));
+            });
+          }).catch(function () {});
+        }).then(function () { location.reload(); });
+      }).catch(function () { busy = false; say('Can’t check while offline'); });
+    });
+  })();
   segApp.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     THEME.mode = b.dataset.mode; THEME.apply(); syncSheet();
@@ -738,7 +777,7 @@ markup = f"""
       </div>
       </div>
     </div>
-    <p class="ver">Version {app_version}</p>
+    <button type="button" class="ver" id="verBtn" data-version="{app_version}"><span>Version {app_version}</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>

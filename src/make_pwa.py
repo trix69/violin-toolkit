@@ -49,6 +49,8 @@ for f in ('fingerboard.png', 'tuner.png', 'metronome.png'):
 for f in ('icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'og-image.png'):
     shutil.copy(SRC + 'icons/' + f, ROOT + f)
 open(ROOT + 'index.html', 'w', encoding='utf-8').write(out)
+# read by the Settings version button to see whether a newer release is online
+json.dump({'version': open(SRC + 'VERSION').read().strip()}, open(ROOT + 'version.json', 'w'))
 json.dump({
   "name": "Violin Toolkit", "short_name": "Violin Toolkit", "description": "Violin tuner, fingerboard chart and metronome.",
   "id": "/violin-toolkit/", "lang": "en", "dir": "ltr", "categories": ["music", "education", "utilities"],
@@ -84,6 +86,8 @@ async function page() {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
+  /* the page asked for the network on purpose (Settings > version check); don't answer from the saved copy */
+  if (req.cache === 'no-store') return;
   const url = new URL(req.url);
   const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (url.origin !== location.origin && !fonts) return;

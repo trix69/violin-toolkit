@@ -3,7 +3,7 @@
   var DICT = {
     /* chrome */
     'Skip to content': '跳到内容',
-    'Tools': '工具', 'Settings': '设置', 'Done': '完成',
+    'Tools': '工具', 'Settings': '设置', 'Done': '完成', 'Check for updates': '检查更新', 'Checking…': '正在检查…', 'Up to date': '已是最新版本', 'Can’t check while offline': '离线时无法检查',
     'Fingerboard': '指板', 'Tuner': '调音器', 'Metronome': '节拍器',
     'Violin Toolkit': '小提琴工具箱',
     'What would you like to start with?': '想从哪个工具开始？',
@@ -102,6 +102,7 @@
   }
   var RX = [
     [/^Version ([\d.]+)$/, function (m, v) { return '版本 ' + v; }],
+    [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
     [/^(.+) major · (1st|2nd|3rd) position$/, function (m, k, p) { return k + '大调 · ' + P[p]; }],
     [/^(.+) major · Pitch Check(?: · (.+))?$/, function (m, k, s) { return k + '大调 · 音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
     [/^(.+) major · (no ♯ or ♭|\d sharps?|\d flats?)$/, function (m, k, w) { return k + '大调 · ' + words(w); }],
