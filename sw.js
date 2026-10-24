@@ -1,5 +1,5 @@
 /* Violin Toolkit service worker. VERSION changes on every build, which makes phones update. */
-const VERSION = 'violin-toolkit-20261024-232312';
+const VERSION = 'violin-toolkit-20261024-234336';
 /* only this site's saved copies: production and test share trix69.github.io, so never touch the other's */
 const MINE = k => /^violin-toolkit-\d{8}-\d{6}$/.test(k);
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
