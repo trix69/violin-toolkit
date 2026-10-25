@@ -14,7 +14,7 @@
     ],
     board: [
       { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
-      { sel: '#keys', title: 'Choose a key', text: 'Notes in the key are coloured; the others are greyed out.' },
+      { sel: '#keyrows', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.' },
       { sel: '#posbar', title: 'Positions and Pitch Check', text: 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.' }
     ],
     metronome: [

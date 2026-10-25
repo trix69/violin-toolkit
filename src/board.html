@@ -92,10 +92,21 @@ h1 {
   white-space: nowrap;
 }
 .lbl-a4 { text-transform: none; }   /* a pitch name, not a caption: solfège La4 must not become LA4 */
-.majorrow { display: flex; align-items: center; gap: 10px; }
-.keys { flex: 1; min-width: 0; display: flex; gap: 4px; }
+/* two rows, Major and Minor; each scrolls sideways when its 12 keys don't fit, most common first */
+.keyrows { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: center; }
+.majorrow { display: contents; }
+.keys {
+  min-width: 0; display: flex; gap: 4px;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; scroll-padding-inline: 0;
+}
+.keys::-webkit-scrollbar { display: none; }
+/* soft edge where more keys are hidden */
+.keys.fade-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.keys.fade-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+.keys.fade-l.fade-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
 .keys button {
-  flex: 1 1 0; min-width: 0; height: 38px; padding: 0;
+  flex: 1 0 44px; min-width: 44px; height: 38px; padding: 0; scroll-snap-align: start;
   border: 1px solid var(--line); border-radius: 10px;
   background: var(--panel); color: var(--fg);
   font-size: 0; line-height: 0;
@@ -339,9 +350,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     </label>
   </div>
 
-  <div class="majorrow" role="group" aria-labelledby="keyLabel">
-    <span class="lbl" id="keyLabel">Major</span>
-    <div class="keys" id="keys"></div>
+  <div class="keyrows" id="keyrows">
+    <div class="majorrow" role="group" aria-labelledby="keyLabel">
+      <span class="lbl" id="keyLabel">Major</span>
+      <div class="keys" id="keys"></div>
+    </div>
+    <div class="majorrow" role="group" aria-labelledby="minLabel">
+      <span class="lbl" id="minLabel">Minor</span>
+      <div class="keys" id="keysMin"></div>
+    </div>
   </div>
 
   <div class="stage">
@@ -364,17 +381,28 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 (function () {
   var NAMES_S = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
   var NAMES_F = ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
-  /* in the order beginners usually meet them */
+  /* all 12 majors and 12 (natural) minors, each row in the order violinists usually meet them;
+     acc / n = the key signature */
+  function K(id, label, mode, acc, n) {
+    var L = 'CDEFGAB'.indexOf(label[0]), alt = label[1] === '♯' ? 1 : label[1] === '♭' ? -1 : 0;
+    return { id: id, label: label, mode: mode, letter: L, root: (NAT[L] + alt + 12) % 12, acc: acc, n: n, flat: acc === 'F' };
+  }
+  var NAT = [0, 2, 4, 5, 7, 9, 11];
   var KEYS = [
-    { id: 'G',  label: 'G',  root: 7,  acc: 'S', n: 1 },
-    { id: 'D',  label: 'D',  root: 2,  acc: 'S', n: 2 },
-    { id: 'A',  label: 'A',  root: 9,  acc: 'S', n: 3 },
-    { id: 'C',  label: 'C',  root: 0,  acc: 'S', n: 0 },
-    { id: 'F',  label: 'F',  root: 5,  flat: true, acc: 'F', n: 1 },
-    { id: 'Bb', label: 'B♭', root: 10, flat: true, acc: 'F', n: 2 },
-    { id: 'E',  label: 'E',  root: 4,  acc: 'S', n: 4 }
+    K('G', 'G', 'major', 'S', 1), K('D', 'D', 'major', 'S', 2), K('A', 'A', 'major', 'S', 3),
+    K('C', 'C', 'major', 'S', 0), K('F', 'F', 'major', 'F', 1), K('Bb', 'B♭', 'major', 'F', 2),
+    K('E', 'E', 'major', 'S', 4), K('Eb', 'E♭', 'major', 'F', 3), K('B', 'B', 'major', 'S', 5),
+    K('Ab', 'A♭', 'major', 'F', 4), K('Db', 'D♭', 'major', 'F', 5), K('Gb', 'G♭', 'major', 'F', 6),
+    K('Am', 'A', 'minor', 'S', 0), K('Em', 'E', 'minor', 'S', 1), K('Dm', 'D', 'minor', 'F', 1),
+    K('Gm', 'G', 'minor', 'F', 2), K('Bm', 'B', 'minor', 'S', 2), K('Cm', 'C', 'minor', 'F', 3),
+    K('F#m', 'F♯', 'minor', 'S', 3), K('Fm', 'F', 'minor', 'F', 4), K('C#m', 'C♯', 'minor', 'S', 4),
+    K('G#m', 'G♯', 'minor', 'S', 5), K('Bbm', 'B♭', 'minor', 'F', 5), K('Ebm', 'E♭', 'minor', 'F', 6)
   ];
-  var MAJOR = [0, 2, 4, 5, 7, 9, 11];
+  var SCALE = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
+  /* how each semitone above the tonic is spelled: [interval, letter steps]. Minor keys also spell the
+     raised 6th and 7th of the melodic / harmonic forms (e.g. G♯ in A minor, C♯ in D minor). */
+  var SPELL = { major: [[0,0],[2,1],[4,2],[5,3],[7,4],[9,5],[11,6]],
+                minor: [[0,0],[2,1],[3,2],[5,3],[7,4],[8,5],[9,5],[10,6],[11,6]] };
   var STRINGS = [
     { n: 'G', midi: 55, v: '--g' },
     { n: 'D', midi: 62, v: '--d' },
@@ -424,9 +452,21 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
 
   function keyObj() { return KEYS.filter(function (k) { return k.id === state.key; })[0]; }
-  function noteName(midi, flat, octave) {
-    var nm = (flat ? NAMES_F : NAMES_S)[midi % 12];
-    return octave ? nm + (Math.floor(midi / 12) - 1) : nm;
+  /* the key's own spelling (C♭ in G♭ major, E♯ in C♯ minor); other notes follow its ♯ or ♭ side */
+  function spelling(key) {
+    if (key.sp) return key.sp;
+    var sp = {};
+    SPELL[key.mode].forEach(function (d) {
+      var L = (key.letter + d[1]) % 7, pc = (key.root + d[0]) % 12;
+      var alt = ((pc - NAT[L] + 18) % 12) - 6;
+      if (alt >= -1 && alt <= 1) sp[pc] = { nm: 'CDEFGAB'[L] + (alt > 0 ? '♯' : alt < 0 ? '♭' : ''), oct: L === 0 && alt < 0 ? 1 : L === 6 && alt > 0 ? -1 : 0 };
+    });
+    return (key.sp = sp);
+  }
+  function noteName(midi, octave) {
+    var key = keyObj(), s = spelling(key)[midi % 12];
+    var nm = s ? s.nm : (key.flat ? NAMES_F : NAMES_S)[midi % 12];
+    return octave ? nm + (Math.floor(midi / 12) - 1 + (s ? s.oct : 0)) : nm;
   }
   function midiFreq(midi) { return state.tuning * Math.pow(2, (midi - 69) / 12); }
 
@@ -482,10 +522,11 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   /* ---------- Board ---------- */
   var notes = [];
   var buttons = [];
+  var keyButtons = [];
 
   function buildNotes(key) {
     var scale = {};
-    MAJOR.forEach(function (i) { scale[(key.root + i) % 12] = true; });
+    SCALE[key.mode].forEach(function (i) { scale[(key.root + i) % 12] = true; });
     var out = [];
     STRINGS.forEach(function (s, si) {
       for (var n = 0; n <= MAXN; n++) {
@@ -505,15 +546,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       html += '<div class="string" style="--x:' + (si * 25 + 12.5) + '%;--w:' + WIDTHS[si] + 'px"></div>';
     });
     notes.forEach(function (nt, i) {
-      var full = noteName(nt.midi, key.flat, true);
+      var full = noteName(nt.midi, true);
       html += '<button type="button" class="note off' + (nt.n === MAXN ? ' harm' : '') + '" data-i="' + i + '" style="--x:' + (nt.si * 25 + 12.5) +
-        '%;--y:' + yFor(nt.n) + '" data-label="' + noteName(nt.midi, key.flat, false) +
+        '%;--y:' + yFor(nt.n) + '" data-label="' + noteName(nt.midi, false) +
         '" aria-label="' + nt.s.n + ' string, ' + full + (nt.n === MAXN ? ' natural harmonic' : '') + ', ' + midiFreq(nt.midi).toFixed(1) + ' hertz. Hold to play."></button>';
     });
     board.innerHTML = html;
     buttons = Array.prototype.slice.call(board.querySelectorAll('.note'));
     hitAreas();
-    Array.prototype.forEach.call(keysEl.children, function (b) {
+    keyButtons.forEach(function (b) {
       b.setAttribute('aria-pressed', b.dataset.id === state.key ? 'true' : 'false');
     });
     layout();
@@ -547,7 +588,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 
   function updateSub() {
     var key = keyObj();
-    subEl.textContent = key.label + ' major · ' +
+    subEl.textContent = key.label + ' ' + key.mode + ' · ' +
       (state.pos === 'pc' ? 'Pitch Check' + (pcStatus ? ' · ' + pcStatus : '') : POSITIONS[state.pos].name);
   }
 
@@ -620,24 +661,46 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       '<svg viewBox="0 0 ' + 110 + ' 120" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round">' +
       '<path d="M0 40H110M0 50H110M0 60H110M0 70H110M0 80H110" stroke-width="1.1" opacity=".85"/>' +
       '<path fill="currentColor" stroke="none" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/>' +
-      g + '</svg><div class="cap">' + k.label + ' major · ' + (k.n === 0 ? 'no ♯ or ♭' : words) + '</div>';
-    ksigSr.textContent = k.label + ' major: ' + words;
+      g + '</svg><div class="cap">' + k.label + ' ' + k.mode + ' · ' + (k.n === 0 ? 'no ♯ or ♭' : words) + '</div>';
+    ksigSr.textContent = k.label + ' ' + k.mode + ': ' + words;
     ksigEl.classList.add('on');
     clearTimeout(ksigTimer);
     ksigTimer = setTimeout(function () { ksigEl.classList.remove('on'); }, 700);
   }
 
+  var keysMinEl = document.getElementById('keysMin');
   KEYS.forEach(function (k) {
     var b = document.createElement('button');
     b.type = 'button';
     b.dataset.label = k.label;
     b.dataset.id = k.id;
-    b.setAttribute('aria-label', k.label + ' major');
+    b.setAttribute('aria-label', k.label + ' ' + k.mode);
     b.addEventListener('click', function () {
       state.key = k.id; persist(); render(); flashKey(k);
     });
-    keysEl.appendChild(b);
+    (k.mode === 'major' ? keysEl : keysMinEl).appendChild(b);
+    keyButtons.push(b);
   });
+  /* fade an edge while keys are hidden past it; bring the chosen key into view */
+  function keyFades() {
+    [keysEl, keysMinEl].forEach(function (row) {
+      var max = row.scrollWidth - row.clientWidth;
+      row.classList.toggle('fade-l', row.scrollLeft > 2);
+      row.classList.toggle('fade-r', row.scrollLeft < max - 2);
+    });
+  }
+  [keysEl, keysMinEl].forEach(function (row) { row.addEventListener('scroll', keyFades, { passive: true }); });
+  function showChosenKey() {
+    var b = keyButtons.filter(function (x) { return x.dataset.id === state.key; })[0], row = b && b.parentNode;
+    if (row && row.clientWidth) {
+      var x = b.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft;
+      if (x < row.scrollLeft || x + b.offsetWidth > row.scrollLeft + row.clientWidth)
+        row.scrollLeft = x - (row.clientWidth - b.offsetWidth) / 2;
+    }
+    keyFades();
+  }
+  /* the view may be hidden at load (no widths yet): place the rows once they have a size */
+  if (window.ResizeObserver) new ResizeObserver(showChosenKey).observe(document.getElementById('keyrows'));
   Array.prototype.forEach.call(posbar.children, function (b) {
     b.addEventListener('click', function () {
       var id = b.dataset.id;
@@ -840,10 +903,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       if (hit) found = true;
       if (buttons[k]) buttons[k].classList.toggle('heard', hit);
     });
-    pcStatus = noteName(n, keyObj().flat, true) + ' · ' +
+    pcStatus = noteName(n, true) + ' · ' +
       (Math.abs(cents) <= 5 ? 'in tune' : Math.abs(cents) + '¢ ' + (cents > 0 ? 'sharp' : 'flat')) +
       (found ? '' : ' · off the board');
-    pcCur = { name: noteName(n, keyObj().flat, true), cents: cents };
+    pcCur = { name: noteName(n, true), cents: cents };
     pcShow(pcCur);
     updateSub();
   }

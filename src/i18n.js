@@ -14,7 +14,7 @@
     'Calm teal': '静谧青', 'Sage green': '鼠尾草绿', 'Slate blue': '石板蓝', 'Soft violet': '柔紫', 'Classic': '经典',
     /* fingerboard */
     'Violin fingerboard': '小提琴指板', 'Position': '把位',
-    'Auto vibrato': '自动揉弦', 'On': '开', 'Off': '关', 'Major': '大调', 'Pitch Check': '音准检测',
+    'Auto vibrato': '自动揉弦', 'On': '开', 'Off': '关', 'Major': '大调', 'Minor': '小调', 'Pitch Check': '音准检测',
     '1st position': '一把位', '2nd position': '二把位', '3rd position': '三把位',
     'starting microphone…': '正在启动麦克风…', 'microphone not available here': '此处无法使用麦克风',
     'audio not supported': '不支持音频', 'listening…': '聆听中…', 'microphone blocked': '麦克风已被禁用',
@@ -78,7 +78,7 @@
     'Hear a string': '听空弦音', 'Tap a string name on the scroll to play its pitch. Tap it again to stop.': '点琴头上的弦名播放它的音高，再点一次停止。',
     'Violin or Chromatic': '小提琴或半音阶', 'Violin finds the nearest open string. Chromatic shows any note you play.': '小提琴模式找最接近的空弦；半音阶模式显示你拉的任何音。',
     'Press and hold a note': '按住一个音', 'Touch any coloured note to hear its pitch for as long as you hold it.': '按住任何彩色的音，按多久就响多久。',
-    'Choose a key': '选择调', 'Notes in the key are coloured; the others are greyed out.': '调内的音是彩色的，其他的是灰色。',
+    'Choose a key': '选择调', 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.': '选择大调或小调，左右滑动可看到更多调。调内的音是彩色的，其他的是灰色。',
     'Positions and Pitch Check': '把位和音准检测', 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.': '在一把位、二把位、三把位之间切换。音准检测会边听边标出你拉到的音。',
     'Start and set the tempo': '开始并设置速度', 'Tap the middle to start or stop. Drag around the dial to change the speed.': '点中间开始或停止，沿着转盘拖动改变速度。',
     'Tap the top number to change the beats per bar, and the bottom number to change the note value.': '点上面的数字改变每小节拍数，点下面的数字改变音符时值。',
@@ -101,6 +101,7 @@
     ['#labels', { '1st': '一', '2nd': '二', '3rd': '三', '4th': '四', 'finger': '指', '1st finger': '一指', '2nd finger': '二指', '3rd finger': '三指', '4th finger': '四指',
                   'open': '空弦', 'above': '高于', 'below': '低于', 'harm.': '泛音', 'octave': '八度' }]
   ];
+  var Q = { major: '大调', minor: '小调' };
   var SW = { sharp: '升号', sharps: '升号', flat: '降号', flats: '降号' };
   function words(w) {
     if (DICT[w]) return DICT[w];
@@ -115,11 +116,11 @@
   var RX = [
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
-    [/^(.+) major · (1st|2nd|3rd) position$/, function (m, k, p) { return k + '大调 · ' + P[p]; }],
-    [/^(.+) major · Pitch Check(?: · (.+))?$/, function (m, k, s) { return k + '大调 · 音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
-    [/^(.+) major · (no ♯ or ♭|\d sharps?|\d flats?)$/, function (m, k, w) { return k + '大调 · ' + words(w); }],
-    [/^(.+) major: (.+)$/, function (m, k, w) { return k + '大调：' + (words(w) || w); }],
-    [/^(\S+) major$/, function (m, k) { return k + '大调'; }],
+    [/^(.+) (major|minor) · (1st|2nd|3rd) position$/, function (m, k, q, p) { return k + Q[q] + ' · ' + P[p]; }],
+    [/^(.+) (major|minor) · Pitch Check(?: · (.+))?$/, function (m, k, q, s) { return k + Q[q] + ' · 音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
+    [/^(.+) (major|minor) · (no ♯ or ♭|\d sharps?|\d flats?)$/, function (m, k, q, w) { return k + Q[q] + ' · ' + words(w); }],
+    [/^(.+) (major|minor): (.+)$/, function (m, k, q, w) { return k + Q[q] + '：' + (words(w) || w); }],
+    [/^(\S+) (major|minor)$/, function (m, k, q) { return k + Q[q]; }],
     [/^Beat (\d+), (muted|normal|medium|accent)\. Tap to change\.$/, function (m, n, l) { return '第' + n + '拍，' + { muted: '静音', normal: '普通', medium: '中强', accent: '重音' }[l] + '。点按切换。'; }],
     [/^([GDAE]) string, (.+?)( natural harmonic)?, ([\d.]+) hertz\. Hold to play\.$/, function (m, s, n, h, f) { return s + '弦，' + n + (h ? '（自然泛音）' : '') + '，' + f + ' 赫兹。按住发声。'; }],
     [/^([GDAE]) string, ([\d.]+ Hz)(, playing)?$/, function (m, s, f, p) { return s + '弦，' + f + (p ? '，正在播放' : ''); }],
