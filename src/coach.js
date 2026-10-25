@@ -108,6 +108,7 @@
       var upY = g, downY = vh - g - h;
       var hid = function (y0) { return Math.max(0, Math.min(y0 + h, bottom) - Math.max(y0, top)); };
       y = hid(upY) < hid(downY) ? upY : downY;
+      if (h <= vh) y = Math.max(0, Math.min(y, vh - h));   /* it fits the screen: keep all of it on screen */
     }
     tip.style.left = x + 'px'; tip.style.top = y + 'px';
     arrow.hidden = !side;
