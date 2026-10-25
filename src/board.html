@@ -310,20 +310,26 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .pc { position: absolute; inset: 0; }
 .pc-name { position: absolute; top: 2px; left: 6px; right: 0; font: 700 21px/1 var(--font-note); color: var(--nut); white-space: nowrap; }
 .pc-cents { position: absolute; top: 30px; left: 6px; right: 0; font: 500 12px/1.2 var(--font-mono); letter-spacing: 0; text-transform: none; color: var(--board-text); white-space: nowrap; }
-.pc-meter { position: absolute; left: 12px; top: 76px; bottom: 22px; width: 6px; border-radius: 3px; background: var(--board-line); }
-.pc-tick { position: absolute; left: -5px; width: 16px; height: 1px; background: var(--board-text); opacity: 0.7; }
-.pc-tick.zero { left: -8px; width: 22px; height: 2px; background: var(--nut); opacity: 1; }
-.pc-lbl { position: absolute; left: 22px; transform: translateY(-50%); font: 500 10px/1 var(--font-mono); letter-spacing: 0; text-transform: none; color: var(--board-text); white-space: nowrap; }
-.pc-dot { position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--nut); border: 2px solid var(--board); opacity: 0; transition: top 90ms linear, opacity 120ms; }
-.pc.on .pc-dot { opacity: 1; }
 .pc.on .pc-name { color: var(--nut); }
-.pc.tune .pc-dot { background: var(--board-good); }
 .pc.tune .pc-cents { color: var(--board-good); }
 .pc:not(.on) .pc-name { color: var(--board-text); }
+/* Pitch Check: the pitch heard, as a green disc sliding along every string that can play it.
+   It sits behind the note discs and is a little bigger, so in tune it shows as a green ring
+   round the note, sharp it peeks out below, flat above. */
+.pcm {
+  position: absolute; left: var(--x); top: 0;
+  width: calc(var(--r) * 2 + 16px); height: calc(var(--r) * 2 + 16px);
+  border-radius: 50%; transform: translate(-50%, -50%);
+  background: var(--board-good); opacity: 0; pointer-events: none;
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--board-good) 55%, transparent);
+  transition: top 90ms linear, opacity 120ms;
+}
+.pcm.on { opacity: .9; }
+.board.pcmode .note.heard { box-shadow: 0 2px 4px rgba(0, 0, 0, .45); }
 
 @media (prefers-reduced-motion: reduce) {
   .note { transition: none; }
-  .pc-dot { transition: none; }
+  .pcm { transition: none; }
 }
 </style>
 
@@ -545,6 +551,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     STRINGS.forEach(function (s, si) {
       html += '<div class="string" style="--x:' + (si * 25 + 12.5) + '%;--w:' + WIDTHS[si] + 'px"></div>';
     });
+    STRINGS.forEach(function (s, si) {   /* before the notes, so the notes are drawn on top */
+      html += '<div class="pcm" aria-hidden="true" style="--x:' + (si * 25 + 12.5) + '%"></div>';
+    });
     notes.forEach(function (nt, i) {
       var full = noteName(nt.midi, true);
       html += '<button type="button" class="note off' + (nt.n === MAXN ? ' harm' : '') + '" data-i="' + i + '" style="--x:' + (nt.si * 25 + 12.5) +
@@ -562,28 +571,26 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
 
   /* Recolour in place so a note being held keeps sounding when the position switches. */
-  var PC_HTML =
-    '<div class="pc"><div class="pc-name">–</div><div class="pc-cents"></div>' +
-    '<div class="pc-meter">' +
-      '<div class="pc-tick" style="top:0"></div><div class="pc-tick" style="top:25%"></div>' +
-      '<div class="pc-tick zero" style="top:50%"></div>' +
-      '<div class="pc-tick" style="top:75%"></div><div class="pc-tick" style="top:100%"></div>' +
-      '<div class="pc-lbl" style="top:0">+50</div><div class="pc-lbl" style="top:50%">0</div><div class="pc-lbl" style="top:100%">−50</div>' +
-      '<div class="pc-dot"></div>' +
-    '</div></div>';
+  var PC_HTML = '<div class="pc"><div class="pc-name">–</div><div class="pc-cents"></div></div>';
   var pcCur = null;
 
   function pcShow(r) {
+    /* a disc on each string whose reach (open string to the octave harmonic) includes the pitch,
+       placed by the exact pitch, so a sharp note sits a little nearer the bridge than its note */
+    Array.prototype.forEach.call(board.querySelectorAll('.pcm'), function (d, si) {
+      var n = r && state.pos === 'pc' ? r.m - STRINGS[si].midi : -9;
+      var show = n >= -0.5 && n <= MAXN + 0.5;
+      d.classList.toggle('on', show);
+      if (show) d.style.top = 'calc(var(--head) + ' + mm(n).toFixed(2) + ' * var(--k))';
+    });
     var el = labels.querySelector('.pc');
     if (!el) return;
-    var nm = el.querySelector('.pc-name'), ce = el.querySelector('.pc-cents'), dot = el.querySelector('.pc-dot');
+    var nm = el.querySelector('.pc-name'), ce = el.querySelector('.pc-cents');
     if (!r) { el.classList.remove('on', 'tune'); nm.textContent = '–'; ce.textContent = ''; return; }
-    var c = Math.max(-50, Math.min(50, r.cents));
     el.classList.add('on');
     el.classList.toggle('tune', Math.abs(r.cents) <= 5);
     nm.textContent = r.name;
     ce.textContent = Math.abs(r.cents) <= 5 ? 'in tune' : (r.cents > 0 ? '+' : '−') + Math.abs(r.cents) + '¢';
-    dot.style.top = (50 - c) + '%';
   }
 
   function updateSub() {
@@ -619,7 +626,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
         P.at.map(function (n, i) {
           return '<span style="--y:' + yFor(n) + '">' + ORD[i + 1] + '<small class="fing">finger</small></span>';
         }).join(''));
-    if (pc) { labels.innerHTML = PC_HTML; pcShow(pcCur); }
+    board.classList.toggle('pcmode', pc);
+    if (pc) labels.innerHTML = PC_HTML;
+    pcShow(pc ? pcCur : null);
     updateSub();
     Array.prototype.forEach.call(posbar.children, function (b) {
       b.setAttribute('aria-pressed', b.dataset.id === state.pos ? 'true' : 'false');
@@ -906,7 +915,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     pcStatus = noteName(n, true) + ' · ' +
       (Math.abs(cents) <= 5 ? 'in tune' : Math.abs(cents) + '¢ ' + (cents > 0 ? 'sharp' : 'flat')) +
       (found ? '' : ' · off the board');
-    pcCur = { name: noteName(n, true), cents: cents };
+    pcCur = { name: noteName(n, true), cents: cents, m: m };
     pcShow(pcCur);
     updateSub();
   }
