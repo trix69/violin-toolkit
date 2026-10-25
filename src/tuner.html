@@ -224,7 +224,8 @@ button:focus-visible, select:focus-visible, .filebtn:focus-within { outline: 2px
       </dl>
       <p class="which" id="which"></p>
     </div>
-    <p class="hint idle" id="hint" aria-live="polite">Press Start tuning, then bow an open string and hold it.</p>
+    <p class="hint idle" id="hint">Press Start tuning, then bow an open string and hold it.</p>
+    <p class="vh" id="hintSr" role="status" aria-live="polite"></p>
     <canvas id="wave" aria-hidden="true"></canvas>
     <div class="actions">
       <button id="go" class="primary" type="button" aria-pressed="false">Start tuning</button>
@@ -420,7 +421,7 @@ function noteGate() {
   var needleA = 0, needleT = 0;
 
   /* ---------- readouts ---------- */
-  var nn = $('nn'), no = $('no'), hzEl = $('hz'), tgEl = $('tg'), ctEl = $('ct'), which = $('which'), hint = $('hint'), statusEl = $('status');
+  var nn = $('nn'), no = $('no'), hzEl = $('hz'), tgEl = $('tg'), ctEl = $('ct'), which = $('which'), hint = $('hint'), hintSr = $('hintSr'), statusEl = $('status');
   var last = 0;
 
   function analyse(fr) {
@@ -455,6 +456,20 @@ function noteGate() {
     return off(first) < off(checked) ? first : checked;
   }
 
+  /* The hint changes on every analysed frame, so it is not a live region (a screen reader would be
+     flooded). hintSr is: it says only the verdict, once it has held for 400 ms. */
+  var lastHint = '', verdict = '', srTimer = 0;
+  function setHint(t, cls) {
+    if (t !== lastHint) { lastHint = t; hint.textContent = t; }
+    hint.className = cls;
+  }
+  function announce(t) {
+    if (t === verdict) return;
+    verdict = t;
+    clearTimeout(srTimer);
+    srTimer = setTimeout(function () { hintSr.textContent = t; }, 400);
+  }
+
   function setFreq(fr) {
     last = fr;
     var r = analyse(fr), c = r.cents, a = Math.abs(c);
@@ -469,11 +484,11 @@ function noteGate() {
     ctEl.textContent = (rc > 0 ? '+' : rc < 0 ? '−' : '') + Math.abs(rc).toFixed(1) + ' ¢';
     which.textContent = r.label;
     if (inTune) {
-      hint.textContent = 'In tune.';
-      hint.className = 'hint ok';
+      setHint('In tune.', 'hint ok');
+      announce('In tune.');
     } else {
-      hint.textContent = (c < 0 ? 'Flat' : 'Sharp') + ' by ' + a.toFixed(1) + ' cents. ' + (c < 0 ? 'Raise' : 'Lower') + ' the pitch' + (a <= 15 ? ' with the fine tuner.' : '.');
-      hint.className = 'hint off';
+      setHint((c < 0 ? 'Flat' : 'Sharp') + ' by ' + a.toFixed(1) + ' cents. ' + (c < 0 ? 'Raise' : 'Lower') + ' the pitch' + (a <= 15 ? ' with the fine tuner.' : '.'), 'hint off');
+      announce(c < 0 ? 'Flat. Raise the pitch.' : 'Sharp. Lower the pitch.');
     }
     needleT = Math.max(-25, Math.min(25, c)) / 25 * 45;
     mark(r.idx, inTune);
@@ -490,8 +505,8 @@ function noteGate() {
     tgEl.textContent = '— Hz';
     ctEl.textContent = '— ¢';
     which.textContent = '';
-    hint.textContent = msg || 'Press Start tuning, then bow an open string and hold it.';
-    hint.className = 'hint idle';
+    setHint(msg || 'Press Start tuning, then bow an open string and hold it.', 'hint idle');
+    announce(lastHint);
     needleT = 0;
     mark(-1, false);
     kick();

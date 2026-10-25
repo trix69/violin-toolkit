@@ -93,7 +93,9 @@
     'Microphone ready. Tap anywhere on the page to start listening.': '麦克风已就绪。点按页面任意位置开始聆听。',
     'The microphone started but audio could not be processed.': '麦克风已启动，但无法处理音频。',
     'Microphone paused while a reference tone plays.': '播放参考音时麦克风已暂停。',
-    'In tune.': '音准正确。'
+    'In tune.': '音准正确。',
+    'Flat. Raise the pitch.': '偏低。请升高音高。',
+    'Sharp. Lower the pitch.': '偏高。请降低音高。'
   };
   /* the same English word means different things in different places */
   var CTX = [
