@@ -4,7 +4,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var beatsEl = $('mBeats'), bpmEl = $('mBpm'), nameEl = $('mName'), dial = $('mDial');
   var prog = $('mProg'), knob = $('mKnob'), playEl = $('mPlay'), glyph = $('mGlyph');
-  var state = { bpm: 80, num: 4, den: 4, sub: 1, levels: [3, 1, 1, 1] };
+  var state = { bpm: 80, num: 4, den: 4, levels: [3, 1, 1, 1] };
   try {
     var s = JSON.parse(localStorage.getItem('violin-metronome-v2') || '{}');
     if (s.bpm >= MIN && s.bpm <= MAX) state.bpm = Math.round(s.bpm);
@@ -50,7 +50,6 @@
   var playing = false;
   function drawBeats() {
     beatsEl.innerHTML = '';
-    beatsEl.dataset.sub = state.sub;
     state.levels.forEach(function (lv, i) {
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'beat'; b.dataset.l = lv; b.dataset.i = i;
@@ -191,14 +190,13 @@
   symSheet.addEventListener('click', function (e) { if (e.target === symSheet) closeSym(); });
 
   /* ---------- audio ---------- */
-  var ctx = null, timer = 0, nextT = 0, beatIdx = 0, subIdx = 0, queue = [], raf = 0, lastNow = -1;
+  var ctx = null, timer = 0, nextT = 0, beatIdx = 0, queue = [], raf = 0, lastNow = -1;
   function click(t, level) {
     if (level === 0) return;
-    var off = level === 'sub';
     var o = ctx.createOscillator(), g = ctx.createGain();
     o.type = 'triangle';
-    o.frequency.value = off ? 760 : level === 3 ? 1760 : level === 2 ? 1320 : 990;
-    var peak = off ? 0.22 : level === 3 ? 0.9 : level === 2 ? 0.6 : 0.4;
+    o.frequency.value = level === 3 ? 1760 : level === 2 ? 1320 : 990;
+    var peak = level === 3 ? 0.9 : level === 2 ? 0.6 : 0.4;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + 0.002);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
@@ -208,15 +206,10 @@
   function tick() {
     while (nextT < ctx.currentTime + 0.12) {
       var i = beatIdx % state.num;
-      if (subIdx === 0) {
-        click(nextT, state.levels[i]);
-        queue.push({ t: nextT, i: i });
-      } else if (state.levels[i] !== 0) {
-        click(nextT, 'sub');
-      }
-      nextT += 60 / state.bpm / state.sub;
-      subIdx++;
-      if (subIdx >= state.sub) { subIdx = 0; beatIdx = (beatIdx + 1) % state.num; }
+      click(nextT, state.levels[i]);
+      queue.push({ t: nextT, i: i });
+      nextT += 60 / state.bpm;
+      beatIdx = (beatIdx + 1) % state.num;
     }
   }
   function paintNow(i) {
@@ -236,7 +229,7 @@
     if (!AC) return;
     if (!ctx) ctx = new AC();
     if (ctx.state === 'suspended') ctx.resume();
-    playing = true; beatIdx = 0; subIdx = 0; queue = []; lastNow = -1;
+    playing = true; beatIdx = 0; queue = []; lastNow = -1;
     nextT = ctx.currentTime + 0.06;
     tick(); timer = setInterval(tick, 25);
     raf = requestAnimationFrame(frame);

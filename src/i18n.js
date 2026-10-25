@@ -27,7 +27,7 @@
     'Up bow': '上弓', 'Push, tip to frog': '推弓：弓尖到弓根', 'Down bow': '下弓', 'Pull, frog to tip': '拉弓：弓根到弓尖',
     'Flat': '降号', 'Semitone lower': '降低半音', 'Natural': '还原号', 'Cancels ♯ or ♭': '取消 ♯ 或 ♭', 'Sharp': '升号', 'Semitone higher': '升高半音',
     'Tap': '点拍', 'Slower': '减慢', 'Faster': '加快', 'Time signature': '拍号', 'Beats per bar': '每小节拍数',
-    'Note value': '音符时值', 'Clicks per beat': '每拍点击数', 'Tempo': '速度', 'Start': '开始', 'Stop': '停止',
+    'Note value': '音符时值', 'Tempo': '速度', 'Start': '开始', 'Stop': '停止',
     'Beats. Tap a beat to change its accent.': '节拍。点按某一拍可更改其重音。',
     'Largo': '广板', 'Larghetto': '小广板', 'Adagio': '柔板', 'Andante': '行板', 'Moderato': '中板',
     'Allegro': '快板', 'Vivace': '活泼的快板', 'Presto': '急板', 'Prestissimo': '最急板',
