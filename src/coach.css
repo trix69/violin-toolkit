@@ -34,7 +34,7 @@
 .coach-pic .cp-board { fill: var(--board, #46524C); }
 .coach-pic .cp-string { stroke: var(--string, #D9D1BF); stroke-width: 2; }
 .coach-pic .cp-nut { stroke: var(--string, #D9D1BF); stroke-width: 4; }
-.coach-pic .cp-note { fill: var(--a, #66AEE6); stroke: var(--board, #46524C); stroke-width: 2; }
+.coach-pic .cp-note { fill: var(--e, #C592E6); stroke: var(--board, #46524C); stroke-width: 2; }
 .coach-pic .cp-name { font: 700 15px var(--font-note); fill: #16201B; text-anchor: middle; }
 .coach-pic .cp-disc { fill: var(--pc-good, #5BD08E); opacity: .6; }
 .coach-pic .cp-in .cp-disc { opacity: .75; }

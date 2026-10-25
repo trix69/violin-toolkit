@@ -16,7 +16,7 @@
       { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
       { sel: '#keyrows', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.' },
       { sel: '#posbar button:not([data-id="pc"])', title: 'Positions', text: '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.' },
-      { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close. Here: C on the A string.',
+      { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close. Here: F on the E string, in C major.',
         pic: '<div class="coach-pic" aria-hidden="true">' +
         ex('in', 50, 'In tune', '±0¢') + ex('sharp', 61, 'Too sharp', '+25¢') + ex('flat', 39, 'Too flat', '−25¢') + '</div>' }
     ],
@@ -27,13 +27,13 @@
       { sel: '#mTap', title: 'Tap tempo', text: 'Tap in time a few times to set the tempo from your own beat.' }
     ]
   };
-  /* a small picture of the board for the Pitch Check tip: C on the A string (2nd finger, 1st position),
+  /* a small picture of the board for the Pitch Check tip: F on the E string in C major (low 1st finger),
      with the disc where it sits in tune, sharp and flat */
   function ex(kind, y, label, read) {
     return '<figure class="cp-' + kind + '"><svg viewBox="0 0 84 96"><rect width="84" height="96" rx="10" class="cp-board"/>' +
       '<line x1="42" y1="14" x2="42" y2="96" class="cp-string"/><line x1="0" y1="14" x2="84" y2="14" class="cp-nut"/>' +
       '<circle cx="42" cy="' + y + '" r="23" class="cp-disc"/><circle cx="42" cy="50" r="15" class="cp-note"/>' +
-      '<text x="42" y="55.5" class="cp-name">C</text></svg><figcaption><b>' + label + '</b><span>' + read + '</span></figcaption></figure>';
+      '<text x="42" y="55.5" class="cp-name">F</text></svg><figcaption><b>' + label + '</b><span>' + read + '</span></figcaption></figure>';
   }
   var root = document.getElementById('coach'), hole = document.getElementById('coachHole'), tip = document.getElementById('coachTip');
   var arrow = document.getElementById('coachArrow'), stepEl = document.getElementById('coachStep');
