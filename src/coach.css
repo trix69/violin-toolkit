@@ -27,3 +27,18 @@
 .coach-btns .coach-next { border: 0; background: var(--accent); color: var(--on-accent); min-width: 88px; }
 .coach-btns button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .coach-hole, .coach-tip { transition: none; } }
+/* the Pitch Check example in its tip: three tiny boards (in tune, sharp, flat) */
+.coach-pic { display: flex; justify-content: space-between; gap: 8px; margin: 10px 0 2px; }
+.coach-pic figure { flex: 1 1 0; margin: 0; min-width: 0; text-align: center; }
+.coach-pic svg { display: block; width: 100%; max-width: 84px; height: auto; margin: 0 auto; }
+.coach-pic .cp-board { fill: var(--board, #46524C); }
+.coach-pic .cp-string { stroke: var(--string, #D9D1BF); stroke-width: 2; }
+.coach-pic .cp-nut { stroke: var(--string, #D9D1BF); stroke-width: 4; }
+.coach-pic .cp-note { fill: var(--a, #66AEE6); stroke: var(--board, #46524C); stroke-width: 2; }
+.coach-pic .cp-name { font: 700 15px var(--font-note); fill: #16201B; text-anchor: middle; }
+.coach-pic .cp-disc { fill: var(--pc-good, #5BD08E); opacity: .6; }
+.coach-pic .cp-in .cp-disc { opacity: .75; }
+.coach-pic .cp-flat .cp-disc { fill: color-mix(in srgb, var(--pc-good, #5BD08E) 40%, var(--pc-off, #9AA59F)); }
+.coach-pic .cp-sharp .cp-disc { fill: color-mix(in srgb, var(--pc-good, #5BD08E) 40%, var(--pc-off, #9AA59F)); }
+.coach-pic figcaption { margin-top: 5px; font: 400 12px/1.3 var(--font-note); color: var(--muted); }
+.coach-pic figcaption b { display: block; font-weight: 600; color: var(--fg); }

@@ -15,7 +15,10 @@
     board: [
       { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
       { sel: '#keyrows', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.' },
-      { sel: '#posbar', title: 'Positions and Pitch Check', text: 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.' }
+      { sel: '#posbar button:not([data-id="pc"])', title: 'Positions', text: '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.' },
+      { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close. Here: C on the A string.',
+        pic: '<div class="coach-pic" aria-hidden="true">' +
+        ex('in', 50, 'In tune', '±0¢') + ex('sharp', 61, 'Too sharp', '+25¢') + ex('flat', 39, 'Too flat', '−25¢') + '</div>' }
     ],
     metronome: [
       { sel: '#mDial', title: 'Start and set the tempo', text: 'Tap the middle to start or stop. Drag around the dial to change the speed.' },
@@ -24,11 +27,19 @@
       { sel: '#mTap', title: 'Tap tempo', text: 'Tap in time a few times to set the tempo from your own beat.' }
     ]
   };
+  /* a small picture of the board for the Pitch Check tip: C on the A string (2nd finger, 1st position),
+     with the disc where it sits in tune, sharp and flat */
+  function ex(kind, y, label, read) {
+    return '<figure class="cp-' + kind + '"><svg viewBox="0 0 84 96"><rect width="84" height="96" rx="10" class="cp-board"/>' +
+      '<line x1="42" y1="14" x2="42" y2="96" class="cp-string"/><line x1="0" y1="14" x2="84" y2="14" class="cp-nut"/>' +
+      '<circle cx="42" cy="' + y + '" r="23" class="cp-disc"/><circle cx="42" cy="50" r="15" class="cp-note"/>' +
+      '<text x="42" y="55.5" class="cp-name">C</text></svg><figcaption><b>' + label + '</b><span>' + read + '</span></figcaption></figure>';
+  }
   var root = document.getElementById('coach'), hole = document.getElementById('coachHole'), tip = document.getElementById('coachTip');
   var arrow = document.getElementById('coachArrow'), stepEl = document.getElementById('coachStep');
-  var titleEl = document.getElementById('coachTitle'), textEl = document.getElementById('coachText');
+  var titleEl = document.getElementById('coachTitle'), textEl = document.getElementById('coachText'), picEl = document.getElementById('coachPic');
   var skipBtn = document.getElementById('coachSkip'), nextBtn = document.getElementById('coachNext');
-  var tour = null, view = '', idx = 0, target = null, lastFocus = null, timer = 0, scrolled = false, inerted = [];
+  var tour = null, view = '', idx = 0, target = null, targets = [], lastFocus = null, timer = 0, scrolled = false, inerted = [];
 
   /* names of the tools whose tour is done; "*" means all (the store-screenshot script sets that) */
   function seen() {
@@ -55,10 +66,10 @@
     var w = Math.min(320, vw - 2 * g);
     tip.style.width = w + 'px';            /* width first, so the height read below is the wrapped height */
     var h = tip.offsetHeight;
-    var r = target.getBoundingClientRect();
+    var r = targetRect();
     if (r.bottom <= 0 || r.top >= vh) {   /* scrolled away anyway (e.g. the browser bar resized): bring it back */
       target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-      r = target.getBoundingClientRect();
+      r = targetRect();
     }
     /* clamp both ends of each pair so they can't cross when the target is partly off screen */
     var top = Math.max(4, Math.min(vh - 4, r.top - pad)), bottom = Math.max(top, Math.min(vh - 4, r.bottom + pad));
@@ -104,6 +115,17 @@
     if (side === 'below' || side === 'above') { arrow.style.left = Math.max(14, Math.min(w - 14, cx - x)) + 'px'; arrow.style.top = ''; }
     else { arrow.style.top = Math.max(14, Math.min(h - 14, cy - y)) + 'px'; arrow.style.left = ''; }
   }
+  /* a step can spotlight several elements (the 1st-3rd position buttons): the box round all of them */
+  function targetRect() {
+    var r = null;
+    Array.prototype.forEach.call(targets, function (el) {
+      var b = el.getBoundingClientRect();
+      if (!b.width && !b.height) return;
+      r = r ? { left: Math.min(r.left, b.left), top: Math.min(r.top, b.top), right: Math.max(r.right, b.right), bottom: Math.max(r.bottom, b.bottom) } : { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
+    });
+    r = r || target.getBoundingClientRect();
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, height: r.bottom - r.top };
+  }
   /* after a rotation or resize, bring the target back into view before placing */
   function onResize() {
     if (!target) return;
@@ -115,13 +137,16 @@
   function step(i) {
     idx = i;
     var s = tour[i];
-    target = document.querySelector(s.sel);
+    targets = document.querySelectorAll(s.sel);
+    target = targets[0];
     if (!target || !target.getClientRects().length) { if (i + 1 < tour.length) step(i + 1); else close(); return; }
     scrolled = false;
     target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     stepEl.textContent = (i + 1) + ' / ' + tour.length;
     titleEl.textContent = s.title;
     textEl.textContent = s.text;
+    picEl.innerHTML = s.pic || '';
+    picEl.hidden = !s.pic;
     nextBtn.textContent = i + 1 < tour.length ? 'Next' : 'Got it';
     /* place now as well as on the next frame: a browser that skips the frame (a hidden or covered
        window) must not leave the bubble unplaced at the top left */
@@ -133,7 +158,7 @@
   function close(done) {
     if (!tour) return;
     if (done !== false) remember(view);
-    tour = null; target = null;
+    tour = null; target = null; targets = [];
     root.hidden = true;
     inerted.forEach(function (el) { el.inert = false; });
     inerted = [];

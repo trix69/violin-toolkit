@@ -757,6 +757,7 @@ markup = f"""
     <p class="coach-step" id="coachStep"></p>
     <h2 id="coachTitle"></h2>
     <p id="coachText"></p>
+    <div id="coachPic" hidden></div>
     <div class="coach-btns"><button type="button" class="coach-skip" id="coachSkip">Skip</button><button type="button" class="coach-next" id="coachNext">Next</button></div>
   </div>
 </div>
