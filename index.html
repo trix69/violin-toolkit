@@ -557,9 +557,8 @@ h1 {
   background: var(--muted);
   -webkit-mask: var(--glyph) center / auto 78% no-repeat; mask: var(--glyph) center / auto 78% no-repeat;
 }
-#view-metronome { --g1: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%279%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%209%2018%29%27/%3E%3Crect%20x%3D%2711.6%27%20y%3D%273%27%20width%3D%271.8%27%20height%3D%2715.5%27/%3E%3C/svg%3E"); --g2: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%276%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%206%2018%29%27/%3E%3Cellipse%20cx%3D%2716%27%20cy%3D%2716%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%2016%2016%29%27/%3E%3Crect%20x%3D%278.5%27%20y%3D%274.5%27%20width%3D%271.8%27%20height%3D%2714%27/%3E%3Crect%20x%3D%2718.4%27%20y%3D%272.2%27%20width%3D%271.8%27%20height%3D%2713.8%27/%3E%3Cpolygon%20points%3D%278.5%2C4.5%2020.2%2C2.2%2020.2%2C6.2%208.5%2C8.5%27/%3E%3C/svg%3E"); }
+#view-metronome { --g1: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cellipse%20cx%3D%279%27%20cy%3D%2718%27%20rx%3D%274.2%27%20ry%3D%273%27%20transform%3D%27rotate%28-20%209%2018%29%27/%3E%3Crect%20x%3D%2711.6%27%20y%3D%273%27%20width%3D%271.8%27%20height%3D%2715.5%27/%3E%3C/svg%3E"); }
 #view-metronome .beat i:nth-child(3) { --glyph: var(--g1); }
-#view-metronome .beats[data-sub="2"] .beat i:nth-child(3) { --glyph: var(--g2); }
 #view-metronome .beat[data-l="1"] i:nth-child(3)::after, #view-metronome .beat[data-l="2"] i:nth-child(3)::after, #view-metronome .beat[data-l="3"] i:nth-child(3)::after { background: var(--on-accent); }
 #view-metronome .beat {
   flex: 0 1 80px; min-width: 0; height: 104px; padding: 5px;
@@ -854,6 +853,24 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .coach-btns .coach-next { border: 0; background: var(--accent); color: var(--on-accent); min-width: 88px; }
 .coach-btns button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .coach-hole, .coach-tip { transition: none; } }
+/* the Pitch Check example in its tip: three tiny boards (in tune, sharp, flat) */
+.coach-pic { margin: 10px 0 2px; }
+.coach-pic .cp-cap { margin: 0 0 6px; font: 600 13px/1.3 var(--font-note); color: var(--fg); }
+.coach-pic .cp-row { display: flex; justify-content: space-between; gap: 8px; }
+.coach-pic figure { flex: 1 1 0; margin: 0; min-width: 0; text-align: center; }
+.coach-pic svg { display: block; width: 100%; max-width: 84px; height: auto; margin: 0 auto; }
+.coach-pic .cp-board { fill: var(--board, #46524C); }
+.coach-pic .cp-string { stroke: var(--string, #D9D1BF); stroke-width: 2; }
+.coach-pic .cp-nut { stroke: var(--string, #D9D1BF); stroke-width: 4; }
+.coach-pic .cp-note { fill: var(--e, #C592E6); stroke: var(--board, #46524C); stroke-width: 2; }
+.coach-pic .cp-name { font: 700 15px var(--font-note); fill: #16201B; text-anchor: middle; }
+.coach-pic .cp-disc { fill: var(--pc-good, #5BD08E); opacity: .6; }
+.coach-pic .cp-in .cp-disc { opacity: .75; }
+.coach-pic .cp-flat .cp-disc { fill: color-mix(in srgb, var(--pc-good, #5BD08E) 40%, var(--pc-off, #9AA59F)); }
+.coach-pic .cp-sharp .cp-disc { fill: color-mix(in srgb, var(--pc-good, #5BD08E) 40%, var(--pc-off, #9AA59F)); }
+.coach-pic figcaption { margin-top: 5px; font: 400 12px/1.3 var(--font-note); color: var(--muted); }
+.coach-pic figcaption b { display: block; font-weight: 600; color: var(--fg); }
+@media (max-height: 400px) { .coach-pic { display: none; } }   /* short landscape screens: keep the whole tip, and its buttons, on screen (Hermes R6.1) */
 
 /* ---- accent colours (set by data-accent on <html>) ---- */
 :root[data-accent="teal"]{--accent:#2F7377;--on-accent:#FFFFFF;--t-accent:#2F7377;--t-on-accent:#FFFFFF;}
@@ -1104,7 +1121,8 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </dl>
       <p class="which" id="which"></p>
     </div>
-    <p class="hint idle" id="hint" aria-live="polite">Press Start tuning, then bow an open string and hold it.</p>
+    <p class="hint idle" id="hint">Press Start tuning, then bow an open string and hold it.</p>
+    <p class="vh" id="hintSr" role="status" aria-live="polite"></p>
     <canvas id="wave" aria-hidden="true"></canvas>
   </section>
 
@@ -1157,6 +1175,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     <p class="coach-step" id="coachStep"></p>
     <h2 id="coachTitle"></h2>
     <p id="coachText"></p>
+    <div id="coachPic" hidden></div>
     <div class="coach-btns"><button type="button" class="coach-skip" id="coachSkip">Skip</button><button type="button" class="coach-next" id="coachNext">Next</button></div>
   </div>
 </div>
@@ -1204,7 +1223,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.05" data-build="20261025-224358" data-cache="violin-toolkit-"><span>Version 1.05</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.06" data-build="20261026-085055" data-cache="violin-toolkit-"><span>Version 1.06</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1414,7 +1433,7 @@ function noteGate() {
   var needleA = 0, needleT = 0;
 
   /* ---------- readouts ---------- */
-  var nn = $('nn'), no = $('no'), hzEl = $('hz'), tgEl = $('tg'), ctEl = $('ct'), which = $('which'), hint = $('hint'), statusEl = $('status');
+  var nn = $('nn'), no = $('no'), hzEl = $('hz'), tgEl = $('tg'), ctEl = $('ct'), which = $('which'), hint = $('hint'), hintSr = $('hintSr'), statusEl = $('status');
   var last = 0;
 
   function analyse(fr) {
@@ -1449,6 +1468,20 @@ function noteGate() {
     return off(first) < off(checked) ? first : checked;
   }
 
+  /* The hint changes on every analysed frame, so it is not a live region (a screen reader would be
+     flooded). hintSr is: it says only the verdict, once it has held for 400 ms. */
+  var lastHint = '', verdict = '', srTimer = 0;
+  function setHint(t, cls) {
+    if (t !== lastHint) { lastHint = t; hint.textContent = t; }
+    hint.className = cls;
+  }
+  function announce(t) {
+    if (t === verdict) return;
+    verdict = t;
+    clearTimeout(srTimer);
+    srTimer = setTimeout(function () { hintSr.textContent = t; }, 400);
+  }
+
   function setFreq(fr) {
     last = fr;
     var r = analyse(fr), c = r.cents, a = Math.abs(c);
@@ -1463,11 +1496,11 @@ function noteGate() {
     ctEl.textContent = (rc > 0 ? '+' : rc < 0 ? '−' : '') + Math.abs(rc).toFixed(1) + ' ¢';
     which.textContent = r.label;
     if (inTune) {
-      hint.textContent = 'In tune.';
-      hint.className = 'hint ok';
+      setHint('In tune.', 'hint ok');
+      announce('In tune.');
     } else {
-      hint.textContent = (c < 0 ? 'Flat' : 'Sharp') + ' by ' + a.toFixed(1) + ' cents. ' + (c < 0 ? 'Raise' : 'Lower') + ' the pitch' + (a <= 15 ? ' with the fine tuner.' : '.');
-      hint.className = 'hint off';
+      setHint((c < 0 ? 'Flat' : 'Sharp') + ' by ' + a.toFixed(1) + ' cents. ' + (c < 0 ? 'Raise' : 'Lower') + ' the pitch' + (a <= 15 ? ' with the fine tuner.' : '.'), 'hint off');
+      announce(c < 0 ? 'Flat. Raise the pitch.' : 'Sharp. Lower the pitch.');
     }
     needleT = Math.max(-25, Math.min(25, c)) / 25 * 45;
     mark(r.idx, inTune);
@@ -1484,8 +1517,8 @@ function noteGate() {
     tgEl.textContent = '— Hz';
     ctEl.textContent = '— ¢';
     which.textContent = '';
-    hint.textContent = msg || 'Press Start tuning, then bow an open string and hold it.';
-    hint.className = 'hint idle';
+    setHint(msg || 'Press Start tuning, then bow an open string and hold it.', 'hint idle');
+    announce(lastHint);
     needleT = 0;
     mark(-1, false);
     kick();
@@ -1964,8 +1997,9 @@ function noteGate() {
       var n = r && state.pos === 'pc' ? r.m - STRINGS[si].midi : -9;
       var show = n >= -0.5 && n <= MAXN + 0.5;
       /* drawn no further than a little past the nut or the octave, so the disc isn't cut off
-         by the board's edge; its colour and the cents readout still say how far off it is */
-      n = Math.max(-0.05, Math.min(MAXN + 0.15, n));
+         by the board's edge (at the nut, -0.02 keeps it 2.1 px inside the stage even at the
+         largest scale, K = 5); its colour and the cents readout still say how far off it is */
+      n = Math.max(-0.02, Math.min(MAXN + 0.15, n));
       d.classList.toggle('on', show);
       if (show) {
         d.style.top = 'calc(var(--head) + ' + mm(n).toFixed(2) + ' * var(--k))';
@@ -2412,7 +2446,7 @@ function noteGate() {
   var $ = function (id) { return document.getElementById(id); };
   var beatsEl = $('mBeats'), bpmEl = $('mBpm'), nameEl = $('mName'), dial = $('mDial');
   var prog = $('mProg'), knob = $('mKnob'), playEl = $('mPlay'), glyph = $('mGlyph');
-  var state = { bpm: 80, num: 4, den: 4, sub: 1, levels: [3, 1, 1, 1] };
+  var state = { bpm: 80, num: 4, den: 4, levels: [3, 1, 1, 1] };
   try {
     var s = JSON.parse(localStorage.getItem('violin-metronome-v2') || '{}');
     if (s.bpm >= MIN && s.bpm <= MAX) state.bpm = Math.round(s.bpm);
@@ -2458,7 +2492,6 @@ function noteGate() {
   var playing = false;
   function drawBeats() {
     beatsEl.innerHTML = '';
-    beatsEl.dataset.sub = state.sub;
     state.levels.forEach(function (lv, i) {
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'beat'; b.dataset.l = lv; b.dataset.i = i;
@@ -2599,14 +2632,13 @@ function noteGate() {
   symSheet.addEventListener('click', function (e) { if (e.target === symSheet) closeSym(); });
 
   /* ---------- audio ---------- */
-  var ctx = null, timer = 0, nextT = 0, beatIdx = 0, subIdx = 0, queue = [], raf = 0, lastNow = -1;
+  var ctx = null, timer = 0, nextT = 0, beatIdx = 0, queue = [], raf = 0, lastNow = -1;
   function click(t, level) {
     if (level === 0) return;
-    var off = level === 'sub';
     var o = ctx.createOscillator(), g = ctx.createGain();
     o.type = 'triangle';
-    o.frequency.value = off ? 760 : level === 3 ? 1760 : level === 2 ? 1320 : 990;
-    var peak = off ? 0.22 : level === 3 ? 0.9 : level === 2 ? 0.6 : 0.4;
+    o.frequency.value = level === 3 ? 1760 : level === 2 ? 1320 : 990;
+    var peak = level === 3 ? 0.9 : level === 2 ? 0.6 : 0.4;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + 0.002);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
@@ -2616,15 +2648,10 @@ function noteGate() {
   function tick() {
     while (nextT < ctx.currentTime + 0.12) {
       var i = beatIdx % state.num;
-      if (subIdx === 0) {
-        click(nextT, state.levels[i]);
-        queue.push({ t: nextT, i: i });
-      } else if (state.levels[i] !== 0) {
-        click(nextT, 'sub');
-      }
-      nextT += 60 / state.bpm / state.sub;
-      subIdx++;
-      if (subIdx >= state.sub) { subIdx = 0; beatIdx = (beatIdx + 1) % state.num; }
+      click(nextT, state.levels[i]);
+      queue.push({ t: nextT, i: i });
+      nextT += 60 / state.bpm;
+      beatIdx = (beatIdx + 1) % state.num;
     }
   }
   function paintNow(i) {
@@ -2644,7 +2671,7 @@ function noteGate() {
     if (!AC) return;
     if (!ctx) ctx = new AC();
     if (ctx.state === 'suspended') ctx.resume();
-    playing = true; beatIdx = 0; subIdx = 0; queue = []; lastNow = -1;
+    playing = true; beatIdx = 0; queue = []; lastNow = -1;
     nextT = ctx.currentTime + 0.06;
     tick(); timer = setInterval(tick, 25);
     raf = requestAnimationFrame(frame);
@@ -2929,7 +2956,10 @@ function noteGate() {
     board: [
       { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
       { sel: '#keyrows', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.' },
-      { sel: '#posbar', title: 'Positions and Pitch Check', text: 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.' }
+      { sel: '#posbar button:not([data-id="pc"])', title: 'Positions', text: '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.' },
+      { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.',
+        pic: '<div class="coach-pic" aria-hidden="true"><p class="cp-cap">Example: F on the E string, in C major</p><div class="cp-row">' +
+        ex('in', 50, 'In tune', '') + ex('sharp', 61, 'Too sharp', '+25¢') + ex('flat', 39, 'Too flat', '−25¢') + '</div></div>' }
     ],
     metronome: [
       { sel: '#mDial', title: 'Start and set the tempo', text: 'Tap the middle to start or stop. Drag around the dial to change the speed.' },
@@ -2938,11 +2968,19 @@ function noteGate() {
       { sel: '#mTap', title: 'Tap tempo', text: 'Tap in time a few times to set the tempo from your own beat.' }
     ]
   };
+  /* a small picture of the board for the Pitch Check tip: F on the E string in C major (low 1st finger),
+     with the disc where it sits in tune, sharp and flat */
+  function ex(kind, y, label, read) {
+    return '<figure class="cp-' + kind + '"><svg viewBox="0 0 84 96"><rect width="84" height="96" rx="10" class="cp-board"/>' +
+      '<line x1="42" y1="14" x2="42" y2="96" class="cp-string"/><line x1="0" y1="14" x2="84" y2="14" class="cp-nut"/>' +
+      '<circle cx="42" cy="' + y + '" r="23" class="cp-disc"/><circle cx="42" cy="50" r="15" class="cp-note"/>' +
+      '<text x="42" y="55.5" class="cp-name">F</text></svg><figcaption><b>' + label + '</b><span>' + (read || '&nbsp;') + '</span></figcaption></figure>';
+  }
   var root = document.getElementById('coach'), hole = document.getElementById('coachHole'), tip = document.getElementById('coachTip');
   var arrow = document.getElementById('coachArrow'), stepEl = document.getElementById('coachStep');
-  var titleEl = document.getElementById('coachTitle'), textEl = document.getElementById('coachText');
+  var titleEl = document.getElementById('coachTitle'), textEl = document.getElementById('coachText'), picEl = document.getElementById('coachPic');
   var skipBtn = document.getElementById('coachSkip'), nextBtn = document.getElementById('coachNext');
-  var tour = null, view = '', idx = 0, target = null, lastFocus = null, timer = 0, scrolled = false, inerted = [];
+  var tour = null, view = '', idx = 0, target = null, targets = [], lastFocus = null, timer = 0, scrolled = false, inerted = [];
 
   /* names of the tools whose tour is done; "*" means all (the store-screenshot script sets that) */
   function seen() {
@@ -2969,10 +3007,10 @@ function noteGate() {
     var w = Math.min(320, vw - 2 * g);
     tip.style.width = w + 'px';            /* width first, so the height read below is the wrapped height */
     var h = tip.offsetHeight;
-    var r = target.getBoundingClientRect();
+    var r = targetRect();
     if (r.bottom <= 0 || r.top >= vh) {   /* scrolled away anyway (e.g. the browser bar resized): bring it back */
       target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-      r = target.getBoundingClientRect();
+      r = targetRect();
     }
     /* clamp both ends of each pair so they can't cross when the target is partly off screen */
     var top = Math.max(4, Math.min(vh - 4, r.top - pad)), bottom = Math.max(top, Math.min(vh - 4, r.bottom + pad));
@@ -2989,6 +3027,19 @@ function noteGate() {
     }
     else if (vw - right - gap - g >= w) { x = right + gap; side = 'right'; }
     else if (left - gap - g >= w) { x = left - gap - w; side = 'left'; }
+    if (!side) {
+      /* a short, wide screen (a phone on its side): no side has room for the full width, so try a
+         narrower bubble beside the target before covering it */
+      var sw = Math.floor(Math.max(vw - right - gap - g, left - gap - g));
+      if (sw >= 180) {
+        tip.style.width = sw + 'px';
+        if (tip.offsetHeight + 2 * g <= vh) {
+          w = sw; h = tip.offsetHeight;
+          side = vw - right - gap - g >= left - gap - g ? 'right' : 'left';
+          x = side === 'right' ? right + gap : left - gap - w;
+        } else tip.style.width = w + 'px';
+      }
+    }
     if (side === 'below' || side === 'above') x = Math.max(g, Math.min(vw - g - w, cx - w / 2));
     else if (side) y = Math.max(g, Math.min(vh - g - h, cy - h / 2));
     else {
@@ -2998,12 +3049,24 @@ function noteGate() {
       var upY = g, downY = vh - g - h;
       var hid = function (y0) { return Math.max(0, Math.min(y0 + h, bottom) - Math.max(y0, top)); };
       y = hid(upY) < hid(downY) ? upY : downY;
+      if (h <= vh) y = Math.max(0, Math.min(y, vh - h));   /* it fits the screen: keep all of it on screen */
     }
     tip.style.left = x + 'px'; tip.style.top = y + 'px';
     arrow.hidden = !side;
     arrow.className = 'coach-arrow ' + ({ below: 'up', above: 'down', right: 'lt', left: 'rt' }[side] || '');
     if (side === 'below' || side === 'above') { arrow.style.left = Math.max(14, Math.min(w - 14, cx - x)) + 'px'; arrow.style.top = ''; }
     else { arrow.style.top = Math.max(14, Math.min(h - 14, cy - y)) + 'px'; arrow.style.left = ''; }
+  }
+  /* a step can spotlight several elements (the 1st-3rd position buttons): the box round all of them */
+  function targetRect() {
+    var r = null;
+    Array.prototype.forEach.call(targets, function (el) {
+      var b = el.getBoundingClientRect();
+      if (!b.width && !b.height) return;
+      r = r ? { left: Math.min(r.left, b.left), top: Math.min(r.top, b.top), right: Math.max(r.right, b.right), bottom: Math.max(r.bottom, b.bottom) } : { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
+    });
+    r = r || target.getBoundingClientRect();
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, height: r.bottom - r.top };
   }
   /* after a rotation or resize, bring the target back into view before placing */
   function onResize() {
@@ -3016,14 +3079,20 @@ function noteGate() {
   function step(i) {
     idx = i;
     var s = tour[i];
-    target = document.querySelector(s.sel);
+    targets = document.querySelectorAll(s.sel);
+    target = targets[0];
     if (!target || !target.getClientRects().length) { if (i + 1 < tour.length) step(i + 1); else close(); return; }
     scrolled = false;
     target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     stepEl.textContent = (i + 1) + ' / ' + tour.length;
     titleEl.textContent = s.title;
     textEl.textContent = s.text;
+    picEl.innerHTML = s.pic || '';
+    picEl.hidden = !s.pic;
     nextBtn.textContent = i + 1 < tour.length ? 'Next' : 'Got it';
+    /* place now as well as on the next frame: a browser that skips the frame (a hidden or covered
+       window) must not leave the bubble unplaced at the top left */
+    place();
     requestAnimationFrame(function () { place(); try { nextBtn.focus({ preventScroll: true }); } catch (e) {} });
   }
   function next() { if (idx + 1 < tour.length) step(idx + 1); else close(); }
@@ -3031,7 +3100,7 @@ function noteGate() {
   function close(done) {
     if (!tour) return;
     if (done !== false) remember(view);
-    tour = null; target = null;
+    tour = null; target = null; targets = [];
     root.hidden = true;
     inerted.forEach(function (el) { el.inert = false; });
     inerted = [];
@@ -3127,7 +3196,7 @@ function noteGate() {
     'Up bow': '上弓', 'Push, tip to frog': '推弓：弓尖到弓根', 'Down bow': '下弓', 'Pull, frog to tip': '拉弓：弓根到弓尖',
     'Flat': '降号', 'Semitone lower': '降低半音', 'Natural': '还原号', 'Cancels ♯ or ♭': '取消 ♯ 或 ♭', 'Sharp': '升号', 'Semitone higher': '升高半音',
     'Tap': '点拍', 'Slower': '减慢', 'Faster': '加快', 'Time signature': '拍号', 'Beats per bar': '每小节拍数',
-    'Note value': '音符时值', 'Clicks per beat': '每拍点击数', 'Tempo': '速度', 'Start': '开始', 'Stop': '停止',
+    'Note value': '音符时值', 'Tempo': '速度', 'Start': '开始', 'Stop': '停止',
     'Beats. Tap a beat to change its accent.': '节拍。点按某一拍可更改其重音。',
     'Largo': '广板', 'Larghetto': '小广板', 'Adagio': '柔板', 'Andante': '行板', 'Moderato': '中板',
     'Allegro': '快板', 'Vivace': '活泼的快板', 'Presto': '急板', 'Prestissimo': '最急板',
@@ -3179,7 +3248,10 @@ function noteGate() {
     'Violin or Chromatic': '小提琴或半音阶', 'Violin finds the nearest open string. Chromatic shows any note you play.': '小提琴模式找最接近的空弦；半音阶模式显示你拉的任何音。',
     'Press and hold a note': '按住一个音', 'Touch any coloured note to hear its pitch for as long as you hold it.': '按住任何彩色的音，按多久就响多久。',
     'Choose a key': '选择调', 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.': '选择大调或小调，左右滑动可看到更多调。调内的音是彩色的，其他的是灰色。',
-    'Positions and Pitch Check': '把位和音准检测', 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.': '在一把位、二把位、三把位之间切换。音准检测会边听边标出你拉到的音。',
+    'Positions': '把位', '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.': '一把位：手靠近琴头，一指按每根空弦上方紧挨的那个音。二把位手往上移，一指放到原来二指的位置；三把位放到原来三指的位置。指板上标出每个音和按它的手指。',
+    'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.': '点“音准检测”后开始拉。圆盘显示你拉的音落在哪里：音准时圈住这个音，偏高时在它下方，偏低时在它上方。越绿越接近。',
+    'Example: F on the E string, in C major': '例子：C 大调里 E 弦上的 F',
+    'In tune': '音准正确', 'Too sharp': '偏高', 'Too flat': '偏低',
     'Start and set the tempo': '开始并设置速度', 'Tap the middle to start or stop. Drag around the dial to change the speed.': '点中间开始或停止，沿着转盘拖动改变速度。',
     'Tap the top number to change the beats per bar, and the bottom number to change the note value.': '点上面的数字改变每小节拍数，点下面的数字改变音符时值。',
     'Accents': '重音', 'Tap a beat to change how loudly it clicks: accent, medium, normal or muted.': '点一个拍子改变它的音量：重音、中、普通或静音。',
@@ -3193,7 +3265,9 @@ function noteGate() {
     'Microphone ready. Tap anywhere on the page to start listening.': '麦克风已就绪。点按页面任意位置开始聆听。',
     'The microphone started but audio could not be processed.': '麦克风已启动，但无法处理音频。',
     'Microphone paused while a reference tone plays.': '播放参考音时麦克风已暂停。',
-    'In tune.': '音准正确。'
+    'In tune.': '音准正确。',
+    'Flat. Raise the pitch.': '偏低。请升高音高。',
+    'Sharp. Lower the pitch.': '偏高。请降低音高。'
   };
   /* the same English word means different things in different places */
   var CTX = [
