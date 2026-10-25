@@ -472,6 +472,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 
   function keyObj() { return KEYS.filter(function (k) { return k.id === state.key; })[0]; }
   /* the key's own spelling (C♭ in G♭ major, E♯ in C♯ minor); other notes follow its ♯ or ♭ side */
+  /* One spelling per pitch class. A degree that would need a double sharp or flat (the raised
+     7th of G♯ minor is F𝄪) is skipped and falls back to the plain ♯/♭ name (G), as it's grey. */
   function spelling(key) {
     if (key.sp) return key.sp;
     var sp = {};
@@ -586,6 +588,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   /* Recolour in place so a note being held keeps sounding when the position switches. */
   var PC_HTML = '<div class="pc"><div class="pc-read"><div class="pc-name"></div><div class="pc-cents"></div></div></div>';
   var pcCur = null;
+  /* Pitch Check is more forgiving than the tuner (3¢): a finger placed while playing gets 10¢.
+     The disc is fully green up to PC_TOL and fades to grey by PC_GREY. */
+  var PC_TOL = 10, PC_GREY = 35;
+  function pcInTune(c) { return Math.abs(c) <= PC_TOL; }
 
   function pcShow(r) {
     /* a disc on each string whose reach (open string to the octave harmonic) includes the pitch,
@@ -593,10 +599,13 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     Array.prototype.forEach.call(board.querySelectorAll('.pcm'), function (d, si) {
       var n = r && state.pos === 'pc' ? r.m - STRINGS[si].midi : -9;
       var show = n >= -0.5 && n <= MAXN + 0.5;
+      /* drawn no further than a little past the nut or the octave, so the disc isn't cut off
+         by the board's edge; its colour and the cents readout still say how far off it is */
+      n = Math.max(-0.05, Math.min(MAXN + 0.15, n));
       d.classList.toggle('on', show);
       if (show) {
         d.style.top = 'calc(var(--head) + ' + mm(n).toFixed(2) + ' * var(--k))';
-        d.style.setProperty('--gp', Math.round(100 * Math.max(0, Math.min(1, (25 - Math.abs(r.cents)) / 22))) + '%');
+        d.style.setProperty('--gp', Math.round(100 * Math.max(0, Math.min(1, (PC_GREY - Math.abs(r.cents)) / (PC_GREY - PC_TOL)))) + '%');
       }
     });
     var el = labels.querySelector('.pc');
@@ -608,9 +617,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     STRINGS.forEach(function (st) { var n = k - st.midi; if (n >= 0 && n <= MAXN && (at === null || n < at)) at = n; });
     el.querySelector('.pc-read').style.setProperty('--y', yFor(at === null ? 0 : at));
     el.classList.add('on');
-    el.classList.toggle('tune', Math.abs(r.cents) <= 5);
+    el.classList.toggle('tune', pcInTune(r.cents));
     nm.textContent = r.name;
-    ce.textContent = Math.abs(r.cents) <= 5 ? 'in tune' : (r.cents > 0 ? '+' : '−') + Math.abs(r.cents) + '¢';
+    ce.textContent = pcInTune(r.cents) ? 'in tune' : (r.cents > 0 ? '+' : '−') + Math.abs(r.cents) + '¢';
   }
 
   function updateSub() {
@@ -941,7 +950,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       if (buttons[k]) buttons[k].classList.toggle('heard', hit);
     });
     pcStatus = noteName(n, true) + ' · ' +
-      (Math.abs(cents) <= 5 ? 'in tune' : Math.abs(cents) + '¢ ' + (cents > 0 ? 'sharp' : 'flat')) +
+      (pcInTune(cents) ? 'in tune' : Math.abs(cents) + '¢ ' + (cents > 0 ? 'sharp' : 'flat')) +
       (found ? '' : ' · off the board');
     pcCur = { name: noteName(n, true), cents: cents, m: m };
     pcShow(pcCur);
