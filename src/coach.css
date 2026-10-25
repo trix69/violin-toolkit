@@ -42,3 +42,4 @@
 .coach-pic .cp-sharp .cp-disc { fill: color-mix(in srgb, var(--pc-good, #5BD08E) 40%, var(--pc-off, #9AA59F)); }
 .coach-pic figcaption { margin-top: 5px; font: 400 12px/1.3 var(--font-note); color: var(--muted); }
 .coach-pic figcaption b { display: block; font-weight: 600; color: var(--fg); }
+@media (max-height: 400px) { .coach-pic { display: none; } }   /* short landscape screens: keep the whole tip, and its buttons, on screen (Hermes R6.1) */
