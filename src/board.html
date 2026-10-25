@@ -396,10 +396,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 (function () {
   var NAMES_S = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
   var NAMES_F = ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
-  /* all 12 majors and 12 (natural) minors, each row in the order violinists usually meet them;
+  /* all 12 majors (in the order violinists usually meet them) and 12 (natural) minors;
      acc / n = the key signature */
   function K(id, label, mode, acc, n) {
-    var L = 'CDEFGAB'.indexOf(label[0]), alt = label[1] === '♯' ? 1 : label[1] === '♭' ? -1 : 0;
+    var L = 'CDEFGAB'.indexOf(label[0].toUpperCase()), alt = label[1] === '♯' ? 1 : label[1] === '♭' ? -1 : 0;
     return { id: id, label: label, mode: mode, letter: L, root: (NAT[L] + alt + 12) % 12, acc: acc, n: n, flat: acc === 'F' };
   }
   var NAT = [0, 2, 4, 5, 7, 9, 11];
@@ -408,10 +408,11 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     K('C', 'C', 'major', 'S', 0), K('F', 'F', 'major', 'F', 1), K('Bb', 'B♭', 'major', 'F', 2),
     K('E', 'E', 'major', 'S', 4), K('Eb', 'E♭', 'major', 'F', 3), K('B', 'B', 'major', 'S', 5),
     K('Ab', 'A♭', 'major', 'F', 4), K('Db', 'D♭', 'major', 'F', 5), K('Gb', 'G♭', 'major', 'F', 6),
-    K('Am', 'A', 'minor', 'S', 0), K('Em', 'E', 'minor', 'S', 1), K('Dm', 'D', 'minor', 'F', 1),
-    K('Gm', 'G', 'minor', 'F', 2), K('Bm', 'B', 'minor', 'S', 2), K('Cm', 'C', 'minor', 'F', 3),
-    K('F#m', 'F♯', 'minor', 'S', 3), K('Fm', 'F', 'minor', 'F', 4), K('C#m', 'C♯', 'minor', 'S', 4),
-    K('G#m', 'G♯', 'minor', 'S', 5), K('Bbm', 'B♭', 'minor', 'F', 5), K('Ebm', 'E♭', 'minor', 'F', 6)
+    /* minors in lower case, each under the major with the same key signature (its relative major) */
+    K('Em', 'e', 'minor', 'S', 1), K('Bm', 'b', 'minor', 'S', 2), K('F#m', 'f♯', 'minor', 'S', 3),
+    K('Am', 'a', 'minor', 'S', 0), K('Dm', 'd', 'minor', 'F', 1), K('Gm', 'g', 'minor', 'F', 2),
+    K('C#m', 'c♯', 'minor', 'S', 4), K('Cm', 'c', 'minor', 'F', 3), K('G#m', 'g♯', 'minor', 'S', 5),
+    K('Fm', 'f', 'minor', 'F', 4), K('Bbm', 'b♭', 'minor', 'F', 5), K('Ebm', 'e♭', 'minor', 'F', 6)
   ];
   var SCALE = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
   /* how each semitone above the tonic is spelled: [interval, letter steps]. Minor keys also spell the
@@ -714,13 +715,20 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       row.classList.toggle('fade-r', row.scrollLeft < max - 2);
     });
   }
-  [keysEl, keysMinEl].forEach(function (row) { row.addEventListener('scroll', keyFades, { passive: true }); });
+  /* the two rows scroll together, so each minor stays under its relative major */
+  [keysEl, keysMinEl].forEach(function (row) {
+    row.addEventListener('scroll', function () {
+      var other = row === keysEl ? keysMinEl : keysEl;
+      if (Math.abs(other.scrollLeft - row.scrollLeft) > 1) other.scrollLeft = row.scrollLeft;
+      keyFades();
+    }, { passive: true });
+  });
   function showChosenKey() {
     var b = keyButtons.filter(function (x) { return x.dataset.id === state.key; })[0], row = b && b.parentNode;
     if (row && row.clientWidth) {
       var x = b.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft;
       if (x < row.scrollLeft || x + b.offsetWidth > row.scrollLeft + row.clientWidth)
-        row.scrollLeft = x - (row.clientWidth - b.offsetWidth) / 2;
+        keysEl.scrollLeft = keysMinEl.scrollLeft = x - (row.clientWidth - b.offsetWidth) / 2;
     }
     keyFades();
   }

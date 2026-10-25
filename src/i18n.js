@@ -145,6 +145,9 @@
         if (w && !ART.test(w[1])) return m;
       }
       return pre + SOL[L] + acc + oct;
+    }).replace(/(^|[^A-Za-z0-9])([a-g])([\u266f\u266d]?)(?=$|[ \u00a0]+minor\b|小调)/g, function (m, pre, l, acc) {
+      /* a minor key in lower case (e, f♯, "e minor", e小调): lower-case solfège */
+      return pre + SOL[l.toUpperCase()].toLowerCase() + acc;
     });
   }
   function lookup(core, el) {
