@@ -600,8 +600,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       var n = r && state.pos === 'pc' ? r.m - STRINGS[si].midi : -9;
       var show = n >= -0.5 && n <= MAXN + 0.5;
       /* drawn no further than a little past the nut or the octave, so the disc isn't cut off
-         by the board's edge; its colour and the cents readout still say how far off it is */
-      n = Math.max(-0.05, Math.min(MAXN + 0.15, n));
+         by the board's edge (at the nut, -0.02 keeps it 2.1 px inside the stage even at the
+         largest scale, K = 5); its colour and the cents readout still say how far off it is */
+      n = Math.max(-0.02, Math.min(MAXN + 0.15, n));
       d.classList.toggle('on', show);
       if (show) {
         d.style.top = 'calc(var(--head) + ' + mm(n).toFixed(2) + ' * var(--k))';

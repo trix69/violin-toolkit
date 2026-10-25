@@ -75,6 +75,19 @@
     }
     else if (vw - right - gap - g >= w) { x = right + gap; side = 'right'; }
     else if (left - gap - g >= w) { x = left - gap - w; side = 'left'; }
+    if (!side) {
+      /* a short, wide screen (a phone on its side): no side has room for the full width, so try a
+         narrower bubble beside the target before covering it */
+      var sw = Math.floor(Math.max(vw - right - gap - g, left - gap - g));
+      if (sw >= 180) {
+        tip.style.width = sw + 'px';
+        if (tip.offsetHeight + 2 * g <= vh) {
+          w = sw; h = tip.offsetHeight;
+          side = vw - right - gap - g >= left - gap - g ? 'right' : 'left';
+          x = side === 'right' ? right + gap : left - gap - w;
+        } else tip.style.width = w + 'px';
+      }
+    }
     if (side === 'below' || side === 'above') x = Math.max(g, Math.min(vw - g - w, cx - w / 2));
     else if (side) y = Math.max(g, Math.min(vh - g - h, cy - h / 2));
     else {
@@ -110,6 +123,9 @@
     titleEl.textContent = s.title;
     textEl.textContent = s.text;
     nextBtn.textContent = i + 1 < tour.length ? 'Next' : 'Got it';
+    /* place now as well as on the next frame: a browser that skips the frame (a hidden or covered
+       window) must not leave the bubble unplaced at the top left */
+    place();
     requestAnimationFrame(function () { place(); try { nextBtn.focus({ preventScroll: true }); } catch (e) {} });
   }
   function next() { if (idx + 1 < tour.length) step(idx + 1); else close(); }
