@@ -33,6 +33,8 @@
   --nut: #EDE6D3;
   --ink: #15110F;
   --board-good: #6FD6A0;
+  --pc-good: #5BD08E;   /* the tuner's in-tune green on a dark surface */
+  --pc-off: #9AA59F;    /* grey for a pitch well away from the note */
   --off: #6A7770;
   --off-ink: #E6EEE8;
   --g: #E3A24C;
@@ -220,10 +222,19 @@ h1 {
   white-space: nowrap;
 }
 #view-board .lbl-a4 { text-transform: none; }
-#view-board .majorrow { display: flex; align-items: center; gap: 10px; }
-#view-board .keys { flex: 1; min-width: 0; display: flex; gap: 4px; }
+#view-board .keyrows { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: center; }
+#view-board .majorrow { display: contents; }
+#view-board .keys {
+  min-width: 0; display: flex; gap: 4px;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; scroll-padding-inline: 0;
+}
+#view-board .keys::-webkit-scrollbar { display: none; }
+#view-board .keys.fade-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+#view-board .keys.fade-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+#view-board .keys.fade-l.fade-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
 #view-board .keys button {
-  flex: 1 1 0; min-width: 0; height: 38px; padding: 0;
+  flex: 1 0 44px; min-width: 44px; height: 38px; padding: 0; scroll-snap-align: start;
   border: 1px solid var(--line); border-radius: 10px;
   background: var(--panel); color: var(--fg);
   font-size: 0; line-height: 0;
@@ -265,6 +276,8 @@ h1 {
 }
 #view-board .switch[aria-checked="true"] .track { background: var(--accent); }
 #view-board .switch[aria-checked="true"] .track::after { transform: translateX(18px); background: var(--on-accent); }
+#view-board .switch:disabled { opacity: .45; cursor: not-allowed; }
+#view-board .inl:has(> .switch:disabled) > .lbl { opacity: .45; }
 #view-board button:focus-visible,
 #view-board select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 #view-board .now {
@@ -424,21 +437,29 @@ h1 {
 }
 #view-board .posbar button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 #view-board .pc { position: absolute; inset: 0; }
-#view-board .pc-name { position: absolute; top: 2px; left: 6px; right: 0; font: 700 21px/1 var(--font-note); color: var(--nut); white-space: nowrap; }
-#view-board .pc-cents { position: absolute; top: 30px; left: 6px; right: 0; font: 500 12px/1.2 var(--font-mono); letter-spacing: 0; text-transform: none; color: var(--board-text); white-space: nowrap; }
-#view-board .pc-meter { position: absolute; left: 12px; top: 76px; bottom: 22px; width: 6px; border-radius: 3px; background: var(--board-line); }
-#view-board .pc-tick { position: absolute; left: -5px; width: 16px; height: 1px; background: var(--board-text); opacity: 0.7; }
-#view-board .pc-tick.zero { left: -8px; width: 22px; height: 2px; background: var(--nut); opacity: 1; }
-#view-board .pc-lbl { position: absolute; left: 22px; transform: translateY(-50%); font: 500 10px/1 var(--font-mono); letter-spacing: 0; text-transform: none; color: var(--board-text); white-space: nowrap; }
-#view-board .pc-dot { position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--nut); border: 2px solid var(--board); opacity: 0; transition: top 90ms linear, opacity 120ms; }
-#view-board .pc.on .pc-dot { opacity: 1; }
+#view-board .pc-read { position: absolute; left: 6px; right: 0; top: var(--y, 0); transform: translateY(-50%); transition: top 120ms ease-out; }
+#view-board .pc:not(.on) .pc-read { visibility: hidden; }
+#view-board .pc-name { font: 700 21px/1 var(--font-note); color: var(--nut); white-space: nowrap; }
+#view-board .pc-cents { margin-top: 3px; font: 500 12px/1.2 var(--font-mono); letter-spacing: 0; text-transform: none; color: var(--board-text); white-space: nowrap; }
 #view-board .pc.on .pc-name { color: var(--nut); }
-#view-board .pc.tune .pc-dot { background: var(--board-good); }
 #view-board .pc.tune .pc-cents { color: var(--board-good); }
 #view-board .pc:not(.on) .pc-name { color: var(--board-text); }
+#view-board .pcm {
+  --pcc: color-mix(in srgb, var(--pc-good) var(--gp, 0%), var(--pc-off));
+  position: absolute; left: var(--x); top: 0;
+  width: calc(var(--r) * 2 + 16px); height: calc(var(--r) * 2 + 16px);
+  border-radius: 50%; transform: translate(-50%, -50%);
+  background: var(--pcc); opacity: 0; pointer-events: none;
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--pcc) 55%, transparent);
+  transition: top 90ms linear, opacity 120ms, background-color 120ms;
+}
+#view-board .pcm.on { opacity: .9; }
+#view-board .board.pcmode .note.heard { box-shadow: 0 2px 4px rgba(0, 0, 0, .45); }
+#view-board .board.pcmode,
+#view-board .board.pcmode .note { touch-action: pan-y; }
 @media (prefers-reduced-motion: reduce) {
 #view-board .note { transition: none; }
-#view-board .pc-dot { transition: none; }
+#view-board .pcm { transition: none; }
 }
 
 /* ---- tuner ---- */
@@ -965,9 +986,15 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     </span>
   </div>
 
-  <div class="majorrow" role="group" aria-labelledby="keyLabel">
-    <span class="lbl" id="keyLabel">Major</span>
-    <div class="keys" id="keys"></div>
+  <div class="keyrows" id="keyrows">
+    <div class="majorrow" role="group" aria-labelledby="keyLabel">
+      <span class="lbl" id="keyLabel">Major</span>
+      <div class="keys" id="keys"></div>
+    </div>
+    <div class="majorrow" role="group" aria-labelledby="minLabel">
+      <span class="lbl" id="minLabel">Minor</span>
+      <div class="keys" id="keysMin"></div>
+    </div>
   </div>
 
   <div class="stage">
@@ -1177,7 +1204,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.04" data-build="20261025-003558" data-cache="violin-toolkit-"><span>Version 1.04</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.05" data-build="20261025-224358" data-cache="violin-toolkit-"><span>Version 1.05</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1737,17 +1764,29 @@ function noteGate() {
 (function () {
   var NAMES_S = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
   var NAMES_F = ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
-  /* in the order beginners usually meet them */
+  /* all 12 majors (in the order violinists usually meet them) and 12 (natural) minors;
+     acc / n = the key signature */
+  function K(id, label, mode, acc, n) {
+    var L = 'CDEFGAB'.indexOf(label[0].toUpperCase()), alt = label[1] === '♯' ? 1 : label[1] === '♭' ? -1 : 0;
+    return { id: id, label: label, mode: mode, letter: L, root: (NAT[L] + alt + 12) % 12, acc: acc, n: n, flat: acc === 'F' };
+  }
+  var NAT = [0, 2, 4, 5, 7, 9, 11];
   var KEYS = [
-    { id: 'G',  label: 'G',  root: 7,  acc: 'S', n: 1 },
-    { id: 'D',  label: 'D',  root: 2,  acc: 'S', n: 2 },
-    { id: 'A',  label: 'A',  root: 9,  acc: 'S', n: 3 },
-    { id: 'C',  label: 'C',  root: 0,  acc: 'S', n: 0 },
-    { id: 'F',  label: 'F',  root: 5,  flat: true, acc: 'F', n: 1 },
-    { id: 'Bb', label: 'B♭', root: 10, flat: true, acc: 'F', n: 2 },
-    { id: 'E',  label: 'E',  root: 4,  acc: 'S', n: 4 }
+    K('G', 'G', 'major', 'S', 1), K('D', 'D', 'major', 'S', 2), K('A', 'A', 'major', 'S', 3),
+    K('C', 'C', 'major', 'S', 0), K('F', 'F', 'major', 'F', 1), K('Bb', 'B♭', 'major', 'F', 2),
+    K('E', 'E', 'major', 'S', 4), K('Eb', 'E♭', 'major', 'F', 3), K('B', 'B', 'major', 'S', 5),
+    K('Ab', 'A♭', 'major', 'F', 4), K('Db', 'D♭', 'major', 'F', 5), K('Gb', 'G♭', 'major', 'F', 6),
+    /* minors in lower case, each under the major with the same key signature (its relative major) */
+    K('Em', 'e', 'minor', 'S', 1), K('Bm', 'b', 'minor', 'S', 2), K('F#m', 'f♯', 'minor', 'S', 3),
+    K('Am', 'a', 'minor', 'S', 0), K('Dm', 'd', 'minor', 'F', 1), K('Gm', 'g', 'minor', 'F', 2),
+    K('C#m', 'c♯', 'minor', 'S', 4), K('Cm', 'c', 'minor', 'F', 3), K('G#m', 'g♯', 'minor', 'S', 5),
+    K('Fm', 'f', 'minor', 'F', 4), K('Bbm', 'b♭', 'minor', 'F', 5), K('Ebm', 'e♭', 'minor', 'F', 6)
   ];
-  var MAJOR = [0, 2, 4, 5, 7, 9, 11];
+  var SCALE = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
+  /* how each semitone above the tonic is spelled: [interval, letter steps]. Minor keys also spell the
+     raised 6th and 7th of the melodic / harmonic forms (e.g. G♯ in A minor, C♯ in D minor). */
+  var SPELL = { major: [[0,0],[2,1],[4,2],[5,3],[7,4],[9,5],[11,6]],
+                minor: [[0,0],[2,1],[3,2],[5,3],[7,4],[8,5],[9,5],[10,6],[11,6]] };
   var STRINGS = [
     { n: 'G', midi: 55, v: '--g' },
     { n: 'D', midi: 62, v: '--d' },
@@ -1796,9 +1835,23 @@ function noteGate() {
   }
 
   function keyObj() { return KEYS.filter(function (k) { return k.id === state.key; })[0]; }
-  function noteName(midi, flat, octave) {
-    var nm = (flat ? NAMES_F : NAMES_S)[midi % 12];
-    return octave ? nm + (Math.floor(midi / 12) - 1) : nm;
+  /* the key's own spelling (C♭ in G♭ major, E♯ in C♯ minor); other notes follow its ♯ or ♭ side */
+  /* One spelling per pitch class. A degree that would need a double sharp or flat (the raised
+     7th of G♯ minor is F𝄪) is skipped and falls back to the plain ♯/♭ name (G), as it's grey. */
+  function spelling(key) {
+    if (key.sp) return key.sp;
+    var sp = {};
+    SPELL[key.mode].forEach(function (d) {
+      var L = (key.letter + d[1]) % 7, pc = (key.root + d[0]) % 12;
+      var alt = ((pc - NAT[L] + 18) % 12) - 6;
+      if (alt >= -1 && alt <= 1) sp[pc] = { nm: 'CDEFGAB'[L] + (alt > 0 ? '♯' : alt < 0 ? '♭' : ''), oct: L === 0 && alt < 0 ? 1 : L === 6 && alt > 0 ? -1 : 0 };
+    });
+    return (key.sp = sp);
+  }
+  function noteName(midi, octave) {
+    var key = keyObj(), s = spelling(key)[midi % 12];
+    var nm = s ? s.nm : (key.flat ? NAMES_F : NAMES_S)[midi % 12];
+    return octave ? nm + (Math.floor(midi / 12) - 1 + (s ? s.oct : 0)) : nm;
   }
   function midiFreq(midi) { return state.tuning * Math.pow(2, (midi - 69) / 12); }
 
@@ -1854,10 +1907,11 @@ function noteGate() {
   /* ---------- Board ---------- */
   var notes = [];
   var buttons = [];
+  var keyButtons = [];
 
   function buildNotes(key) {
     var scale = {};
-    MAJOR.forEach(function (i) { scale[(key.root + i) % 12] = true; });
+    SCALE[key.mode].forEach(function (i) { scale[(key.root + i) % 12] = true; });
     var out = [];
     STRINGS.forEach(function (s, si) {
       for (var n = 0; n <= MAXN; n++) {
@@ -1876,16 +1930,19 @@ function noteGate() {
     STRINGS.forEach(function (s, si) {
       html += '<div class="string" style="--x:' + (si * 25 + 12.5) + '%;--w:' + WIDTHS[si] + 'px"></div>';
     });
+    STRINGS.forEach(function (s, si) {   /* before the notes, so the notes are drawn on top */
+      html += '<div class="pcm" aria-hidden="true" style="--x:' + (si * 25 + 12.5) + '%"></div>';
+    });
     notes.forEach(function (nt, i) {
-      var full = noteName(nt.midi, key.flat, true);
+      var full = noteName(nt.midi, true);
       html += '<button type="button" class="note off' + (nt.n === MAXN ? ' harm' : '') + '" data-i="' + i + '" style="--x:' + (nt.si * 25 + 12.5) +
-        '%;--y:' + yFor(nt.n) + '" data-label="' + noteName(nt.midi, key.flat, false) +
+        '%;--y:' + yFor(nt.n) + '" data-label="' + noteName(nt.midi, false) +
         '" aria-label="' + nt.s.n + ' string, ' + full + (nt.n === MAXN ? ' natural harmonic' : '') + ', ' + midiFreq(nt.midi).toFixed(1) + ' hertz. Hold to play."></button>';
     });
     board.innerHTML = html;
     buttons = Array.prototype.slice.call(board.querySelectorAll('.note'));
     hitAreas();
-    Array.prototype.forEach.call(keysEl.children, function (b) {
+    keyButtons.forEach(function (b) {
       b.setAttribute('aria-pressed', b.dataset.id === state.key ? 'true' : 'false');
     });
     layout();
@@ -1893,33 +1950,45 @@ function noteGate() {
   }
 
   /* Recolour in place so a note being held keeps sounding when the position switches. */
-  var PC_HTML =
-    '<div class="pc"><div class="pc-name">–</div><div class="pc-cents"></div>' +
-    '<div class="pc-meter">' +
-      '<div class="pc-tick" style="top:0"></div><div class="pc-tick" style="top:25%"></div>' +
-      '<div class="pc-tick zero" style="top:50%"></div>' +
-      '<div class="pc-tick" style="top:75%"></div><div class="pc-tick" style="top:100%"></div>' +
-      '<div class="pc-lbl" style="top:0">+50</div><div class="pc-lbl" style="top:50%">0</div><div class="pc-lbl" style="top:100%">−50</div>' +
-      '<div class="pc-dot"></div>' +
-    '</div></div>';
+  var PC_HTML = '<div class="pc"><div class="pc-read"><div class="pc-name"></div><div class="pc-cents"></div></div></div>';
   var pcCur = null;
+  /* Pitch Check is more forgiving than the tuner (3¢): a finger placed while playing gets 10¢.
+     The disc is fully green up to PC_TOL and fades to grey by PC_GREY. */
+  var PC_TOL = 10, PC_GREY = 35;
+  function pcInTune(c) { return Math.abs(c) <= PC_TOL; }
 
   function pcShow(r) {
+    /* a disc on each string whose reach (open string to the octave harmonic) includes the pitch,
+       placed by the exact pitch, so a sharp note sits a little nearer the bridge than its note */
+    Array.prototype.forEach.call(board.querySelectorAll('.pcm'), function (d, si) {
+      var n = r && state.pos === 'pc' ? r.m - STRINGS[si].midi : -9;
+      var show = n >= -0.5 && n <= MAXN + 0.5;
+      /* drawn no further than a little past the nut or the octave, so the disc isn't cut off
+         by the board's edge; its colour and the cents readout still say how far off it is */
+      n = Math.max(-0.05, Math.min(MAXN + 0.15, n));
+      d.classList.toggle('on', show);
+      if (show) {
+        d.style.top = 'calc(var(--head) + ' + mm(n).toFixed(2) + ' * var(--k))';
+        d.style.setProperty('--gp', Math.round(100 * Math.max(0, Math.min(1, (PC_GREY - Math.abs(r.cents)) / (PC_GREY - PC_TOL)))) + '%');
+      }
+    });
     var el = labels.querySelector('.pc');
     if (!el) return;
-    var nm = el.querySelector('.pc-name'), ce = el.querySelector('.pc-cents'), dot = el.querySelector('.pc-dot');
-    if (!r) { el.classList.remove('on', 'tune'); nm.textContent = '–'; ce.textContent = ''; return; }
-    var c = Math.max(-50, Math.min(50, r.cents));
+    var nm = el.querySelector('.pc-name'), ce = el.querySelector('.pc-cents');
+    if (!r) { el.classList.remove('on', 'tune'); nm.textContent = ''; ce.textContent = ''; return; }
+    /* level with the note on the board, on the string where it sits lowest (A4 = open A, not D 4th finger) */
+    var at = null, k = Math.round(r.m);
+    STRINGS.forEach(function (st) { var n = k - st.midi; if (n >= 0 && n <= MAXN && (at === null || n < at)) at = n; });
+    el.querySelector('.pc-read').style.setProperty('--y', yFor(at === null ? 0 : at));
     el.classList.add('on');
-    el.classList.toggle('tune', Math.abs(r.cents) <= 5);
+    el.classList.toggle('tune', pcInTune(r.cents));
     nm.textContent = r.name;
-    ce.textContent = Math.abs(r.cents) <= 5 ? 'in tune' : (r.cents > 0 ? '+' : '−') + Math.abs(r.cents) + '¢';
-    dot.style.top = (50 - c) + '%';
+    ce.textContent = pcInTune(r.cents) ? 'in tune' : (r.cents > 0 ? '+' : '−') + Math.abs(r.cents) + '¢';
   }
 
   function updateSub() {
     var key = keyObj();
-    subEl.textContent = key.label + ' major · ' +
+    subEl.textContent = key.label + ' ' + key.mode + ' · ' +
       (state.pos === 'pc' ? 'Pitch Check' + (pcStatus ? ' · ' + pcStatus : '') : POSITIONS[state.pos].name);
   }
 
@@ -1950,7 +2019,10 @@ function noteGate() {
         P.at.map(function (n, i) {
           return '<span style="--y:' + yFor(n) + '">' + ORD[i + 1] + '<small class="fing">finger</small></span>';
         }).join(''));
-    if (pc) { labels.innerHTML = PC_HTML; pcShow(pcCur); }
+    board.classList.toggle('pcmode', pc);
+    vibBtn.disabled = pc;   /* reference notes stay steady while checking pitch */
+    if (pc) labels.innerHTML = PC_HTML;
+    pcShow(pc ? pcCur : null);
     updateSub();
     Array.prototype.forEach.call(posbar.children, function (b) {
       b.setAttribute('aria-pressed', b.dataset.id === state.pos ? 'true' : 'false');
@@ -1992,24 +2064,53 @@ function noteGate() {
       '<svg viewBox="0 0 ' + 110 + ' 120" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round">' +
       '<path d="M0 40H110M0 50H110M0 60H110M0 70H110M0 80H110" stroke-width="1.1" opacity=".85"/>' +
       '<path fill="currentColor" stroke="none" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/>' +
-      g + '</svg><div class="cap">' + k.label + ' major · ' + (k.n === 0 ? 'no ♯ or ♭' : words) + '</div>';
-    ksigSr.textContent = k.label + ' major: ' + words;
+      g + '</svg><div class="cap">' + k.label + ' ' + k.mode + ' · ' + (k.n === 0 ? 'no ♯ or ♭' : words) + '</div>';
+    ksigSr.textContent = k.label + ' ' + k.mode + ': ' + words;
     ksigEl.classList.add('on');
     clearTimeout(ksigTimer);
     ksigTimer = setTimeout(function () { ksigEl.classList.remove('on'); }, 700);
   }
 
+  var keysMinEl = document.getElementById('keysMin');
   KEYS.forEach(function (k) {
     var b = document.createElement('button');
     b.type = 'button';
     b.dataset.label = k.label;
     b.dataset.id = k.id;
-    b.setAttribute('aria-label', k.label + ' major');
+    b.setAttribute('aria-label', k.label + ' ' + k.mode);
     b.addEventListener('click', function () {
       state.key = k.id; persist(); render(); flashKey(k);
     });
-    keysEl.appendChild(b);
+    (k.mode === 'major' ? keysEl : keysMinEl).appendChild(b);
+    keyButtons.push(b);
   });
+  /* fade an edge while keys are hidden past it; bring the chosen key into view */
+  function keyFades() {
+    [keysEl, keysMinEl].forEach(function (row) {
+      var max = row.scrollWidth - row.clientWidth;
+      row.classList.toggle('fade-l', row.scrollLeft > 2);
+      row.classList.toggle('fade-r', row.scrollLeft < max - 2);
+    });
+  }
+  /* the two rows scroll together, so each minor stays under its relative major */
+  [keysEl, keysMinEl].forEach(function (row) {
+    row.addEventListener('scroll', function () {
+      var other = row === keysEl ? keysMinEl : keysEl;
+      if (Math.abs(other.scrollLeft - row.scrollLeft) > 1) other.scrollLeft = row.scrollLeft;
+      keyFades();
+    }, { passive: true });
+  });
+  function showChosenKey() {
+    var b = keyButtons.filter(function (x) { return x.dataset.id === state.key; })[0], row = b && b.parentNode;
+    if (row && row.clientWidth) {
+      var x = b.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft;
+      if (x < row.scrollLeft || x + b.offsetWidth > row.scrollLeft + row.clientWidth)
+        keysEl.scrollLeft = keysMinEl.scrollLeft = x - (row.clientWidth - b.offsetWidth) / 2;
+    }
+    keyFades();
+  }
+  /* the view may be hidden at load (no widths yet): place the rows once they have a size */
+  if (window.ResizeObserver) new ResizeObserver(showChosenKey).observe(document.getElementById('keyrows'));
   Array.prototype.forEach.call(posbar.children, function (b) {
     b.addEventListener('click', function () {
       var id = b.dataset.id;
@@ -2212,10 +2313,10 @@ function noteGate() {
       if (hit) found = true;
       if (buttons[k]) buttons[k].classList.toggle('heard', hit);
     });
-    pcStatus = noteName(n, keyObj().flat, true) + ' · ' +
-      (Math.abs(cents) <= 5 ? 'in tune' : Math.abs(cents) + '¢ ' + (cents > 0 ? 'sharp' : 'flat')) +
+    pcStatus = noteName(n, true) + ' · ' +
+      (pcInTune(cents) ? 'in tune' : Math.abs(cents) + '¢ ' + (cents > 0 ? 'sharp' : 'flat')) +
       (found ? '' : ' · off the board');
-    pcCur = { name: noteName(n, keyObj().flat, true), cents: cents };
+    pcCur = { name: noteName(n, true), cents: cents, m: m };
     pcShow(pcCur);
     updateSub();
   }
@@ -2224,7 +2325,7 @@ function noteGate() {
   var voices = new Map();
 
   function applyVib(rec) {
-    var want = state.vibrato && !rec.open && (performance.now() - rec.t0 >= 190);
+    var want = state.vibrato && state.pos !== 'pc' && !rec.open && (performance.now() - rec.t0 >= 190);
     if (want !== rec.vibOn) {
       rec.vibOn = want;
       if (rec.v.vib) rec.v.vib(want);
@@ -2271,7 +2372,8 @@ function noteGate() {
   board.addEventListener('selectstart', function (e) { e.preventDefault(); });
   board.addEventListener('dragstart', function (e) { e.preventDefault(); });
   board.addEventListener('touchstart', function (e) {
-    if (e.target.closest && e.target.closest('.note')) e.preventDefault();
+    /* in Pitch Check a touch may scroll the page instead */
+    if (state.pos !== 'pc' && e.target.closest && e.target.closest('.note')) e.preventDefault();
   }, { passive: false });
 
   board.addEventListener('keydown', function (e) {
@@ -2812,7 +2914,8 @@ function noteGate() {
 <script>
 /* First-use tips: the first time each tool opens, a short tour dims the page, spotlights one
    control at a time and explains it in a bubble. Finished or skipped tours are remembered in
-   localStorage (violin-tips-seen); Settings > Show tips again clears that.
+   localStorage (violin-tips-seen; violin-tips-seen-test on the test site, renamed by make_pwa.py);
+   Settings > Show tips again clears that.
    nav_js calls APP.coach.maybe(view) after showing a tool and after the start overlay closes. */
 (function () {
   var KEY = 'violin-tips-seen';
@@ -2825,7 +2928,7 @@ function noteGate() {
     ],
     board: [
       { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
-      { sel: '#keys', title: 'Choose a key', text: 'Notes in the key are coloured; the others are greyed out.' },
+      { sel: '#keyrows', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.' },
       { sel: '#posbar', title: 'Positions and Pitch Check', text: 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.' }
     ],
     metronome: [
@@ -3011,7 +3114,7 @@ function noteGate() {
     'Calm teal': '静谧青', 'Sage green': '鼠尾草绿', 'Slate blue': '石板蓝', 'Soft violet': '柔紫', 'Classic': '经典',
     /* fingerboard */
     'Violin fingerboard': '小提琴指板', 'Position': '把位',
-    'Auto vibrato': '自动揉弦', 'On': '开', 'Off': '关', 'Major': '大调', 'Pitch Check': '音准检测',
+    'Auto vibrato': '自动揉弦', 'On': '开', 'Off': '关', 'Major': '大调', 'Minor': '小调', 'Pitch Check': '音准检测',
     '1st position': '一把位', '2nd position': '二把位', '3rd position': '三把位',
     'starting microphone…': '正在启动麦克风…', 'microphone not available here': '此处无法使用麦克风',
     'audio not supported': '不支持音频', 'listening…': '聆听中…', 'microphone blocked': '麦克风已被禁用',
@@ -3075,7 +3178,7 @@ function noteGate() {
     'Hear a string': '听空弦音', 'Tap a string name on the scroll to play its pitch. Tap it again to stop.': '点琴头上的弦名播放它的音高，再点一次停止。',
     'Violin or Chromatic': '小提琴或半音阶', 'Violin finds the nearest open string. Chromatic shows any note you play.': '小提琴模式找最接近的空弦；半音阶模式显示你拉的任何音。',
     'Press and hold a note': '按住一个音', 'Touch any coloured note to hear its pitch for as long as you hold it.': '按住任何彩色的音，按多久就响多久。',
-    'Choose a key': '选择调', 'Notes in the key are coloured; the others are greyed out.': '调内的音是彩色的，其他的是灰色。',
+    'Choose a key': '选择调', 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.': '选择大调或小调，左右滑动可看到更多调。调内的音是彩色的，其他的是灰色。',
     'Positions and Pitch Check': '把位和音准检测', 'Switch between 1st, 2nd and 3rd position. Pitch Check listens while you play and marks each note you hit.': '在一把位、二把位、三把位之间切换。音准检测会边听边标出你拉到的音。',
     'Start and set the tempo': '开始并设置速度', 'Tap the middle to start or stop. Drag around the dial to change the speed.': '点中间开始或停止，沿着转盘拖动改变速度。',
     'Tap the top number to change the beats per bar, and the bottom number to change the note value.': '点上面的数字改变每小节拍数，点下面的数字改变音符时值。',
@@ -3098,6 +3201,7 @@ function noteGate() {
     ['#labels', { '1st': '一', '2nd': '二', '3rd': '三', '4th': '四', 'finger': '指', '1st finger': '一指', '2nd finger': '二指', '3rd finger': '三指', '4th finger': '四指',
                   'open': '空弦', 'above': '高于', 'below': '低于', 'harm.': '泛音', 'octave': '八度' }]
   ];
+  var Q = { major: '大调', minor: '小调' };
   var SW = { sharp: '升号', sharps: '升号', flat: '降号', flats: '降号' };
   function words(w) {
     if (DICT[w]) return DICT[w];
@@ -3112,11 +3216,11 @@ function noteGate() {
   var RX = [
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
-    [/^(.+) major · (1st|2nd|3rd) position$/, function (m, k, p) { return k + '大调 · ' + P[p]; }],
-    [/^(.+) major · Pitch Check(?: · (.+))?$/, function (m, k, s) { return k + '大调 · 音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
-    [/^(.+) major · (no ♯ or ♭|\d sharps?|\d flats?)$/, function (m, k, w) { return k + '大调 · ' + words(w); }],
-    [/^(.+) major: (.+)$/, function (m, k, w) { return k + '大调：' + (words(w) || w); }],
-    [/^(\S+) major$/, function (m, k) { return k + '大调'; }],
+    [/^(.+) (major|minor) · (1st|2nd|3rd) position$/, function (m, k, q, p) { return k + Q[q] + ' · ' + P[p]; }],
+    [/^(.+) (major|minor) · Pitch Check(?: · (.+))?$/, function (m, k, q, s) { return k + Q[q] + ' · 音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
+    [/^(.+) (major|minor) · (no ♯ or ♭|\d sharps?|\d flats?)$/, function (m, k, q, w) { return k + Q[q] + ' · ' + words(w); }],
+    [/^(.+) (major|minor): (.+)$/, function (m, k, q, w) { return k + Q[q] + '：' + (words(w) || w); }],
+    [/^(\S+) (major|minor)$/, function (m, k, q) { return k + Q[q]; }],
     [/^Beat (\d+), (muted|normal|medium|accent)\. Tap to change\.$/, function (m, n, l) { return '第' + n + '拍，' + { muted: '静音', normal: '普通', medium: '中强', accent: '重音' }[l] + '。点按切换。'; }],
     [/^([GDAE]) string, (.+?)( natural harmonic)?, ([\d.]+) hertz\. Hold to play\.$/, function (m, s, n, h, f) { return s + '弦，' + n + (h ? '（自然泛音）' : '') + '，' + f + ' 赫兹。按住发声。'; }],
     [/^([GDAE]) string, ([\d.]+ Hz)(, playing)?$/, function (m, s, f, p) { return s + '弦，' + f + (p ? '，正在播放' : ''); }],
@@ -3141,6 +3245,9 @@ function noteGate() {
         if (w && !ART.test(w[1])) return m;
       }
       return pre + SOL[L] + acc + oct;
+    }).replace(/(^|[^A-Za-z0-9])([a-g])([\u266f\u266d]?)(?=$|[ \u00a0]+minor\b|小调)/g, function (m, pre, l, acc) {
+      /* a minor key in lower case (e, f♯, "e minor", e小调): lower-case solfège */
+      return pre + SOL[l.toUpperCase()].toLowerCase() + acc;
     });
   }
   function lookup(core, el) {
