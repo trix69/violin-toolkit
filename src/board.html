@@ -150,6 +150,9 @@ select {
 }
 .switch[aria-checked="true"] .track { background: var(--accent); }
 .switch[aria-checked="true"] .track::after { transform: translateX(18px); background: var(--on-accent); }
+/* off limits in Pitch Check (the choice is kept and comes back with the positions) */
+.switch:disabled { opacity: .45; cursor: not-allowed; }
+.inl:has(> .switch:disabled) > .lbl { opacity: .45; }
 button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 .now {
@@ -644,6 +647,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
           return '<span style="--y:' + yFor(n) + '">' + ORD[i + 1] + '<small class="fing">finger</small></span>';
         }).join(''));
     board.classList.toggle('pcmode', pc);
+    vibBtn.disabled = pc;   /* reference notes stay steady while checking pitch */
     if (pc) labels.innerHTML = PC_HTML;
     pcShow(pc ? pcCur : null);
     updateSub();
@@ -948,7 +952,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   var voices = new Map();
 
   function applyVib(rec) {
-    var want = state.vibrato && !rec.open && (performance.now() - rec.t0 >= 190);
+    var want = state.vibrato && state.pos !== 'pc' && !rec.open && (performance.now() - rec.t0 >= 190);
     if (want !== rec.vibOn) {
       rec.vibOn = want;
       if (rec.v.vib) rec.v.vib(want);
