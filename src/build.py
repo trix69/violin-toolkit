@@ -265,6 +265,7 @@ html[lang="zh-CN"] {
 .sheet-card { width: min(100%, 420px); background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.3); outline: none; }
 .sheet-card h2 { margin: 0 0 14px; font: 700 24px/1.1 var(--font-display); letter-spacing: -0.02em; }
 .sheet-card h3 { margin: 14px 0 8px; font: 500 12px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.sheet-card h3 .nc { text-transform: none; }   /* a note name keeps its own case: La4, not LA4 */
 .segc { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .segc button { height: 42px; border: 0; background: transparent; color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
 .segc button + button { border-left: 1px solid var(--line); }
@@ -775,7 +776,7 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-names="letter">Pitch names</button>
       <button type="button" role="radio" aria-checked="false" data-names="solfege">Solfège</button>
     </div>
-    <h3 id="lblA4">Tuning pitch (A4)</h3>
+    <h3 id="lblA4">Tuning pitch <span class="nc">(A4)</span></h3>
     <div class="segc two" role="radiogroup" aria-labelledby="lblA4" id="segA4">
       <button type="button" role="radio" aria-checked="false" data-a4="442">442 Hz</button>
       <button type="button" role="radio" aria-checked="false" data-a4="440">440 Hz</button>

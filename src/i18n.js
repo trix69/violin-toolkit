@@ -87,7 +87,7 @@
     'Tap the top number to change the beats per bar, and the bottom number to change the note value.': '点上面的数字改变每小节拍数，点下面的数字改变音符时值。',
     'Accents': '重音', 'Tap a beat to change how loudly it clicks: accent, medium, normal or muted.': '点一个拍子改变它的音量：重音、中、普通或静音。',
     'Tap tempo': '点拍定速', 'Tap in time a few times to set the tempo from your own beat.': '按你的节奏点几下，就能按你的拍子设定速度。',
-    'Support': '支持', 'Note names': '音符名称', 'Tuning pitch (A4)': '标准音高 (A4)', 'Pitch names': '音名', 'Solfège': '唱名',
+    'Support': '支持', 'Note names': '音符名称', 'Tuning pitch (A4)': '标准音高 (A4)', 'Tuning pitch': '标准音高', 'Pitch names': '音名', 'Solfège': '唱名',
     'Buy me a coffee': '请我喝杯咖啡',
     'Like this app?': '喜欢这个应用？', 'Star on GitHub': '在 GitHub 上点个星',
     'QR code for buymeacoffee.com/trinks': 'buymeacoffee.com/trinks 二维码',
