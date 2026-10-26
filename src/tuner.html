@@ -135,7 +135,7 @@ button:focus-visible, select:focus-visible, .filebtn:focus-within { outline: 2px
 .readout { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 24px; align-items: center; margin-top: 4px; }
 .note { font: 600 clamp(72px, 19vw, 100px)/0.95 var(--sans-display); letter-spacing: -0.03em; white-space: nowrap; min-width: 1.1em; }
 .note sup { font-weight: 500; font-size: 0.28em; vertical-align: top; position: relative; top: 0.5em; margin-left: 0.08em; letter-spacing: 0; color: var(--muted); }
-.which { grid-column: 1 / -1; margin: 0; font: 500 13px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); min-height: 1.2em; order: 3; }
+.which { grid-column: 1 / -1; margin: 0; font: 500 13px/1.2 var(--mono); letter-spacing: 0.1em; color: var(--muted); min-height: 1.2em; order: 3; }   /* not uppercased: it starts with a note name (Sol string, not SOL STRING) */
 .stats { margin: 0; display: grid; gap: 8px; }
 .stats div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 .stats dt { font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }

@@ -316,7 +316,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .pc { position: absolute; inset: 0; }
 .pc-read { position: absolute; left: 6px; right: 0; top: var(--y, 0); transform: translateY(-50%); transition: top 120ms ease-out; }
 .pc:not(.on) .pc-read { visibility: hidden; }
-.pc-name { font: 700 21px/1 var(--font-note); color: var(--nut); white-space: nowrap; }
+.pc-name { font: 700 21px/1 var(--font-note); color: var(--nut); white-space: nowrap; text-transform: none; }   /* a note name keeps its case: Fa5, not FA5 */
 .pc-cents { margin-top: 3px; font: 500 12px/1.2 var(--font-mono); letter-spacing: 0; text-transform: none; color: var(--board-text); white-space: nowrap; }
 .pc.on .pc-name { color: var(--nut); }
 .pc.tune .pc-cents { color: var(--board-good); }
