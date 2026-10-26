@@ -88,3 +88,7 @@ This writes the standalone page to `dist/violin-toolkit.html` (not committed) an
 | `src/favicon-tags.html`, `src/icons/` | Favicons and app icons |
 | `src/redirect/` | Redirect page for the old `violin-fingerboard.html` address |
 | `docs/` | README screenshots |
+
+## Licence
+
+The code is under the [MIT licence](LICENSE). The bundled fonts (DM Sans, DM Mono, Outfit) keep their own SIL Open Font Licence, in `src/fonts/OFL.txt`.

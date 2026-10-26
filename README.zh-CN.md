@@ -63,3 +63,7 @@
 
 如果对你练琴有帮助，欢迎给这个仓库点个 ⭐，让更多琴友看到。
 有想法或发现问题，欢迎在 [Issues](https://github.com/trix69/violin-toolkit/issues) 留言（中文也可以）。
+
+## 许可
+
+代码采用 [MIT 许可](LICENSE)。内置字体（DM Sans、DM Mono、Outfit）仍使用各自的 SIL 开放字体许可，见 `src/fonts/OFL.txt`。
