@@ -113,8 +113,8 @@ t_rest = rename(t_rest)
 for nm, val in [('s-g', '#E3A24C'), ('s-d', '#74C493'), ('s-a', '#66AEE6'), ('s-e', '#C592E6'), ('on-sc', '#15110F')]:
     t_tokens, n = re.subn(r'(--t-' + nm + r': )#[0-9A-Fa-f]{6};', r'\g<1>' + val + ';', t_tokens)
     assert n == 3, (nm, n)
-# audio-file upload is removed
-t_rest = re.sub(r'(?m)^\.(upload p|filebtn|vh) \{[^\n]*\}\n', '', t_rest)
+# audio-file upload is removed (keep .vh: the tuner's screen-reader-only #hintSr needs it, Hermes F6)
+t_rest = re.sub(r'(?m)^\.(upload p|filebtn) \{[^\n]*\}\n', '', t_rest)
 t_rest = t_rest.replace(', .filebtn:focus-within', '')
 t_rest = re.sub(r'(?m)^\* \{ box-sizing: border-box; \}\n', '', t_rest)
 t_rest = remove_inline_rule(t_rest, 'html { color-scheme: light; }')
@@ -123,6 +123,7 @@ t_rest, _ = remove_rule(t_rest, 'body')
 t_rest = remove_inline_rule(t_rest, 'header h1 { font: 600 clamp(32px, 6.5vw, 42px)/1.05 var(--t-sans-display); margin: 0; letter-spacing: -0.02em; }')
 t_rest = re.sub(r'(?m)^\.eyebrow \{[^\n]*\}\n', '', t_rest)
 tuner_css = prefix_css(t_rest, '#view-tuner')
+assert '#view-tuner .vh {' in tuner_css, 'the tuner lost its visually-hidden utility (#hintSr would show on screen)'
 
 # ---------------------------------------------------------------- chrome CSS
 chrome_css = '''
