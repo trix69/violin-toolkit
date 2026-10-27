@@ -8,6 +8,11 @@
 [English](README.md)
 
 <p align="center">
+  <img src="docs/pitch-check.gif" width="320" alt="音准检测：在 E 弦上拉 F，圆盘从偏低（音符上方）滑到绿色的音准圈，再到偏高（音符下方），最后回到音准"><br>
+  <sub>音准检测：圆盘显示你拉的音落在哪里，偏低在音符上方，偏高在下方，音准时变成绿圈。</sub>
+</p>
+
+<p align="center">
   <img src="docs/tuner.png" width="23%" alt="调音器：A 弦音准正确">
   <img src="docs/fingerboard.png" width="23%" alt="指板：D 大调一把位">
   <img src="docs/pitch-check.png" width="23%" alt="音准检测：E 弦上的 F 音准正确">

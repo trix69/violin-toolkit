@@ -8,6 +8,11 @@ No account, no ads, no tracking. Works offline once added to your home screen.
 [中文说明](README.zh-CN.md)
 
 <p align="center">
+  <img src="docs/pitch-check.gif" width="320" alt="Pitch Check: playing F on the E string, the disc slides from flat (above the note) into the green in-tune ring, then sharp (below) and back"><br>
+  <sub>Pitch Check: the disc shows where your note lands, above the note when flat, below when sharp, a green ring when in tune.</sub>
+</p>
+
+<p align="center">
   <img src="docs/tuner.png" width="23%" alt="Tuner showing the A string in tune">
   <img src="docs/fingerboard.png" width="23%" alt="Fingerboard in D major, 1st position">
   <img src="docs/pitch-check.png" width="23%" alt="Pitch Check: F on the E string, in tune">
