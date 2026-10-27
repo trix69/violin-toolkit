@@ -307,7 +307,6 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 @media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 #howto { z-index: 120; }
 #howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
-.howto-lead { margin: 0 0 14px; font: 400 14px/1.5 var(--font-note); color: var(--muted); }
 .howto-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 10px; }
 .howto-steps li { counter-increment: st; display: flex; align-items: center; gap: 12px; font: 400 15px/1.4 var(--font-note); }
 .howto-steps li::before { content: counter(st); flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font: 700 13px var(--font-note); }
@@ -815,7 +814,6 @@ markup = f"""
 <div class="sheet" id="howto" role="dialog" aria-modal="true" aria-labelledby="howtoTitle" hidden>
   <div class="sheet-card" id="howtoCard" tabindex="-1">
     <h2 id="howtoTitle">Use offline</h2>
-    <p class="howto-lead">Save Violin Toolkit so it opens like an app, even without internet.</p>
     <div class="segc" role="radiogroup" aria-label="Device" id="segDev">
       <button type="button" role="radio" aria-checked="false" data-dev="ios">iPhone / iPad</button>
       <button type="button" role="radio" aria-checked="false" data-dev="android">Android</button>
