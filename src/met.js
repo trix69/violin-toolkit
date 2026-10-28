@@ -260,6 +260,8 @@
   function flash(level) {
     if (!window.APP || !APP.flash || !level) return;
     pulseTab(level);
+    /* Reduce motion: the tab pulse only, no full-screen wash (Trix, option b) */
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     flashEl = flashEl || document.getElementById('beatFlash');
     if (!flashEl || !flashEl.animate) return;
     if (flashAnim) flashAnim.cancel();
