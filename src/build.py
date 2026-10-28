@@ -406,6 +406,21 @@ t_js = must(t_js, "  fit();\n  startMic(true);\n})();", """  fit();
 
 app_js = """var APP = window.APP = { views: {}, a4: 442, onA4: [] };
 try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
+/* iPhones and iPads on silent (the ring/silent switch) mute a page's sound. iOS 16.4+ lets it play like a
+   music app instead (Audio Session API). Asked for just before the first sound, not at load, so opening the
+   page doesn't stop other music; while a microphone is on it must be play-and-record (also not muted). */
+APP.sound = false; APP.mics = {};
+APP.session = function () {
+  try {
+    var s = navigator.audioSession, mic = false, k;
+    if (!s || !APP.sound) return;
+    for (k in APP.mics) if (APP.mics[k]) mic = true;
+    var t = mic ? 'play-and-record' : 'playback';
+    if (s.type !== t) s.type = t;
+  } catch (e) {}
+};
+APP.playThroughSilent = function () { APP.sound = true; APP.session(); };
+APP.mic = function (who, on) { APP.mics[who] = !!on; APP.session(); };
 try {
   var savedA4 = +localStorage.getItem('violin-a4');
   if (savedA4 === 440 || savedA4 === 442) APP.a4 = savedA4;

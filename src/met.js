@@ -284,6 +284,7 @@
     if (playing) return;
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
+    if (window.APP) APP.playThroughSilent();
     if (!ctx) ctx = new AC();
     if (ctx.state === 'suspended') ctx.resume();
     playing = true; beatIdx = 0; queue = []; lastNow = -1;

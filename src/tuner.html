@@ -622,6 +622,7 @@ function noteGate() {
     }
     starting = true;
     stopTone();
+    APP.mic('tuner', true);
     setStatus('Requesting microphone…');
     try {
       try {
@@ -629,6 +630,7 @@ function noteGate() {
         stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
       } catch (e) {
         stream = null;
+        APP.mic('tuner', false);
         setStatus(auto ? 'Microphone was not enabled. Press Start tuning to try again, or allow it in your browser site settings.' : 'Microphone access was blocked. Allow it in your browser site settings and try again, or tune by ear with the reference tones below.', !auto);
         return;
       }
@@ -667,6 +669,7 @@ function noteGate() {
 
   function stopMic() {
     running = false;
+    APP.mic('tuner', false);
     if (src) { try { src.disconnect(); } catch (e) {} src = null; }
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
     an = null;
@@ -699,6 +702,7 @@ function noteGate() {
   async function playTone(i) {
     if (tone && tone.i === i) { stopTone(); return; }
     if (running) { stopMic(); setStatus('Microphone paused while a reference tone plays.'); setIdle(); }
+    APP.playThroughSilent();
     ensureCtx();
     try { await ctx.resume(); } catch (e) {}
     stopTone();

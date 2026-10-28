@@ -876,6 +876,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       mic = null; pcStatus = 'microphone not available here'; updateSub(); return;
     }
+    APP.mic('pc', true);
     ensureCtx();   /* inside the tap, so the audio engine is allowed to run */
     navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
@@ -893,7 +894,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       updateSub();
       pcLoop(token);
     }).catch(function (err) {
-      if (mic === token) mic = null;
+      if (mic === token) { mic = null; APP.mic('pc', false); }
       pcStatus = (err && err.name === 'NotAllowedError') ? 'microphone blocked' : 'microphone not available here';
       updateSub();
     });
@@ -902,6 +903,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   function stopMic() {
     var m = mic;
     mic = null;
+    APP.mic('pc', false);
     if (pcRaf) { cancelAnimationFrame(pcRaf); pcRaf = 0; }
     if (m && m.stream) {
       m.stream.getTracks().forEach(function (t) { t.stop(); });
@@ -972,6 +974,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   function begin(el, id) {
     if (state.pos === 'pc') return;   /* Pitch Check listens instead of playing */
     if (voices.has(id)) return;
+    APP.playThroughSilent();
     if (!ensureCtx()) return;
     var nt = notes[+el.dataset.i];
     if (!nt) return;
