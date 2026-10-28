@@ -307,7 +307,8 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 @media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 #howto { z-index: 120; }
 /* metronome beat flash (Settings > Beat flash): a full-screen wash in the accent colour on each beat, animated by met.js */
-.beat-flash { position: fixed; inset: 0; z-index: 130; pointer-events: none; opacity: 0; background: var(--accent); }   /* the colour chosen in Settings > Colour */
+.beat-flash { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; z-index: 130; pointer-events: none; opacity: 0; background: var(--accent); display: none; }   /* the colour chosen in Settings > Colour.
+   Not position: fixed and display: none at rest: iOS Safari tints its toolbar from fixed elements at the screen edge, even invisible ones. */
 #howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
 .howto-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 10px; }
 .howto-steps li { counter-increment: st; display: flex; align-items: center; gap: 12px; font: 400 15px/1.4 var(--font-note); }
@@ -403,7 +404,7 @@ t_js = must(t_js, "  fit();\n  startMic(true);\n})();", """  fit();
 })();""")
 
 app_js = """var APP = window.APP = { views: {}, a4: 442, onA4: [] };
-try { APP.flash = localStorage.getItem('violin-flash') === 'on'; } catch (e) { APP.flash = false; }
+try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
 try {
   var savedA4 = +localStorage.getItem('violin-a4');
   if (savedA4 === 440 || savedA4 === 442) APP.a4 = savedA4;
@@ -803,8 +804,8 @@ markup = f"""
     <div class="swatches" role="radiogroup" aria-labelledby="lblCol" id="swatches">{swatch_html}</div>
     <h3 id="lblFlash">Beat flash</h3>
     <div class="segc two" role="radiogroup" aria-labelledby="lblFlash" id="segFlash">
-      <button type="button" role="radio" aria-checked="false" data-flash="off">Off</button>
       <button type="button" role="radio" aria-checked="false" data-flash="on">On</button>
+      <button type="button" role="radio" aria-checked="false" data-flash="off">Off</button>
     </div>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>

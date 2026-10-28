@@ -190,7 +190,7 @@
   symSheet.addEventListener('click', function (e) { if (e.target === symSheet) closeSym(); });
 
   /* ---------- audio ---------- */
-  var ctx = null, timer = 0, nextT = 0, beatIdx = 0, queue = [], raf = 0, lastNow = -1;
+  var ctx = null, timer = 0, nextT = 0, beatIdx = 0, beatCount = 0, queue = [], raf = 0, lastNow = -1;
   function click(t, level) {
     if (level === 0) return;
     var o = ctx.createOscillator(), g = ctx.createGain();
@@ -207,7 +207,7 @@
     while (nextT < ctx.currentTime + 0.12) {
       var i = beatIdx % state.num;
       click(nextT, state.levels[i]);
-      queue.push({ t: nextT, i: i });
+      queue.push({ t: nextT, i: i, k: beatCount++ });
       nextT += 60 / state.bpm;
       beatIdx = (beatIdx + 1) % state.num;
     }
@@ -219,24 +219,31 @@
     Array.prototype.forEach.call(notesEl.children, function (n, k) { n.classList.toggle('now', k === i); });
   }
   /* Beat flash (Settings > Beat flash): wash the whole screen on each sounding beat, brighter on
-     accents. It runs from this loop, so it carries on while the fingerboard is open. Flashes are kept
-     at least 340 ms apart (under 3 a second, the safe limit for flashing content), so above 176 BPM
-     some beats don't flash. */
-  var flashEl = null, lastFlash = -1e9, flashAnim = null;
-  function flash(level) {
+     accents. It runs from this loop, so it carries on while the fingerboard is open. To stay under
+     3 flashes a second (the safe limit for flashing content) it flashes every beat up to 176 BPM and
+     every 2nd beat above that (counted from the start, so in 4/4 beats 1 and 3, and never two in a
+     row across a bar line in 3/4), so the pattern is steady rather than skipping beats at random. */
+  var flashEl = null, flashAnim = null;
+  function flashEvery() { return Math.max(1, Math.ceil(0.34 * state.bpm / 60 - 1e-9)); }
+  function flash(level, k) {
     if (!window.APP || !APP.flash || !level) return;
-    var now = performance.now();
-    if (now - lastFlash < 340) return;
-    lastFlash = now;
+    var n = flashEvery();
+    if (k % n) return;
     flashEl = flashEl || document.getElementById('beatFlash');
     if (!flashEl || !flashEl.animate) return;
     if (flashAnim) flashAnim.cancel();
+    /* cover the visible part of the page only while flashing, then leave the page as it was */
+    flashEl.style.top = window.scrollY + 'px';
+    flashEl.style.height = window.innerHeight + 'px';
+    flashEl.style.display = 'block';
     var peak = level === 3 ? 0.62 : level === 2 ? 0.45 : 0.32;
     flashAnim = flashEl.animate([{ opacity: peak }, { opacity: 0 }], { duration: Math.min(380, 0.6 * 60000 / state.bpm), easing: 'ease-out' });
+    var a = flashAnim;
+    a.onfinish = a.oncancel = function () { if (a === flashAnim && flashEl) flashEl.style.display = 'none'; };
   }
   function frame() {
     if (!playing) return;
-    while (queue.length && queue[0].t <= ctx.currentTime) { var q = queue.shift(); flash(state.levels[q.i]); paintNow(q.i); }
+    while (queue.length && queue[0].t <= ctx.currentTime) { var q = queue.shift(); flash(state.levels[q.i], q.k); paintNow(q.i); }
     raf = requestAnimationFrame(frame);
   }
   function start() {
@@ -245,7 +252,7 @@
     if (!AC) return;
     if (!ctx) ctx = new AC();
     if (ctx.state === 'suspended') ctx.resume();
-    playing = true; beatIdx = 0; queue = []; lastNow = -1;
+    playing = true; beatIdx = 0; beatCount = 0; queue = []; lastNow = -1;
     nextT = ctx.currentTime + 0.06;
     tick(); timer = setInterval(tick, 25);
     raf = requestAnimationFrame(frame);
@@ -257,6 +264,7 @@
     clearInterval(timer); cancelAnimationFrame(raf);
     queue = []; paintNow(-1);
     if (flashAnim) { flashAnim.cancel(); flashAnim = null; }
+    if (flashEl) flashEl.style.display = 'none';
     drawPlay();
   }
   function toggle() { playing ? stop() : start(); }
