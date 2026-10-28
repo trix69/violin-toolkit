@@ -190,7 +190,7 @@
   symSheet.addEventListener('click', function (e) { if (e.target === symSheet) closeSym(); });
 
   /* ---------- audio ---------- */
-  var ctx = null, timer = 0, nextT = 0, beatIdx = 0, beatCount = 0, queue = [], raf = 0, lastNow = -1;
+  var ctx = null, timer = 0, nextT = 0, beatIdx = 0, queue = [], raf = 0, lastNow = -1;
   function click(t, level) {
     if (level === 0) return;
     var o = ctx.createOscillator(), g = ctx.createGain();
@@ -207,7 +207,7 @@
     while (nextT < ctx.currentTime + 0.12) {
       var i = beatIdx % state.num;
       click(nextT, state.levels[i]);
-      queue.push({ t: nextT, i: i, k: beatCount++ });
+      queue.push({ t: nextT, i: i });
       nextT += 60 / state.bpm;
       beatIdx = (beatIdx + 1) % state.num;
     }
@@ -218,17 +218,28 @@
     Array.prototype.forEach.call(beatsEl.children, function (b, k) { b.classList.toggle('now', k === i); });
     Array.prototype.forEach.call(notesEl.children, function (n, k) { n.classList.toggle('now', k === i); });
   }
-  /* Beat flash (Settings > Beat flash): wash the whole screen on each sounding beat, brighter on
-     accents. It runs from this loop, so it carries on while the fingerboard is open. To stay under
-     3 flashes a second (the safe limit for flashing content) it flashes every beat up to 176 BPM and
-     every 2nd beat above that (counted from the start, so in 4/4 beats 1 and 3, and never two in a
-     row across a bar line in 3/4), so the pattern is steady rather than skipping beats at random. */
-  var flashEl = null, flashAnim = null;
-  function flashEvery() { return Math.max(1, Math.ceil(0.34 * state.bpm / 60 - 1e-9)); }
-  function flash(level, k) {
+  /* Beat flash (Settings > Beat flash): wash the screen in the accent colour on every sounding beat,
+     brighter on accents (muted beats don't flash). It runs from this loop, so it carries on while the
+     fingerboard is open. Above 176 BPM a beat comes more than 3 times a second, the limit for strong
+     flashes (WCAG 2.3.1), so there the wash is kept soft: its strength is worked out from the page and
+     accent colours so the brightness change stays under 8 % (a flash counts from 10 %). */
+  var flashEl = null, flashAnim = null, softKey = '', softMax = 0.1;
+  function rgbOf(c) { return (c.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number); }
+  function lum(c) { return c.reduce(function (s, v, i) { v /= 255; v = v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); return s + v * [0.2126, 0.7152, 0.0722][i]; }, 0); }
+  function softPeak() {
+    var bg = rgbOf(getComputedStyle(document.body).backgroundColor), ac = rgbOf(getComputedStyle(flashEl).backgroundColor);
+    var key = bg + '|' + ac;
+    if (key === softKey) return softMax;
+    var L0 = lum(bg), lo = 0, hi = 0.5;
+    for (var n = 0; n < 16; n++) {
+      var a = (lo + hi) / 2, mix = bg.map(function (v, i) { return v * (1 - a) + ac[i] * a; });
+      if (Math.abs(lum(mix) - L0) < 0.08) lo = a; else hi = a;
+    }
+    softKey = key; softMax = lo;
+    return lo;
+  }
+  function flash(level) {
     if (!window.APP || !APP.flash || !level) return;
-    var n = flashEvery();
-    if (k % n) return;
     flashEl = flashEl || document.getElementById('beatFlash');
     if (!flashEl || !flashEl.animate) return;
     if (flashAnim) flashAnim.cancel();
@@ -236,14 +247,15 @@
     flashEl.style.top = window.scrollY + 'px';
     flashEl.style.height = window.innerHeight + 'px';
     flashEl.style.display = 'block';
-    var peak = level === 3 ? 0.62 : level === 2 ? 0.45 : 0.32;
+    var strong = level === 3 ? 0.62 : level === 2 ? 0.45 : 0.32;
+    var peak = state.bpm > 176 ? Math.min(strong, softPeak() * (level === 3 ? 1 : level === 2 ? 0.8 : 0.6)) : strong;
     flashAnim = flashEl.animate([{ opacity: peak }, { opacity: 0 }], { duration: Math.min(380, 0.6 * 60000 / state.bpm), easing: 'ease-out' });
     var a = flashAnim;
     a.onfinish = a.oncancel = function () { if (a === flashAnim && flashEl) flashEl.style.display = 'none'; };
   }
   function frame() {
     if (!playing) return;
-    while (queue.length && queue[0].t <= ctx.currentTime) { var q = queue.shift(); flash(state.levels[q.i], q.k); paintNow(q.i); }
+    while (queue.length && queue[0].t <= ctx.currentTime) { var q = queue.shift(); flash(state.levels[q.i]); paintNow(q.i); }
     raf = requestAnimationFrame(frame);
   }
   function start() {
@@ -252,7 +264,7 @@
     if (!AC) return;
     if (!ctx) ctx = new AC();
     if (ctx.state === 'suspended') ctx.resume();
-    playing = true; beatIdx = 0; beatCount = 0; queue = []; lastNow = -1;
+    playing = true; beatIdx = 0; queue = []; lastNow = -1;
     nextT = ctx.currentTime + 0.06;
     tick(); timer = setInterval(tick, 25);
     raf = requestAnimationFrame(frame);
