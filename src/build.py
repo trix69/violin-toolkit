@@ -409,14 +409,15 @@ app_js = """var APP = window.APP = { views: {}, a4: 442, onA4: [] };
 try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
 /* iPhones and iPads on silent (the ring/silent switch) mute a page's sound. iOS 16.4+ lets it play like a
    music app instead (Audio Session API). Asked for just before the first sound, not at load, so opening the
-   page doesn't stop other music; while a microphone is on it must be play-and-record (also not muted). */
+   page doesn't stop other music; while a microphone is on it is play-and-record (also not muted), even before
+   any sound, and back to auto if nothing has played yet. */
 APP.sound = false; APP.mics = {};
 APP.session = function () {
   try {
     var s = navigator.audioSession, mic = false, k;
-    if (!s || !APP.sound) return;
+    if (!s) return;
     for (k in APP.mics) if (APP.mics[k]) mic = true;
-    var t = mic ? 'play-and-record' : 'playback';
+    var t = mic ? 'play-and-record' : APP.sound ? 'playback' : 'auto';
     if (s.type !== t) s.type = t;
   } catch (e) {}
 };
@@ -679,7 +680,7 @@ nav_js = """(function () {
     lastFocus = document.activeElement;
     launch.hidden = false;
     document.addEventListener('keydown', onKey);
-    document.getElementById('launchCard').focus();
+    document.getElementById('launchCard').focus({ preventScroll: true });   /* a focus scroll would push the gear up (Hermes R11.1) */
   }
 })();
 """
