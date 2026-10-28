@@ -246,10 +246,13 @@
     if (!metTab || !metTab.animate) return;
     var cs = getComputedStyle(document.documentElement), ac = cs.getPropertyValue('--accent').trim(), on = cs.getPropertyValue('--on-accent').trim();
     if (tabAnim) tabAnim.cancel();
+    metTab.classList.add('pulsing');   /* keeps the "playing" dot visible on the accent fill */
     tabAnim = metTab.animate([
       { backgroundColor: ac, color: on, borderColor: ac, boxShadow: '0 0 0 ' + (level === 3 ? 5 : 3) + 'px ' + ac },
       { boxShadow: '0 0 0 0 ' + ac }
     ], { duration: Math.min(380, 0.6 * 60000 / state.bpm), easing: 'ease-out' });
+    var t = tabAnim;
+    t.onfinish = t.oncancel = function () { if (t === tabAnim) metTab.classList.remove('pulsing'); };
   }
   function flash(level) {
     if (!window.APP || !APP.flash || !level) return;
@@ -291,6 +294,7 @@
     queue = []; paintNow(-1);
     if (flashAnim) { flashAnim.cancel(); flashAnim = null; }
     if (tabAnim) { tabAnim.cancel(); tabAnim = null; }
+    if (metTab) metTab.classList.remove('pulsing');
     if (flashEl) flashEl.style.display = 'none';
     drawPlay();
   }

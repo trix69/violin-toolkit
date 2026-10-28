@@ -248,7 +248,7 @@ html[lang="zh-CN"] {
 }
 .tab { position: relative; }
 .tab.live::after { content: ""; position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--panel); }
-.tab[aria-current="page"].live::after { background: var(--on-accent); box-shadow: 0 0 0 2px var(--accent); }
+.tab[aria-current="page"].live::after, .tab.pulsing::after { background: var(--on-accent); box-shadow: 0 0 0 2px var(--accent); }   /* .pulsing: the beat pulse fills the tab with --accent (Hermes R10.1) */
 .appsub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 480px) { .appsub { letter-spacing: -0.02em; font-size: 11px; } }
 /* narrow Android phones (360 px): keep the title clear of the tool buttons */

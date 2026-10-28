@@ -24,7 +24,7 @@
   <path d="M394 396 L430 386"/>
  </g>
 </defs>
-<g transform="translate(256 262) scale(0.88) rotate(-5) translate(-262 -268)">
+<g transform="translate(256 262) scale(0.84) rotate(-5) translate(-262 -268)">
   <use href="#ink" x="-9.95" y="6.71"/>
   <use href="#ink" x="-8.70" y="5.87"/>
   <use href="#ink" x="-7.46" y="5.03"/>
