@@ -251,8 +251,11 @@
       { backgroundColor: ac, color: on, borderColor: ac, boxShadow: '0 0 0 ' + (level === 3 ? 5 : 3) + 'px ' + ac },
       { boxShadow: '0 0 0 0 ' + ac }
     ], { duration: Math.min(380, 0.6 * 60000 / state.bpm), easing: 'ease-out' });
-    var t = tabAnim;
-    t.onfinish = t.oncancel = function () { if (t === tabAnim) metTab.classList.remove('pulsing'); };
+    var t = tabAnim, off = function () { if (t === tabAnim) metTab.classList.remove('pulsing'); };
+    t.onfinish = t.oncancel = off;
+    /* hand the dot back to --accent once the fill has faded about halfway to the panel colour
+       (a third of the ease-out): the two dot colours cross in contrast there (Hermes R10.2) */
+    setTimeout(off, Math.round(t.effect.getTiming().duration / 3));
   }
   function flash(level) {
     if (!window.APP || !APP.flash || !level) return;
