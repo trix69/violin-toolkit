@@ -220,8 +220,8 @@
   }
   /* Beat flash (Settings > Beat flash): wash the screen in the accent colour on every sounding beat,
      brighter on accents (muted beats don't flash). It runs from this loop, so it carries on while the
-     fingerboard is open. Above 176 BPM a beat comes more than 3 times a second, the limit for strong
-     flashes (WCAG 2.3.1), so there the wash is kept soft: its strength is worked out from the page and
+     fingerboard is open. Above 168 BPM (2.8 beats a second, a margin under the 3-a-second limit for strong
+     flashes in WCAG 2.3.1, since flashes land on whole frames) the wash is kept soft: its strength is worked out from the page and
      accent colours so the brightness change stays under 8 % (a flash counts from 10 %). */
   var flashEl = null, flashAnim = null, softKey = '', softMax = 0.1;
   function rgbOf(c) { return (c.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number); }
@@ -248,7 +248,7 @@
     flashEl.style.height = window.innerHeight + 'px';
     flashEl.style.display = 'block';
     var strong = level === 3 ? 0.62 : level === 2 ? 0.45 : 0.32;
-    var peak = state.bpm > 176 ? Math.min(strong, softPeak() * (level === 3 ? 1 : level === 2 ? 0.8 : 0.6)) : strong;
+    var peak = state.bpm > 168 ? Math.min(strong, softPeak() * (level === 3 ? 1 : level === 2 ? 0.8 : 0.6)) : strong;
     flashAnim = flashEl.animate([{ opacity: peak }, { opacity: 0 }], { duration: Math.min(380, 0.6 * 60000 / state.bpm), easing: 'ease-out' });
     var a = flashAnim;
     a.onfinish = a.oncancel = function () { if (a === flashAnim && flashEl) flashEl.style.display = 'none'; };
