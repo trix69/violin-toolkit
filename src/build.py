@@ -340,6 +340,7 @@ launch_css = '''
   animation: launch-in .25s ease-out;
 }
 .launch[hidden] { display: none; }
+.tab.launch-set { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: calc(env(safe-area-inset-right, 0px) + 12px); }   /* Settings, so the language can be changed before choosing */
 .launch-card { width: min(100%, 720px); text-align: center; outline: none; }
 .launch h2 { margin: 0; font: 700 clamp(30px, 6vw, 44px)/1.1 var(--font-display); letter-spacing: -0.02em; }
 .launch-sub { margin: 8px 0 22px; font: 400 14px var(--font-mono); letter-spacing: .04em; color: var(--muted); }
@@ -482,10 +483,11 @@ nav_js = """(function () {
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
   }
+  var opener = openBtn;   /* the gear in the app bar, or the one on the start overlay */
   function closeSheet() {
     sheet.hidden = true;
     document.removeEventListener('keydown', onSheetKey);
-    try { openBtn.focus(); } catch (e) {}
+    try { opener.focus(); } catch (e) {}
   }
   function onSheetKey(e) {
     if (!document.getElementById('howto').hidden) return;
@@ -558,11 +560,14 @@ nav_js = """(function () {
       if (secs >= 300 && ready && sheet.hidden && howto.hidden) { offer.hidden = false; clearInterval(timer); }
     }, 1000);
   })();
-  openBtn.addEventListener('click', function () {
+  function openSheet() {
+    opener = this;
     syncSheet(); sheet.hidden = false;
     document.addEventListener('keydown', onSheetKey);
     sheetCard.focus();
-  });
+  }
+  openBtn.addEventListener('click', openSheet);
+  document.getElementById('launchSettings').addEventListener('click', openSheet);
   segLang.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     I18N.set(b.dataset.lang); syncSheet();
@@ -647,6 +652,7 @@ nav_js = """(function () {
     if (APP.coach) APP.coach.maybe(cur);   /* first-use tips wait until the start overlay is gone */
   }
   function onKey(e) {
+    if (!document.getElementById('sheet').hidden) return;   /* Settings is open on top */
     if (e.key === 'Escape') { closeLaunch(null); return; }
     if (e.key === 'Tab') {   /* keep focus inside the dialog */
       var els = Array.prototype.slice.call(launch.querySelectorAll('button'));
@@ -893,6 +899,7 @@ markup = f"""
       <button type="button" class="launch-btn" data-view="metronome">{ICON_MET}<b>Metronome</b><span>Keep steady time at any tempo</span></button>
     </div>
   </div>
+  <button type="button" class="tab launch-set" id="launchSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog">{ICON_SET}</button>
 </div>
 """
 
