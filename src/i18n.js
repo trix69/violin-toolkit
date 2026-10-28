@@ -70,7 +70,7 @@
     'Tap Install app, or Add to Home screen.': '点按“安装应用”或“添加到主屏幕”。',
     'Tap Install to confirm.': '点按“安装”确认。',
     'Open it from the new icon once while you have internet.': '在有网络时，从新图标打开一次。',
-    'Use the app at least once with internet. After that, it also works offline.': '请至少在有网络时使用一次，之后也可离线使用。',
+    'After the first visit, it also works offline.': '第一次访问后，离线也能使用。',
     'Help': '帮助', 'Show tips again': '再次显示提示', 'Skip': '跳过', 'Next': '下一步', 'Got it': '知道了',
     'Tap here, then bow or pluck an open string. The tuner listens through the microphone.': '点这里，然后拉奏或拨一根空弦。调音器会通过麦克风听音。',
     'Read the needle': '看指针', 'In the middle and green means in tune. Left of centre is flat, right is sharp.': '指针在中间并变绿表示音准。偏左是偏低，偏右是偏高。',

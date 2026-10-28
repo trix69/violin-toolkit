@@ -306,8 +306,9 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 @keyframes offer-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 #howto { z-index: 120; }
-/* metronome beat flash (Settings > Beat flash): a full-screen wash in the accent colour on each beat, animated by met.js */
-.beat-flash { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; z-index: 130; pointer-events: none; opacity: 0; background: var(--accent); display: none; }   /* the colour chosen in Settings > Colour.
+/* metronome beat flash (Settings > Beat flash): a full-screen wash in the accent colour on each beat, animated by met.js.
+   z-index 104: over the page, under the tour (105), Settings (110) and Use offline (120), so an open window stays still. */
+.beat-flash { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; z-index: 104; pointer-events: none; opacity: 0; background: var(--accent); display: none; }   /* the colour chosen in Settings > Colour.
    Not position: fixed and display: none at rest: iOS Safari tints its toolbar from fixed elements at the screen edge, even invisible ones. */
 #howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
 .howto-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 10px; }
@@ -857,7 +858,7 @@ markup = f"""
       <li><span>Click Install to confirm.</span></li>
       <li><span>Open it from its new icon once while you have internet.</span></li>
     </ol>
-    <p class="howto-note" id="howtoNote">Use the app at least once with internet. After that, it also works offline.</p>
+    <p class="howto-note" id="howtoNote">After the first visit, it also works offline.</p>
     <p class="howto-note" id="howtoDesk" hidden>No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.</p>
     <button type="button" class="sheet-done" id="howtoDone">Done</button>
   </div>

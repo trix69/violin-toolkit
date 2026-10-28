@@ -238,8 +238,22 @@
     softKey = key; softMax = lo;
     return lo;
   }
+  /* the metronome tab also pulses on each beat: a small area, so it can stay strong at any tempo and
+     still shows the beat where the soft wash is hard to see (the dark fingerboard above 168 BPM) */
+  var metTab = null, tabAnim = null;
+  function pulseTab(level) {
+    metTab = metTab || document.querySelector('.tab[data-view="metronome"]');
+    if (!metTab || !metTab.animate) return;
+    var cs = getComputedStyle(document.documentElement), ac = cs.getPropertyValue('--accent').trim(), on = cs.getPropertyValue('--on-accent').trim();
+    if (tabAnim) tabAnim.cancel();
+    tabAnim = metTab.animate([
+      { backgroundColor: ac, color: on, borderColor: ac, boxShadow: '0 0 0 ' + (level === 3 ? 5 : 3) + 'px ' + ac },
+      { boxShadow: '0 0 0 0 ' + ac }
+    ], { duration: Math.min(380, 0.6 * 60000 / state.bpm), easing: 'ease-out' });
+  }
   function flash(level) {
     if (!window.APP || !APP.flash || !level) return;
+    pulseTab(level);
     flashEl = flashEl || document.getElementById('beatFlash');
     if (!flashEl || !flashEl.animate) return;
     if (flashAnim) flashAnim.cancel();
@@ -276,6 +290,7 @@
     clearInterval(timer); cancelAnimationFrame(raf);
     queue = []; paintNow(-1);
     if (flashAnim) { flashAnim.cancel(); flashAnim = null; }
+    if (tabAnim) { tabAnim.cancel(); tabAnim = null; }
     if (flashEl) flashEl.style.display = 'none';
     drawPlay();
   }
