@@ -218,9 +218,25 @@
     Array.prototype.forEach.call(beatsEl.children, function (b, k) { b.classList.toggle('now', k === i); });
     Array.prototype.forEach.call(notesEl.children, function (n, k) { n.classList.toggle('now', k === i); });
   }
+  /* Beat flash (Settings > Beat flash): wash the whole screen on each sounding beat, brighter on
+     accents. It runs from this loop, so it carries on while the fingerboard is open. Flashes are kept
+     at least 340 ms apart (under 3 a second, the safe limit for flashing content), so above 176 BPM
+     some beats don't flash. */
+  var flashEl = null, lastFlash = -1e9, flashAnim = null;
+  function flash(level) {
+    if (!window.APP || !APP.flash || !level) return;
+    var now = performance.now();
+    if (now - lastFlash < 340) return;
+    lastFlash = now;
+    flashEl = flashEl || document.getElementById('beatFlash');
+    if (!flashEl || !flashEl.animate) return;
+    if (flashAnim) flashAnim.cancel();
+    var peak = level === 3 ? 0.62 : level === 2 ? 0.45 : 0.32;
+    flashAnim = flashEl.animate([{ opacity: peak }, { opacity: 0 }], { duration: Math.min(380, 0.6 * 60000 / state.bpm), easing: 'ease-out' });
+  }
   function frame() {
     if (!playing) return;
-    while (queue.length && queue[0].t <= ctx.currentTime) paintNow(queue.shift().i);
+    while (queue.length && queue[0].t <= ctx.currentTime) { var q = queue.shift(); flash(state.levels[q.i]); paintNow(q.i); }
     raf = requestAnimationFrame(frame);
   }
   function start() {
@@ -240,6 +256,7 @@
     playing = false;
     clearInterval(timer); cancelAnimationFrame(raf);
     queue = []; paintNow(-1);
+    if (flashAnim) { flashAnim.cancel(); flashAnim = null; }
     drawPlay();
   }
   function toggle() { playing ? stop() : start(); }

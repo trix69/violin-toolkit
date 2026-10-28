@@ -306,6 +306,10 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 @keyframes offer-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 #howto { z-index: 120; }
+/* metronome beat flash (Settings > Beat flash): a full-screen wash on each beat, animated by met.js */
+.beat-flash { position: fixed; inset: 0; z-index: 130; pointer-events: none; opacity: 0; background: #B5E853; mix-blend-mode: multiply; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .beat-flash { background: #9BD449; mix-blend-mode: screen; } }
+:root[data-theme="dark"] .beat-flash { background: #9BD449; mix-blend-mode: screen; }
 #howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
 .howto-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 10px; }
 .howto-steps li { counter-increment: st; display: flex; align-items: center; gap: 12px; font: 400 15px/1.4 var(--font-note); }
@@ -401,6 +405,7 @@ t_js = must(t_js, "  fit();\n  startMic(true);\n})();", """  fit();
 })();""")
 
 app_js = """var APP = window.APP = { views: {}, a4: 442, onA4: [] };
+try { APP.flash = localStorage.getItem('violin-flash') === 'on'; } catch (e) { APP.flash = false; }
 try {
   var savedA4 = +localStorage.getItem('violin-a4');
   if (savedA4 === 440 || savedA4 === 442) APP.a4 = savedA4;
@@ -452,6 +457,7 @@ nav_js = """(function () {
   var segNames = document.getElementById('segNames');
   var segA4 = document.getElementById('segA4');
   var segApp = document.getElementById('segApp'), swatches = document.getElementById('swatches');
+  var segFlash = document.getElementById('segFlash');
   var openBtn = document.getElementById('openSettings');
   function syncSheet() {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
@@ -459,6 +465,7 @@ nav_js = """(function () {
     Array.prototype.forEach.call(segA4.children, function (b) { b.setAttribute('aria-checked', +b.dataset.a4 === APP.a4 ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
   }
   function closeSheet() {
     sheet.hidden = true;
@@ -548,6 +555,12 @@ nav_js = """(function () {
   segNames.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     I18N.setNames(b.dataset.names); syncSheet();
+  });
+  segFlash.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    APP.flash = b.dataset.flash === 'on';
+    try { localStorage.setItem('violin-flash', APP.flash ? 'on' : 'off'); } catch (err) {}
+    syncSheet();
   });
   segA4.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
@@ -751,6 +764,7 @@ markup = f"""
 
 </div>
 
+<div class="beat-flash" id="beatFlash" aria-hidden="true"></div>
 <div class="coach" id="coach" hidden>
   <div class="coach-hole" id="coachHole"></div>
   <div class="coach-tip" id="coachTip" role="dialog" aria-modal="true" aria-labelledby="coachTitle" aria-describedby="coachText">
@@ -789,6 +803,11 @@ markup = f"""
     </div>
     <h3 id="lblCol">Colour</h3>
     <div class="swatches" role="radiogroup" aria-labelledby="lblCol" id="swatches">{swatch_html}</div>
+    <h3 id="lblFlash">Beat flash</h3>
+    <div class="segc two" role="radiogroup" aria-labelledby="lblFlash" id="segFlash">
+      <button type="button" role="radio" aria-checked="false" data-flash="off">Off</button>
+      <button type="button" role="radio" aria-checked="false" data-flash="on">On</button>
+    </div>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <h3 id="lblOff">Offline</h3>

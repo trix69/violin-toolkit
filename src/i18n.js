@@ -10,7 +10,7 @@
     'Tune G · D · A · E with your microphone': '用麦克风为 G · D · A · E 调音',
     'Find and play notes in each position': '查找并弹奏各把位的音',
     'Keep steady time at any tempo': '以任意速度保持稳定节拍',
-    'Language': '语言', 'Appearance': '外观', 'Light': '浅色', 'Dark': '深色', 'Automatic': '自动', 'Colour': '颜色',
+    'Language': '语言', 'Beat flash': '节拍闪屏', 'Appearance': '外观', 'Light': '浅色', 'Dark': '深色', 'Automatic': '自动', 'Colour': '颜色',
     'Calm teal': '静谧青', 'Sage green': '鼠尾草绿', 'Slate blue': '石板蓝', 'Soft violet': '柔紫', 'Classic': '经典',
     /* fingerboard */
     'Violin fingerboard': '小提琴指板', 'Position': '把位',
