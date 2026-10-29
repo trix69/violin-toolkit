@@ -493,12 +493,12 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 
   /* real spacing: distance from the nut = string length x (1 - 2^(-semitones/12)) */
   function mm(n) { return STRING_MM * (1 - Math.pow(2, -n / 12)); }
-  /* Settings > Intonation (built page only): in just intonation each stopped note is a pure interval above
-     the key's tonic and the open strings are pure fifths, so a note sounds and sits a few cents away from
+  /* Settings > Intonation (built page only): in just or Pythagorean intonation (APP.temper) each stopped note
+     follows the key and the open strings are pure fifths, so a note sounds and sits a few cents away from
      its equal-tempered place. */
-  function J() { return window.APP && APP.just; }
+  function J() { return window.APP && APP.temper; }
   function openCents(s) { return J() ? J().open(s.midi) : 0; }
-  function stopCents(midi) { return J() ? J().cents(midi, keyObj().root) : 0; }
+  function stopCents(midi) { return J() ? J().cents(midi, keyObj()) : 0; }
   function noteCents(nt) { return nt.n === 0 || nt.n === MAXN ? openCents(nt.s) : stopCents(nt.midi); }
   function noteFreq(nt) { return midiFreq(nt.midi) * Math.pow(2, noteCents(nt) / 1200); }
   function noteN(nt) { return nt.n === 0 || nt.n === MAXN ? nt.n : nt.n + (noteCents(nt) - openCents(nt.s)) / 100; }   /* semitones from its open string */
@@ -636,7 +636,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     var key = keyObj();
     /* no-break spaces inside each part, so a line that wraps breaks between parts (not "1st / position") */
     subEl.textContent = key.label + '\u00a0' + key.mode + ' · ' +
-      (window.APP ? (APP.just ? 'Just' : 'Equal') + ' · ' : '') +   /* Settings > Intonation */
+      (window.APP ? ({ just: 'Just', pyth: 'Pyth.' }[APP.temper && APP.temper.id] || 'Equal') + ' · ' : '') +   /* Settings > Intonation (Pyth. so it fits two lines on a 360 px phone) */
       (state.pos === 'pc' ? 'Pitch\u00a0Check' + (pcStatus ? ' · ' + pcStatus : '') : POSITIONS[state.pos].name.replace(/ /g, '\u00a0'));
   }
 

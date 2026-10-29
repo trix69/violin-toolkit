@@ -202,7 +202,7 @@
     'Simile: keep the same bowing or articulation as before.': 'Simile：继续使用与前面相同的弓法或演奏法。',
     'Attacca: start the next movement without a pause.': 'Attacca：不停顿，直接开始下一乐章。',
     'Volti subito: turn the page quickly, the music carries straight on.': 'Volti subito：快速翻页，音乐紧接着继续。',
-    'Intonation': '律制', 'Equal temperament': '十二平均律', 'Just intonation': '纯律',
+    'Intonation': '律制', 'Equal': '平均律', 'Just': '纯律', 'Pythagorean': '五度相生律',
     'Tap': '点拍', 'Slower': '减慢', 'Faster': '加快', 'Time signature': '拍号', 'Beats per bar': '每小节拍数',
     'Note value': '音符时值', 'Tempo': '速度', 'Start': '开始', 'Stop': '停止',
     'Beats. Tap a beat to change its accent.': '节拍。点按某一拍可更改其重音。',
@@ -283,7 +283,7 @@
                   'open': '空弦', 'above': '高于', 'below': '低于', 'harm.': '泛音', 'octave': '八度' }]
   ];
   var Q = { major: '大调', minor: '小调' };
-  var T = { Equal: '平均律', Just: '纯律' };   /* Settings > Intonation, in the fingerboard subtitle */
+  var T = { Equal: '平均律', Just: '纯律', 'Pyth.': '五度相生律' };   /* Settings > Intonation, in the fingerboard subtitle */
   var SW = { sharp: '升号', sharps: '升号', flat: '降号', flats: '降号' };
   function words(w) {
     if (DICT[w]) return DICT[w];
@@ -298,8 +298,8 @@
   var RX = [
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
-    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just) · )?(1st|2nd|3rd)[ \u00a0]position$/, function (m, k, q, t, p) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + P[p]; }],
-    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just) · )?Pitch[ \u00a0]Check(?: · (.+))?$/, function (m, k, q, t, s) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + '音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
+    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just|Pyth\.) · )?(1st|2nd|3rd)[ \u00a0]position$/, function (m, k, q, t, p) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + P[p]; }],
+    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just|Pyth\.) · )?Pitch[ \u00a0]Check(?: · (.+))?$/, function (m, k, q, t, s) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + '音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
     [/^(.+) (major|minor) · (no ♯ or ♭|\d sharps?|\d flats?)$/, function (m, k, q, w) { return k + Q[q] + ' · ' + words(w); }],
     [/^(.+) (major|minor): (.+)$/, function (m, k, q, w) { return k + Q[q] + '：' + (words(w) || w); }],
     [/^(\S+) (major|minor)$/, function (m, k, q) { return k + Q[q]; }],

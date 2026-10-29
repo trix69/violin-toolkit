@@ -403,11 +403,11 @@ t_js = must(t_js, """  sel.addEventListener('change', function () {
     refreshStrings(); refreshFoot();
     if (last) setFreq(last);
   });""")
-# Settings > Intonation: in just intonation the open strings (shz) are pure fifths from A; Chromatic mode
+# Settings > Intonation: in just or Pythagorean intonation the open strings (shz) are pure fifths from A; Chromatic mode
 # has no key, so its notes (hz) stay equal tempered
 t_js = must(t_js, "  function hz(m) { return a4 * Math.pow(2, (m - 69) / 12); }",
             "  function hz(m) { return a4 * Math.pow(2, (m - 69) / 12); }\n"
-            "  function shz(m) { return hz(m) * Math.pow(2, (APP.just ? APP.just.open(m) : 0) / 1200); }")
+            "  function shz(m) { return hz(m) * Math.pow(2, (APP.temper ? APP.temper.open(m) : 0) / 1200); }")
 for a in ('hz(s.midi)', 'hz(best.s.midi)', 'hz(STR[i].midi)', 'hz(STR[tone.i].midi)', 'hz(55)', 'hz(62)', 'hz(69)', 'hz(76)'):
     assert a in t_js, a
     t_js = t_js.replace(a, 's' + a)
@@ -449,22 +449,35 @@ APP.setA4 = function (v) {
   try { localStorage.setItem('violin-a4', String(v)); } catch (e) {}
   APP.onA4.forEach(function (fn) { fn(v); });
 };
-/* Settings > Intonation: equal temperament (APP.just null) or just intonation. Just: each stopped note is a
-   pure (5-limit) interval above the key's tonic, measured from where equal temperament puts the tonic; the
-   open strings (and their octave harmonics) are pure fifths from A instead, so an open-string tonic (G, D,
-   A, E) sounds up to 3.9 cents from equal. Both give the offset in cents from equal temperament. */
+/* Settings > Intonation: equal temperament (APP.temper null), just intonation or Pythagorean. APP.temper
+   gives each note's offset in cents from equal temperament.
+   - Just: each stopped note is a pure (5-limit) interval above the key's tonic, measured from where equal
+     temperament puts the tonic.
+   - Pythagorean: every note is a chain of pure fifths from A, the tonic placed by its spelling (E♭ is six
+     fifths below A, D♯ six above), so the scale's whole tones are 9/8, its thirds wide and its leading
+     tones high, and the open strings fall on the scale exactly.
+   In both, the open strings (and their octave harmonics) are pure fifths from A, so an open-string tonic
+   (G, D, A, E) sounds up to 3.9 cents from equal. */
 (function () {
   var R = [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/3, 9/5, 15/8];
   var JI = R.map(function (r, d) { return 1200 * Math.log(r) / Math.LN2 - 100 * d; });
+  var FIFTH = 1200 * Math.log(3 / 2) / Math.LN2 - 700;   /* 1.955 cents wider than equal */
+  var PY = [0, -5, 2, -3, 4, -1, 6, 1, -4, 3, -2, 5];        /* fifths from the tonic to each semitone above it */
+  var LETTER = [-3, -1, 1, -4, -2, 0, 2], NAT = [0, 2, 4, 5, 7, 9, 11];   /* C D E F G A B: fifths from A */
   var OPEN = { 55: 4/9, 62: 2/3, 69: 1, 76: 3/2 };   /* G3 D4 A4 E5 against A4 */
-  var just = {
-    cents: function (midi, root) { return JI[((midi - root) % 12 + 12) % 12]; },
-    open: function (midi) { return OPEN[midi] ? 1200 * Math.log(OPEN[midi]) / Math.LN2 - 100 * (midi - 69) : 0; }
+  function open(midi) { return OPEN[midi] ? 1200 * Math.log(OPEN[midi]) / Math.LN2 - 100 * (midi - 69) : 0; }
+  function d(midi, root) { return ((midi - root) % 12 + 12) % 12; }
+  var T = {
+    just: { id: 'just', open: open, cents: function (midi, key) { return JI[d(midi, key.root)]; } },
+    pyth: { id: 'pyth', open: open, cents: function (midi, key) {
+      var alt = ((key.root - NAT[key.letter]) % 12 + 18) % 12 - 6;   /* the tonic's ♯ (+1) or ♭ (-1) */
+      return (LETTER[key.letter] + 7 * alt + PY[d(midi, key.root)]) * FIFTH;
+    } }
   };
-  APP.just = null; APP.onTemper = [];
-  try { if (localStorage.getItem('violin-temper') === 'just') APP.just = just; } catch (e) {}
+  APP.temper = null; APP.onTemper = [];
+  try { APP.temper = T[localStorage.getItem('violin-temper')] || null; } catch (e) {}
   APP.setTemper = function (t) {
-    APP.just = t === 'just' ? just : null;
+    APP.temper = T[t] || null;
     try { localStorage.setItem('violin-temper', t); } catch (e) {}
     APP.onTemper.forEach(function (fn) { fn(); });
   };
@@ -517,7 +530,7 @@ nav_js = """(function () {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
     Array.prototype.forEach.call(segLang.children, function (b) { b.setAttribute('aria-checked', b.dataset.lang === I18N.lang ? 'true' : 'false'); });
     Array.prototype.forEach.call(segA4.children, function (b) { b.setAttribute('aria-checked', +b.dataset.a4 === APP.a4 ? 'true' : 'false'); });
-    Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', (b.dataset.temper === 'just') === !!APP.just ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', b.dataset.temper === (APP.temper ? APP.temper.id : 'equal') ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
@@ -860,9 +873,10 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-a4="440">440 Hz</button>
     </div>
     <h3 id="lblTemper">Intonation</h3>
-    <div class="segc two" role="radiogroup" aria-labelledby="lblTemper" id="segTemper">
-      <button type="button" role="radio" aria-checked="false" data-temper="equal">Equal temperament</button>
-      <button type="button" role="radio" aria-checked="false" data-temper="just">Just intonation</button>
+    <div class="segc" role="radiogroup" aria-labelledby="lblTemper" id="segTemper">
+      <button type="button" role="radio" aria-checked="false" data-temper="equal">Equal</button>
+      <button type="button" role="radio" aria-checked="false" data-temper="just">Just</button>
+      <button type="button" role="radio" aria-checked="false" data-temper="pyth">Pythagorean</button>
     </div>
     <h3 id="lblApp">Appearance</h3>
     <div class="segc" role="radiogroup" aria-labelledby="lblApp" id="segApp">
