@@ -489,7 +489,9 @@ APP.setA4 = function (v) {
     pyth: { id: 'pyth', open: open, cents: function (midi, key) {
       var alt = ((key.root - NAT[key.letter]) % 12 + 18) % 12 - 6;   /* the tonic's ♯ (+1) or ♭ (-1) */
       return (LETTER[key.letter] + 7 * alt + PY[d(midi, key.root)]) * FIFTH;
-    } }
+    },
+      /* a note by its name: letter 0-6 (C-B) and accidentals (+1 per ♯, -1 per ♭) */
+      chain: function (letter, acc) { return (LETTER[letter] + 7 * acc) * FIFTH; } }
   };
   APP.temper = null; APP.onTemper = [];
   try { APP.temper = T[localStorage.getItem('violin-temper')] || null; } catch (e) {}
