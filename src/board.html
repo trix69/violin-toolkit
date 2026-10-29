@@ -951,10 +951,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     }
     var m = 69 + 12 * Math.log(f / state.tuning) / Math.LN2;
     var n = Math.round(m);
-    /* against the note's just target when Settings > Intonation is just; an open-string pitch also counts
-       as in tune at the open string's own pitch */
+    /* against the note's just target when Settings > Intonation is just; an open string's pitch, or its
+       octave harmonic's, also counts as in tune at the string's own tuning (Hermes R13.1) */
     var raw = (m - n) * 100, cents = raw - stopCents(n);
-    STRINGS.forEach(function (st) { var c = raw - openCents(st); if (st.midi === n && Math.abs(c) < Math.abs(cents)) cents = c; });
+    STRINGS.forEach(function (st) { var c = raw - openCents(st); if ((st.midi === n || st.midi + MAXN === n) && Math.abs(c) < Math.abs(cents)) cents = c; });
     cents = Math.round(cents);
     hist.push(n);
     if (hist.length > 3) hist.shift();
