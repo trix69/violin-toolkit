@@ -78,14 +78,13 @@
 /* the explanation shown while a symbol is held */
 /* the card floats over the symbols without blocking them: a tap outside it reaches the symbol underneath */
 #symTip { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; padding: 20px; pointer-events: none; }
-#symTip { align-items: end; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
+#symTip { align-items: end; }   /* padding-bottom keeps it above Done (met.js) */
 #symTip.up { align-items: start; padding-top: calc(env(safe-area-inset-top, 0px) + 20px); }
-#symTip .sym-tip-card { pointer-events: auto; animation: symTipIn .12s ease-out; transition: opacity .4s ease-in; }
-#symTip.fading .sym-tip-card { opacity: 0; }
+#symTip .sym-tip-card { pointer-events: auto; animation: symTipIn .12s ease-out; }
 @keyframes symTipIn { from { opacity: 0; transform: scale(.97); } }
 @media (prefers-reduced-motion: reduce) { #symTip .sym-tip-card { animation: none; } }
 #symTip[hidden] { display: none; }
-#symTip .sym-tip-card { box-sizing: border-box; width: min(100%, 340px); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.35), 0 0 0 100vmax rgba(0,0,0,.12); outline: none; }
+#symTip .sym-tip-card { box-sizing: border-box; width: min(100%, 340px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.35), 0 0 0 100vmax rgba(0,0,0,.12); outline: none; }
 #symTip .sym-tip-head { display: grid; justify-items: center; gap: 4px; text-align: center; }
 #symbols #symTip .sym { height: 84px; }
 #symbols #symTip .sym svg { height: 84px; }
@@ -95,6 +94,13 @@
 #symbols #symTip b { font-size: 19px; }
 #symbols #symTip small { font-size: 14px; }
 #symTip p { margin: 12px 0 0; font: 400 15px/1.5 var(--font-note); color: var(--fg); }
+@media (max-height: 700px) {   /* short phones: a smaller symbol so the card fits beside the tapped one */
+  #symbols #symTip .sym, #symbols #symTip .sym svg { height: 56px; }
+  #symbols #symTip .sym.w, #symbols #symTip .sym.r { font-size: 28px; }
+  #symbols #symTip .sym.dyn { font-size: 40px; }
+  #symTip .sym-tip-card { padding: 16px; }
+  #symTip p { margin-top: 8px; }
+}
 /* symbols printed as words (pizz., dolce), letters (D.C., WB) or dynamics (pp, sfz), in a score's serif */
 #symbols .sym.w, #symbols .sym.r, #symbols .sym.dyn { font-family: 'Times New Roman', 'Noto Serif', Georgia, serif; white-space: nowrap; }
 #symbols .sym.w { font-size: 19px; font-style: italic; }

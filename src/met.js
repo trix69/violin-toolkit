@@ -188,7 +188,7 @@
     if (!tip.hidden) { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ' || e.key === 'Tab') { e.preventDefault(); closeTip(); } return; }
     var t = e.target;
     if (e.key === 'Escape') closeSym();
-    else if ((e.key === 'Enter' || e.key === ' ') && t.hasAttribute && t.hasAttribute('data-tip')) { e.preventDefault(); openTip(t, 0); }
+    else if ((e.key === 'Enter' || e.key === ' ') && t.hasAttribute && t.hasAttribute('data-tip')) { e.preventDefault(); openTip(t); }
     else if (e.key === 'Tab') {   /* keep focus in the window: the symbols, then Done */
       var f = symSheet.querySelectorAll('li[data-tip], #symDone'), first = f[0], last = f[f.length - 1];
       if (e.shiftKey ? (t === first || t === $('symCard')) : t === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
@@ -198,35 +198,31 @@
   $('symDone').addEventListener('click', closeSym);
   symSheet.addEventListener('click', function (e) { if (e.target === symSheet && tip.hidden && !downClosed) closeSym(); downClosed = false; });
 
-  /* A tap on a symbol shows its explanation at once and fades it out after a reading time; holding the
-     symbol keeps it up while held and for twice as long after release. Enter/Space opens it with no fade, until Esc. Tapping anywhere else closes it, and a tap
-     on another symbol shows that one. */
-  var tip = $('symTip'), tipCard = $('symTipCard'), tipFrom = null, tipT = 0;
+  /* A tap on a symbol (or a hold, or Enter/Space) shows its explanation at once; it stays until a tap
+     anywhere else, Esc, or a tap on the card. A tap on another symbol shows that one. */
+  var tip = $('symTip'), tipCard = $('symTipCard'), tipFrom = null;
   var holdT = 0, holdLi = null, holdX = 0, holdY = 0, held = false, quietUntil = 0, downClosed = false;
-  function readMs(li, f) { return Math.min(5000, 1500 + 25 * li.getAttribute('data-tip').length) * f; }
-  function openTip(li, ms) {
+  function openTip(li) {
     var head = $('symTipHead');
-    clearTimeout(tipT);
     head.textContent = '';
     Array.prototype.forEach.call(li.children, function (c) { head.appendChild(c.cloneNode(true)); });
     head.querySelector('b').id = 'symTipName';
     $('symTipText').textContent = li.getAttribute('data-tip');
     tipFrom = li;
     /* in the half of the screen away from the symbol, so the symbol stays in sight (and can be held) */
-    var r = li.getBoundingClientRect();
-    tip.classList.toggle('up', r.top + r.height / 2 > window.innerHeight / 2);
-    tip.classList.remove('fading'); tip.hidden = false;
+    var r = li.getBoundingClientRect(), up = r.top + r.height / 2 > window.innerHeight / 2;
+    tip.classList.toggle('up', up);
+    /* and never over the Done button at the bottom of the sheet; on a short screen the card scrolls
+       rather than reach over the symbol */
+    var done = $('symDone').getBoundingClientRect(), bottom = done.height ? Math.max(20, window.innerHeight - done.top + 10) : 20;
+    tip.style.paddingBottom = bottom + 'px';
+    tipCard.style.maxHeight = Math.max(120, up ? r.top - 30 : window.innerHeight - bottom - r.bottom - 10) + 'px';
+    tip.hidden = false;
     try { tipCard.focus({ preventScroll: true }); } catch (e) {}
-    if (ms) fadeLater(ms);
-  }
-  function fadeLater(ms) {
-    clearTimeout(tipT);
-    tipT = setTimeout(function () { tip.classList.add('fading'); tipT = setTimeout(closeTip, 400); }, ms);
   }
   function closeTip() {
-    clearTimeout(tipT);
     if (tip.hidden) return;
-    tip.hidden = true; tip.classList.remove('fading');
+    tip.hidden = true;
     if (tipFrom && (document.activeElement === tipCard || document.activeElement === document.body)) try { tipFrom.focus({ preventScroll: true }); } catch (e) {}
     tipFrom = null;
   }
@@ -237,20 +233,20 @@
     var li = e.target.closest && e.target.closest('li[data-tip]');
     if (!li || e.button > 0) return;
     endHold(); holdLi = li; holdX = e.clientX; holdY = e.clientY; li.classList.add('pressing');
-    holdT = setTimeout(function () { var l = holdLi; endHold(); held = true; openTip(l, 0); }, 450);
+    holdT = setTimeout(function () { var l = holdLi; endHold(); held = true; openTip(l); }, 450);
   });
   symSheet.addEventListener('pointermove', function (e) { if (holdLi && Math.abs(e.clientX - holdX) + Math.abs(e.clientY - holdY) > 10) endHold(); });
   ['pointerup', 'pointercancel'].forEach(function (ev) {
     symSheet.addEventListener(ev, function () {
       endHold();
-      if (held) { held = false; quietUntil = Date.now() + 600; if (tipFrom) fadeLater(readMs(tipFrom, 2)); }
+      if (held) { held = false; quietUntil = Date.now() + 600; }
     });
   });
   /* the click that follows the release of a hold (it can come late after a touch) is not a tap */
   symSheet.addEventListener('click', function (e) { if (held || Date.now() < quietUntil) { quietUntil = 0; e.stopPropagation(); e.preventDefault(); } }, true);
   symSheet.addEventListener('click', function (e) {
     var li = e.target.closest && e.target.closest('li[data-tip]');
-    if (li) { downClosed = false; openTip(li, readMs(li, 1)); }
+    if (li) { downClosed = false; openTip(li); }
   });
   symSheet.addEventListener('contextmenu', function (e) { if (e.target.closest && e.target.closest('li[data-tip]')) e.preventDefault(); });
   tipCard.addEventListener('click', closeTip);
