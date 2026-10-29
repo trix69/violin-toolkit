@@ -205,7 +205,8 @@ b_js = must(b_js, "    if (['440', '442'].indexOf(String(saved.tuning)) >= 0) st
 b_js = must(b_js, "key: state.key, vibrato: state.vibrato, tuning: state.tuning", "key: state.key, vibrato: state.vibrato")
 b_js = must(b_js, "  tuningSel.value = String(state.tuning);", "  tuningSel.textContent = '= ' + state.tuning + ' Hz';")
 b_js = must(b_js, "  tuningSel.addEventListener('change', function () { state.tuning = +tuningSel.value; persist(); });",
-            "  APP.onA4.push(function (v) { state.tuning = v; tuningSel.textContent = '= ' + v + ' Hz'; });")
+            "  APP.onA4.push(function (v) { state.tuning = v; tuningSel.textContent = '= ' + v + ' Hz'; render(); });\n"
+            "  APP.onTemper.push(render);   /* just intonation moves the notes */")
 b_js = must(b_js, "  render();\n  setTimeout(layout, 300);\n})();",
             "  render();\n  setTimeout(layout, 300);\n\n"
             "  APP.views.board = {\n"
@@ -391,10 +392,24 @@ t_js = must(t_js, """  sel.addEventListener('change', function () {
   });""", """  APP.onA4.push(function (v) {
     a4 = v;
     sel.textContent = '= ' + v + ' Hz';
-    if (tone) tone.osc.frequency.value = hz(STR[tone.i].midi);
+    if (tone) tone.osc.frequency.value = shz(STR[tone.i].midi);
+    refreshStrings(); refreshFoot();
+    if (last) setFreq(last);
+  });
+  APP.onTemper.push(function () {
+    if (tone) tone.osc.frequency.value = shz(STR[tone.i].midi);
     refreshStrings(); refreshFoot();
     if (last) setFreq(last);
   });""")
+# Settings > Intonation: in just intonation the open strings (shz) are pure fifths from A; Chromatic mode
+# has no key, so its notes (hz) stay equal tempered
+t_js = must(t_js, "  function hz(m) { return a4 * Math.pow(2, (m - 69) / 12); }",
+            "  function hz(m) { return a4 * Math.pow(2, (m - 69) / 12); }\n"
+            "  function shz(m) { return hz(m) * Math.pow(2, (APP.just ? APP.just.open(m) : 0) / 1200); }")
+for a in ('hz(s.midi)', 'hz(best.s.midi)', 'hz(STR[i].midi)', 'hz(STR[tone.i].midi)', 'hz(55)', 'hz(62)', 'hz(69)', 'hz(76)'):
+    assert a in t_js, a
+    t_js = t_js.replace(a, 's' + a)
+t_js = t_js.replace('sshz(', 'shz(')
 u0 = t_js.index('  /* ---------- recording upload ---------- */')
 u1 = t_js.index("  window.addEventListener('pagehide'")
 t_js = t_js[:u0] + t_js[u1:]
@@ -432,6 +447,25 @@ APP.setA4 = function (v) {
   try { localStorage.setItem('violin-a4', String(v)); } catch (e) {}
   APP.onA4.forEach(function (fn) { fn(v); });
 };
+/* Settings > Intonation: equal temperament (APP.just null) or just intonation. Just: each note is a pure
+   (5-limit) interval above the key's tonic, which stays where equal temperament puts it; the open strings
+   are pure fifths from A. Both give the offset in cents from equal temperament. */
+(function () {
+  var R = [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/3, 9/5, 15/8];
+  var JI = R.map(function (r, d) { return 1200 * Math.log(r) / Math.LN2 - 100 * d; });
+  var OPEN = { 55: 4/9, 62: 2/3, 69: 1, 76: 3/2 };   /* G3 D4 A4 E5 against A4 */
+  var just = {
+    cents: function (midi, root) { return JI[((midi - root) % 12 + 12) % 12]; },
+    open: function (midi) { return OPEN[midi] ? 1200 * Math.log(OPEN[midi]) / Math.LN2 - 100 * (midi - 69) : 0; }
+  };
+  APP.just = null; APP.onTemper = [];
+  try { if (localStorage.getItem('violin-temper') === 'just') APP.just = just; } catch (e) {}
+  APP.setTemper = function (t) {
+    APP.just = t === 'just' ? just : null;
+    try { localStorage.setItem('violin-temper', t); } catch (e) {}
+    APP.onTemper.forEach(function (fn) { fn(); });
+  };
+})();
 """
 
 nav_js = """(function () {
@@ -472,7 +506,7 @@ nav_js = """(function () {
   var sheet = document.getElementById('sheet'), sheetCard = document.getElementById('sheetCard');
   var segLang = document.getElementById('segLang');
   var segNames = document.getElementById('segNames');
-  var segA4 = document.getElementById('segA4');
+  var segA4 = document.getElementById('segA4'), segTemper = document.getElementById('segTemper');
   var segApp = document.getElementById('segApp'), swatches = document.getElementById('swatches');
   var segFlash = document.getElementById('segFlash');
   var openBtn = document.getElementById('openSettings');
@@ -480,6 +514,7 @@ nav_js = """(function () {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
     Array.prototype.forEach.call(segLang.children, function (b) { b.setAttribute('aria-checked', b.dataset.lang === I18N.lang ? 'true' : 'false'); });
     Array.prototype.forEach.call(segA4.children, function (b) { b.setAttribute('aria-checked', +b.dataset.a4 === APP.a4 ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', (b.dataset.temper === 'just') === !!APP.just ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
@@ -586,6 +621,10 @@ nav_js = """(function () {
   segA4.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     APP.setA4(+b.dataset.a4); syncSheet();
+  });
+  segTemper.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    APP.setTemper(b.dataset.temper); syncSheet();
   });
   /* Version line: tap to fetch the newest release into the offline copy and reload.
      Without a service worker (local file, artifact) it just reloads. */
@@ -816,6 +855,11 @@ markup = f"""
     <div class="segc two" role="radiogroup" aria-labelledby="lblA4" id="segA4">
       <button type="button" role="radio" aria-checked="false" data-a4="442">442 Hz</button>
       <button type="button" role="radio" aria-checked="false" data-a4="440">440 Hz</button>
+    </div>
+    <h3 id="lblTemper">Intonation</h3>
+    <div class="segc two" role="radiogroup" aria-labelledby="lblTemper" id="segTemper">
+      <button type="button" role="radio" aria-checked="false" data-temper="equal">Equal temperament</button>
+      <button type="button" role="radio" aria-checked="false" data-temper="just">Just intonation</button>
     </div>
     <h3 id="lblApp">Appearance</h3>
     <div class="segc" role="radiogroup" aria-labelledby="lblApp" id="segApp">

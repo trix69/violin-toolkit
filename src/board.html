@@ -493,6 +493,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 
   /* real spacing: distance from the nut = string length x (1 - 2^(-semitones/12)) */
   function mm(n) { return STRING_MM * (1 - Math.pow(2, -n / 12)); }
+  /* Settings > Intonation (built page only): in just intonation each stopped note is a pure interval above
+     the key's tonic and the open strings are pure fifths, so a note sounds and sits a few cents away from
+     its equal-tempered place. */
+  function J() { return window.APP && APP.just; }
+  function openCents(s) { return J() ? J().open(s.midi) : 0; }
+  function stopCents(midi) { return J() ? J().cents(midi, keyObj().root) : 0; }
+  function noteCents(nt) { return nt.n === 0 || nt.n === MAXN ? openCents(nt.s) : stopCents(nt.midi); }
+  function noteFreq(nt) { return midiFreq(nt.midi) * Math.pow(2, noteCents(nt) / 1200); }
+  function noteN(nt) { return nt.n === 0 || nt.n === MAXN ? nt.n : nt.n + (noteCents(nt) - openCents(nt.s)) / 100; }   /* semitones from its open string */
   function yFor(n) { return n === 0 ? 'var(--oy)' : 'calc(var(--head) + ' + mm(n).toFixed(2) + ' * var(--k))'; }
 
   /* ---------- Size the board to the screen ---------- */
@@ -532,8 +541,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     notes.forEach(function (nt, i) {
       var b = buttons[i];
       if (!b) return;
-      var up = nt.n > 0 ? (y(nt.n) - y(nt.n - 1)) / 2 : r + 4;
-      var down = nt.n < MAXN ? (y(nt.n + 1) - y(nt.n)) / 2 : r + 10;
+      var up = nt.n > 0 ? (y(noteN(nt)) - y(noteN(notes[i - 1]))) / 2 : r + 4;
+      var down = nt.n < MAXN ? (y(noteN(notes[i + 1])) - y(noteN(nt))) / 2 : r + 10;
       b.style.setProperty('--hx', hx.toFixed(1) + 'px');
       b.style.setProperty('--hu', Math.max(r, up - 0.5).toFixed(1) + 'px');
       b.style.setProperty('--hd', Math.max(r, down - 0.5).toFixed(1) + 'px');
@@ -572,8 +581,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     notes.forEach(function (nt, i) {
       var full = noteName(nt.midi, true);
       html += '<button type="button" class="note off' + (nt.n === MAXN ? ' harm' : '') + '" data-i="' + i + '" style="--x:' + (nt.si * 25 + 12.5) +
-        '%;--y:' + yFor(nt.n) + '" data-label="' + noteName(nt.midi, false) +
-        '" aria-label="' + nt.s.n + ' string, ' + full + (nt.n === MAXN ? ' natural harmonic' : '') + ', ' + midiFreq(nt.midi).toFixed(1) + ' hertz. Hold to play."></button>';
+        '%;--y:' + yFor(noteN(nt)) + '" data-label="' + noteName(nt.midi, false) +
+        '" aria-label="' + nt.s.n + ' string, ' + full + (nt.n === MAXN ? ' natural harmonic' : '') + ', ' + noteFreq(nt).toFixed(1) + ' hertz. Hold to play."></button>';
     });
     board.innerHTML = html;
     buttons = Array.prototype.slice.call(board.querySelectorAll('.note'));
@@ -597,7 +606,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     /* a disc on each string whose reach (open string to the octave harmonic) includes the pitch,
        placed by the exact pitch, so a sharp note sits a little nearer the bridge than its note */
     Array.prototype.forEach.call(board.querySelectorAll('.pcm'), function (d, si) {
-      var n = r && state.pos === 'pc' ? r.m - STRINGS[si].midi : -9;
+      var n = r && state.pos === 'pc' ? r.m - STRINGS[si].midi - openCents(STRINGS[si]) / 100 : -9;
       var show = n >= -0.5 && n <= MAXN + 0.5;
       /* drawn no further than a little past the nut or the octave, so the disc isn't cut off
          by the board's edge (at the nut, -0.02 keeps it 2.1 px inside the stage even at the
@@ -940,7 +949,11 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     }
     var m = 69 + 12 * Math.log(f / state.tuning) / Math.LN2;
     var n = Math.round(m);
-    var cents = Math.round((m - n) * 100);
+    /* against the note's just target when Settings > Intonation is just; an open-string pitch also counts
+       as in tune at the open string's own pitch */
+    var raw = (m - n) * 100, cents = raw - stopCents(n);
+    STRINGS.forEach(function (st) { var c = raw - openCents(st); if (st.midi === n && Math.abs(c) < Math.abs(cents)) cents = c; });
+    cents = Math.round(cents);
     hist.push(n);
     if (hist.length > 3) hist.shift();
     var agree = hist.filter(function (x) { return x === n; }).length;
@@ -978,7 +991,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (!ensureCtx()) return;
     var nt = notes[+el.dataset.i];
     if (!nt) return;
-    var rec = { el: el, v: startVoice(midiFreq(nt.midi)), t0: performance.now(), vibOn: false, timer: 0, open: nt.n === 0 || nt.n === MAXN };   /* open strings and harmonics stay steady */
+    var rec = { el: el, v: startVoice(noteFreq(nt)), t0: performance.now(), vibOn: false, timer: 0, open: nt.n === 0 || nt.n === MAXN };   /* open strings and harmonics stay steady */
     voices.set(id, rec);
     rec.timer = setTimeout(function () { applyVib(rec); }, 200);   /* vibrato starts after 200 ms of holding */
     el.classList.add('down');
