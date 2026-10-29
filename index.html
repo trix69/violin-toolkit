@@ -1411,9 +1411,10 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <button type="button" role="radio" aria-checked="false" data-a4="440">440 Hz</button>
     </div>
     <h3 id="lblTemper">Intonation</h3>
-    <div class="segc two" role="radiogroup" aria-labelledby="lblTemper" id="segTemper">
-      <button type="button" role="radio" aria-checked="false" data-temper="equal">Equal temperament</button>
-      <button type="button" role="radio" aria-checked="false" data-temper="just">Just intonation</button>
+    <div class="segc" role="radiogroup" aria-labelledby="lblTemper" id="segTemper">
+      <button type="button" role="radio" aria-checked="false" data-temper="equal">Equal</button>
+      <button type="button" role="radio" aria-checked="false" data-temper="just">Just</button>
+      <button type="button" role="radio" aria-checked="false" data-temper="pyth">Pythagorean</button>
     </div>
     <h3 id="lblApp">Appearance</h3>
     <div class="segc" role="radiogroup" aria-labelledby="lblApp" id="segApp">
@@ -1445,7 +1446,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.10" data-build="20261030-071242" data-cache="violin-toolkit-"><span>Version 1.10</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.11" data-build="20261030-090206" data-cache="violin-toolkit-"><span>Version 1.11</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1520,6 +1521,23 @@ APP.session = function () {
 };
 APP.playThroughSilent = function () { APP.sound = true; APP.session(); };
 APP.mic = function (who, on) { APP.mics[who] = !!on; APP.session(); };
+/* Leaving the app (another app, the home screen, a locked phone): iOS interrupts the page's audio, and a
+   context resumed afterwards can stay silent until the app is force-quit. So while hidden the audio session
+   is let go, and each tool starts a fresh AudioContext for its first sound afterwards: APP.made() stamps a
+   new context, APP.renew() closes one from before the page was last hidden and says to make another. */
+APP.audioGen = 0;
+APP.made = function (ctx) { if (ctx) ctx.vtGen = APP.audioGen; return ctx; };
+APP.renew = function (ctx) {
+  if (!ctx) return true;
+  if (ctx.state !== 'closed' && ctx.vtGen === APP.audioGen) return false;
+  try { var p = ctx.close(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  return true;
+};
+(function () {
+  function away() { APP.audioGen++; APP.sound = false; APP.session(); }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) away(); });
+  window.addEventListener('pagehide', away);
+})();
 try {
   var savedA4 = +localStorage.getItem('violin-a4');
   if (savedA4 === 440 || savedA4 === 442) APP.a4 = savedA4;
@@ -1529,22 +1547,37 @@ APP.setA4 = function (v) {
   try { localStorage.setItem('violin-a4', String(v)); } catch (e) {}
   APP.onA4.forEach(function (fn) { fn(v); });
 };
-/* Settings > Intonation: equal temperament (APP.just null) or just intonation. Just: each stopped note is a
-   pure (5-limit) interval above the key's tonic, measured from where equal temperament puts the tonic; the
-   open strings (and their octave harmonics) are pure fifths from A instead, so an open-string tonic (G, D,
-   A, E) sounds up to 3.9 cents from equal. Both give the offset in cents from equal temperament. */
+/* Settings > Intonation: equal temperament (APP.temper null), just intonation or Pythagorean. APP.temper
+   gives each note's offset in cents from equal temperament.
+   - Just: each stopped note is a pure (5-limit) interval above the key's tonic, measured from where equal
+     temperament puts the tonic.
+   - Pythagorean: every note is a chain of pure fifths from A, the tonic placed by its spelling (E♭ is six
+     fifths below A, D♯ six above), so the scale's whole tones are 9/8, its thirds wide and its leading
+     tones high, and the open strings fall on the scale exactly.
+   In both, the open strings (and their octave harmonics) are pure fifths from A, so an open-string tonic
+   (G, D, A, E) sounds up to 3.9 cents from equal. */
 (function () {
   var R = [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/3, 9/5, 15/8];
   var JI = R.map(function (r, d) { return 1200 * Math.log(r) / Math.LN2 - 100 * d; });
+  var FIFTH = 1200 * Math.log(3 / 2) / Math.LN2 - 700;   /* 1.955 cents wider than equal */
+  var PY = [0, -5, 2, -3, 4, -1, 6, 1, -4, 3, -2, 5];        /* fifths from the tonic to each semitone above it */
+  var LETTER = [-3, -1, 1, -4, -2, 0, 2], NAT = [0, 2, 4, 5, 7, 9, 11];   /* C D E F G A B: fifths from A */
   var OPEN = { 55: 4/9, 62: 2/3, 69: 1, 76: 3/2 };   /* G3 D4 A4 E5 against A4 */
-  var just = {
-    cents: function (midi, root) { return JI[((midi - root) % 12 + 12) % 12]; },
-    open: function (midi) { return OPEN[midi] ? 1200 * Math.log(OPEN[midi]) / Math.LN2 - 100 * (midi - 69) : 0; }
+  function open(midi) { return OPEN[midi] ? 1200 * Math.log(OPEN[midi]) / Math.LN2 - 100 * (midi - 69) : 0; }
+  function d(midi, root) { return ((midi - root) % 12 + 12) % 12; }
+  var T = {
+    just: { id: 'just', open: open, cents: function (midi, key) { return JI[d(midi, key.root)]; } },
+    pyth: { id: 'pyth', open: open, cents: function (midi, key) {
+      var alt = ((key.root - NAT[key.letter]) % 12 + 18) % 12 - 6;   /* the tonic's ♯ (+1) or ♭ (-1) */
+      return (LETTER[key.letter] + 7 * alt + PY[d(midi, key.root)]) * FIFTH;
+    },
+      /* a note by its name: letter 0-6 (C-B) and accidentals (+1 per ♯, -1 per ♭) */
+      chain: function (letter, acc) { return (LETTER[letter] + 7 * acc) * FIFTH; } }
   };
-  APP.just = null; APP.onTemper = [];
-  try { if (localStorage.getItem('violin-temper') === 'just') APP.just = just; } catch (e) {}
+  APP.temper = null; APP.onTemper = [];
+  try { APP.temper = T[localStorage.getItem('violin-temper')] || null; } catch (e) {}
   APP.setTemper = function (t) {
-    APP.just = t === 'just' ? just : null;
+    APP.temper = T[t] || null;
     try { localStorage.setItem('violin-temper', t); } catch (e) {}
     APP.onTemper.forEach(function (fn) { fn(); });
   };
@@ -1659,7 +1692,7 @@ function noteGate() {
 
   function $(id) { return document.getElementById(id); }
   function hz(m) { return a4 * Math.pow(2, (m - 69) / 12); }
-  function shz(m) { return hz(m) * Math.pow(2, (APP.just ? APP.just.open(m) : 0) / 1200); }
+  function shz(m) { return hz(m) * Math.pow(2, (APP.temper ? APP.temper.open(m) : 0) / 1200); }
   function fmtHz(v) { return v.toFixed(1) + ' Hz'; }
 
   /* ---------- gauge ---------- */
@@ -1829,7 +1862,9 @@ function noteGate() {
   var goBtn = $('go');
 
   function ensureCtx() {
-    if (!ctx) { var AC = window.AudioContext || window.webkitAudioContext; ctx = new AC({ latencyHint: 'interactive' }); }
+    /* a fresh context after the app was left (iOS), unless the microphone is using this one */
+    if (ctx && window.APP && APP.renew && !running && !tone && APP.renew(ctx)) { ctx = null; wave = null; }
+    if (!ctx) { var AC = window.AudioContext || window.webkitAudioContext; ctx = new AC({ latencyHint: 'interactive' }); if (window.APP && APP.made) APP.made(ctx); }
     return ctx;
   }
 
@@ -2051,6 +2086,13 @@ function noteGate() {
   mc.addEventListener('click', function () { setMode('chromatic'); });
 
   window.addEventListener('pagehide', function () { stopTone(); stopMic(); });
+  /* leaving the app: stop the tone and the microphone (iOS cuts it in the background); on return, listen
+     again if the tuner is on screen and was listening */
+  var wasListening = false;
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { wasListening = running; stopTone(); if (running) stopMic(); }
+    else if (wasListening && goBtn.offsetParent) { wasListening = false; startMic(true); }
+  });
 
   refreshStrings();
   refreshFoot();
@@ -2159,12 +2201,20 @@ function noteGate() {
 
   /* real spacing: distance from the nut = string length x (1 - 2^(-semitones/12)) */
   function mm(n) { return STRING_MM * (1 - Math.pow(2, -n / 12)); }
-  /* Settings > Intonation (built page only): in just intonation each stopped note is a pure interval above
-     the key's tonic and the open strings are pure fifths, so a note sounds and sits a few cents away from
+  /* Settings > Intonation (built page only): in just or Pythagorean intonation (APP.temper) each stopped note
+     follows the key and the open strings are pure fifths, so a note sounds and sits a few cents away from
      its equal-tempered place. */
-  function J() { return window.APP && APP.just; }
+  function J() { return window.APP && APP.temper; }
   function openCents(s) { return J() ? J().open(s.midi) : 0; }
-  function stopCents(midi) { return J() ? J().cents(midi, keyObj().root) : 0; }
+  function stopCents(midi) {
+    var j = J();
+    if (!j) return 0;
+    if (!j.chain) return j.cents(midi, keyObj());
+    /* Pythagorean: from the name the note is shown with, so a grey D♯ in G major is a D♯, not an E♭ (Hermes R16.1) */
+    var nm = noteName(midi, false), acc = 0, i;
+    for (i = 1; i < nm.length; i++) acc += nm[i] === '♯' ? 1 : nm[i] === '♭' ? -1 : 0;
+    return j.chain('CDEFGAB'.indexOf(nm[0]), acc);
+  }
   function noteCents(nt) { return nt.n === 0 || nt.n === MAXN ? openCents(nt.s) : stopCents(nt.midi); }
   function noteFreq(nt) { return midiFreq(nt.midi) * Math.pow(2, noteCents(nt) / 1200); }
   function noteN(nt) { return nt.n === 0 || nt.n === MAXN ? nt.n : nt.n + (noteCents(nt) - openCents(nt.s)) / 100; }   /* semitones from its open string */
@@ -2301,9 +2351,10 @@ function noteGate() {
   function updateSub() {
     var key = keyObj();
     /* no-break spaces inside each part, so a line that wraps breaks between parts (not "1st / position") */
-    subEl.textContent = key.label + '\u00a0' + key.mode + ' · ' +
-      (window.APP ? (APP.just ? 'Just' : 'Equal') + ' · ' : '') +   /* Settings > Intonation */
-      (state.pos === 'pc' ? 'Pitch\u00a0Check' + (pcStatus ? ' · ' + pcStatus : '') : POSITIONS[state.pos].name.replace(/ /g, '\u00a0'));
+    /* Pitch Check leaves its own name out (the position bar shows it), so its verdict fits in two lines */
+    subEl.textContent = [key.label + '\u00a0' + key.mode,
+      window.APP ? { just: 'Just', pyth: 'Pyth.' }[APP.temper && APP.temper.id] || 'Equal' : '',   /* Settings > Intonation (Pyth. so it fits two lines on a 360 px phone) */
+      state.pos === 'pc' ? pcStatus : POSITIONS[state.pos].name.replace(/ /g, '\u00a0')].filter(Boolean).join(' · ');
   }
 
   function paint() {
@@ -2448,10 +2499,13 @@ function noteGate() {
   /* ---------- Audio ---------- */
   var ctx = null, master = null;
   function ensureCtx() {
+    /* a fresh context after the app was left (iOS), unless Pitch Check's microphone is using this one */
+    if (ctx && window.APP && !(mic && mic.stream) && APP.renew(ctx)) { ctx = null; master = null; }
     if (!ctx) {
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
+      if (window.APP) APP.made(ctx);
       master = ctx.createGain();
       master.gain.value = 0.7;
       var comp = ctx.createDynamicsCompressor();
@@ -2713,7 +2767,12 @@ function noteGate() {
     if (el) end('k' + el.dataset.i);
   });
   window.addEventListener('blur', stopAll);
-  document.addEventListener('visibilitychange', function () { if (document.hidden) stopAll(); });
+  /* iOS cuts the microphone while the app is in the background: let Pitch Check go when leaving and start it
+     again on return (its audio then resumes at the first tap, as after any start without a tap) */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { stopAll(); if (mic) stopMic(); }
+    else if (state.pos === 'pc' && !mic && board.offsetParent) startMic();
+  });
   window.addEventListener('resize', layout);
   window.addEventListener('orientationchange', function () { setTimeout(layout, 200); });
   window.addEventListener('load', layout);
@@ -3079,8 +3138,9 @@ function noteGate() {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     if (window.APP) APP.playThroughSilent();
-    if (!ctx) ctx = new AC();
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx && window.APP && APP.renew(ctx)) ctx = null;   /* a fresh context after the app was left (iOS) */
+    if (!ctx) { ctx = new AC(); if (window.APP) APP.made(ctx); }
+    if (ctx.state !== 'running') { try { var r = ctx.resume(); if (r && r.catch) r.catch(function () {}); } catch (e) {} }   /* also 'interrupted' (iOS) */
     playing = true; beatIdx = 0; queue = []; lastNow = -1;
     nextT = ctx.currentTime + 0.06;
     tick(); timer = setInterval(tick, 25);
@@ -3161,7 +3221,7 @@ function noteGate() {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
     Array.prototype.forEach.call(segLang.children, function (b) { b.setAttribute('aria-checked', b.dataset.lang === I18N.lang ? 'true' : 'false'); });
     Array.prototype.forEach.call(segA4.children, function (b) { b.setAttribute('aria-checked', +b.dataset.a4 === APP.a4 ? 'true' : 'false'); });
-    Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', (b.dataset.temper === 'just') === !!APP.just ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', b.dataset.temper === (APP.temper ? APP.temper.id : 'equal') ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
@@ -3803,7 +3863,7 @@ function noteGate() {
     'Simile: keep the same bowing or articulation as before.': 'Simile：继续使用与前面相同的弓法或演奏法。',
     'Attacca: start the next movement without a pause.': 'Attacca：不停顿，直接开始下一乐章。',
     'Volti subito: turn the page quickly, the music carries straight on.': 'Volti subito：快速翻页，音乐紧接着继续。',
-    'Intonation': '律制', 'Equal temperament': '十二平均律', 'Just intonation': '纯律',
+    'Intonation': '律制', 'Equal': '平均律', 'Just': '纯律', 'Pythagorean': '五度相生律',
     'Tap': '点拍', 'Slower': '减慢', 'Faster': '加快', 'Time signature': '拍号', 'Beats per bar': '每小节拍数',
     'Note value': '音符时值', 'Tempo': '速度', 'Start': '开始', 'Stop': '停止',
     'Beats. Tap a beat to change its accent.': '节拍。点按某一拍可更改其重音。',
@@ -3884,7 +3944,7 @@ function noteGate() {
                   'open': '空弦', 'above': '高于', 'below': '低于', 'harm.': '泛音', 'octave': '八度' }]
   ];
   var Q = { major: '大调', minor: '小调' };
-  var T = { Equal: '平均律', Just: '纯律' };   /* Settings > Intonation, in the fingerboard subtitle */
+  var T = { Equal: '平均律', Just: '纯律', 'Pyth.': '五度' };   /* Settings > Intonation, in the fingerboard subtitle; 五度 is short so it keeps one line (Settings says 五度相生律) */
   var SW = { sharp: '升号', sharps: '升号', flat: '降号', flats: '降号' };
   function words(w) {
     if (DICT[w]) return DICT[w];
@@ -3899,8 +3959,8 @@ function noteGate() {
   var RX = [
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
-    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just) · )?(1st|2nd|3rd)[ \u00a0]position$/, function (m, k, q, t, p) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + P[p]; }],
-    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just) · )?Pitch[ \u00a0]Check(?: · (.+))?$/, function (m, k, q, t, s) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + '音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
+    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just|Pyth\.) · )?(1st|2nd|3rd)[ \u00a0]position$/, function (m, k, q, t, p) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + P[p]; }],
+    [/^(.+)[ \u00a0](major|minor) · (Equal|Just|Pyth\.)(?: · (.+))?$/, function (m, k, q, t, s) { return k + Q[q] + ' · ' + T[t] + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],   /* Pitch Check: key · intonation · status */
     [/^(.+) (major|minor) · (no ♯ or ♭|\d sharps?|\d flats?)$/, function (m, k, q, w) { return k + Q[q] + ' · ' + words(w); }],
     [/^(.+) (major|minor): (.+)$/, function (m, k, q, w) { return k + Q[q] + '：' + (words(w) || w); }],
     [/^(\S+) (major|minor)$/, function (m, k, q) { return k + Q[q]; }],
