@@ -283,7 +283,7 @@
                   'open': '空弦', 'above': '高于', 'below': '低于', 'harm.': '泛音', 'octave': '八度' }]
   ];
   var Q = { major: '大调', minor: '小调' };
-  var T = { Equal: '平均律', Just: '纯律', 'Pyth.': '五度相生律' };   /* Settings > Intonation, in the fingerboard subtitle */
+  var T = { Equal: '平均律', Just: '纯律', 'Pyth.': '五度' };   /* Settings > Intonation, in the fingerboard subtitle; 五度 is short so it keeps one line (Settings says 五度相生律) */
   var SW = { sharp: '升号', sharps: '升号', flat: '降号', flats: '降号' };
   function words(w) {
     if (DICT[w]) return DICT[w];
