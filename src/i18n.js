@@ -299,7 +299,7 @@
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
     [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just|Pyth\.) · )?(1st|2nd|3rd)[ \u00a0]position$/, function (m, k, q, t, p) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + P[p]; }],
-    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just|Pyth\.) · )?Pitch[ \u00a0]Check(?: · (.+))?$/, function (m, k, q, t, s) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + '音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
+    [/^(.+)[ \u00a0](major|minor) · (Equal|Just|Pyth\.)(?: · (.+))?$/, function (m, k, q, t, s) { return k + Q[q] + ' · ' + T[t] + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],   /* Pitch Check: key · intonation · status */
     [/^(.+) (major|minor) · (no ♯ or ♭|\d sharps?|\d flats?)$/, function (m, k, q, w) { return k + Q[q] + ' · ' + words(w); }],
     [/^(.+) (major|minor): (.+)$/, function (m, k, q, w) { return k + Q[q] + '：' + (words(w) || w); }],
     [/^(\S+) (major|minor)$/, function (m, k, q) { return k + Q[q]; }],

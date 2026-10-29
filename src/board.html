@@ -643,9 +643,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   function updateSub() {
     var key = keyObj();
     /* no-break spaces inside each part, so a line that wraps breaks between parts (not "1st / position") */
-    subEl.textContent = key.label + '\u00a0' + key.mode + ' · ' +
-      (window.APP ? ({ just: 'Just', pyth: 'Pyth.' }[APP.temper && APP.temper.id] || 'Equal') + ' · ' : '') +   /* Settings > Intonation (Pyth. so it fits two lines on a 360 px phone) */
-      (state.pos === 'pc' ? 'Pitch\u00a0Check' + (pcStatus ? ' · ' + pcStatus : '') : POSITIONS[state.pos].name.replace(/ /g, '\u00a0'));
+    /* Pitch Check leaves its own name out (the position bar shows it), so its verdict fits in two lines */
+    subEl.textContent = [key.label + '\u00a0' + key.mode,
+      window.APP ? { just: 'Just', pyth: 'Pyth.' }[APP.temper && APP.temper.id] || 'Equal' : '',   /* Settings > Intonation (Pyth. so it fits two lines on a 360 px phone) */
+      state.pos === 'pc' ? pcStatus : POSITIONS[state.pos].name.replace(/ /g, '\u00a0')].filter(Boolean).join(' · ');
   }
 
   function paint() {
