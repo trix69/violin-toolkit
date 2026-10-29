@@ -449,9 +449,10 @@ APP.setA4 = function (v) {
   try { localStorage.setItem('violin-a4', String(v)); } catch (e) {}
   APP.onA4.forEach(function (fn) { fn(v); });
 };
-/* Settings > Intonation: equal temperament (APP.just null) or just intonation. Just: each note is a pure
-   (5-limit) interval above the key's tonic, which stays where equal temperament puts it; the open strings
-   are pure fifths from A. Both give the offset in cents from equal temperament. */
+/* Settings > Intonation: equal temperament (APP.just null) or just intonation. Just: each stopped note is a
+   pure (5-limit) interval above the key's tonic, measured from where equal temperament puts the tonic; the
+   open strings (and their octave harmonics) are pure fifths from A instead, so an open-string tonic (G, D,
+   A, E) sounds up to 3.9 cents from equal. Both give the offset in cents from equal temperament. */
 (function () {
   var R = [1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/3, 9/5, 15/8];
   var JI = R.map(function (r, d) { return 1200 * Math.log(r) / Math.LN2 - 100 * d; });
