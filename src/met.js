@@ -183,11 +183,52 @@
 
   /* ---------- symbols overlay ---------- */
   var symSheet = $('symbols'), symBtn = $('mSym');
-  function closeSym() { symSheet.hidden = true; document.removeEventListener('keydown', onSymKey); try { symBtn.focus(); } catch (e) {} }
-  function onSymKey(e) { if (e.key === 'Escape') closeSym(); else if (e.key === 'Tab') { e.preventDefault(); $('symDone').focus(); } }
+  function closeSym() { closeTip(); symSheet.hidden = true; document.removeEventListener('keydown', onSymKey); try { symBtn.focus(); } catch (e) {} }
+  function onSymKey(e) {
+    if (!tip.hidden) { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ' || e.key === 'Tab') { e.preventDefault(); closeTip(); } return; }
+    var t = e.target;
+    if (e.key === 'Escape') closeSym();
+    else if ((e.key === 'Enter' || e.key === ' ') && t.hasAttribute && t.hasAttribute('data-tip')) { e.preventDefault(); openTip(t); }
+    else if (e.key === 'Tab') {   /* keep focus in the window: the symbols, then Done */
+      var f = symSheet.querySelectorAll('li[data-tip], #symDone'), first = f[0], last = f[f.length - 1];
+      if (e.shiftKey ? (t === first || t === $('symCard')) : t === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+    }
+  }
   symBtn.addEventListener('click', function () { symSheet.hidden = false; document.addEventListener('keydown', onSymKey); $('symCard').focus(); });
   $('symDone').addEventListener('click', closeSym);
-  symSheet.addEventListener('click', function (e) { if (e.target === symSheet) closeSym(); });
+  symSheet.addEventListener('click', function (e) { if (e.target === symSheet && tip.hidden) closeSym(); });
+
+  /* press and hold a symbol (or Enter on it) for a fuller explanation; a tap anywhere closes it */
+  var tip = $('symTip'), tipFrom = null, holdT = 0, holdLi = null, holdX = 0, holdY = 0, held = false, quietUntil = 0;
+  function openTip(li) {
+    var head = $('symTipHead');
+    head.textContent = '';
+    Array.prototype.forEach.call(li.children, function (c) { head.appendChild(c.cloneNode(true)); });
+    head.querySelector('b').id = 'symTipName';
+    $('symTipText').textContent = li.getAttribute('data-tip');
+    tipFrom = li; tip.hidden = false; $('symTipCard').focus();
+  }
+  function closeTip() {
+    if (tip.hidden) return;
+    tip.hidden = true;
+    if (tipFrom) try { tipFrom.focus({ preventScroll: true }); } catch (e) {}
+    tipFrom = null;
+  }
+  function endHold() { clearTimeout(holdT); if (holdLi) holdLi.classList.remove('pressing'); holdLi = null; }
+  symSheet.addEventListener('pointerdown', function (e) {
+    var li = e.target.closest && e.target.closest('li[data-tip]');
+    if (!li || e.button > 0 || !tip.hidden) return;
+    endHold(); holdLi = li; holdX = e.clientX; holdY = e.clientY; li.classList.add('pressing');
+    holdT = setTimeout(function () { var l = holdLi; endHold(); held = true; openTip(l); }, 450);
+  });
+  symSheet.addEventListener('pointermove', function (e) { if (holdLi && Math.abs(e.clientX - holdX) + Math.abs(e.clientY - holdY) > 10) endHold(); });
+  ['pointerup', 'pointercancel'].forEach(function (ev) {
+    symSheet.addEventListener(ev, function () { endHold(); if (held) { held = false; quietUntil = Date.now() + 600; } });
+  });
+  /* the click that follows the release which opened it (it can come late after a touch) must not close it */
+  symSheet.addEventListener('click', function (e) { if (held || Date.now() < quietUntil) { quietUntil = 0; e.stopPropagation(); e.preventDefault(); } }, true);
+  symSheet.addEventListener('contextmenu', function (e) { if (e.target.closest && e.target.closest('li[data-tip]')) e.preventDefault(); });
+  tip.addEventListener('click', closeTip);
 
   /* ---------- audio ---------- */
   var ctx = null, timer = 0, nextT = 0, beatIdx = 0, queue = [], raf = 0, lastNow = -1;
