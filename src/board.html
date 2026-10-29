@@ -634,8 +634,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 
   function updateSub() {
     var key = keyObj();
-    subEl.textContent = key.label + ' ' + key.mode + ' · ' +
-      (state.pos === 'pc' ? 'Pitch Check' + (pcStatus ? ' · ' + pcStatus : '') : POSITIONS[state.pos].name);
+    /* no-break spaces inside each part, so a line that wraps breaks between parts (not "1st / position") */
+    subEl.textContent = key.label + '\u00a0' + key.mode + ' · ' +
+      (window.APP ? (APP.just ? 'Just' : 'Equal') + ' · ' : '') +   /* Settings > Intonation */
+      (state.pos === 'pc' ? 'Pitch\u00a0Check' + (pcStatus ? ' · ' + pcStatus : '') : POSITIONS[state.pos].name.replace(/ /g, '\u00a0'));
   }
 
   function paint() {

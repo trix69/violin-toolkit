@@ -283,6 +283,7 @@
                   'open': '空弦', 'above': '高于', 'below': '低于', 'harm.': '泛音', 'octave': '八度' }]
   ];
   var Q = { major: '大调', minor: '小调' };
+  var T = { Equal: '平均律', Just: '纯律' };   /* Settings > Intonation, in the fingerboard subtitle */
   var SW = { sharp: '升号', sharps: '升号', flat: '降号', flats: '降号' };
   function words(w) {
     if (DICT[w]) return DICT[w];
@@ -297,8 +298,8 @@
   var RX = [
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
-    [/^(.+) (major|minor) · (1st|2nd|3rd) position$/, function (m, k, q, p) { return k + Q[q] + ' · ' + P[p]; }],
-    [/^(.+) (major|minor) · Pitch Check(?: · (.+))?$/, function (m, k, q, s) { return k + Q[q] + ' · 音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
+    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just) · )?(1st|2nd|3rd)[ \u00a0]position$/, function (m, k, q, t, p) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + P[p]; }],
+    [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just) · )?Pitch[ \u00a0]Check(?: · (.+))?$/, function (m, k, q, t, s) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + '音准检测' + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],
     [/^(.+) (major|minor) · (no ♯ or ♭|\d sharps?|\d flats?)$/, function (m, k, q, w) { return k + Q[q] + ' · ' + words(w); }],
     [/^(.+) (major|minor): (.+)$/, function (m, k, q, w) { return k + Q[q] + '：' + (words(w) || w); }],
     [/^(\S+) (major|minor)$/, function (m, k, q) { return k + Q[q]; }],

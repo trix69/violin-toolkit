@@ -206,7 +206,7 @@ b_js = must(b_js, "key: state.key, vibrato: state.vibrato, tuning: state.tuning"
 b_js = must(b_js, "  tuningSel.value = String(state.tuning);", "  tuningSel.textContent = '= ' + state.tuning + ' Hz';")
 b_js = must(b_js, "  tuningSel.addEventListener('change', function () { state.tuning = +tuningSel.value; persist(); });",
             "  APP.onA4.push(function (v) { state.tuning = v; tuningSel.textContent = '= ' + v + ' Hz'; render(); });\n"
-            "  APP.onTemper.push(render);   /* just intonation moves the notes */")
+            "  APP.onTemper.push(function () { render(); updateSub(); });   /* just intonation moves the notes */")
 b_js = must(b_js, "  render();\n  setTimeout(layout, 300);\n})();",
             "  render();\n  setTimeout(layout, 300);\n\n"
             "  APP.views.board = {\n"
@@ -252,6 +252,8 @@ html[lang="zh-CN"] {
 .tab[aria-current="page"].live::after, .tab.pulsing::after { background: var(--on-accent); box-shadow: 0 0 0 2px var(--accent); }   /* .pulsing: the beat pulse fills the tab with --accent (Hermes R10.1) */
 .appsub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 480px) { .appsub { letter-spacing: -0.02em; font-size: 11px; } }
+/* the fingerboard's line (key · intonation · position or Pitch Check status) may take two lines, then ends in … */
+#sub { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 /* narrow Android phones (360 px): keep the title clear of the tool buttons */
 @media (max-width: 380px) { .appbar h1 { font-size: 23px; } .appbar { gap: 8px; } .tabs { gap: 4px; } }
 @media (max-width: 480px) { .tab { width: 40px; height: 40px; } .tabs { gap: 5px; } .tab svg { width: 22px; height: 22px; } }
