@@ -16,7 +16,7 @@
     'Violin fingerboard': '小提琴指板', 'Position': '把位',
     'Auto vibrato': '自动揉弦', 'On': '开', 'Off': '关', 'Major': '大调', 'Minor': '小调', 'Pitch Check': '音准检测',
     '1st position': '一把位', '2nd position': '二把位', '3rd position': '三把位',
-    'starting microphone…': '正在启动麦克风…', 'microphone not available here': '此处无法使用麦克风',
+    'starting microphone…': '正在启动麦克风…', 'microphone unavailable': '此处无法使用麦克风',
     'audio not supported': '不支持音频', 'listening…': '聆听中…', 'microphone blocked': '麦克风已被禁用',
     'in tune': '音准正确', 'off the board': '超出指板',
     'no sharps or flats': '无升降号', 'no ♯ or ♭': '无升降号',

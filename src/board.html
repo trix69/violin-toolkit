@@ -897,7 +897,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     pcStatus = 'starting microphone…';
     updateSub();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      mic = null; pcStatus = 'microphone not available here'; updateSub(); return;
+      mic = null; pcStatus = 'microphone unavailable'; updateSub(); return;
     }
     APP.mic('pc', true);
     ensureCtx();   /* inside the tap, so the audio engine is allowed to run */
@@ -918,7 +918,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       pcLoop(token);
     }).catch(function (err) {
       if (mic === token) { mic = null; APP.mic('pc', false); }
-      pcStatus = (err && err.name === 'NotAllowedError') ? 'microphone blocked' : 'microphone not available here';
+      pcStatus = (err && err.name === 'NotAllowedError') ? 'microphone blocked' : 'microphone unavailable';
       updateSub();
     });
   }
