@@ -208,7 +208,8 @@
     Array.prototype.forEach.call(li.children, function (c) { head.appendChild(c.cloneNode(true)); });
     head.querySelector('b').id = 'symTipName';
     $('symTipText').textContent = li.getAttribute('data-tip');
-    tipFrom = li;
+    if (tipFrom) tipFrom.classList.remove('selected');
+    tipFrom = li; li.classList.add('selected');
     /* in the half of the screen away from the symbol, so the symbol stays in sight (and can be held) */
     var r = li.getBoundingClientRect(), up = r.top + r.height / 2 > window.innerHeight / 2;
     tip.classList.toggle('up', up);
@@ -223,6 +224,7 @@
   function closeTip() {
     if (tip.hidden) return;
     tip.hidden = true;
+    if (tipFrom) tipFrom.classList.remove('selected');
     if (tipFrom && (document.activeElement === tipCard || document.activeElement === document.body)) try { tipFrom.focus({ preventScroll: true }); } catch (e) {}
     tipFrom = null;
   }
