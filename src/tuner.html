@@ -557,7 +557,9 @@ function noteGate() {
   var goBtn = $('go');
 
   function ensureCtx() {
-    if (!ctx) { var AC = window.AudioContext || window.webkitAudioContext; ctx = new AC({ latencyHint: 'interactive' }); }
+    /* a fresh context after the app was left (iOS), unless the microphone is using this one */
+    if (ctx && window.APP && APP.renew && !running && !tone && APP.renew(ctx)) { ctx = null; wave = null; }
+    if (!ctx) { var AC = window.AudioContext || window.webkitAudioContext; ctx = new AC({ latencyHint: 'interactive' }); if (window.APP && APP.made) APP.made(ctx); }
     return ctx;
   }
 
@@ -813,6 +815,13 @@ function noteGate() {
   });
 
   window.addEventListener('pagehide', function () { stopTone(); stopMic(); });
+  /* leaving the app: stop the tone and the microphone (iOS cuts it in the background); on return, listen
+     again if the tuner is on screen and was listening */
+  var wasListening = false;
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { wasListening = running; stopTone(); if (running) stopMic(); }
+    else if (wasListening && goBtn.offsetParent) { wasListening = false; startMic(true); }
+  });
 
   refreshStrings();
   refreshFoot();

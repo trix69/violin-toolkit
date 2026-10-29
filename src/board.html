@@ -781,10 +781,13 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   /* ---------- Audio ---------- */
   var ctx = null, master = null;
   function ensureCtx() {
+    /* a fresh context after the app was left (iOS), unless Pitch Check's microphone is using this one */
+    if (ctx && window.APP && !(mic && mic.stream) && APP.renew(ctx)) { ctx = null; master = null; }
     if (!ctx) {
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
+      if (window.APP) APP.made(ctx);
       master = ctx.createGain();
       master.gain.value = 0.7;
       var comp = ctx.createDynamicsCompressor();
@@ -1046,7 +1049,12 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (el) end('k' + el.dataset.i);
   });
   window.addEventListener('blur', stopAll);
-  document.addEventListener('visibilitychange', function () { if (document.hidden) stopAll(); });
+  /* iOS cuts the microphone while the app is in the background: let Pitch Check go when leaving and start it
+     again on return (its audio then resumes at the first tap, as after any start without a tap) */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { stopAll(); if (mic) stopMic(); }
+    else if (state.pos === 'pc' && !mic && board.offsetParent) startMic();
+  });
   window.addEventListener('resize', layout);
   window.addEventListener('orientationchange', function () { setTimeout(layout, 200); });
   window.addEventListener('load', layout);

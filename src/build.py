@@ -440,6 +440,23 @@ APP.session = function () {
 };
 APP.playThroughSilent = function () { APP.sound = true; APP.session(); };
 APP.mic = function (who, on) { APP.mics[who] = !!on; APP.session(); };
+/* Leaving the app (another app, the home screen, a locked phone): iOS interrupts the page's audio, and a
+   context resumed afterwards can stay silent until the app is force-quit. So while hidden the audio session
+   is let go, and each tool starts a fresh AudioContext for its first sound afterwards: APP.made() stamps a
+   new context, APP.renew() closes one from before the page was last hidden and says to make another. */
+APP.audioGen = 0;
+APP.made = function (ctx) { if (ctx) ctx.vtGen = APP.audioGen; return ctx; };
+APP.renew = function (ctx) {
+  if (!ctx) return true;
+  if (ctx.state !== 'closed' && ctx.vtGen === APP.audioGen) return false;
+  try { var p = ctx.close(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  return true;
+};
+(function () {
+  function away() { APP.audioGen++; APP.sound = false; APP.session(); }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) away(); });
+  window.addEventListener('pagehide', away);
+})();
 try {
   var savedA4 = +localStorage.getItem('violin-a4');
   if (savedA4 === 440 || savedA4 === 442) APP.a4 = savedA4;

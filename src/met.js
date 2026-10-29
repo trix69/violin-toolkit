@@ -349,8 +349,9 @@
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     if (window.APP) APP.playThroughSilent();
-    if (!ctx) ctx = new AC();
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx && window.APP && APP.renew(ctx)) ctx = null;   /* a fresh context after the app was left (iOS) */
+    if (!ctx) { ctx = new AC(); if (window.APP) APP.made(ctx); }
+    if (ctx.state !== 'running') { try { var r = ctx.resume(); if (r && r.catch) r.catch(function () {}); } catch (e) {} }   /* also 'interrupted' (iOS) */
     playing = true; beatIdx = 0; queue = []; lastNow = -1;
     nextT = ctx.currentTime + 0.06;
     tick(); timer = setInterval(tick, 25);
