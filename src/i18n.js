@@ -26,6 +26,46 @@
     '½ beat in 4/4': '4/4 拍中占半拍', '1 beat in 4/4': '4/4 拍中占 1 拍', '2 beats in 4/4': '4/4 拍中占 2 拍', '4 beats in 4/4': '4/4 拍中占 4 拍',
     'Up bow': '上弓', 'Push, tip to frog': '推弓：弓尖到弓根', 'Down bow': '下弓', 'Pull, frog to tip': '拉弓：弓根到弓尖',
     'Flat': '降号', 'Semitone lower': '降低半音', 'Natural': '还原号', 'Cancels ♯ or ♭': '取消 ♯ 或 ♭', 'Sharp': '升号', 'Semitone higher': '升高半音',
+    /* symbols */
+    'Rests': '休止符', 'Articulation': '演奏法', 'Left hand': '左手', 'Dynamics': '力度', 'Expression': '表情', 'Ornaments': '装饰音', 'Repeats and jumps': '反复与跳转',
+    'Clef and time': '谱号与拍号', 'Other': '其他', 'Semiquaver (16th note)': '十六分音符', '¼ beat in 4/4': '4/4 拍中占 1/4 拍', 'Dotted crotchet': '附点四分音符',
+    '1½ beats in 4/4': '4/4 拍中占 1 拍半', 'Dotted minim': '附点二分音符', '3 beats in 4/4': '4/4 拍中占 3 拍', 'Two quavers': '二八节奏', 'Slur': '连弓',
+    'Several notes in one bow': '一弓拉几个音', 'Tie': '连音线', 'Hold as one longer note': '两个音连成一个', 'Slurred staccato': '连弓断奏',
+    'Stop between notes, one bow': '同一弓中音音分开', 'Portato (louré)': '连弓保持音', 'Gently pulse each note, one bow': '同一弓中每音轻轻分开', 'Tremolo': '震音',
+    'Fast short bows near the tip': '弓尖快速来回', 'Pizzicato': '拨弦', 'Pluck with a finger': '用手指拨弦', 'Arco': '用弓', 'Back to the bow': '恢复用弓拉',
+    'Left-hand pizzicato': '左手拨弦', 'Pluck with the left hand': '用左手手指拨', 'Col legno': '弓杆奏', 'Play with the stick': '用弓杆击弦', 'Sul ponticello': '近码奏',
+    'Near the bridge, glassy': '靠近琴码，声音发虚', 'Sul tasto': '指板上奏', 'Over the fingerboard, soft': '在指板上方，声音柔和', 'Separate bows': '分弓',
+    'Smooth, one note a bow': '一弓一音，连贯', 'Martelé': '顿弓', 'Bite, then release': '先压弦再快速放开', 'Spiccato': '跳弓', 'Bow bounces off the string': '弓离弦弹跳',
+    'Whole bow': '全弓', 'Upper half': '上半弓', 'Lower half': '下半弓', 'At the frog': '弓根', 'At the tip': '弓尖', 'Double sharp': '重升号',
+    'Two semitones higher': '升高两个半音', 'Double flat': '重降号', 'Two semitones lower': '降低两个半音', 'Semibreve rest': '全休止符',
+    'A whole bar of silence': '整小节休止', 'Minim rest': '二分休止符', 'Crotchet rest': '四分休止符', 'Quaver rest': '八分休止符', 'Semiquaver rest': '十六分休止符',
+    'Staccato': '断奏', 'Short and separated': '短而分开', 'Staccatissimo': '顿音', 'Very short': '非常短促', 'Tenuto': '保持音',
+    'Full length, leaned on': '时值拉满，稍加重', 'Accent': '重音', 'Stronger start': '这个音加重', 'Marcato': '强重音', 'Strong accent': '比重音更强', 'Fermata': '延长记号',
+    'Hold it longer': '拉长停留', 'Breath mark': '换气记号', 'Short lift': '稍作停顿、提弓', 'Caesura': '中止记号', 'Full stop, then go on': '完全停顿后继续',
+    'Fingering': '指法', '0 open, 1–4 index to little': '0 空弦，1–4 食指到小指', 'Strings': '弦号',
+    'I = E, II = A, III = D, IV = G': 'I 为 E 弦，II 为 A 弦，III 为 D 弦，IV 为 G 弦', 'On the G string': '在 G 弦上拉', 'Stay on one string': '保持在同一根弦',
+    'Harmonic': '自然泛音', 'Touch the string lightly': '手指轻触弦', 'Artificial harmonic': '人工泛音', 'Press low, touch the diamond': '下指按弦，上指轻触',
+    'Glissando': '滑音', 'Slide between the notes': '在两音间滑动', 'Vibrato': '揉弦', 'Without vibrato': '不揉弦', 'Softest': '极弱', 'Very soft': '很弱',
+    'Soft': '弱', 'Fairly soft': '中弱', 'Fairly loud': '中强', 'Loud': '强', 'Very loud': '很强', 'Loudest': '极强', 'Sudden accent': '突强',
+    'Also sf, fz': '也写作 sf、fz', 'Loud, then soft': '强后弱', 'Accent, then soft': '突强后弱', 'Suddenly soft': '突然变弱', 'Get louder': '渐强',
+    'Get softer': '渐弱', 'dim. or decresc.': 'dim. 或 decresc.', 'Dying away': '渐消失', 'Metronome mark': '速度记号', '120 beats a minute': '每分钟 120 拍',
+    'Broad, very slow': '广板', 'Fairly broad': '小广板', 'Slow': '柔板', 'Walking pace': '行板', 'Moderate': '中板', 'Fast and lively': '快板',
+    'Lively': '活泼的快板', 'Very fast': '急板', 'As fast as possible': '最急板', '200 BPM and up': '200 BPM 以上', 'Gradually slower': '渐慢',
+    'Slowing down': '渐慢（更平缓）', 'Smoother than rit.': '比 rit. 更平缓', 'Gradually faster': '渐快', 'Back to the tempo': '回原速',
+    'Back to the first tempo': '回到最初速度', 'Flexible tempo': '自由速度', 'Sweetly': '柔和地', 'Singing': '如歌地', 'Expressively': '有表情地', 'Smoothly': '连贯地',
+    'Lightly': '轻巧地', 'Marked': '着重地', 'Majestically': '庄严地', 'With spirit': '有活力地', 'Sustained': '持续地', 'Calmly': '安静地', 'Agitated': '激动地',
+    'Gracefully': '优雅地', 'Very': '很', 'A little': '稍', 'Little by little': '逐渐地', 'More': '更', 'Less': '较少', 'Always': '始终', 'Trill': '颤音',
+    'Alternate fast with the note above': '与上方音快速交替', 'Mordent': '上波音', 'Note, note above, note': '主音、上方音、主音', 'Lower mordent': '下波音',
+    'Note, note below, note': '主音、下方音、主音', 'Turn': '回音', 'Above, note, below, note': '上方音、主音、下方音、主音', 'Inverted turn': '逆回音',
+    'Below, note, above, note': '下方音、主音、上方音、主音', 'Appoggiatura': '倚音', 'Leaning note, takes time': '占用主音的时值', 'Acciaccatura': '短倚音',
+    'Crushed in, very quick': '极快地带过', 'Start repeat': '反复开始', 'End repeat': '反复结束', 'Go back and play again': '返回再拉一遍',
+    '1st and 2nd endings': '第一、第二结尾', 'Skip ending 1 the second time': '第二遍跳过第一结尾', 'Da capo': '从头反复', 'Back to the beginning': '回到开头',
+    'Dal segno': '从记号处反复', 'Back to the sign': '回到记号处', 'The end': '结束', 'Where the music ends after a jump back': '跳回后在此结束', 'Segno (sign)': '记号',
+    'Where dal segno jumps back to': '从记号处反复时跳回这里', 'Coda': '尾声', 'Jump to the ending': '跳到结尾段', 'Bar repeat': '小节反复', 'Play the last bar again': '重复上一小节',
+    'Treble clef': '高音谱号', 'The violin clef': '小提琴用的谱号', 'Common time': '四四拍', 'Same as 4/4': '相当于 4/4', 'Cut time': '二二拍', 'Same as 2/2': '相当于 2/2',
+    'Octave higher': '高八度', 'Octave lower': '低八度', 'Back to written pitch': '回到原音高', 'With mute': '加弱音器', 'Without mute': '去掉弱音器', 'Divided': '分奏',
+    'Split the part': '声部分开拉', 'Together again': '齐奏', 'One player': '独奏', 'Everyone': '全体', 'Carry on the same way': '同前', 'Go straight on': '紧接',
+    'No break': '不停顿', 'Turn quickly': '快翻页',
     'Tap': '点拍', 'Slower': '减慢', 'Faster': '加快', 'Time signature': '拍号', 'Beats per bar': '每小节拍数',
     'Note value': '音符时值', 'Tempo': '速度', 'Start': '开始', 'Stop': '停止',
     'Beats. Tap a beat to change its accent.': '节拍。点按某一拍可更改其重音。',
@@ -187,6 +227,7 @@
 
   var textRec = new WeakMap(), attrRec = new WeakMap();
   function doText(n) {
+    if (n.parentNode && n.parentNode.closest && n.parentNode.closest('[translate="no"]')) return;
     var rec = textRec.get(n), v = n.nodeValue;
     if (active()) {
       var base = (rec && v === rec.t) ? rec.o : v;
@@ -222,6 +263,7 @@
     var w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
       acceptNode: function (n) {
         if (n.nodeType === 1 && /^(SCRIPT|STYLE)$/.test(n.nodeName)) return NodeFilter.FILTER_REJECT;
+        if (n.nodeType === 1 && n.getAttribute('translate') === 'no') return NodeFilter.FILTER_REJECT;   /* Symbols: pizz., f, D.C. stay as printed */
         return NodeFilter.FILTER_ACCEPT;
       }
     });

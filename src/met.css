@@ -72,6 +72,15 @@
 #symbols .sym svg { height: 40px; width: auto; fill: currentColor; }
 #symbols b { font: 600 14px/1.25 var(--font-note); }
 #symbols small { font: 400 12px/1.35 var(--font-note); color: var(--muted); }
+/* symbols printed as words (pizz., dolce), letters (D.C., WB) or dynamics (pp, sfz), in a score's serif */
+#symbols .sym.w, #symbols .sym.r, #symbols .sym.dyn { font-family: 'Times New Roman', 'Noto Serif', Georgia, serif; white-space: nowrap; }
+#symbols .sym.w { font-size: 19px; font-style: italic; }
+#symbols .sym.r { font-size: 19px; font-weight: 700; }
+#symbols .sym.dyn { font-size: 27px; font-style: italic; font-weight: 700; letter-spacing: -1px; }
+#symbols .sym.n { font: 500 17px/1 var(--font-note); white-space: pre; word-spacing: 2px; }
+#symbols .sym-grid + .sym-grid { margin-top: 8px; }
+#symbols .sym-grid b, #symbols .sym-grid small { max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 359px) { #symbols .sym-grid b, #symbols .sym-grid small { hyphens: auto; -webkit-hyphens: auto; } #symbols .sym.w, #symbols .sym.r { font-size: 16px; } #symbols .sym.n { font-size: 14px; } #symbols .sym-grid b { font-size: 13px; } }
 /* small staves: the clef and time signature (a box the size of a beat), and the note that clicks (beside the tempo).
    Staff lines are drawn around the vertical centre, --sp apart. */
 #view-metronome .staff {
