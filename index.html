@@ -720,6 +720,7 @@ h1 {
   animation: launch-in .25s ease-out;
 }
 .launch[hidden] { display: none; }
+.tab.launch-set { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: calc(env(safe-area-inset-right, 0px) + 12px); }   /* Settings, so the language can be changed before choosing */
 .launch-card { width: min(100%, 720px); text-align: center; outline: none; }
 .launch h2 { margin: 0; font: 700 clamp(30px, 6vw, 44px)/1.1 var(--font-display); letter-spacing: -0.02em; }
 .launch-sub { margin: 8px 0 22px; font: 400 14px var(--font-mono); letter-spacing: .04em; color: var(--muted); }
@@ -753,7 +754,7 @@ html[lang="zh-CN"] {
 }
 .tab { position: relative; }
 .tab.live::after { content: ""; position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--panel); }
-.tab[aria-current="page"].live::after { background: var(--on-accent); box-shadow: 0 0 0 2px var(--accent); }
+.tab[aria-current="page"].live::after, .tab.pulsing::after { background: var(--on-accent); box-shadow: 0 0 0 2px var(--accent); }   /* .pulsing: the beat pulse fills the tab with --accent (Hermes R10.1) */
 .appsub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 480px) { .appsub { letter-spacing: -0.02em; font-size: 11px; } }
 /* narrow Android phones (360 px): keep the title clear of the tool buttons */
@@ -811,8 +812,9 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 @keyframes offer-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 #howto { z-index: 120; }
-/* metronome beat flash (Settings > Beat flash): a full-screen wash in the accent colour on each beat, animated by met.js */
-.beat-flash { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; z-index: 130; pointer-events: none; opacity: 0; background: var(--accent); display: none; }   /* the colour chosen in Settings > Colour.
+/* metronome beat flash (Settings > Beat flash): a full-screen wash in the accent colour on each beat, animated by met.js.
+   z-index 104: over the page, under the tour (105), Settings (110) and Use offline (120), so an open window stays still. */
+.beat-flash { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; z-index: 104; pointer-events: none; opacity: 0; background: var(--accent); display: none; }   /* the colour chosen in Settings > Colour.
    Not position: fixed and display: none at rest: iOS Safari tints its toolbar from fixed elements at the screen edge, even invisible ones. */
 #howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
 .howto-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 10px; }
@@ -933,8 +935,8 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 </script>
 
 <style>:root{color-scheme:light}[hidden]{display:none!important}body{margin:0;font-size:14px}</style>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTEyIiBmaWxsPSIjMTYyMDFCIi8+CjxkZWZzPgogPGcgaWQ9ImluayIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRTlFRkVBIiBzdHJva2Utd2lkdGg9IjMuMiIgc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiPgogIDxwYXRoIGQ9Ik0yMDYgMTM2IEMxNjggMTM0IDE0OCAxMDYgMTY2IDgwIEMxODIgNTggMjIyIDY2IDIxNCA5OCIvPgogIDxwYXRoIGQ9Ik0xNDAgMTE2IEwxODIgMTM0Ii8+CiAgPHBhdGggZD0iTTE1MCAxNTAgTDE4NiAxNjQiLz4KICA8cGF0aCBkPSJNMjI2IDg0IEwyNjIgMTA0Ii8+CiAgPHBhdGggZD0iTTIzMCAxMTYgTDI2MCAxMzIiLz4KICA8cGF0aCBkPSJNMjEwIDEwNCBMMjE0IDMzNiIvPgogIDxwYXRoIGQ9Ik0yMTQgMTg2IEMxNTAgMTgwIDExNCAyMDQgMTIwIDI1MiIvPgogIDxwYXRoIGQ9Ik0xMTYgMjUyIEMxNTAgMjcwIDE1MCAzMDIgMTI0IDMyMCIvPgogIDxwYXRoIGQ9Ik0xMjYgMzE4IEM5NiAzNzYgMTI0IDQzMiAyMTIgNDM0IEMyOTQgNDM0IDMxOCAzNzQgMjkwIDMxOCIvPgogIDxwYXRoIGQ9Ik0yOTIgMzIwIEMyNjYgMzAyIDI2NiAyNzAgMjk4IDI1MiIvPgogIDxwYXRoIGQ9Ik0yOTggMjUyIEMzMDIgMjAwIDI3MiAxODAgMjE0IDE4NiIvPgogIDxwYXRoIGQ9Ik0xNzAgMjY4IEMxNTggMjg2IDE3NiAzMDQgMTY0IDMyNiIvPgogIDxwYXRoIGQ9Ik0yNTQgMjY4IEMyNjYgMjg2IDI0OCAzMDQgMjYwIDMyNiIvPgogIDxwYXRoIGQ9Ik0yMTIgMzUwIEwyMTYgNDMyIi8+CiA8L2c+CiA8ZyBpZD0iYm93IiBmaWxsPSJub25lIiBzdHJva2U9IiNFOUVGRUEiIHN0cm9rZS13aWR0aD0iMy4yIiBzdHJva2UtbGluZWNhcD0iYnV0dCI+CiAgPHBhdGggZD0iTTMxNiAxMTIgTDM1MiA5OCIvPgogIDxwYXRoIGQ9Ik0zMjQgMTE2IEw0MTQgNDUyIi8+CiAgPHBhdGggZD0iTTM0MiAxMzIgTDQyOCA0MzgiLz4KICA8cGF0aCBkPSJNMzk0IDM5NiBMNDMwIDM4NiIvPgogPC9nPgo8L2RlZnM+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI1NiAyNjIpIHNjYWxlKDAuODgpIHJvdGF0ZSgtNSkgdHJhbnNsYXRlKC0yNjIgLTI2OCkiPgogIDx1c2UgaHJlZj0iI2luayIgeD0iLTkuOTUiIHk9IjYuNzEiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9Ii04LjcwIiB5PSI1Ljg3Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSItNy40NiIgeT0iNS4wMyIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iLTYuMjIiIHk9IjQuMTkiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9Ii00Ljk3IiB5PSIzLjM2Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSItMy43MyIgeT0iMi41MiIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iLTIuNDkiIHk9IjEuNjgiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9Ii0xLjI0IiB5PSIwLjg0Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSIwLjAwIiB5PSItMC4wMCIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iMS4yNCIgeT0iLTAuODQiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9IjIuNDkiIHk9Ii0xLjY4Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSIzLjczIiB5PSItMi41MiIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iNC45NyIgeT0iLTMuMzYiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9IjYuMjIiIHk9Ii00LjE5Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSI3LjQ2IiB5PSItNS4wMyIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iOC43MCIgeT0iLTUuODciLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9IjkuOTUiIHk9Ii02LjcxIi8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSItNC42NCIgeT0iMy4xMyIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iLTQuMDYiIHk9IjIuNzQiLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9Ii0zLjQ4IiB5PSIyLjM1Ii8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSItMi45MCIgeT0iMS45NiIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iLTIuMzIiIHk9IjEuNTciLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9Ii0xLjc0IiB5PSIxLjE3Ii8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSItMS4xNiIgeT0iMC43OCIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iLTAuNTgiIHk9IjAuMzkiLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9IjAuMDAiIHk9Ii0wLjAwIi8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSIwLjU4IiB5PSItMC4zOSIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iMS4xNiIgeT0iLTAuNzgiLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9IjEuNzQiIHk9Ii0xLjE3Ii8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSIyLjMyIiB5PSItMS41NyIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iMi45MCIgeT0iLTEuOTYiLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9IjMuNDgiIHk9Ii0yLjM1Ii8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSI0LjA2IiB5PSItMi43NCIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iNC42NCIgeT0iLTMuMTMiLz4KPC9nPgo8L3N2Zz4K">
-<link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAFjElEQVR4nLxXe0xTVxz+bm8fQNu1BVqgvKoyDfLUJT6yqREFgySaOBWnc6CIkcQtM1miS/aHSvxv2Uy2ZYlxLgTdFE1mIgZEEV9ThomK4FymOGixFERskZZHW+5+58ZWjdJWQb7k5t577u+c853f4zvnSvECtCatVo6IHQIwjwOyAc6ACYHQQ2PeojEbR+D63t5ut/u+cL4HfXJsPsAf5DgY8Q4hCLAC3i2POmw1fgIGU9wyQFKLSYQgeJczEpwmSaOTc6o7tPI4TCKYJ4a9XIZEJokoCnXy8PBwTBRYqOVS72e8Uvvelxy49GAdDh44gC2bihEWFg67w47+/n5ahfCKnUwmw+joKEKEg1dp1d8SH20gqx/270diQgL+vX8POTk5yFm0CHlLc2Hp7ESXzSbaJCbEo+KXQ2hvbxfbQwEloFpCt+RARmkzZyIzPR1VVVWorDyMbpqw7b8H0EXqkJiU5Lc7fvQo7E+e4GpjI0IHlywNZrJixQqEhYehZPNm3CcPxBvj4XF7EKZQQB8d5bd7+NCKpORkLFy4AJcuXUaokAQzuHv3LsxmC+RyGWZMn0F3Oa41XsPvR4/hTN1Zv111TQ20Gg2+2rEDb4KgBOrr6+FyueBwOET3ulxOIqFAxeHDsFgsfrtjFKKh4WEYDAZMT0lBqGBVsDuQgdfrxQgNHK2PpgoIE5NxismEgvx85OXl0aq1aGlthdvtxqIFHyGGCGi0WtSfP49QENQDjEBxcRHS09IwbcpUKCj2KpUKQ0PDlAPRKFyzGrt27qS65nDs+Amxz7y5c8T3CSFwrrZGrPmVH69GPiVkW1sb2h48wKbSUqzb8Cn+OHkScz6YjU8KC1FbVwen0wmVUom83FyEgoAE9u3ZjUHXIEq3leEJlZjH44Hj6VOEkxixZBym0Fy4fFkUp6lTp4jCdOPGDfG+ft06jJuAwRADD6nai+7s6+sTy1JJq2SwWDpFMiwh2cSVR34T21NSpkFDVTEuAvfI3WzX2FRUhMT4eKxetQp2IiDlpWIilu/dg5rqU2j9+w4qSKQYbjY3i95SyOTYuGEDxkXgO5LgTqsVBQXL8euhg6Iq2np7IZXyUNCqU9+fLk406vG+1O/CMyHKy12KcRFgMWdJplaqMDDgJOlNxKOeHuYURJEKSiQS2PsdFCo95s+d6+9XUVkJj9cDg16P1NRUvDUBhq0lJejutuGx3QE3JV1v72MIlBKRukg0U/3XnT2HCFUEvti+3R9zK3nN2tUFXsKjlCQ8EALuBVlZWTAa47C7vByuwSE0NTWJtd/Q0ICGixdhppUy9JNKrl27BlkZGbh05YrYdqr6NLZtLcWs7CzRU2Nt0QE9kEbuY/JqtT5EI8kwG8RL1+zsbFGAfGhubaHE5BFriPW3VZ04IaojO8T8/NOPY84RkABPg7I80FM5+sDeWRnGG184u1JOsFV2WDr8TUyQWCgYAeaZtyLQSitz0UDrSeV8eEpC5CRxio6K8utDWdk2MUR/Xb/+Uv/TNbUk2UOiJyIjI187R8DNyNbdTS4XkJmZiSWLF9M5YAQjI258OH8+dJSE7DS0r3wv4mJiUbBy5Sv9b7e0iBKtoN2TyXnz7duv2HAGk5HOVFwMAmDrlhLkLllCk+ogECG1Wg2etGCQVtdhNmNjUfGYfb/5ehcSaAct2/75a86QQjenNxlr6VC6DEHA9vkM2hGZAkrp4Gm2mHH1WiPsz39y3hgChDOsDG/RFZRADwlQPV0TjFuc1hRrkoG/SemkxSSCgmF3wztLYm+3tXPC6GZMMkYhFLO5efbidAz8E6FRNlFVLqbKUuMd4tnPaWFvR1c1e+d9H1yOgftyHX+Ih2yE3DPMfhqoOpSYEIi/53/SmEfcnGtjX0dvq+/L/wAAAP//09/prAAAAAZJREFUAwDLnivECtpsUwAAAABJRU5ErkJggg==">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTEyIiBmaWxsPSIjMTYyMDFCIi8+CjxkZWZzPgogPGcgaWQ9ImluayIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRTlFRkVBIiBzdHJva2Utd2lkdGg9IjMuMiIgc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiPgogIDxwYXRoIGQ9Ik0yMDYgMTM2IEMxNjggMTM0IDE0OCAxMDYgMTY2IDgwIEMxODIgNTggMjIyIDY2IDIxNCA5OCIvPgogIDxwYXRoIGQ9Ik0xNDAgMTE2IEwxODIgMTM0Ii8+CiAgPHBhdGggZD0iTTE1MCAxNTAgTDE4NiAxNjQiLz4KICA8cGF0aCBkPSJNMjI2IDg0IEwyNjIgMTA0Ii8+CiAgPHBhdGggZD0iTTIzMCAxMTYgTDI2MCAxMzIiLz4KICA8cGF0aCBkPSJNMjEwIDEwNCBMMjE0IDMzNiIvPgogIDxwYXRoIGQ9Ik0yMTQgMTg2IEMxNTAgMTgwIDExNCAyMDQgMTIwIDI1MiIvPgogIDxwYXRoIGQ9Ik0xMTYgMjUyIEMxNTAgMjcwIDE1MCAzMDIgMTI0IDMyMCIvPgogIDxwYXRoIGQ9Ik0xMjYgMzE4IEM5NiAzNzYgMTI0IDQzMiAyMTIgNDM0IEMyOTQgNDM0IDMxOCAzNzQgMjkwIDMxOCIvPgogIDxwYXRoIGQ9Ik0yOTIgMzIwIEMyNjYgMzAyIDI2NiAyNzAgMjk4IDI1MiIvPgogIDxwYXRoIGQ9Ik0yOTggMjUyIEMzMDIgMjAwIDI3MiAxODAgMjE0IDE4NiIvPgogIDxwYXRoIGQ9Ik0xNzAgMjY4IEMxNTggMjg2IDE3NiAzMDQgMTY0IDMyNiIvPgogIDxwYXRoIGQ9Ik0yNTQgMjY4IEMyNjYgMjg2IDI0OCAzMDQgMjYwIDMyNiIvPgogIDxwYXRoIGQ9Ik0yMTIgMzUwIEwyMTYgNDMyIi8+CiA8L2c+CiA8ZyBpZD0iYm93IiBmaWxsPSJub25lIiBzdHJva2U9IiNFOUVGRUEiIHN0cm9rZS13aWR0aD0iMy4yIiBzdHJva2UtbGluZWNhcD0iYnV0dCI+CiAgPHBhdGggZD0iTTMxNiAxMTIgTDM1MiA5OCIvPgogIDxwYXRoIGQ9Ik0zMjQgMTE2IEw0MTQgNDUyIi8+CiAgPHBhdGggZD0iTTM0MiAxMzIgTDQyOCA0MzgiLz4KICA8cGF0aCBkPSJNMzk0IDM5NiBMNDMwIDM4NiIvPgogPC9nPgo8L2RlZnM+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI1NiAyNjIpIHNjYWxlKDAuODQpIHJvdGF0ZSgtNSkgdHJhbnNsYXRlKC0yNjIgLTI2OCkiPgogIDx1c2UgaHJlZj0iI2luayIgeD0iLTkuOTUiIHk9IjYuNzEiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9Ii04LjcwIiB5PSI1Ljg3Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSItNy40NiIgeT0iNS4wMyIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iLTYuMjIiIHk9IjQuMTkiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9Ii00Ljk3IiB5PSIzLjM2Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSItMy43MyIgeT0iMi41MiIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iLTIuNDkiIHk9IjEuNjgiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9Ii0xLjI0IiB5PSIwLjg0Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSIwLjAwIiB5PSItMC4wMCIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iMS4yNCIgeT0iLTAuODQiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9IjIuNDkiIHk9Ii0xLjY4Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSIzLjczIiB5PSItMi41MiIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iNC45NyIgeT0iLTMuMzYiLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9IjYuMjIiIHk9Ii00LjE5Ii8+CiAgPHVzZSBocmVmPSIjaW5rIiB4PSI3LjQ2IiB5PSItNS4wMyIvPgogIDx1c2UgaHJlZj0iI2luayIgeD0iOC43MCIgeT0iLTUuODciLz4KICA8dXNlIGhyZWY9IiNpbmsiIHg9IjkuOTUiIHk9Ii02LjcxIi8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSItNC42NCIgeT0iMy4xMyIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iLTQuMDYiIHk9IjIuNzQiLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9Ii0zLjQ4IiB5PSIyLjM1Ii8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSItMi45MCIgeT0iMS45NiIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iLTIuMzIiIHk9IjEuNTciLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9Ii0xLjc0IiB5PSIxLjE3Ii8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSItMS4xNiIgeT0iMC43OCIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iLTAuNTgiIHk9IjAuMzkiLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9IjAuMDAiIHk9Ii0wLjAwIi8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSIwLjU4IiB5PSItMC4zOSIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iMS4xNiIgeT0iLTAuNzgiLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9IjEuNzQiIHk9Ii0xLjE3Ii8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSIyLjMyIiB5PSItMS41NyIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iMi45MCIgeT0iLTEuOTYiLz4KICA8dXNlIGhyZWY9IiNib3ciIHg9IjMuNDgiIHk9Ii0yLjM1Ii8+CiAgPHVzZSBocmVmPSIjYm93IiB4PSI0LjA2IiB5PSItMi43NCIvPgogIDx1c2UgaHJlZj0iI2JvdyIgeD0iNC42NCIgeT0iLTMuMTMiLz4KPC9nPgo8L3N2Zz4K">
+<link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAFb0lEQVR4nLxXa0yTZxR+vt6A0tpyLyC0gBIEUacQTYaaOR2b++G2HxOkXDQzi/MWf7jFzTGzZNl+LFv8s8W4ueEGapgwwXhZcBqTOS6LYCJTQO4qhRYoCoXed953Ul0mbdXK86f9vu+85zzfec95zvtJ8AjUOrVaBvkeN7BCAJYAQjQCAvcQ+Wwhn/U2WL4295jN00+E6T9RWs1rgPg7QUAcniPcbtwFnO8Yew1nPQSidbG5gOgcZhFut3M9IyGoElVhMkHRSm8ei1kEy4TVKWRKpCJ5MaVhVoMzsK2WSZxFIgHCCn8X7dqxA1lZWQgUWGyxQq38kv6qfRlf+O08tNpEZC9bhoz0dMTGRKOzuxsOh8Njk5+fj66uLtjtdvgDyrxSRD9aX4ZHj3wPg8GA/aUHIJFKOQG9Xo+C/DyPzamqk9Dn5WFqagr+Q9CKfJkkJiRAo9EgPDwcSZSBYJkMQ0YjXC4XjKZhbqNQKBAWFoa6ujqIRD5d/ge+CSQmYMpmRTgFeH/vXk5kYnwC/f39sNlt3GZ8fBxt7R0o0G/Cnl078SQQh6rnHPBm0EeBIsIjEB8fh7a2dgQHB6G7pxsffPgROjpueezu37+PtWvWICY6GuXHjiNgBBjiKHhCfDwmpyYRGxtLhMKRkpKC7KxsXnB3BwbQ29eH/I1vQ6VSobmlGQMDBvgDvwgsSEtD7rp10MTEIFQuh1KpRBgjkZyEVStXwjw2xrORnpGB5ORkREZE4uw5/4RV4sugpLgIJYWF+OrgQTQ2/YUDpft5gIKiYkRHRmLL5hIUF+h5XZSVHcXqnBwsylwIKXWLP+3otQhT58+HftMm7N23DzW1p3krDg4OQUbOQ0JC0H/nDqqqf8Uc1Rykpqbi7xs3qDNMkFOW3tqwAf7AK4GF6QtIMgW4nC7PPePwCNcCNQVl6O7thVQiwSDVAcPFi5dI5914840AELh+4ybu0f7m523kfV6sL8Do8DBEREqr1eLT0lKcqj6JhsYG1J45w9f8XFHB1TGB9IMV7DMRaG9vR2VVNVKSkvBT2Q94ed1aGAYNEEhslKGhSMtIo+2QQSyRetYwkeq7fRsyEqzNxcV4JgIMNTU13NnEhAUKuQJ2hxNuUsHIGA2cdieMQ0O8RbOWLn24praWK+WqnBd9ufdNYPfuXfSGEjQ1NmHs3j30kAg5nE7ISZDqLlzAicpKyIKCsGP7eyRSwXxNVXU1rDYb14QVy5d79e+1DZmuZ9P4/fPKFfxYVoYROspJpRLeEU1NTWi+do3bqSnQ+tfXc3FqbW2lgWQlaW7H4sxMlBQVor6hYeYY3ghERETwlhs0GWEaGeFpFYnEeIVEiRXmNG51dSNIGoQQeYjnXnl5BZwuJ5bR1uyhLD5VBlg1T1gsNBEfTmyr1QrL5CQio6I89zSaGCImoO1mm+fepcuXuRiJBBHstGUzwWsGRkdH0Xz1KpfcV3Nz/9UEyoJ5dAQqkmO252KxGO9u3YqK4yf4QHoUv5MmMMKrc1bOGEOI1sW7vZFgdfBJ6cdYRDpvIpXr6OzCksWLkDB3Lk3FHiTpdNT7x3Do8OH/rWUz5NC336CzqxPbtu987GGFhpFyG/FQzESAqVp9fQPf33nzUrg8s6JjmWBd8dnnX/C2exwYYYfTgcpfTnIZf4z3QSFKF3eODoe58BNsBrD9ZrrwrHDDfZ7VQMuTLJqkAgxE8AdoEdQ6jU4KcTOdUH2ejAMJKjyzHc4XROYeQ4/gdm3BLMMFdwmLLWYXE2PjN+Wq0Eaq+Zeo05R4jnjwcbrR1Dtwml2Lpx9YxsZvycLER8SQ2ig9VvbRQN0RioCAf57/QT7L7YKlcKTXdH36yT8AAAD//2BMXroAAAAGSURBVAMAOPAGL8uyUi8AAAAASUVORK5CYII=">
 
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2f7679">
@@ -1233,7 +1235,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.08" data-build="20261028-205009" data-cache="violin-toolkit-"><span>Version 1.08</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.09" data-build="20261029-124526" data-cache="violin-toolkit-"><span>Version 1.09</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1266,7 +1268,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <li><span>Click Install to confirm.</span></li>
       <li><span>Open it from its new icon once while you have internet.</span></li>
     </ol>
-    <p class="howto-note" id="howtoNote">Use the app at least once with internet. After that, it also works offline.</p>
+    <p class="howto-note" id="howtoNote">After the first visit, it also works offline.</p>
     <p class="howto-note" id="howtoDesk" hidden>No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.</p>
     <button type="button" class="sheet-done" id="howtoDone">Done</button>
   </div>
@@ -1286,11 +1288,28 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <button type="button" class="launch-btn" data-view="metronome"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l3.4 18H5.8z"/><path d="M12 17.5L15.6 6.5"/><circle cx="14.2" cy="10.6" r="1.2" fill="currentColor"/><path d="M8 21h8" opacity=".0"/></svg><b>Metronome</b><span>Keep steady time at any tempo</span></button>
     </div>
   </div>
+  <button type="button" class="tab launch-set" id="launchSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 </div>
 
 <script>
 var APP = window.APP = { views: {}, a4: 442, onA4: [] };
 try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
+/* iPhones and iPads on silent (the ring/silent switch) mute a page's sound. iOS 16.4+ lets it play like a
+   music app instead (Audio Session API). Asked for just before the first sound, not at load, so opening the
+   page doesn't stop other music; while a microphone is on it is play-and-record (also not muted), even before
+   any sound, and back to auto if nothing has played yet. */
+APP.sound = false; APP.mics = {};
+APP.session = function () {
+  try {
+    var s = navigator.audioSession, mic = false, k;
+    if (!s) return;
+    for (k in APP.mics) if (APP.mics[k]) mic = true;
+    var t = mic ? 'play-and-record' : APP.sound ? 'playback' : 'auto';
+    if (s.type !== t) s.type = t;
+  } catch (e) {}
+};
+APP.playThroughSilent = function () { APP.sound = true; APP.session(); };
+APP.mic = function (who, on) { APP.mics[who] = !!on; APP.session(); };
 try {
   var savedA4 = +localStorage.getItem('violin-a4');
   if (savedA4 === 440 || savedA4 === 442) APP.a4 = savedA4;
@@ -1644,6 +1663,7 @@ function noteGate() {
     }
     starting = true;
     stopTone();
+    APP.mic('tuner', true);
     setStatus('Requesting microphone…');
     try {
       try {
@@ -1651,6 +1671,7 @@ function noteGate() {
         stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
       } catch (e) {
         stream = null;
+        APP.mic('tuner', false);
         setStatus(auto ? 'Microphone was not enabled. Press Start tuning to try again, or allow it in your browser site settings.' : 'Microphone access was blocked. Allow it in your browser site settings and try again, or tune by ear with the reference tones below.', !auto);
         return;
       }
@@ -1689,6 +1710,7 @@ function noteGate() {
 
   function stopMic() {
     running = false;
+    APP.mic('tuner', false);
     if (src) { try { src.disconnect(); } catch (e) {} src = null; }
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
     an = null;
@@ -1721,6 +1743,7 @@ function noteGate() {
   async function playTone(i) {
     if (tone && tone.i === i) { stopTone(); return; }
     if (running) { stopMic(); setStatus('Microphone paused while a reference tone plays.'); setIdle(); }
+    APP.playThroughSilent();
     ensureCtx();
     try { await ctx.resume(); } catch (e) {}
     stopTone();
@@ -2283,6 +2306,7 @@ function noteGate() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       mic = null; pcStatus = 'microphone not available here'; updateSub(); return;
     }
+    APP.mic('pc', true);
     ensureCtx();   /* inside the tap, so the audio engine is allowed to run */
     navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
@@ -2300,7 +2324,7 @@ function noteGate() {
       updateSub();
       pcLoop(token);
     }).catch(function (err) {
-      if (mic === token) mic = null;
+      if (mic === token) { mic = null; APP.mic('pc', false); }
       pcStatus = (err && err.name === 'NotAllowedError') ? 'microphone blocked' : 'microphone not available here';
       updateSub();
     });
@@ -2309,6 +2333,7 @@ function noteGate() {
   function stopMic() {
     var m = mic;
     mic = null;
+    APP.mic('pc', false);
     if (pcRaf) { cancelAnimationFrame(pcRaf); pcRaf = 0; }
     if (m && m.stream) {
       m.stream.getTracks().forEach(function (t) { t.stop(); });
@@ -2379,6 +2404,7 @@ function noteGate() {
   function begin(el, id) {
     if (state.pos === 'pc') return;   /* Pitch Check listens instead of playing */
     if (voices.has(id)) return;
+    APP.playThroughSilent();
     if (!ensureCtx()) return;
     var nt = notes[+el.dataset.i];
     if (!nt) return;
@@ -2690,8 +2716,30 @@ function noteGate() {
     softKey = key; softMax = lo;
     return lo;
   }
+  /* the metronome tab also pulses on each beat: a small area, so it can stay strong at any tempo and
+     still shows the beat where the soft wash is hard to see (the dark fingerboard above 168 BPM) */
+  var metTab = null, tabAnim = null;
+  function pulseTab(level) {
+    metTab = metTab || document.querySelector('.tab[data-view="metronome"]');
+    if (!metTab || !metTab.animate) return;
+    var cs = getComputedStyle(document.documentElement), ac = cs.getPropertyValue('--accent').trim(), on = cs.getPropertyValue('--on-accent').trim();
+    if (tabAnim) tabAnim.cancel();
+    metTab.classList.add('pulsing');   /* keeps the "playing" dot visible on the accent fill */
+    tabAnim = metTab.animate([
+      { backgroundColor: ac, color: on, borderColor: ac, boxShadow: '0 0 0 ' + (level === 3 ? 5 : 3) + 'px ' + ac },
+      { boxShadow: '0 0 0 0 ' + ac }
+    ], { duration: Math.min(380, 0.6 * 60000 / state.bpm), easing: 'ease-out' });
+    var t = tabAnim, off = function () { if (t === tabAnim) metTab.classList.remove('pulsing'); };
+    t.onfinish = t.oncancel = off;
+    /* hand the dot back to --accent once the fill has faded about halfway to the panel colour
+       (a third of the ease-out): the two dot colours cross in contrast there (Hermes R10.2) */
+    setTimeout(off, Math.round(t.effect.getTiming().duration / 3));
+  }
   function flash(level) {
     if (!window.APP || !APP.flash || !level) return;
+    pulseTab(level);
+    /* Reduce motion: the tab pulse only, no full-screen wash (Trix, option b) */
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     flashEl = flashEl || document.getElementById('beatFlash');
     if (!flashEl || !flashEl.animate) return;
     if (flashAnim) flashAnim.cancel();
@@ -2714,6 +2762,7 @@ function noteGate() {
     if (playing) return;
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
+    if (window.APP) APP.playThroughSilent();
     if (!ctx) ctx = new AC();
     if (ctx.state === 'suspended') ctx.resume();
     playing = true; beatIdx = 0; queue = []; lastNow = -1;
@@ -2728,6 +2777,8 @@ function noteGate() {
     clearInterval(timer); cancelAnimationFrame(raf);
     queue = []; paintNow(-1);
     if (flashAnim) { flashAnim.cancel(); flashAnim = null; }
+    if (tabAnim) { tabAnim.cancel(); tabAnim = null; }
+    if (metTab) metTab.classList.remove('pulsing');
     if (flashEl) flashEl.style.display = 'none';
     drawPlay();
   }
@@ -2798,10 +2849,11 @@ function noteGate() {
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
   }
+  var opener = openBtn;   /* the gear in the app bar, or the one on the start overlay */
   function closeSheet() {
     sheet.hidden = true;
     document.removeEventListener('keydown', onSheetKey);
-    try { openBtn.focus(); } catch (e) {}
+    try { opener.focus(); } catch (e) {}
   }
   function onSheetKey(e) {
     if (!document.getElementById('howto').hidden) return;
@@ -2874,11 +2926,14 @@ function noteGate() {
       if (secs >= 300 && ready && sheet.hidden && howto.hidden) { offer.hidden = false; clearInterval(timer); }
     }, 1000);
   })();
-  openBtn.addEventListener('click', function () {
+  function openSheet() {
+    opener = this;
     syncSheet(); sheet.hidden = false;
     document.addEventListener('keydown', onSheetKey);
     sheetCard.focus();
-  });
+  }
+  openBtn.addEventListener('click', openSheet);
+  document.getElementById('launchSettings').addEventListener('click', openSheet);
   segLang.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     I18N.set(b.dataset.lang); syncSheet();
@@ -2963,6 +3018,7 @@ function noteGate() {
     if (APP.coach) APP.coach.maybe(cur);   /* first-use tips wait until the start overlay is gone */
   }
   function onKey(e) {
+    if (!document.getElementById('sheet').hidden) return;   /* Settings is open on top */
     if (e.key === 'Escape') { closeLaunch(null); return; }
     if (e.key === 'Tab') {   /* keep focus inside the dialog */
       var els = Array.prototype.slice.call(launch.querySelectorAll('button'));
@@ -2989,7 +3045,7 @@ function noteGate() {
     lastFocus = document.activeElement;
     launch.hidden = false;
     document.addEventListener('keydown', onKey);
-    document.getElementById('launchCard').focus();
+    document.getElementById('launchCard').focus({ preventScroll: true });   /* a focus scroll would push the gear up (Hermes R11.1) */
   }
 })();
 </script>
@@ -3294,7 +3350,7 @@ function noteGate() {
     'Tap Install app, or Add to Home screen.': '点按“安装应用”或“添加到主屏幕”。',
     'Tap Install to confirm.': '点按“安装”确认。',
     'Open it from the new icon once while you have internet.': '在有网络时，从新图标打开一次。',
-    'Use the app at least once with internet. After that, it also works offline.': '请至少在有网络时使用一次，之后也可离线使用。',
+    'After the first visit, it also works offline.': '第一次访问后，离线也能使用。',
     'Help': '帮助', 'Show tips again': '再次显示提示', 'Skip': '跳过', 'Next': '下一步', 'Got it': '知道了',
     'Tap here, then bow or pluck an open string. The tuner listens through the microphone.': '点这里，然后拉奏或拨一根空弦。调音器会通过麦克风听音。',
     'Read the needle': '看指针', 'In the middle and green means in tune. Left of centre is flat, right is sharp.': '指针在中间并变绿表示音准。偏左是偏低，偏右是偏高。',
