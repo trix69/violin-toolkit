@@ -76,6 +76,7 @@
     prog.setAttribute('d', arc(-SWEEP, Math.max(a, -SWEEP + 0.01)));
     knob.setAttribute('cx', p[0].toFixed(2)); knob.setAttribute('cy', p[1].toFixed(2));
     dial.setAttribute('aria-valuenow', state.bpm);
+    var dn = $('mDown'), up = $('mUp'); if (dn) { dn.disabled = state.bpm <= MIN; up.disabled = state.bpm >= MAX; }
     var sub = $('ttl-metronome-sub');
     if (sub) sub.textContent = state.bpm + ' BPM · ' + state.num + '/' + state.den;
   }
@@ -92,6 +93,8 @@
     if (v === state.bpm) return;
     state.bpm = v; drawTempo(); persist();
   }
+  /* − / + jump to the next multiple of 10 */
+  function step(d) { setBpm(d > 0 ? Math.floor(state.bpm / 10) * 10 + 10 : Math.ceil(state.bpm / 10) * 10 - 10); }
 
   /* ---------- controls ---------- */
   /* engraved notes, in staff spaces of 10 units with the middle line at y = 0: head in the space below it (A),
@@ -171,6 +174,9 @@
     var d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key];
     if (d) { e.preventDefault(); setBpm(state.bpm + d); }
   });
+
+  $('mDown').addEventListener('click', function () { step(-1); });
+  $('mUp').addEventListener('click', function () { step(1); });
 
   /* tap tempo */
   var taps = [];
