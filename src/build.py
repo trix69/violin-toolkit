@@ -257,6 +257,7 @@ html[lang="zh-CN"] {
 /* narrow Android phones (360 px): keep the title clear of the tool buttons */
 @media (max-width: 380px) { .appbar h1 { font-size: 23px; } .appbar { gap: 8px; } .tabs { gap: 4px; } }
 @media (max-width: 480px) { .tab { width: 40px; height: 40px; } .tabs { gap: 5px; } .tab svg { width: 22px; height: 22px; } }
+@media (max-width: 350px) { .appbar { gap: 6px; } .tabs { gap: 3px; } .appbar h1 { font-size: 18px; letter-spacing: -0.02em; } }   /* "Fingerboard" clear of the tabs at 320 px (Hermes F11) */
 /* ---- settings sheet ---- */
 .tab-set { margin-left: 2px; }
 .sheet {
