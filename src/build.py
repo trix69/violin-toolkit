@@ -299,15 +299,6 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .howto-btn:hover { border-color: var(--accent); }
 .howto-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .howto-btn svg, .howto-steps svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-.offer { position: fixed; z-index: 90; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); margin: 0 auto; max-width: 440px; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--fg); box-shadow: 0 10px 30px rgba(0,0,0,.25); font: 500 14px/1.35 var(--font-note); animation: offer-in .3s ease-out; -webkit-user-select: none; user-select: none; }
-.offer[hidden] { display: none; }
-.offer p { margin: 0; flex: 1; }
-.offer-go { flex: none; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); font: 700 14px var(--font-note); cursor: pointer; }
-.offer-x { flex: none; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
-.offer-x svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-.offer-go:focus-visible, .offer-x:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-@keyframes offer-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 #howto { z-index: 120; }
 /* metronome beat flash (Settings > Beat flash): a full-screen wash in the accent colour on each beat, animated by met.js.
    z-index 104: over the page, under the tour (105), Settings (110) and Use offline (120), so an open window stays still. */
@@ -605,7 +596,6 @@ nav_js = """(function () {
     APP.coach.maybe(cur);
   });
   openHowto.addEventListener('click', function () {
-    document.getElementById('offer').hidden = true;
     showDev(isIOS ? 'ios' : (isAndroid ? 'android' : 'desktop'));
     howto.hidden = false;
     document.addEventListener('keydown', onHowtoKey);
@@ -614,23 +604,6 @@ nav_js = """(function () {
   segDev.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) showDev(b.dataset.dev); });
   document.getElementById('howtoDone').addEventListener('click', closeHowto);
   howto.addEventListener('click', function (e) { if (e.target === howto) closeHowto(); });
-  /* ---- offline tip: only on a first visit, after 5 minutes of use, never when opened from a local file or an installed app ---- */
-  (function () {
-    var offer = document.getElementById('offer'), FIRST = 'violin-first-visit';
-    var seen = null;
-    try { seen = localStorage.getItem(FIRST); localStorage.setItem(FIRST, '1'); } catch (e) { return; }
-    if (seen || standalone || !('serviceWorker' in navigator) || !window.isSecureContext || location.protocol === 'file:') return;
-    var secs = 0, ready = false, timer;
-    navigator.serviceWorker.ready.then(function () { ready = true; }).catch(function () {});
-    function finish() { offer.hidden = true; clearInterval(timer); }
-    document.getElementById('offerX').addEventListener('click', finish);
-    document.getElementById('offerGo').addEventListener('click', function () { finish(); openHowto.click(); });
-    timer = setInterval(function () {
-      if (document.visibilityState !== 'visible' || !document.getElementById('launch').hidden) return;
-      secs += 1;
-      if (secs >= 300 && ready && sheet.hidden && howto.hidden) { offer.hidden = false; clearInterval(timer); }
-    }, 1000);
-  })();
   function openSheet() {
     opener = this;
     syncSheet(); sheet.hidden = false;
@@ -964,11 +937,6 @@ markup = f"""
     <p class="howto-note" id="howtoDesk" hidden>No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.</p>
     <button type="button" class="sheet-done" id="howtoDone">Done</button>
   </div>
-</div>
-<div class="offer" id="offer" role="region" aria-label="Offline use" hidden>
-  <p>Save Violin Toolkit for offline use.</p>
-  <button type="button" class="offer-go" id="offerGo">Show me how</button>
-  <button type="button" class="offer-x" id="offerX" aria-label="Dismiss"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 <div class="launch" id="launch" role="dialog" aria-modal="true" aria-labelledby="launchTitle" hidden>
   <div class="launch-card" id="launchCard" tabindex="-1">

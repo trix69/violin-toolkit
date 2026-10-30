@@ -51,7 +51,7 @@ if TEST:
     # user between them; once-only records must not, or trying them on the test site uses them up
     # on the live one. Rename those in the test page, in any quote style, and fail the build if
     # one is missed. (SystemExit, not assert, so python -O can't skip the checks.)
-    for k in ('violin-tips-seen', 'violin-first-visit'):
+    for k in ('violin-tips-seen',):
         pat = re.compile(r"""(['"`])%s\1""" % re.escape(k))
         if not pat.search(src):
             raise SystemExit('test build: key %s is no longer in the page' % k)

@@ -94,7 +94,7 @@
     state.bpm = v; drawTempo(); persist();
   }
   /* − / + jump to the next multiple of 10 */
-  function step(d) { setBpm(d > 0 ? Math.floor(state.bpm / 10) * 10 + 10 : Math.ceil(state.bpm / 10) * 10 - 10); }
+  function step(d, n) { n = n || 10; setBpm(d > 0 ? Math.floor(state.bpm / n) * n + n : Math.ceil(state.bpm / n) * n - n); }
 
   /* ---------- controls ---------- */
   /* engraved notes, in staff spaces of 10 units with the middle line at y = 0: head in the space below it (A),
@@ -171,7 +171,7 @@
   ['pointerup', 'pointercancel'].forEach(function (ev) { dial.addEventListener(ev, function () { dragging = false; }); });
   dial.addEventListener('keydown', function (e) {
     if (e.target !== dial) return;
-    var d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key];
+    var d = { ArrowUp: 1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key];   /* ← → are page-wide, below */
     if (d) { e.preventDefault(); setBpm(state.bpm + d); }
   });
 
@@ -384,6 +384,12 @@
     if (e.code === 'Space' && !$('view-metronome').hidden && !/^(SELECT|INPUT|TEXTAREA)$/.test(e.target.tagName) && e.target !== playEl && !e.target.closest('button')) {
       e.preventDefault(); toggle();
     }
+  });
+  /* ← / → anywhere on the metronome: to the next multiple of 5 BPM */
+  document.addEventListener('keydown', function (e) {
+    if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if ($('view-metronome').hidden || /^(SELECT|INPUT|TEXTAREA)$/.test(e.target.tagName) || Array.prototype.some.call(document.querySelectorAll('[role="dialog"]'), function (d) { return d.getClientRects().length; })) return;
+    e.preventDefault(); step(e.key === 'ArrowRight' ? 1 : -1, 5);
   });
 
   fixLevels(); drawBeats(); drawTempo(); drawPlay();
