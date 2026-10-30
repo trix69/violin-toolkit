@@ -234,7 +234,6 @@
     'Click Install to confirm.': '点击“安装”确认。',
     'Open it from its new icon once while you have internet.': '在有网络时，从新图标打开一次。',
     'No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.': '没有安装图标？打开浏览器菜单，选择“安装小提琴工具箱”。在 Mac 的 Safari 中，请使用“文件”→“添加到 Dock”。Firefox 无法安装应用，但访问一次后，页面仍可在浏览器标签页中离线打开。',
-    'Save Violin Toolkit for offline use.': '保存小提琴工具箱，离线也能用。', 'Show me how': '查看方法', 'Dismiss': '关闭', 'Offline use': '离线使用',
     'Offline': '离线使用', 'Use offline on your phone': '在手机上离线使用', 'Use offline': '离线使用',
     'iPhone / iPad': 'iPhone / iPad', 'Android': 'Android',
     'Open this page in Safari.': '用 Safari 打开此页面。',

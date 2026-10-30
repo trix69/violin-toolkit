@@ -51,10 +51,10 @@
     if (s.indexOf(v) < 0) s.push(v);
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
   }
-  /* wait while anything else is on top: the start overlay, the offline tip, Settings, Use offline, Symbols */
+  /* wait while anything else is on top: the start overlay, Settings, Use offline, Symbols */
   function busy() {
-    var l = document.getElementById('launch'), off = document.getElementById('offer');
-    if ((l && !l.hidden) || (off && !off.hidden)) return true;
+    var l = document.getElementById('launch');
+    if (l && !l.hidden) return true;
     return Array.prototype.some.call(document.querySelectorAll('.sheet'), function (s) { return !s.hidden; });
   }
 
