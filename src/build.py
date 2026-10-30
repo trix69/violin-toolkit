@@ -735,7 +735,7 @@ nav_js = """(function () {
 
 init_js = '''<script>
 (function () {
-  var ACC = ['teal', 'sage', 'slate', 'violet', 'classic'], mode = 'auto', acc = 'teal';
+  var ACC = ['teal', 'sage', 'slate', 'violet', 'classic'], mode = 'light', acc = 'teal';   /* new users start in light; a saved choice wins */
   try {
     var s = JSON.parse(localStorage.getItem('violin-theme') || '{}');
     if (['light', 'dark', 'auto'].indexOf(s.mode) >= 0) mode = s.mode;
