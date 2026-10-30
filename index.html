@@ -601,7 +601,19 @@ h1 {
 #view-metronome .bpm { min-width: 2.2ch; text-align: center; font: 700 44px/1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 #view-metronome .tname { font: 500 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
-#view-metronome .dialwrap { display: grid; justify-items: center; }
+#view-metronome .dialwrap { display: grid; justify-items: center; position: relative; }
+#view-metronome .step {
+  position: absolute; top: -6px; width: 64px; height: 64px; padding: 0;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--panel); color: var(--fg);
+  font: 400 38px/1 var(--font-note); cursor: pointer; touch-action: manipulation;
+  border-width: 2px; -webkit-tap-highlight-color: transparent;
+}
+#view-metronome .step.down { left: 0; }
+#view-metronome .step.up { right: 0; }
+#view-metronome .step:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+#view-metronome .step:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+#view-metronome .step:disabled { opacity: .4; cursor: default; }
 #view-metronome .dial { width: min(100%, 340px); height: auto; touch-action: none; cursor: grab; }
 #view-metronome .dial text { font: 500 13px var(--font-mono); fill: var(--muted); text-anchor: middle; dominant-baseline: middle; }
 #view-metronome .dial .track { fill: none; stroke: var(--line); stroke-width: 12; stroke-linecap: round; }
@@ -744,6 +756,7 @@ h1 {
   #view-metronome .tnote { --sp: 12px; height: 72px; }
   #view-metronome .score { --sp: 14px; }
   #view-metronome .tap { height: 48px; min-width: 120px; font-size: 18px; }
+  #view-metronome .step { width: 76px; height: 76px; font-size: 44px; }
 }
 
 /* tuner gauge: wider on large screens */
@@ -846,15 +859,6 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .howto-btn:hover { border-color: var(--accent); }
 .howto-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .howto-btn svg, .howto-steps svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-.offer { position: fixed; z-index: 90; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); margin: 0 auto; max-width: 440px; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--fg); box-shadow: 0 10px 30px rgba(0,0,0,.25); font: 500 14px/1.35 var(--font-note); animation: offer-in .3s ease-out; -webkit-user-select: none; user-select: none; }
-.offer[hidden] { display: none; }
-.offer p { margin: 0; flex: 1; }
-.offer-go { flex: none; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); font: 700 14px var(--font-note); cursor: pointer; }
-.offer-x { flex: none; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
-.offer-x svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-.offer-go:focus-visible, .offer-x:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-@keyframes offer-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 #howto { z-index: 120; }
 /* metronome beat flash (Settings > Beat flash): a full-screen wash in the accent colour on each beat, animated by met.js.
    z-index 104: over the page, under the tour (105), Settings (110) and Use offline (120), so an open window stays still. */
@@ -1114,6 +1118,8 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
         <path class="glyph" id="mGlyph"/>
         <circle class="knob" id="mKnob" r="15"/>
       </svg>
+      <button type="button" class="step down" id="mDown" aria-label="Slower">−</button>
+      <button type="button" class="step up" id="mUp" aria-label="Faster">+</button>
     </div>
     <div class="bottom">
       <button type="button" class="tap symbtn" id="mSym" aria-haspopup="dialog"><span class="symico" aria-hidden="true">♩♯</span>Symbols</button>
@@ -1446,7 +1452,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.11" data-build="20261030-090206" data-cache="violin-toolkit-"><span>Version 1.11</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.12" data-build="20261030-225634" data-cache="violin-toolkit-"><span>Version 1.12</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1483,11 +1489,6 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     <p class="howto-note" id="howtoDesk" hidden>No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.</p>
     <button type="button" class="sheet-done" id="howtoDone">Done</button>
   </div>
-</div>
-<div class="offer" id="offer" role="region" aria-label="Offline use" hidden>
-  <p>Save Violin Toolkit for offline use.</p>
-  <button type="button" class="offer-go" id="offerGo">Show me how</button>
-  <button type="button" class="offer-x" id="offerX" aria-label="Dismiss"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 <div class="launch" id="launch" role="dialog" aria-modal="true" aria-labelledby="launchTitle" hidden>
   <div class="launch-card" id="launchCard" tabindex="-1">
@@ -2606,7 +2607,7 @@ function noteGate() {
     pcStatus = 'starting microphone…';
     updateSub();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      mic = null; pcStatus = 'microphone not available here'; updateSub(); return;
+      mic = null; pcStatus = 'microphone unavailable'; updateSub(); return;
     }
     APP.mic('pc', true);
     ensureCtx();   /* inside the tap, so the audio engine is allowed to run */
@@ -2627,7 +2628,7 @@ function noteGate() {
       pcLoop(token);
     }).catch(function (err) {
       if (mic === token) { mic = null; APP.mic('pc', false); }
-      pcStatus = (err && err.name === 'NotAllowedError') ? 'microphone blocked' : 'microphone not available here';
+      pcStatus = (err && err.name === 'NotAllowedError') ? 'microphone blocked' : 'microphone unavailable';
       updateSub();
     });
   }
@@ -2865,6 +2866,7 @@ function noteGate() {
     prog.setAttribute('d', arc(-SWEEP, Math.max(a, -SWEEP + 0.01)));
     knob.setAttribute('cx', p[0].toFixed(2)); knob.setAttribute('cy', p[1].toFixed(2));
     dial.setAttribute('aria-valuenow', state.bpm);
+    var dn = $('mDown'), up = $('mUp'); if (dn) { dn.disabled = state.bpm <= MIN; up.disabled = state.bpm >= MAX; }
     var sub = $('ttl-metronome-sub');
     if (sub) sub.textContent = state.bpm + ' BPM · ' + state.num + '/' + state.den;
   }
@@ -2881,6 +2883,8 @@ function noteGate() {
     if (v === state.bpm) return;
     state.bpm = v; drawTempo(); persist();
   }
+  /* − / + jump to the next multiple of 10 */
+  function step(d, n) { n = n || 10; setBpm(d > 0 ? Math.floor(state.bpm / n) * n + n : Math.ceil(state.bpm / n) * n - n); }
 
   /* ---------- controls ---------- */
   /* engraved notes, in staff spaces of 10 units with the middle line at y = 0: head in the space below it (A),
@@ -2957,9 +2961,12 @@ function noteGate() {
   ['pointerup', 'pointercancel'].forEach(function (ev) { dial.addEventListener(ev, function () { dragging = false; }); });
   dial.addEventListener('keydown', function (e) {
     if (e.target !== dial) return;
-    var d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key];
+    var d = { ArrowUp: 1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key];   /* ← → are page-wide, below */
     if (d) { e.preventDefault(); setBpm(state.bpm + d); }
   });
+
+  $('mDown').addEventListener('click', function () { step(-1); });
+  $('mUp').addEventListener('click', function () { step(1); });
 
   /* tap tempo */
   var taps = [];
@@ -3168,6 +3175,12 @@ function noteGate() {
       e.preventDefault(); toggle();
     }
   });
+  /* ← / → anywhere on the metronome: to the next multiple of 5 BPM */
+  document.addEventListener('keydown', function (e) {
+    if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if ($('view-metronome').hidden || /^(SELECT|INPUT|TEXTAREA)$/.test(e.target.tagName) || Array.prototype.some.call(document.querySelectorAll('[role="dialog"]'), function (d) { return d.getClientRects().length; })) return;
+    e.preventDefault(); step(e.key === 'ArrowRight' ? 1 : -1, 5);
+  });
 
   fixLevels(); drawBeats(); drawTempo(); drawPlay();
   /* keeps playing when you switch to another tool; the tab shows a dot while it runs */
@@ -3277,7 +3290,6 @@ function noteGate() {
     APP.coach.maybe(cur);
   });
   openHowto.addEventListener('click', function () {
-    document.getElementById('offer').hidden = true;
     showDev(isIOS ? 'ios' : (isAndroid ? 'android' : 'desktop'));
     howto.hidden = false;
     document.addEventListener('keydown', onHowtoKey);
@@ -3286,23 +3298,6 @@ function noteGate() {
   segDev.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) showDev(b.dataset.dev); });
   document.getElementById('howtoDone').addEventListener('click', closeHowto);
   howto.addEventListener('click', function (e) { if (e.target === howto) closeHowto(); });
-  /* ---- offline tip: only on a first visit, after 5 minutes of use, never when opened from a local file or an installed app ---- */
-  (function () {
-    var offer = document.getElementById('offer'), FIRST = 'violin-first-visit';
-    var seen = null;
-    try { seen = localStorage.getItem(FIRST); localStorage.setItem(FIRST, '1'); } catch (e) { return; }
-    if (seen || standalone || !('serviceWorker' in navigator) || !window.isSecureContext || location.protocol === 'file:') return;
-    var secs = 0, ready = false, timer;
-    navigator.serviceWorker.ready.then(function () { ready = true; }).catch(function () {});
-    function finish() { offer.hidden = true; clearInterval(timer); }
-    document.getElementById('offerX').addEventListener('click', finish);
-    document.getElementById('offerGo').addEventListener('click', function () { finish(); openHowto.click(); });
-    timer = setInterval(function () {
-      if (document.visibilityState !== 'visible' || !document.getElementById('launch').hidden) return;
-      secs += 1;
-      if (secs >= 300 && ready && sheet.hidden && howto.hidden) { offer.hidden = false; clearInterval(timer); }
-    }, 1000);
-  })();
   function openSheet() {
     opener = this;
     syncSheet(); sheet.hidden = false;
@@ -3484,10 +3479,10 @@ function noteGate() {
     if (s.indexOf(v) < 0) s.push(v);
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
   }
-  /* wait while anything else is on top: the start overlay, the offline tip, Settings, Use offline, Symbols */
+  /* wait while anything else is on top: the start overlay, Settings, Use offline, Symbols */
   function busy() {
-    var l = document.getElementById('launch'), off = document.getElementById('offer');
-    if ((l && !l.hidden) || (off && !off.hidden)) return true;
+    var l = document.getElementById('launch');
+    if (l && !l.hidden) return true;
     return Array.prototype.some.call(document.querySelectorAll('.sheet'), function (s) { return !s.hidden; });
   }
 
@@ -3677,7 +3672,7 @@ function noteGate() {
     'Violin fingerboard': '小提琴指板', 'Position': '把位',
     'Auto vibrato': '自动揉弦', 'On': '开', 'Off': '关', 'Major': '大调', 'Minor': '小调', 'Pitch Check': '音准检测',
     '1st position': '一把位', '2nd position': '二把位', '3rd position': '三把位',
-    'starting microphone…': '正在启动麦克风…', 'microphone not available here': '此处无法使用麦克风',
+    'starting microphone…': '正在启动麦克风…', 'microphone unavailable': '此处无法使用麦克风',
     'audio not supported': '不支持音频', 'listening…': '聆听中…', 'microphone blocked': '麦克风已被禁用',
     'in tune': '音准正确', 'off the board': '超出指板',
     'no sharps or flats': '无升降号', 'no ♯ or ♭': '无升降号',
@@ -3895,7 +3890,6 @@ function noteGate() {
     'Click Install to confirm.': '点击“安装”确认。',
     'Open it from its new icon once while you have internet.': '在有网络时，从新图标打开一次。',
     'No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.': '没有安装图标？打开浏览器菜单，选择“安装小提琴工具箱”。在 Mac 的 Safari 中，请使用“文件”→“添加到 Dock”。Firefox 无法安装应用，但访问一次后，页面仍可在浏览器标签页中离线打开。',
-    'Save Violin Toolkit for offline use.': '保存小提琴工具箱，离线也能用。', 'Show me how': '查看方法', 'Dismiss': '关闭', 'Offline use': '离线使用',
     'Offline': '离线使用', 'Use offline on your phone': '在手机上离线使用', 'Use offline': '离线使用',
     'iPhone / iPad': 'iPhone / iPad', 'Android': 'Android',
     'Open this page in Safari.': '用 Safari 打开此页面。',
