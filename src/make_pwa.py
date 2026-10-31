@@ -61,7 +61,7 @@ if TEST:
     # Every other quoted violin-* / vt-* key must be one that is meant to be shared. A new key fails
     # the build here until it is added to SHARED (a setting) or to the rename list above (once-only).
     # Any case, - or _; a bare 'violin-' fragment means a key built by concatenation, also flagged.
-    SHARED = {'violin-lang', 'violin-theme', 'violin-names', 'violin-a4', 'violin-temper', 'violin-metronome-v2', 'violin-flash',
+    SHARED = {'violin-lang', 'violin-theme', 'violin-names', 'violin-a4', 'violin-temper', 'violin-metronome-v2', 'violin-flash', 'violin-keys',
               'violin-fingerboard-v2', 'vt-mode',
               'vt-a4-v2',                                  # tuner.html's old A4 select, cut out by build.py
               'violin-toolkit-', 'violin-toolkit-test-'}   # cache-name prefixes (data-cache), not keys

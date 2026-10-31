@@ -416,6 +416,7 @@ t_js = must(t_js, "  fit();\n  startMic(true);\n})();", """  fit();
 
 app_js = """var APP = window.APP = { views: {}, a4: 442, onA4: [] };
 try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
+try { APP.keysAll = localStorage.getItem('violin-keys') === 'all'; } catch (e) { APP.keysAll = false; }   /* fingerboard keys folded into one button unless set to All */
 /* iPhones and iPads on silent (the ring/silent switch) mute a page's sound. iOS 16.4+ lets it play like a
    music app instead (Audio Session API). Asked for just before the first sound, not at load, so opening the
    page doesn't stop other music; while a microphone is on it is play-and-record (also not muted), even before
@@ -535,7 +536,7 @@ nav_js = """(function () {
   var segNames = document.getElementById('segNames');
   var segA4 = document.getElementById('segA4'), segTemper = document.getElementById('segTemper');
   var segApp = document.getElementById('segApp'), swatches = document.getElementById('swatches');
-  var segFlash = document.getElementById('segFlash');
+  var segFlash = document.getElementById('segFlash'), segKeys = document.getElementById('segKeys');
   var openBtn = document.getElementById('openSettings');
   function syncSheet() {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
@@ -544,6 +545,7 @@ nav_js = """(function () {
     Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', b.dataset.temper === (APP.temper ? APP.temper.id : 'equal') ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segKeys.children, function (b) { b.setAttribute('aria-checked', (b.dataset.keys === 'all') === APP.keysAll ? 'true' : 'false'); });
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
   }
   var opener = openBtn;   /* the gear in the app bar, or the one on the start overlay */
@@ -625,6 +627,13 @@ nav_js = """(function () {
     var b = e.target.closest('button'); if (!b) return;
     APP.flash = b.dataset.flash === 'on';
     try { localStorage.setItem('violin-flash', APP.flash ? 'on' : 'off'); } catch (err) {}
+    syncSheet();
+  });
+  segKeys.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    APP.keysAll = b.dataset.keys === 'all';
+    try { localStorage.setItem('violin-keys', APP.keysAll ? 'all' : 'fold'); } catch (err) {}
+    if (APP.setKeysAll) APP.setKeysAll();
     syncSheet();
   });
   segA4.addEventListener('click', function (e) {
@@ -870,6 +879,11 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-temper="equal">Equal</button>
       <button type="button" role="radio" aria-checked="false" data-temper="just">Just</button>
       <button type="button" role="radio" aria-checked="false" data-temper="pyth">Pythagorean</button>
+    </div>
+    <h3 id="lblKeys">Key list</h3>
+    <div class="segc two" role="radiogroup" aria-labelledby="lblKeys" id="segKeys">
+      <button type="button" role="radio" aria-checked="false" data-keys="fold">Folded</button>
+      <button type="button" role="radio" aria-checked="false" data-keys="all">All keys</button>
     </div>
     <h3 id="lblApp">Appearance</h3>
     <div class="segc" role="radiogroup" aria-labelledby="lblApp" id="segApp">

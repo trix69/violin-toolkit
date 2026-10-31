@@ -119,6 +119,27 @@ h1 {
   font: 600 18px var(--font-note);
   pointer-events: none;
 }
+/* Settings > Key list > Folded (the default): one button with the chosen key opens a window with all 24 */
+.keyfold {
+  display: inline-flex; align-items: center; gap: 10px; align-self: flex-start;
+  height: 44px; padding: 0 12px 0 16px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--panel); color: var(--fg);
+  font: 600 18px var(--font-note); cursor: pointer; touch-action: manipulation;
+}
+.keyfold[hidden] { display: none; }
+.keyfold svg { width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.keyfold:focus-visible, .keypop .keys button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.keypop {
+  position: fixed; inset: 0; z-index: 110; display: grid; place-items: center; padding: 20px;
+  background: rgba(8, 14, 11, .45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.keypop[hidden] { display: none; }
+.keypop-card { width: min(100%, 440px); padding: 16px 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.3); outline: none; }
+.keypop .keyrows { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.keypop .majorrow + .majorrow .lbl { margin-top: 8px; }
+.keypop .keys { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+.keypop .keys button { min-width: 0; height: 44px; background: var(--bg); }
 .keys button[aria-pressed="true"] {
   background: var(--accent); color: var(--on-accent); border-color: var(--accent);
 }
@@ -382,6 +403,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       <div class="keys" id="keysMin"></div>
     </div>
   </div>
+
+  <button type="button" class="keyfold" id="keyFold" aria-haspopup="dialog" hidden><span id="keyFoldName"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+  <div class="keypop" id="keyPop" hidden><div class="keypop-card" id="keyCard" role="dialog" aria-modal="true" aria-label="Choose a key" tabindex="-1"></div></div>
 
   <div class="stage">
     <div class="board" id="board"></div>
@@ -648,6 +672,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     var key = keyObj();
     /* no-break spaces inside each part, so a line that wraps breaks between parts (not "1st / position") */
     /* Pitch Check leaves its own name out (the position bar shows it), so its verdict fits in two lines */
+    var fold = document.getElementById('keyFoldName');
+    if (fold) fold.textContent = key.label + ' ' + key.mode;
     subEl.textContent = [key.label + '\u00a0' + key.mode,
       window.APP ? { just: 'Just', pyth: 'Pyth.' }[APP.temper && APP.temper.id] || 'Equal' : '',   /* Settings > Intonation (Pyth. so it fits two lines on a 360 px phone) */
       state.pos === 'pc' ? pcStatus : POSITIONS[state.pos].name.replace(/ /g, '\u00a0')].filter(Boolean).join(' · ');
@@ -741,6 +767,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     b.setAttribute('aria-label', k.label + ' ' + k.mode);
     b.addEventListener('click', function () {
       state.key = k.id; persist(); render(); flashKey(k);
+      closeKeys();
     });
     (k.mode === 'major' ? keysEl : keysMinEl).appendChild(b);
     keyButtons.push(b);
@@ -772,6 +799,41 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
   /* the view may be hidden at load (no widths yet): place the rows once they have a size */
   if (window.ResizeObserver) new ResizeObserver(showChosenKey).observe(document.getElementById('keyrows'));
+
+  /* Settings > Key list: Folded (default) moves the two rows into a window opened from one button
+     showing the chosen key; All keys puts them back above the board */
+  var keyrowsEl = document.getElementById('keyrows'), keyFold = document.getElementById('keyFold');
+  var keyPop = document.getElementById('keyPop'), keyCard = document.getElementById('keyCard');
+  function setKeysAll() {
+    var all = !!(window.APP && APP.keysAll);
+    closeKeys(true);
+    if (all) keyFold.parentNode.insertBefore(keyrowsEl, keyFold); else keyCard.appendChild(keyrowsEl);
+    keyFold.hidden = all;
+    showChosenKey();
+  }
+  function openKeys() {
+    keyPop.hidden = false;
+    document.addEventListener('keydown', onKeysKey, true);
+    (keyButtons.filter(function (x) { return x.dataset.id === state.key; })[0] || keyCard).focus();
+  }
+  function closeKeys(quiet) {
+    if (keyPop.hidden) return;
+    keyPop.hidden = true;
+    document.removeEventListener('keydown', onKeysKey, true);
+    if (!quiet) keyFold.focus();
+  }
+  function onKeysKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeKeys(); }
+    else if (e.key === 'Tab') {   /* keep focus inside the window */
+      var i = keyButtons.indexOf(document.activeElement), last = keyButtons.length - 1;
+      if (e.shiftKey && i <= 0) { e.preventDefault(); keyButtons[last].focus(); }
+      else if (!e.shiftKey && (i === last || i < 0)) { e.preventDefault(); keyButtons[0].focus(); }
+    }
+  }
+  keyFold.addEventListener('click', openKeys);
+  keyPop.addEventListener('click', function (e) { if (e.target === keyPop) closeKeys(); });
+  if (window.APP) APP.setKeysAll = setKeysAll;
+  setKeysAll();
   Array.prototype.forEach.call(posbar.children, function (b) {
     b.addEventListener('click', function () {
       var id = b.dataset.id;

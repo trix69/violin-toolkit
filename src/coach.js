@@ -15,7 +15,8 @@
     board: [
       { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
       { sel: '#board .note:not(.off)', title: 'Hold for a steady tone', text: 'Hold a note for 5 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
-      { sel: '#keyrows', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.' },
+      { sel: '#keyrows, #keyFold', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.',
+        fold: 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.' },
       { sel: '#posbar button:not([data-id="pc"])', title: 'Positions', text: '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.' },
       { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.',
         pic: '<div class="coach-pic" aria-hidden="true"><p class="cp-cap">Example: F on the E string, in C major</p><div class="cp-row">' +
@@ -140,13 +141,13 @@
     idx = i;
     var s = tour[i];
     targets = document.querySelectorAll(s.sel);
-    target = targets[0];
+    target = Array.prototype.filter.call(targets, function (el) { return el.getClientRects().length; })[0] || targets[0];   /* #keyrows or #keyFold, whichever shows */
     if (!target || !target.getClientRects().length) { if (i + 1 < tour.length) step(i + 1); else close(); return; }
     scrolled = false;
     target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     stepEl.textContent = (i + 1) + ' / ' + tour.length;
     titleEl.textContent = s.title;
-    textEl.textContent = s.text;
+    textEl.textContent = (target.id === 'keyFold' && s.fold) || s.text;
     picEl.innerHTML = s.pic || '';
     picEl.hidden = !s.pic;
     nextBtn.textContent = i + 1 < tour.length ? 'Next' : 'Got it';
