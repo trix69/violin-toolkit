@@ -17,6 +17,8 @@
       { sel: '#board .note:not(.off)', title: 'Hold for a steady tone', text: 'Hold a note for 5 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
       { sel: '#keyrows, #keyFold', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.',
         fold: 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.' },
+      { sel: '.tempsel', title: 'Intonation', when: function () { return !APP.keysAll; },   /* the menu shows only with Key list > Folded */
+        text: 'Equal is tuned like a piano. Just makes the intervals in the key pure. Pythagorean builds every note from pure fifths. The notes on the board move to match.' },
       { sel: '#posbar button:not([data-id="pc"])', title: 'Positions', text: '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.' },
       { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.',
         pic: '<div class="coach-pic" aria-hidden="true"><p class="cp-cap">Example: F on the E string, in C major</p><div class="cp-row">' +
@@ -187,7 +189,7 @@
   }
   function start(v) {
     if (tour || !TOURS[v] || busy()) return;
-    tour = TOURS[v]; view = v; lastFocus = document.activeElement;
+    tour = TOURS[v].filter(function (s) { return !s.when || s.when(); }); view = v; lastFocus = document.activeElement;
     root.hidden = false;
     /* the page behind is out of reach while the tour is up (screen readers and keyboard too) */
     Array.prototype.forEach.call(document.body.children, function (el) {
