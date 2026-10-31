@@ -342,7 +342,17 @@ h1 {
   border-radius: 16px;
   padding-block: 8px;
   overflow: hidden;
+  position: relative;
 }
+#view-board .forkhz {
+  position: absolute; right: 3px; width: 50px; top: var(--y); transform: translateY(-50%);
+  padding: 6px 2px; border-radius: 10px; text-align: center;
+  background: var(--panel); color: var(--fg); border: 2px solid var(--hue, var(--accent));
+  box-shadow: 0 4px 14px rgba(0,0,0,.25); pointer-events: none;
+  font: 600 16px/1.1 var(--font-note);
+}
+#view-board .forkhz b { display: block; margin-top: 3px; font: 500 12px/1.1 var(--font-mono); font-variant-numeric: tabular-nums; }
+#view-board .forkhz small { display: block; font: 500 10px/1.1 var(--font-mono); color: var(--muted); }
 #view-board .board {
   position: relative;
   height: calc(var(--head) + var(--span) + var(--r) + 10px);
@@ -1518,7 +1528,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.15" data-build="20261031-172312" data-cache="violin-toolkit-"><span>Version 1.15</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.16" data-build="20261031-183043" data-cache="violin-toolkit-"><span>Version 1.16</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -2838,9 +2848,22 @@ function noteGate() {
     rec.timer = setTimeout(function () { applyVib(rec); }, 200);   /* vibrato starts after 200 ms of holding */
     rec.latchT = setTimeout(function () { rec.latched = true; el.classList.add('latched'); applyVib(rec); }, 3000);   /* held 3 s: keep playing after release */
     el.classList.add('down');
+    showHz(rec, nt);
     followPosition(nt);
   }
   var latchN = 0;
+  /* a sounding note's name and frequency on the right, level with the note, while it plays (Trix) */
+  function showHz(rec, nt) {
+    var st = stage, r = rec.el.getBoundingClientRect(), sr = st.getBoundingClientRect();
+    var d = document.createElement('div');
+    d.className = 'forkhz';
+    d.setAttribute('role', 'status');
+    d.style.setProperty('--y', (r.top + r.height / 2 - sr.top) + 'px');
+    d.style.setProperty('--hue', rec.el.style.getPropertyValue('--hue'));
+    d.innerHTML = noteName(nt.midi, true) + '<b>' + noteFreq(nt).toFixed(1) + '</b><small>Hz</small>';
+    st.appendChild(d);
+    rec.hz = d;
+  }
   function end(id, force) {
     var rec = voices.get(id);
     if (!rec) return;
@@ -2851,6 +2874,7 @@ function noteGate() {
     voices.delete(id);
     clearTimeout(rec.timer); clearTimeout(rec.latchT);
     stopVoice(rec.v);
+    if (rec.hz) { rec.hz.remove(); rec.hz = null; }
     var stillDown = false;
     voices.forEach(function (r) { if (r.el === rec.el) stillDown = true; });
     if (!stillDown) rec.el.classList.remove('down', 'latched');
