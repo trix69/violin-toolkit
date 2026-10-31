@@ -305,7 +305,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
    z-index 104: over the page, under the tour (105), Settings (110) and Use offline (120), so an open window stays still. */
 .beat-flash { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; z-index: 104; pointer-events: none; opacity: 0; background: var(--accent); display: none; }   /* the colour chosen in Settings > Colour.
    Not position: fixed and display: none at rest: iOS Safari tints its toolbar from fixed elements at the screen edge, even invisible ones. */
-#howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
+#howto .sheet-card { box-sizing: border-box; width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
 .howto-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 10px; }
 .howto-steps li { counter-increment: st; display: flex; align-items: center; gap: 12px; font: 400 15px/1.4 var(--font-note); }
 .howto-steps li::before { content: counter(st); flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font: 700 13px var(--font-note); }
@@ -313,12 +313,23 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .howto-steps li svg { color: var(--muted); width: 22px; height: 22px; }
 .howto-note { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); font: 400 13px/1.5 var(--font-note); color: var(--fg); }
 .howto-note a { color: var(--accent); }
-.sheet > .sheet-card { max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
+.sheet > .sheet-card { box-sizing: border-box; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }   /* border-box: padding and border inside the limit, so it never reaches the screen edge */
+/* desktop: windows keep clear of the top and bottom of the screen (Trix) */
+@media (min-width: 700px) and (min-height: 600px) {
+  .sheet { padding-block: 56px; }
+  .sheet > .sheet-card, #howto .sheet-card { max-height: calc(100vh - 112px); max-height: calc(100dvh - 112px); }
+}
 .ver { display: block; margin: 10px auto 0; padding: 6px 10px; min-height: 32px; border: 0; border-radius: 8px; background: transparent; text-align: center; font: 500 12px var(--font-mono); letter-spacing: 0.04em; color: var(--muted); cursor: pointer; }
 .ver #verMsg { text-decoration: underline; text-underline-offset: 3px; }
 .ver:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.sheet-done { position: sticky; bottom: 0; box-shadow: 0 -10px 12px var(--panel); }
-.sheet-done { margin-top: 18px; width: 100%; height: 46px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: 700 16px var(--font-note); cursor: pointer; }
+.sheet-done { position: sticky; bottom: 0; z-index: 4; }
+/* nothing shows round or below Done while the window scrolls: ::before is a fade above it and the panel colour
+   behind and under it, to the card's edges; ::after is the button's own face. Both sit under the label (z-index
+   below 0 inside the button's own stacking context), so the button itself is transparent */
+.sheet-done::before, .sheet-done::after { content: ''; position: absolute; pointer-events: none; }
+.sheet-done::before { z-index: -2; left: -20px; right: -20px; top: -28px; bottom: -20px; background: linear-gradient(color-mix(in srgb, var(--panel) 0%, transparent), var(--panel) 28px); }
+.sheet-done::after { z-index: -1; inset: 0; border-radius: inherit; background: var(--accent); }
+.sheet-done { margin-top: 18px; width: 100%; height: 46px; border: 0; border-radius: 12px; background: transparent; color: var(--on-accent); font: 700 16px var(--font-note); cursor: pointer; }
 """
 
 met_css = open(SP + 'met.css').read()

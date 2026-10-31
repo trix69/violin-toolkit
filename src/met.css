@@ -79,7 +79,11 @@
 /* Symbols overlay: violin notation at a glance */
 #symbols h3:first-of-type { margin-top: 4px; }
 /* search: stays at the top while the list scrolls; matches the name, the subtitle and the explanation */
-#symbols .symsearch { position: sticky; top: -20px; z-index: 5; margin: 0 -4px 6px; padding: 4px; background: var(--panel); }
+#symbols .symsearch { position: sticky; top: 0; z-index: 5; margin: 0 -4px 6px; padding: 4px; background: var(--panel); }
+/* the card's top padding stays a gap above it: covered in the panel colour, with a fade below, so symbols scroll out of sight */
+#symbols .symsearch::before, #symbols .symsearch::after { content: ''; position: absolute; left: -16px; right: -16px; pointer-events: none; }
+#symbols .symsearch::before { bottom: 100%; height: 20px; background: var(--panel); }
+#symbols .symsearch::after { top: 100%; height: 18px; background: linear-gradient(var(--panel), color-mix(in srgb, var(--panel) 0%, transparent)); }
 #symbols .symsearch svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
 #symbols .symsearch input {
   width: 100%; height: 44px; padding: 0 12px 0 40px; margin: 0;
