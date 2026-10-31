@@ -867,6 +867,11 @@ h1 {
   transition: transform .12s, border-color .12s, box-shadow .12s;
 }
 .launch-btn:hover { border-color: var(--accent); transform: translateY(-2px); }
+.launch-days { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; min-height: 40px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
+.launch-days[hidden] { display: none; }
+.launch-days:hover { border-color: var(--accent); }
+.launch-days:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.launch-days svg { width: 20px; height: 20px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
 .launch-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .launch-btn svg { width: 44px; height: 44px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .launch-btn b { font: 700 20px var(--font-display); }
@@ -921,6 +926,22 @@ html[lang="zh-CN"] {
 .swatch[aria-checked="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .swatch[aria-checked="true"] span { color: var(--fg); font-weight: 600; }
 .segc button:focus-visible, .swatch:focus-visible, .sheet-done:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.howto-btn svg { flex: none; }
+/* practice time overlay: last 7 days as bars, today in the accent colour */
+#usage { z-index: 130; }
+.ubars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; height: 200px; margin: 6px 0 0; padding: 0; list-style: none; }
+.ubars li { display: flex; flex-direction: column-reverse; align-items: center; gap: 4px; min-width: 0; }
+.ubars i { display: block; width: 100%; max-width: 30px; height: var(--h); min-height: 2px; border-radius: 6px 6px 2px 2px; background: color-mix(in srgb, var(--accent) 40%, transparent); }
+.ubars .zero i { background: var(--line); }
+.ubars .today i { background: var(--accent); }
+.ubars .uv { font: 600 13px/1 var(--font-note); font-variant-numeric: tabular-nums; }
+.ubars .ud { font: 400 12px/1 var(--font-note); color: var(--muted); white-space: nowrap; }
+.ubars .today .ud { color: var(--fg); font-weight: 600; }
+.uhid { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.usage { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 0; }
+.usage div { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.usage dt { font: 400 13px/1.2 var(--font-note); color: var(--muted); }
+.usage dd { margin: 4px 0 0; font: 600 19px/1.2 var(--font-note); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .support { display: flex; align-items: center; gap: 14px; }
 /* "Like this app?" and "Support" side by side on phones; stacked on desktop where the QR code shows */
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1541,6 +1562,8 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <button type="button" role="radio" aria-checked="false" data-flash="on">On</button>
       <button type="button" role="radio" aria-checked="false" data-flash="off">Off</button>
     </div>
+    <h3 id="lblUse">Practice time</h3>
+    <button type="button" class="howto-btn" id="openUsage" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <h3 id="lblOff">Offline</h3>
@@ -1558,7 +1581,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.17" data-build="20261031-195427" data-cache="violin-toolkit-"><span>Version 1.17</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.18" data-build="20261101-073913" data-cache="violin-toolkit-"><span>Version 1.18</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1596,6 +1619,17 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     <button type="button" class="sheet-done" id="howtoDone">Done</button>
   </div>
 </div>
+<div class="sheet" id="usage" role="dialog" aria-modal="true" aria-labelledby="usageTitle" hidden>
+  <div class="sheet-card" id="usageCard" tabindex="-1">
+    <h2 id="usageTitle">Practice time</h2>
+    <ol class="ubars" id="ubars" translate="no" aria-label="Last 7 days"></ol>
+    <dl class="usage">
+      <div><dt>Today</dt><dd id="useToday">0 min</dd></div>
+      <div><dt>Last 7 days</dt><dd id="useWeek">0 min</dd></div>
+    </dl>
+    <button type="button" class="sheet-done" id="usageDone">Done</button>
+  </div>
+</div>
 <div class="launch" id="launch" role="dialog" aria-modal="true" aria-labelledby="launchTitle" hidden>
   <div class="launch-card" id="launchCard" tabindex="-1">
     <h2 id="launchTitle">Violin Toolkit</h2>
@@ -1605,6 +1639,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <button type="button" class="launch-btn" data-view="board"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11"/><path d="M8.4 3.5L7.2 21M10.8 3.5l-.5 17.5M13.2 3.5l.5 17.5M15.6 3.5L16.8 21" opacity=".7"/><path d="M7.7 11h8.6M7.3 17h9.4" opacity=".7"/><circle cx="10.8" cy="7.3" r="1.3" fill="currentColor"/><circle cx="15.6" cy="14" r="1.3" fill="currentColor"/></svg><b>Fingerboard</b><span>Find and play notes in each position</span></button>
       <button type="button" class="launch-btn" data-view="metronome"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l3.4 18H5.8z"/><path d="M12 17.5L15.6 6.5"/><circle cx="14.2" cy="10.6" r="1.2" fill="currentColor"/><path d="M8 21h8" opacity=".0"/></svg><b>Metronome</b><span>Keep steady time at any tempo</span></button>
     </div>
+    <button type="button" class="launch-days" id="launchDays" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
   </div>
   <button type="button" class="tab launch-set" id="launchSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 </div>
@@ -3455,6 +3490,88 @@ function noteGate() {
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
   }
   var opener = openBtn;   /* the gear in the app bar, or the one on the start overlay */
+  /* Practice time, per local day: in each visit, the time from the first tap or key press to the
+     last one. A visit ends when the page is hidden or closed, so time away is never counted.
+     Kept on this device only (violin-usage: { "YYYY-MM-DD": seconds }, every day kept, ~20 bytes
+     each, so "Practised on N days" counts them all; a day needs a minute). Pending seconds are added
+     to what is stored at save time, so two open tabs don't overwrite each other. */
+  var USAGE = (function () {
+    var KEY = 'violin-usage', pend = {}, last = 0;
+    function day(t) { var d = new Date(t); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+    function load() {
+      var o = null;
+      try { o = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+      return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+    }
+    function add(a, b) {   /* a..b in ms, split at local midnight */
+      while (a < b) {
+        var d = new Date(a), e = Math.min(b, new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime()), k = day(a);
+        pend[k] = (pend[k] || 0) + (e - a) / 1000; a = e;
+      }
+    }
+    function save() {
+      var ks = Object.keys(pend); if (!ks.length) return;
+      var o = load();
+      ks.forEach(function (k) { o[k] = Math.round(((+o[k] || 0) + pend[k]) * 10) / 10; });
+      try { localStorage.setItem(KEY, JSON.stringify(o)); pend = {}; } catch (e) {}
+    }
+    function touch() { var now = Date.now(); if (last && now > last) add(last, now); last = now; }
+    function end() { last = 0; save(); }
+    document.addEventListener('pointerdown', touch, true);
+    document.addEventListener('keydown', touch, true);
+    document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
+    window.addEventListener('pagehide', end);
+    setInterval(save, 15000);
+    function series(n) {   /* [{ d: Date, s: seconds }] for the n days up to today, oldest first */
+      save();
+      var o = load(), d = new Date(), out = [];
+      for (var i = n - 1; i >= 0; i--) { var t = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i); out.push({ d: t, s: +o[day(t.getTime())] || 0 }); }
+      return out;
+    }
+    function fmt(s) { var m = Math.floor(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
+    function days() { save(); var o = load(); return Object.keys(o).filter(function (k) { return +o[k] >= 60; }).length; }
+    return { series: series, fmt: fmt, days: days };
+  })();
+  APP.usage = USAGE;
+  function syncDays() {
+    var n = USAGE.days();
+    Array.prototype.forEach.call(document.querySelectorAll('.use-days'), function (e) { e.textContent = 'Practised on ' + n + (n === 1 ? ' day' : ' days'); });
+    document.getElementById('launchDays').hidden = !n;
+  }
+  APP.syncDays = syncDays;
+  /* the overlay: built in the current language when it opens (translate="no" on the bars) */
+  var usage = document.getElementById('usage'), usageOpener = null;
+  function openUsage() {
+    usageOpener = this;
+    var zh = window.I18N && I18N.lang === 'zh', ser = USAGE.series(7), max = 0, tot = 0, html = '';
+    var WD = zh ? ['周日', '周一', '周二', '周三', '周四', '周五', '周六'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    ser.forEach(function (x) { if (x.s > max) max = x.s; tot += x.s; });
+    ser.forEach(function (x, i) {
+      var m = Math.floor(x.s / 60), last = i === ser.length - 1;
+      html += '<li class="' + (last ? 'today' : '') + (x.s < 60 ? ' zero' : '') + '"><span class="ud">' + (last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()]) + '</span>'
+        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv">' + m + '<span class="uhid">' + (zh ? ' 分钟' : ' min') + '</span></span></li>';
+    });
+    document.getElementById('ubars').innerHTML = html;
+    document.getElementById('useToday').textContent = USAGE.fmt(ser[ser.length - 1].s);
+    document.getElementById('useWeek').textContent = USAGE.fmt(tot);
+    usage.hidden = false;
+    window.addEventListener('keydown', onUsageKey, true);
+    document.getElementById('usageCard').focus();
+  }
+  function closeUsage() {
+    usage.hidden = true;
+    window.removeEventListener('keydown', onUsageKey, true);
+    try { usageOpener.focus(); } catch (e) {}
+  }
+  function onUsageKey(e) {   /* capture on window, so the Settings and start-overlay key handlers underneath stay quiet */
+    if (e.key === 'Escape') { e.stopPropagation(); closeUsage(); }
+    else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); document.getElementById('usageDone').focus(); }
+  }
+  document.getElementById('openUsage').addEventListener('click', openUsage);
+  document.getElementById('launchDays').addEventListener('click', openUsage);
+  document.getElementById('usageDone').addEventListener('click', closeUsage);
+  usage.addEventListener('click', function (e) { if (e.target === usage) closeUsage(); });
+  syncDays();
   function closeSheet() {
     sheet.hidden = true;
     document.removeEventListener('keydown', onSheetKey);
@@ -3515,7 +3632,7 @@ function noteGate() {
   howto.addEventListener('click', function (e) { if (e.target === howto) closeHowto(); });
   function openSheet() {
     opener = this;
-    syncSheet(); sheet.hidden = false;
+    syncSheet(); syncDays(); sheet.hidden = false;
     document.addEventListener('keydown', onSheetKey);
     sheetCard.focus();
   }
@@ -4146,6 +4263,7 @@ function noteGate() {
     'Hold for a steady tone': '长按得到持续音', 'Hold a note for 3 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.': '按住一个音 3 秒，松手后它会继续响，平稳无揉弦，像音叉一样。点任意处即可停止。',
     'Choose a key': '选择调', 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.': '点这里选择大调或小调。调内的音是彩色的，其他的是灰色。',
     'Equal is tuned like a piano. Just makes the intervals in the key pure. Pythagorean builds every note from pure fifths. The notes on the board move to match.': '平均律和钢琴的调音一样。纯律让调内的音程纯净。五度相生律用纯五度推出每个音。指板上的音会随之移动。',
+    'Practice time': '练习时间', 'Today': '今天', 'Last 7 days': '最近 7 天',
     'Key list': '调列表', 'Folded': '收起', 'All keys': '全部显示', 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.': '选择大调或小调，左右滑动可看到更多调。调内的音是彩色的，其他的是灰色。',
     'Positions': '把位', '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.': '一把位：手靠近琴头，一指按每根空弦上方紧挨的那个音。二把位手往上移，一指放到原来二指的位置；三把位放到原来三指的位置。指板上标出每个音和按它的手指。',
     'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.': '点“音准检测”后开始拉。圆盘显示你拉的音落在哪里：音准时圈住这个音，偏高时在它下方，偏低时在它上方。越绿越接近。',
@@ -4188,6 +4306,9 @@ function noteGate() {
     return m ? (m[2] === 'sharp' ? '偏高 ' : '偏低 ') + m[1] + '¢' : s;
   }
   var RX = [
+    [/^Practised on (\d+) days?$/, function (m, n) { return '已练习 ' + n + ' 天'; }],
+    [/^(\d+) min$/, function (m, n) { return n + ' 分钟'; }],
+    [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + ' 小时 ' + n + ' 分'; }],
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
     [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just|Pyth\.) · )?(1st|2nd|3rd)[ \u00a0]position$/, function (m, k, q, t, p) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + P[p]; }],
