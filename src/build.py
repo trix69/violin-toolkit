@@ -284,6 +284,10 @@ html[lang="zh-CN"] {
 .swatch[aria-checked="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .swatch[aria-checked="true"] span { color: var(--fg); font-weight: 600; }
 .segc button:focus-visible, .swatch:focus-visible, .sheet-done:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.usage { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.usage div { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.usage dt { font: 400 13px/1.2 var(--font-note); color: var(--muted); }
+.usage dd { margin: 4px 0 0; font: 600 19px/1.2 var(--font-note); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .support { display: flex; align-items: center; gap: 14px; }
 /* "Like this app?" and "Support" side by side on phones; stacked on desktop where the QR code shows */
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -560,6 +564,48 @@ nav_js = """(function () {
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
   }
   var opener = openBtn;   /* the gear in the app bar, or the one on the start overlay */
+  /* Practice time, per local day: in each visit, the time from the first tap or key press to the
+     last one. A visit ends when the page is hidden or closed, so time away is never counted.
+     Kept on this device only (violin-usage: { "YYYY-MM-DD": seconds }). Pending seconds are added
+     to what is stored at save time, so two open tabs don't overwrite each other. */
+  var USAGE = (function () {
+    var KEY = 'violin-usage', pend = {}, last = 0;
+    function day(t) { var d = new Date(t); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+    function load() {
+      var o = null;
+      try { o = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+      return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+    }
+    function add(a, b) {   /* a..b in ms, split at local midnight */
+      while (a < b) {
+        var d = new Date(a), e = Math.min(b, new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime()), k = day(a);
+        pend[k] = (pend[k] || 0) + (e - a) / 1000; a = e;
+      }
+    }
+    function save() {
+      var ks = Object.keys(pend); if (!ks.length) return;
+      var o = load(), cut = day(Date.now() - 400 * 864e5);
+      ks.forEach(function (k) { o[k] = Math.round(((+o[k] || 0) + pend[k]) * 10) / 10; });
+      Object.keys(o).forEach(function (k) { if (k < cut) delete o[k]; });
+      try { localStorage.setItem(KEY, JSON.stringify(o)); pend = {}; } catch (e) {}
+    }
+    function touch() { var now = Date.now(); if (last && now > last) add(last, now); last = now; }
+    function end() { last = 0; save(); }
+    document.addEventListener('pointerdown', touch, true);
+    document.addEventListener('keydown', touch, true);
+    document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
+    window.addEventListener('pagehide', end);
+    setInterval(save, 15000);
+    function secs(n) {   /* total for today and the n-1 days before it */
+      save();
+      var o = load(), t = 0, d = new Date();
+      for (var i = 0; i < n; i++) { t += +o[day(new Date(d.getFullYear(), d.getMonth(), d.getDate() - i).getTime())] || 0; }
+      return t;
+    }
+    function fmt(s) { var m = Math.floor(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
+    return { today: function () { return fmt(secs(1)); }, week: function () { return fmt(secs(7)); } };
+  })();
+  APP.usage = USAGE;
   function closeSheet() {
     sheet.hidden = true;
     document.removeEventListener('keydown', onSheetKey);
@@ -621,6 +667,8 @@ nav_js = """(function () {
   function openSheet() {
     opener = this;
     syncSheet(); sheet.hidden = false;
+    document.getElementById('useToday').textContent = USAGE.today();
+    document.getElementById('useWeek').textContent = USAGE.week();
     document.addEventListener('keydown', onSheetKey);
     sheetCard.focus();
   }
@@ -909,6 +957,11 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-flash="on">On</button>
       <button type="button" role="radio" aria-checked="false" data-flash="off">Off</button>
     </div>
+    <h3 id="lblUse">Practice time</h3>
+    <dl class="usage" aria-labelledby="lblUse">
+      <div><dt>Today</dt><dd id="useToday">0 min</dd></div>
+      <div><dt>Last 7 days</dt><dd id="useWeek">0 min</dd></div>
+    </dl>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <h3 id="lblOff">Offline</h3>
