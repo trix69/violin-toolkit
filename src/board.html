@@ -141,7 +141,12 @@ h1 {
   .tempsel select { padding-right: 30px; }
   .tempsel svg { right: 8px; }
 }
-@media (max-width: 340px) { .keybar { gap: 8px; } .keyfold, .tempsel select { font-size: 15px; } }
+@media (max-width: 340px) {   /* 320 px: leaves "Pythagorean" about 8 px to spare (Hermes R18.3) */
+  .keybar { gap: 8px; }
+  .keyfold, .tempsel select { font-size: 15px; padding-left: 10px; }
+  .tempsel select { padding-right: 26px; }
+  .tempsel svg { right: 6px; }
+}
 .keyfold svg, .tempsel svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .keyfold:focus-visible, .tempsel select:focus-visible, .keypop .keys button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .keypop {
@@ -825,7 +830,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
      showing the chosen key; All keys puts them back above the board */
   var keyrowsEl = document.getElementById('keyrows'), keyFold = document.getElementById('keyFold'), keyBar = document.getElementById('keyBar');
   var temperSel = document.getElementById('temperSel');
-  var keyPop = document.getElementById('keyPop'), keyCard = document.getElementById('keyCard');
+  var keyPop = document.getElementById('keyPop'), keyCard = document.getElementById('keyCard'), keyInert = [];
   function setKeysAll() {
     var all = !!(window.APP && APP.keysAll);
     closeKeys(true);
@@ -836,12 +841,19 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
   function openKeys() {
     keyPop.hidden = false;
+    /* the rest of the page is out of reach while it is open: siblings of the window and of each ancestor (Hermes R18.2) */
+    for (var el = keyPop; el.parentNode && el !== document.body; el = el.parentNode) {
+      Array.prototype.forEach.call(el.parentNode.children, function (sib) {
+        if (sib !== el && !sib.inert && sib.tagName !== 'SCRIPT') { sib.inert = true; keyInert.push(sib); }
+      });
+    }
     document.addEventListener('keydown', onKeysKey, true);
     (keyButtons.filter(function (x) { return x.dataset.id === state.key; })[0] || keyCard).focus();
   }
   function closeKeys(quiet) {
     if (keyPop.hidden) return;
     keyPop.hidden = true;
+    keyInert.forEach(function (el) { el.inert = false; }); keyInert = [];
     document.removeEventListener('keydown', onKeysKey, true);
     if (!quiet) keyFold.focus();
   }
