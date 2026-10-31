@@ -13,8 +13,8 @@
       { sel: '#view-tuner .seg', title: 'Violin or Chromatic', text: 'Violin finds the nearest open string. Chromatic shows any note you play.' }
     ],
     board: [
-      { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
-      { sel: '#board .note:not(.off)', title: 'Hold for a steady tone', text: 'Hold a note for 3 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
+      { sel: '#board .note:not(.off)', one: true, title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
+      { sel: '#board .note:not(.off)', one: true, title: 'Hold for a steady tone', text: 'Hold a note for 3 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
       { sel: '#keyrows, #keyFold', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.',
         fold: 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.' },
       { sel: '.tempsel', title: 'Intonation', when: function () { return !APP.keysAll; },   /* the menu shows only with Key list > Folded */
@@ -129,6 +129,8 @@
       r = r ? { left: Math.min(r.left, b.left), top: Math.min(r.top, b.top), right: Math.max(r.right, b.right), bottom: Math.max(r.bottom, b.bottom) } : { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
     });
     r = r || target.getBoundingClientRect();
+    /* never past the screen edges (a board taller than the screen) */
+    r = { left: Math.max(r.left, 0), top: Math.max(r.top, 0), right: Math.min(r.right, window.innerWidth), bottom: Math.min(r.bottom, window.innerHeight) };
     return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, height: r.bottom - r.top };
   }
   /* after a rotation or resize, bring the target back into view before placing */
@@ -145,6 +147,12 @@
     targets = document.querySelectorAll(s.sel);
     target = Array.prototype.filter.call(targets, function (el) { return el.getClientRects().length; })[0] || targets[0];   /* #keyrows or #keyFold, whichever shows */
     if (!target || !target.getClientRects().length) { if (i + 1 < tour.length) step(i + 1); else close(); return; }
+    if (s.one) {   /* one note, not all of them: the key note if it is on screen, else the first note that is (Trix: the box ran off the screen in 3rd position) */
+      var bar = document.getElementById('posbar'), lim = bar ? bar.getBoundingClientRect().top : window.innerHeight;
+      var seen = Array.prototype.filter.call(targets, function (el) { var b = el.getBoundingClientRect(); return b.height && b.top >= 0 && b.bottom <= lim; });
+      target = seen.filter(function (el) { return el.classList.contains('root'); })[0] || seen[0] || target;
+      targets = [target];
+    }
     scrolled = false;
     target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     stepEl.textContent = (i + 1) + ' / ' + tour.length;
