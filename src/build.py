@@ -284,7 +284,19 @@ html[lang="zh-CN"] {
 .swatch[aria-checked="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .swatch[aria-checked="true"] span { color: var(--fg); font-weight: 600; }
 .segc button:focus-visible, .swatch:focus-visible, .sheet-done:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.usage { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.howto-btn svg { flex: none; }
+/* practice time overlay: last 7 days as bars, today in the accent colour */
+#usage { z-index: 130; }
+.ubars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; height: 200px; margin: 6px 0 0; padding: 0; list-style: none; }
+.ubars li { display: flex; flex-direction: column-reverse; align-items: center; gap: 4px; min-width: 0; }
+.ubars i { display: block; width: 100%; max-width: 30px; height: var(--h); min-height: 2px; border-radius: 6px 6px 2px 2px; background: color-mix(in srgb, var(--accent) 40%, transparent); }
+.ubars .zero i { background: var(--line); }
+.ubars .today i { background: var(--accent); }
+.ubars .uv { font: 600 13px/1 var(--font-note); font-variant-numeric: tabular-nums; }
+.ubars .ud { font: 400 12px/1 var(--font-note); color: var(--muted); white-space: nowrap; }
+.ubars .today .ud { color: var(--fg); font-weight: 600; }
+.uhid { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.usage { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 0; }
 .usage div { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
 .usage dt { font: 400 13px/1.2 var(--font-note); color: var(--muted); }
 .usage dd { margin: 4px 0 0; font: 600 19px/1.2 var(--font-note); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -365,6 +377,11 @@ launch_css = '''
   transition: transform .12s, border-color .12s, box-shadow .12s;
 }
 .launch-btn:hover { border-color: var(--accent); transform: translateY(-2px); }
+.launch-days { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; min-height: 40px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
+.launch-days[hidden] { display: none; }
+.launch-days:hover { border-color: var(--accent); }
+.launch-days:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.launch-days svg { width: 20px; height: 20px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
 .launch-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .launch-btn svg { width: 44px; height: 44px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .launch-btn b { font: 700 20px var(--font-display); }
@@ -566,7 +583,8 @@ nav_js = """(function () {
   var opener = openBtn;   /* the gear in the app bar, or the one on the start overlay */
   /* Practice time, per local day: in each visit, the time from the first tap or key press to the
      last one. A visit ends when the page is hidden or closed, so time away is never counted.
-     Kept on this device only (violin-usage: { "YYYY-MM-DD": seconds }). Pending seconds are added
+     Kept on this device only (violin-usage: { "YYYY-MM-DD": seconds }, every day kept, ~20 bytes
+     each, so "Practised on N days" counts them all; a day needs a minute). Pending seconds are added
      to what is stored at save time, so two open tabs don't overwrite each other. */
   var USAGE = (function () {
     var KEY = 'violin-usage', pend = {}, last = 0;
@@ -584,9 +602,8 @@ nav_js = """(function () {
     }
     function save() {
       var ks = Object.keys(pend); if (!ks.length) return;
-      var o = load(), cut = day(Date.now() - 400 * 864e5);
+      var o = load();
       ks.forEach(function (k) { o[k] = Math.round(((+o[k] || 0) + pend[k]) * 10) / 10; });
-      Object.keys(o).forEach(function (k) { if (k < cut) delete o[k]; });
       try { localStorage.setItem(KEY, JSON.stringify(o)); pend = {}; } catch (e) {}
     }
     function touch() { var now = Date.now(); if (last && now > last) add(last, now); last = now; }
@@ -596,16 +613,56 @@ nav_js = """(function () {
     document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
     window.addEventListener('pagehide', end);
     setInterval(save, 15000);
-    function secs(n) {   /* total for today and the n-1 days before it */
+    function series(n) {   /* [{ d: Date, s: seconds }] for the n days up to today, oldest first */
       save();
-      var o = load(), t = 0, d = new Date();
-      for (var i = 0; i < n; i++) { t += +o[day(new Date(d.getFullYear(), d.getMonth(), d.getDate() - i).getTime())] || 0; }
-      return t;
+      var o = load(), d = new Date(), out = [];
+      for (var i = n - 1; i >= 0; i--) { var t = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i); out.push({ d: t, s: +o[day(t.getTime())] || 0 }); }
+      return out;
     }
     function fmt(s) { var m = Math.floor(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
-    return { today: function () { return fmt(secs(1)); }, week: function () { return fmt(secs(7)); } };
+    function days() { save(); var o = load(); return Object.keys(o).filter(function (k) { return +o[k] >= 60; }).length; }
+    return { series: series, fmt: fmt, days: days };
   })();
   APP.usage = USAGE;
+  function syncDays() {
+    var n = USAGE.days();
+    Array.prototype.forEach.call(document.querySelectorAll('.use-days'), function (e) { e.textContent = 'Practised on ' + n + (n === 1 ? ' day' : ' days'); });
+    document.getElementById('launchDays').hidden = !n;
+  }
+  APP.syncDays = syncDays;
+  /* the overlay: built in the current language when it opens (translate="no" on the bars) */
+  var usage = document.getElementById('usage'), usageOpener = null;
+  function openUsage() {
+    usageOpener = this;
+    var zh = window.I18N && I18N.lang === 'zh', ser = USAGE.series(7), max = 0, tot = 0, html = '';
+    var WD = zh ? ['周日', '周一', '周二', '周三', '周四', '周五', '周六'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    ser.forEach(function (x) { if (x.s > max) max = x.s; tot += x.s; });
+    ser.forEach(function (x, i) {
+      var m = Math.floor(x.s / 60), last = i === ser.length - 1;
+      html += '<li class="' + (last ? 'today' : '') + (x.s < 60 ? ' zero' : '') + '"><span class="ud">' + (last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()]) + '</span>'
+        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv">' + m + '<span class="uhid">' + (zh ? ' 分钟' : ' min') + '</span></span></li>';
+    });
+    document.getElementById('ubars').innerHTML = html;
+    document.getElementById('useToday').textContent = USAGE.fmt(ser[ser.length - 1].s);
+    document.getElementById('useWeek').textContent = USAGE.fmt(tot);
+    usage.hidden = false;
+    window.addEventListener('keydown', onUsageKey, true);
+    document.getElementById('usageCard').focus();
+  }
+  function closeUsage() {
+    usage.hidden = true;
+    window.removeEventListener('keydown', onUsageKey, true);
+    try { usageOpener.focus(); } catch (e) {}
+  }
+  function onUsageKey(e) {   /* capture on window, so the Settings and start-overlay key handlers underneath stay quiet */
+    if (e.key === 'Escape') { e.stopPropagation(); closeUsage(); }
+    else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); document.getElementById('usageDone').focus(); }
+  }
+  document.getElementById('openUsage').addEventListener('click', openUsage);
+  document.getElementById('launchDays').addEventListener('click', openUsage);
+  document.getElementById('usageDone').addEventListener('click', closeUsage);
+  usage.addEventListener('click', function (e) { if (e.target === usage) closeUsage(); });
+  syncDays();
   function closeSheet() {
     sheet.hidden = true;
     document.removeEventListener('keydown', onSheetKey);
@@ -666,9 +723,7 @@ nav_js = """(function () {
   howto.addEventListener('click', function (e) { if (e.target === howto) closeHowto(); });
   function openSheet() {
     opener = this;
-    syncSheet(); sheet.hidden = false;
-    document.getElementById('useToday').textContent = USAGE.today();
-    document.getElementById('useWeek').textContent = USAGE.week();
+    syncSheet(); syncDays(); sheet.hidden = false;
     document.addEventListener('keydown', onSheetKey);
     sheetCard.focus();
   }
@@ -958,10 +1013,7 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-flash="off">Off</button>
     </div>
     <h3 id="lblUse">Practice time</h3>
-    <dl class="usage" aria-labelledby="lblUse">
-      <div><dt>Today</dt><dd id="useToday">0 min</dd></div>
-      <div><dt>Last 7 days</dt><dd id="useWeek">0 min</dd></div>
-    </dl>
+    <button type="button" class="howto-btn" id="openUsage" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <h3 id="lblOff">Offline</h3>
@@ -1017,6 +1069,17 @@ markup = f"""
     <button type="button" class="sheet-done" id="howtoDone">Done</button>
   </div>
 </div>
+<div class="sheet" id="usage" role="dialog" aria-modal="true" aria-labelledby="usageTitle" hidden>
+  <div class="sheet-card" id="usageCard" tabindex="-1">
+    <h2 id="usageTitle">Practice time</h2>
+    <ol class="ubars" id="ubars" translate="no" aria-label="Last 7 days"></ol>
+    <dl class="usage">
+      <div><dt>Today</dt><dd id="useToday">0 min</dd></div>
+      <div><dt>Last 7 days</dt><dd id="useWeek">0 min</dd></div>
+    </dl>
+    <button type="button" class="sheet-done" id="usageDone">Done</button>
+  </div>
+</div>
 <div class="launch" id="launch" role="dialog" aria-modal="true" aria-labelledby="launchTitle" hidden>
   <div class="launch-card" id="launchCard" tabindex="-1">
     <h2 id="launchTitle">Violin Toolkit</h2>
@@ -1026,6 +1089,7 @@ markup = f"""
       <button type="button" class="launch-btn" data-view="board">{ICON_BOARD}<b>Fingerboard</b><span>Find and play notes in each position</span></button>
       <button type="button" class="launch-btn" data-view="metronome">{ICON_MET}<b>Metronome</b><span>Keep steady time at any tempo</span></button>
     </div>
+    <button type="button" class="launch-days" id="launchDays" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
   </div>
   <button type="button" class="tab launch-set" id="launchSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog">{ICON_SET}</button>
 </div>

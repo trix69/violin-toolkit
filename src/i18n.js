@@ -299,6 +299,7 @@
     return m ? (m[2] === 'sharp' ? '偏高 ' : '偏低 ') + m[1] + '¢' : s;
   }
   var RX = [
+    [/^Practised on (\d+) days?$/, function (m, n) { return '已练习 ' + n + ' 天'; }],
     [/^(\d+) min$/, function (m, n) { return n + ' 分钟'; }],
     [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + ' 小时 ' + n + ' 分'; }],
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
