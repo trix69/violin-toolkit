@@ -48,6 +48,7 @@
 
   /* ---------- drawing ---------- */
   var playing = false;
+  if (window.APP && APP.busy) APP.busy.push(function () { return playing; });   /* a running metronome counts as practice time */
   function drawBeats() {
     beatsEl.innerHTML = '';
     state.levels.forEach(function (lv, i) {

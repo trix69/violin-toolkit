@@ -446,7 +446,7 @@ t_js = must(t_js, "  fit();\n  startMic(true);\n})();", """  fit();
   };
 })();""")
 
-app_js = """var APP = window.APP = { views: {}, a4: 442, onA4: [] };
+app_js = """var APP = window.APP = { views: {}, a4: 442, onA4: [], busy: [] };   /* busy: functions, true while a tool is running (practice time) */
 try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
 try { APP.keysAll = localStorage.getItem('violin-keys') === 'all'; } catch (e) { APP.keysAll = false; }   /* fingerboard keys folded into one button unless set to All */
 /* iPhones and iPads on silent (the ring/silent switch) mute a page's sound. iOS 16.4+ lets it play like a
@@ -582,7 +582,8 @@ nav_js = """(function () {
   }
   var opener = openBtn;   /* the gear in the app bar, or the one on the start overlay */
   /* Practice time, per local day: in each visit, the time from the first tap or key press to the
-     last one. A visit ends when the page is hidden or closed, so time away is never counted.
+     last one, where a running metronome, listening tuner or Pitch Check counts as a press every 5 s
+     (APP.busy). A visit ends when the page is hidden or closed, so time away is never counted.
      Kept on this device only (violin-usage: { "YYYY-MM-DD": seconds }, every day kept, ~20 bytes
      each, so "Practised on N days" counts them all; a day needs a minute). Pending seconds are added
      to what is stored at save time, so two open tabs don't overwrite each other. */
@@ -613,6 +614,9 @@ nav_js = """(function () {
     document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
     window.addEventListener('pagehide', end);
     setInterval(save, 15000);
+    setInterval(function () {
+      if (!document.hidden && (APP.busy || []).some(function (f) { try { return f(); } catch (e) { return false; } })) touch();
+    }, 5000);
     function series(n) {   /* [{ d: Date, s: seconds }] for the n days up to today, oldest first */
       save();
       var o = load(), d = new Date(), out = [];

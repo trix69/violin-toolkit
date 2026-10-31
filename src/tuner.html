@@ -553,6 +553,7 @@ function noteGate() {
 
   /* ---------- audio engine ---------- */
   var ctx = null, stream = null, src = null, an = null, buf = null, running = false;
+  if (window.APP && APP.busy) APP.busy.push(function () { return running; });   /* a listening tuner counts as practice time */
   var hist = [], lastVoiced = 0, frame = 0, raf = 0, gate = noteGate();
   var goBtn = $('go');
 

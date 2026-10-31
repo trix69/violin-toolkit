@@ -1005,6 +1005,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     buttons.forEach(function (b) { b.classList.remove('heard'); });
   }
 
+  if (window.APP && APP.busy) APP.busy.push(function () { return !!(mic && mic.stream); });   /* Pitch Check listening counts as practice time */
   function startMic() {
     if (mic) return;
     var token = {};
