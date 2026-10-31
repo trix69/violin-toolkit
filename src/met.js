@@ -196,11 +196,33 @@
     if (e.key === 'Escape') closeSym();
     else if ((e.key === 'Enter' || e.key === ' ') && t.hasAttribute && t.hasAttribute('data-tip')) { e.preventDefault(); openTip(t); }
     else if (e.key === 'Tab') {   /* keep focus in the window: the symbols, then Done */
-      var f = symSheet.querySelectorAll('li[data-tip], #symDone'), first = f[0], last = f[f.length - 1];
+      var f = Array.prototype.filter.call(symSheet.querySelectorAll('#symQ, li[data-tip], #symDone'), function (el) { return el.getClientRects().length; }), first = f[0], last = f[f.length - 1];
       if (e.shiftKey ? (t === first || t === $('symCard')) : t === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
     }
   }
-  symBtn.addEventListener('click', function () { symSheet.hidden = false; document.addEventListener('keydown', onSymKey); $('symCard').focus(); });
+  /* search: every word typed must appear in a symbol's name, subtitle or printed sign; only when nothing matches
+     there, the explanations are searched too. Accents ignored (detache finds détaché) */
+  var symQ = $('symQ');
+  function fold(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  function filterSym() {
+    var words = fold(symQ.value).split(/\s+/).filter(Boolean), lis = symSheet.querySelectorAll('li[data-tip]');
+    function match(deep) {
+      return Array.prototype.filter.call(lis, function (li) {
+        var text = fold(li.textContent + (deep ? ' ' + li.getAttribute('data-tip') : ''));
+        return words.every(function (w) { return text.indexOf(w) >= 0; });
+      });
+    }
+    var hits = match(false);
+    if (!hits.length) hits = match(true);
+    Array.prototype.forEach.call(lis, function (li) { li.hidden = hits.indexOf(li) < 0; });
+    Array.prototype.forEach.call(symSheet.querySelectorAll('.sym-grid'), function (ul) {
+      ul.hidden = !ul.querySelector('li[data-tip]:not([hidden])');
+      ul.previousElementSibling.hidden = ul.hidden;   /* its heading */
+    });
+    $('symNone').hidden = hits.length > 0;
+  }
+  symQ.addEventListener('input', filterSym);
+  symBtn.addEventListener('click', function () { symQ.value = ''; filterSym(); symSheet.hidden = false; document.addEventListener('keydown', onSymKey); $('symCard').focus(); });
   $('symDone').addEventListener('click', closeSym);
   symSheet.addEventListener('click', function (e) { if (e.target === symSheet && tip.hidden && !downClosed) closeSym(); downClosed = false; });
 
