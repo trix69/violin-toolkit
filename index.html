@@ -386,6 +386,12 @@ h1 {
   background: radial-gradient(circle at 50% 60%, var(--hue) 0, color-mix(in srgb, var(--hue) 82%, black) 100%);
   box-shadow: 0 0 0 rgba(0, 0, 0, 0), inset 0 2px 5px rgba(0, 0, 0, .35);
 }
+#view-board .note.latched,
+#view-board .note.down.latched:not(.off) { box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--hue, var(--accent)); animation: latchPulse 1.6s ease-in-out infinite; }
+@keyframes latchPulse { 50% { filter: brightness(1.2); } }
+@media (prefers-reduced-motion: reduce) {
+#view-board .note.latched { animation: none; }
+}
 #view-board .note.heard {
   --s: 1.1;
   filter: brightness(1.15);
@@ -817,6 +823,7 @@ html[lang="zh-CN"] {
 /* narrow Android phones (360 px): keep the title clear of the tool buttons */
 @media (max-width: 380px) { .appbar h1 { font-size: 23px; } .appbar { gap: 8px; } .tabs { gap: 4px; } }
 @media (max-width: 480px) { .tab { width: 40px; height: 40px; } .tabs { gap: 5px; } .tab svg { width: 22px; height: 22px; } }
+@media (max-width: 350px) { .appbar { gap: 6px; } .tabs { gap: 3px; } .appbar h1 { font-size: 18px; letter-spacing: -0.02em; } }   /* "Fingerboard" clear of the tabs at 320 px (Hermes F11) */
 /* ---- settings sheet ---- */
 .tab-set { margin-left: 2px; }
 .sheet {
@@ -948,7 +955,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 
 <script>
 (function () {
-  var ACC = ['teal', 'sage', 'slate', 'violet', 'classic'], mode = 'auto', acc = 'teal';
+  var ACC = ['teal', 'sage', 'slate', 'violet', 'classic'], mode = 'light', acc = 'teal';   /* new users start in light; a saved choice wins */
   try {
     var s = JSON.parse(localStorage.getItem('violin-theme') || '{}');
     if (['light', 'dark', 'auto'].indexOf(s.mode) >= 0) mode = s.mode;
@@ -1452,7 +1459,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.12" data-build="20261030-225634" data-cache="violin-toolkit-"><span>Version 1.12</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.13" data-build="20261031-162002" data-cache="violin-toolkit-"><span>Version 1.13</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -2701,7 +2708,7 @@ function noteGate() {
   var voices = new Map();
 
   function applyVib(rec) {
-    var want = state.vibrato && state.pos !== 'pc' && !rec.open && (performance.now() - rec.t0 >= 190);
+    var want = state.vibrato && state.pos !== 'pc' && !rec.open && !rec.latched && (performance.now() - rec.t0 >= 190);   /* a latched note plays steady, like a tuning fork */
     if (want !== rec.vibOn) {
       rec.vibOn = want;
       if (rec.v.vib) rec.v.vib(want);
@@ -2718,27 +2725,46 @@ function noteGate() {
     var rec = { el: el, v: startVoice(noteFreq(nt)), t0: performance.now(), vibOn: false, timer: 0, open: nt.n === 0 || nt.n === MAXN };   /* open strings and harmonics stay steady */
     voices.set(id, rec);
     rec.timer = setTimeout(function () { applyVib(rec); }, 200);   /* vibrato starts after 200 ms of holding */
+    rec.latchT = setTimeout(function () { rec.latched = true; el.classList.add('latched'); applyVib(rec); }, 5000);   /* held 5 s: keep playing after release */
     el.classList.add('down');
     followPosition(nt);
   }
-  function end(id) {
+  var latchN = 0;
+  function end(id, force) {
     var rec = voices.get(id);
     if (!rec) return;
+    if (rec.latched && !force) {   /* released after 5 s: move it off the pointer/key id so that id can play again */
+      if (id.charAt(0) !== 'L') { voices.delete(id); voices.set('L' + (++latchN), rec); }
+      return;
+    }
     voices.delete(id);
-    clearTimeout(rec.timer);
+    clearTimeout(rec.timer); clearTimeout(rec.latchT);
     stopVoice(rec.v);
     var stillDown = false;
     voices.forEach(function (r) { if (r.el === rec.el) stillDown = true; });
-    if (!stillDown) rec.el.classList.remove('down');
+    if (!stillDown) rec.el.classList.remove('down', 'latched');
   }
   function stopAll() {
-    Array.from(voices.keys()).forEach(end);
+    Array.from(voices.keys()).forEach(function (id) { end(id, true); });
   }
+  /* any tap or key stops a latched note; a tap on that same note only stops it */
+  var skipEl = null;
+  function stopLatched(target) {
+    skipEl = null;
+    voices.forEach(function (r, id) {
+      if (id.charAt(0) !== 'L') return;
+      if (target && target.closest && target.closest('.note') === r.el) skipEl = r.el;
+      end(id, true);
+    });
+  }
+  document.addEventListener('pointerdown', function (e) { stopLatched(e.target); }, true);
+  document.addEventListener('keydown', function (e) { if (!e.repeat && !/^(Shift|Control|Alt|Meta)$/.test(e.key)) stopLatched(e.target); }, true);
 
   board.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     var el = e.target.closest ? e.target.closest('.note') : null;
     if (!el) return;
+    if (skipEl === el) { skipEl = null; return; }
     try { el.setPointerCapture(e.pointerId); } catch (err) {}
     begin(el, 'p' + e.pointerId);
   });
@@ -2757,6 +2783,7 @@ function noteGate() {
     var el = e.target.closest ? e.target.closest('.note') : null;
     if (!el || (e.key !== ' ' && e.key !== 'Enter')) return;
     e.preventDefault();
+    if (skipEl === el) { skipEl = null; return; }
     if (!e.repeat) begin(el, 'k' + el.dataset.i);
   });
   board.addEventListener('keyup', function (e) {
@@ -3442,6 +3469,7 @@ function noteGate() {
     ],
     board: [
       { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
+      { sel: '#board .note:not(.off)', title: 'Hold for a steady tone', text: 'Hold a note for 5 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
       { sel: '#keyrows', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.' },
       { sel: '#posbar button:not([data-id="pc"])', title: 'Positions', text: '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.' },
       { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.',
@@ -3909,6 +3937,7 @@ function noteGate() {
     'Hear a string': '听空弦音', 'Tap a string name on the scroll to play its pitch. Tap it again to stop.': '点琴头上的弦名播放它的音高，再点一次停止。',
     'Violin or Chromatic': '小提琴或半音阶', 'Violin finds the nearest open string. Chromatic shows any note you play.': '小提琴模式找最接近的空弦；半音阶模式显示你拉的任何音。',
     'Press and hold a note': '按住一个音', 'Touch any coloured note to hear its pitch for as long as you hold it.': '按住任何彩色的音，按多久就响多久。',
+    'Hold for a steady tone': '长按得到持续音', 'Hold a note for 5 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.': '按住一个音 5 秒，松手后它会继续响，平稳无揉弦，像音叉一样。点任意处即可停止。',
     'Choose a key': '选择调', 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.': '选择大调或小调，左右滑动可看到更多调。调内的音是彩色的，其他的是灰色。',
     'Positions': '把位', '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.': '一把位：手靠近琴头，一指按每根空弦上方紧挨的那个音。二把位手往上移，一指放到原来二指的位置；三把位放到原来三指的位置。指板上标出每个音和按它的手指。',
     'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.': '点“音准检测”后开始拉。圆盘显示你拉的音落在哪里：音准时圈住这个音，偏高时在它下方，偏低时在它上方。越绿越接近。',
