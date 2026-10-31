@@ -676,11 +676,11 @@ nav_js = """(function () {
   })();
   segApp.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
-    THEME.mode = b.dataset.mode; THEME.apply(); syncSheet();
+    THEME.mode = b.dataset.mode; THEME.apply(true); syncSheet();
   });
   swatches.addEventListener('click', function (e) {
     var b = e.target.closest('.swatch'); if (!b) return;
-    THEME.accent = b.dataset.accent; THEME.apply(); syncSheet();
+    THEME.accent = b.dataset.accent; THEME.apply(true); syncSheet();
   });
   document.getElementById('sheetDone').addEventListener('click', closeSheet);
   sheet.addEventListener('click', function (e) { if (e.target === sheet) closeSheet(); });
@@ -750,10 +750,10 @@ init_js = '''<script>
   } catch (e) {}
   window.THEME = {
     mode: mode, accent: acc,
-    apply: function () {
+    apply: function (save) {   /* save only a choice made in Settings, not the default (Hermes F12) */
       if (this.mode === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', this.mode);
       root.setAttribute('data-accent', this.accent);
-      try { localStorage.setItem('violin-theme', JSON.stringify({ mode: this.mode, accent: this.accent })); } catch (e) {}
+      if (save) try { localStorage.setItem('violin-theme', JSON.stringify({ mode: this.mode, accent: this.accent })); } catch (e) {}
       this.bar();
     },
     /* the phone's status bar takes the page background, so it matches light/dark */
