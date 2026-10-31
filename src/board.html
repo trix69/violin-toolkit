@@ -262,6 +262,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   background: radial-gradient(circle at 50% 60%, var(--hue) 0, color-mix(in srgb, var(--hue) 82%, black) 100%);
   box-shadow: 0 0 0 rgba(0, 0, 0, 0), inset 0 2px 5px rgba(0, 0, 0, .35);
 }
+/* held for 5 s: the note keeps sounding after release, until the next tap or key */
+.note.latched, .note.down.latched:not(.off) { box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--hue, var(--accent)); animation: latchPulse 1.6s ease-in-out infinite; }
+@keyframes latchPulse { 50% { filter: brightness(1.2); } }
+@media (prefers-reduced-motion: reduce) { .note.latched { animation: none; } }
 .note.heard {
   --s: 1.1;
   filter: brightness(1.15);
@@ -1008,27 +1012,46 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     var rec = { el: el, v: startVoice(noteFreq(nt)), t0: performance.now(), vibOn: false, timer: 0, open: nt.n === 0 || nt.n === MAXN };   /* open strings and harmonics stay steady */
     voices.set(id, rec);
     rec.timer = setTimeout(function () { applyVib(rec); }, 200);   /* vibrato starts after 200 ms of holding */
+    rec.latchT = setTimeout(function () { rec.latched = true; el.classList.add('latched'); }, 5000);   /* held 5 s: keep playing after release */
     el.classList.add('down');
     followPosition(nt);
   }
-  function end(id) {
+  var latchN = 0;
+  function end(id, force) {
     var rec = voices.get(id);
     if (!rec) return;
+    if (rec.latched && !force) {   /* released after 5 s: move it off the pointer/key id so that id can play again */
+      if (id.charAt(0) !== 'L') { voices.delete(id); voices.set('L' + (++latchN), rec); }
+      return;
+    }
     voices.delete(id);
-    clearTimeout(rec.timer);
+    clearTimeout(rec.timer); clearTimeout(rec.latchT);
     stopVoice(rec.v);
     var stillDown = false;
     voices.forEach(function (r) { if (r.el === rec.el) stillDown = true; });
-    if (!stillDown) rec.el.classList.remove('down');
+    if (!stillDown) rec.el.classList.remove('down', 'latched');
   }
   function stopAll() {
-    Array.from(voices.keys()).forEach(end);
+    Array.from(voices.keys()).forEach(function (id) { end(id, true); });
   }
+  /* any tap or key stops a latched note; a tap on that same note only stops it */
+  var skipEl = null;
+  function stopLatched(target) {
+    skipEl = null;
+    voices.forEach(function (r, id) {
+      if (id.charAt(0) !== 'L') return;
+      if (target && target.closest && target.closest('.note') === r.el) skipEl = r.el;
+      end(id, true);
+    });
+  }
+  document.addEventListener('pointerdown', function (e) { stopLatched(e.target); }, true);
+  document.addEventListener('keydown', function (e) { if (!e.repeat && !/^(Shift|Control|Alt|Meta)$/.test(e.key)) stopLatched(e.target); }, true);
 
   board.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     var el = e.target.closest ? e.target.closest('.note') : null;
     if (!el) return;
+    if (skipEl === el) { skipEl = null; return; }
     try { el.setPointerCapture(e.pointerId); } catch (err) {}
     begin(el, 'p' + e.pointerId);
   });
@@ -1047,6 +1070,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     var el = e.target.closest ? e.target.closest('.note') : null;
     if (!el || (e.key !== ' ' && e.key !== 'Enter')) return;
     e.preventDefault();
+    if (skipEl === el) { skipEl = null; return; }
     if (!e.repeat) begin(el, 'k' + el.dataset.i);
   });
   board.addEventListener('keyup', function (e) {
