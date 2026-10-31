@@ -14,7 +14,7 @@
     ],
     board: [
       { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
-      { sel: '#board .note:not(.off)', title: 'Hold for a steady tone', text: 'Hold a note for 5 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
+      { sel: '#board .note:not(.off)', title: 'Hold for a steady tone', text: 'Hold a note for 3 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
       { sel: '#keyrows, #keyFold', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.',
         fold: 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.' },
       { sel: '.tempsel', title: 'Intonation', when: function () { return !APP.keysAll; },   /* the menu shows only with Key list > Folded */
