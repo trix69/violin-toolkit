@@ -691,6 +691,23 @@ h1 {
 #view-metronome .symico { font: 400 18px/1 'Times New Roman', 'Noto Serif', Georgia, serif; letter-spacing: 1px; }
 /* Symbols overlay: violin notation at a glance */
 #symbols h3:first-of-type { margin-top: 4px; }
+/* search: stays at the top while the list scrolls; matches the name, the subtitle and the explanation */
+#symbols .symsearch { position: sticky; top: 0; z-index: 5; margin: 0 -4px 6px; padding: 4px; background: var(--panel); }
+/* the card's top padding stays a gap above it: covered in the panel colour, with a fade below, so symbols scroll out of sight */
+#symbols .symsearch::before, #symbols .symsearch::after { content: ''; position: absolute; left: -16px; right: -16px; pointer-events: none; }
+#symbols .symsearch::before { bottom: 100%; height: 20px; background: var(--panel); }
+#symbols .symsearch::after { top: 100%; height: 18px; background: linear-gradient(var(--panel), color-mix(in srgb, var(--panel) 0%, transparent)); }
+#symbols .symsearch svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
+#symbols .symsearch input {
+  width: 100%; height: 44px; padding: 0 12px 0 40px; margin: 0;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--fg);
+  font: 400 16px var(--font-note);   /* 16 px: iOS doesn't zoom in on focus */
+  -webkit-appearance: none; appearance: none; -webkit-user-select: text; user-select: text;
+}
+#symbols .symsearch input::placeholder { color: var(--muted); }
+#symbols .symsearch input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+#symbols .symnone { margin: 14px 0 4px; text-align: center; color: var(--muted); font: 400 14px var(--font-note); }
+#symbols .sym-grid[hidden], #symbols .sym-grid li[hidden], #symbols h3[hidden], #symbols .symnone[hidden] { display: none; }
 #symbols .sym-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(var(--c), minmax(0, 1fr)); gap: 8px; }
 #symbols .sym-grid li { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 6px 4px 8px; border: 1px solid var(--line); border-radius: 12px; text-align: center; }
 #symbols .sym { display: grid; place-items: center; height: 40px; color: var(--fg); }
@@ -925,7 +942,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
    z-index 104: over the page, under the tour (105), Settings (110) and Use offline (120), so an open window stays still. */
 .beat-flash { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; z-index: 104; pointer-events: none; opacity: 0; background: var(--accent); display: none; }   /* the colour chosen in Settings > Colour.
    Not position: fixed and display: none at rest: iOS Safari tints its toolbar from fixed elements at the screen edge, even invisible ones. */
-#howto .sheet-card { width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
+#howto .sheet-card { box-sizing: border-box; width: min(100%, 440px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
 .howto-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: 10px; }
 .howto-steps li { counter-increment: st; display: flex; align-items: center; gap: 12px; font: 400 15px/1.4 var(--font-note); }
 .howto-steps li::before { content: counter(st); flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font: 700 13px var(--font-note); }
@@ -933,12 +950,23 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 .howto-steps li svg { color: var(--muted); width: 22px; height: 22px; }
 .howto-note { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 10%, transparent); font: 400 13px/1.5 var(--font-note); color: var(--fg); }
 .howto-note a { color: var(--accent); }
-.sheet > .sheet-card { max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
+.sheet > .sheet-card { box-sizing: border-box; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }   /* border-box: padding and border inside the limit, so it never reaches the screen edge */
+/* desktop: windows keep clear of the top and bottom of the screen (Trix) */
+@media (min-width: 700px) and (min-height: 600px) {
+  .sheet { padding-block: 56px; }
+  .sheet > .sheet-card, #howto .sheet-card { max-height: calc(100vh - 112px); max-height: calc(100dvh - 112px); }
+}
 .ver { display: block; margin: 10px auto 0; padding: 6px 10px; min-height: 32px; border: 0; border-radius: 8px; background: transparent; text-align: center; font: 500 12px var(--font-mono); letter-spacing: 0.04em; color: var(--muted); cursor: pointer; }
 .ver #verMsg { text-decoration: underline; text-underline-offset: 3px; }
 .ver:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.sheet-done { position: sticky; bottom: 0; box-shadow: 0 -10px 12px var(--panel); }
-.sheet-done { margin-top: 18px; width: 100%; height: 46px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: 700 16px var(--font-note); cursor: pointer; }
+.sheet-done { position: sticky; bottom: 0; z-index: 4; }
+/* nothing shows round or below Done while the window scrolls: ::before is a fade above it and the panel colour
+   behind and under it, to the card's edges; ::after is the button's own face. Both sit under the label (z-index
+   below 0 inside the button's own stacking context), so the button itself is transparent */
+.sheet-done::before, .sheet-done::after { content: ''; position: absolute; pointer-events: none; }
+.sheet-done::before { z-index: -2; left: -20px; right: -20px; top: -28px; bottom: -20px; background: linear-gradient(color-mix(in srgb, var(--panel) 0%, transparent), var(--panel) 28px); }
+.sheet-done::after { z-index: -1; inset: 0; border-radius: inherit; background: var(--accent); }
+.sheet-done { margin-top: 18px; width: 100%; height: 46px; border: 0; border-radius: 12px; background: transparent; color: var(--on-accent); font: 700 16px var(--font-note); cursor: pointer; }
 /* ---- first-use tips (coach.js) ---- */
 .coach { position: fixed; inset: 0; z-index: 105; cursor: pointer; touch-action: pinch-zoom; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 /* the spotlight: a clear rounded box whose huge shadow dims everything else */
@@ -1199,6 +1227,8 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     <div class="sheet" id="symbols" role="dialog" aria-modal="true" aria-labelledby="symTitle" hidden>
       <div class="sheet-card" id="symCard" tabindex="-1">
         <h2 id="symTitle">Symbols</h2>
+        <div class="symsearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg><input type="search" id="symQ" placeholder="Search" aria-label="Search symbols" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></div>
+        <p class="symnone" id="symNone" role="status" hidden>No symbols match.</p>
         <h3>Notes</h3>
         <ul class="sym-grid" role="none" style="--c: 2">
           <li role="button" aria-haspopup="dialog" tabindex="0" data-tip="Half a crotchet. Two quavers fill one beat in 4/4; count them “1-and”."><span class="sym"><svg viewBox="0 -21 20 42" aria-hidden="true"><path d="M0.86 10.05A6 4.3 -20 1 0 12.14 5.95A6 4.3 -20 1 0 0.86 10.05Z"/><rect x="10.9" y="-19" width="1.3" height="27"/><path d="M10.9 -19H12.2C12.8 -13.5 20.6 -10.5 18.6 0.5C19.4 -6.5 15.4 -9.6 12.2 -10.8H10.9Z"/></svg></span><b>Quaver (eighth note)</b><small>½ beat in 4/4</small></li>
@@ -1528,7 +1558,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.16" data-build="20261031-183043" data-cache="violin-toolkit-"><span>Version 1.16</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.17" data-build="20261031-195427" data-cache="violin-toolkit-"><span>Version 1.17</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -3148,11 +3178,33 @@ function noteGate() {
     if (e.key === 'Escape') closeSym();
     else if ((e.key === 'Enter' || e.key === ' ') && t.hasAttribute && t.hasAttribute('data-tip')) { e.preventDefault(); openTip(t); }
     else if (e.key === 'Tab') {   /* keep focus in the window: the symbols, then Done */
-      var f = symSheet.querySelectorAll('li[data-tip], #symDone'), first = f[0], last = f[f.length - 1];
+      var f = Array.prototype.filter.call(symSheet.querySelectorAll('#symQ, li[data-tip], #symDone'), function (el) { return el.getClientRects().length; }), first = f[0], last = f[f.length - 1];
       if (e.shiftKey ? (t === first || t === $('symCard')) : t === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
     }
   }
-  symBtn.addEventListener('click', function () { symSheet.hidden = false; document.addEventListener('keydown', onSymKey); $('symCard').focus(); });
+  /* search: every word typed must appear in a symbol's name, subtitle or printed sign; only when nothing matches
+     there, the explanations are searched too. Accents ignored (detache finds détaché) */
+  var symQ = $('symQ');
+  function fold(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  function filterSym() {
+    var words = fold(symQ.value).split(/\s+/).filter(Boolean), lis = symSheet.querySelectorAll('li[data-tip]');
+    function match(deep) {
+      return Array.prototype.filter.call(lis, function (li) {
+        var text = fold(li.textContent + (deep ? ' ' + li.getAttribute('data-tip') : ''));
+        return words.every(function (w) { return text.indexOf(w) >= 0; });
+      });
+    }
+    var hits = match(false);
+    if (!hits.length) hits = match(true);
+    Array.prototype.forEach.call(lis, function (li) { li.hidden = hits.indexOf(li) < 0; });
+    Array.prototype.forEach.call(symSheet.querySelectorAll('.sym-grid'), function (ul) {
+      ul.hidden = !ul.querySelector('li[data-tip]:not([hidden])');
+      ul.previousElementSibling.hidden = ul.hidden;   /* its heading */
+    });
+    $('symNone').hidden = hits.length > 0;
+  }
+  symQ.addEventListener('input', filterSym);
+  symBtn.addEventListener('click', function () { symQ.value = ''; filterSym(); symSheet.hidden = false; document.addEventListener('keydown', onSymKey); $('symCard').focus(); });
   $('symDone').addEventListener('click', closeSym);
   symSheet.addEventListener('click', function (e) { if (e.target === symSheet && tip.hidden && !downClosed) closeSym(); downClosed = false; });
 
@@ -3611,8 +3663,8 @@ function noteGate() {
       { sel: '#view-tuner .seg', title: 'Violin or Chromatic', text: 'Violin finds the nearest open string. Chromatic shows any note you play.' }
     ],
     board: [
-      { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
-      { sel: '#board .note:not(.off)', title: 'Hold for a steady tone', text: 'Hold a note for 3 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
+      { sel: '#board .note:not(.off)', one: true, title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
+      { sel: '#board .note:not(.off)', one: true, title: 'Hold for a steady tone', text: 'Hold a note for 3 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
       { sel: '#keyrows, #keyFold', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.',
         fold: 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.' },
       { sel: '.tempsel', title: 'Intonation', when: function () { return !APP.keysAll; },   /* the menu shows only with Key list > Folded */
@@ -3727,6 +3779,8 @@ function noteGate() {
       r = r ? { left: Math.min(r.left, b.left), top: Math.min(r.top, b.top), right: Math.max(r.right, b.right), bottom: Math.max(r.bottom, b.bottom) } : { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
     });
     r = r || target.getBoundingClientRect();
+    /* never past the screen edges (a board taller than the screen) */
+    r = { left: Math.max(r.left, 0), top: Math.max(r.top, 0), right: Math.min(r.right, window.innerWidth), bottom: Math.min(r.bottom, window.innerHeight) };
     return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, height: r.bottom - r.top };
   }
   /* after a rotation or resize, bring the target back into view before placing */
@@ -3743,6 +3797,12 @@ function noteGate() {
     targets = document.querySelectorAll(s.sel);
     target = Array.prototype.filter.call(targets, function (el) { return el.getClientRects().length; })[0] || targets[0];   /* #keyrows or #keyFold, whichever shows */
     if (!target || !target.getClientRects().length) { if (i + 1 < tour.length) step(i + 1); else close(); return; }
+    if (s.one) {   /* one note, not all of them: the key note if it is on screen, else the first note that is (Trix: the box ran off the screen in 3rd position) */
+      var bar = document.getElementById('posbar'), lim = bar ? bar.getBoundingClientRect().top : window.innerHeight;
+      var seen = Array.prototype.filter.call(targets, function (el) { var b = el.getBoundingClientRect(); return b.height && b.top >= 0 && b.bottom <= lim; });
+      target = seen.filter(function (el) { return el.classList.contains('root'); })[0] || seen[0] || target;
+      targets = [target];
+    }
     scrolled = false;
     target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     stepEl.textContent = (i + 1) + ' / ' + tour.length;
@@ -3851,7 +3911,7 @@ function noteGate() {
     'in tune': '音准正确', 'off the board': '超出指板',
     'no sharps or flats': '无升降号', 'no ♯ or ♭': '无升降号',
     /* metronome */
-    'Symbols': '符号', 'Notes': '音符', 'Bowing': '弓法', 'Accidentals': '变音记号',
+    'Symbols': '符号', 'Search': '搜索', 'Search symbols': '搜索符号', 'No symbols match.': '没有匹配的符号。', 'Notes': '音符', 'Bowing': '弓法', 'Accidentals': '变音记号',
     'Quaver (eighth note)': '八分音符', 'Crotchet (quarter note)': '四分音符', 'Minim (half note)': '二分音符', 'Semibreve (whole note)': '全音符',
     '½ beat in 4/4': '4/4 拍中占半拍', '1 beat in 4/4': '4/4 拍中占 1 拍', '2 beats in 4/4': '4/4 拍中占 2 拍', '4 beats in 4/4': '4/4 拍中占 4 拍',
     'Up bow': '上弓', 'Push, tip to frog': '推弓：弓尖到弓根', 'Down bow': '下弓', 'Pull, frog to tip': '拉弓：弓根到弓尖',
@@ -4209,7 +4269,7 @@ function noteGate() {
       textRec.delete(n);
     }
   }
-  var ATTRS = ['aria-label', 'title', 'data-label'];
+  var ATTRS = ['aria-label', 'title', 'data-label', 'placeholder'];
   function doAttr(el, a) {
     var recs = attrRec.get(el) || {}, rec = recs[a], v = el.getAttribute(a);
     if (v == null) { if (rec) { delete recs[a]; } return; }
