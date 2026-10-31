@@ -245,6 +245,50 @@ h1 {
   font: 600 18px var(--font-note);
   pointer-events: none;
 }
+#view-board .keybar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+#view-board .keybar[hidden] { display: none; }
+#view-board .keyfold,
+#view-board .tempsel select {
+  flex: 1 1 0; min-width: 0;
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+  height: 44px; padding: 0 12px 0 16px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--panel); color: var(--fg);
+  font: 600 18px var(--font-note); cursor: pointer; touch-action: manipulation;
+}
+#view-board .keyfold span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#view-board .tempsel { position: relative; flex: 1 1 0; min-width: 0; display: flex; }
+#view-board .tempsel select { width: 100%; -webkit-appearance: none; appearance: none; padding-right: 38px; text-overflow: ellipsis; }
+#view-board .tempsel svg { position: absolute; right: 12px; top: 13px; pointer-events: none; }
+@media (max-width: 380px) {
+#view-board .keyfold,
+#view-board .tempsel select { font-size: 16px; padding-left: 12px; }
+#view-board .keyfold { padding-right: 8px; }
+#view-board .tempsel select { padding-right: 30px; }
+#view-board .tempsel svg { right: 8px; }
+}
+@media (max-width: 340px) {
+#view-board .keybar { gap: 8px; }
+#view-board .keyfold,
+#view-board .tempsel select { font-size: 15px; padding-left: 10px; }
+#view-board .tempsel select { padding-right: 26px; }
+#view-board .tempsel svg { right: 6px; }
+}
+#view-board .keyfold svg,
+#view-board .tempsel svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+#view-board .keyfold:focus-visible,
+#view-board .tempsel select:focus-visible,
+#view-board .keypop .keys button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+#view-board .keypop {
+  position: fixed; inset: 0; z-index: 110; display: grid; place-items: center; padding: 20px;
+  background: rgba(8, 14, 11, .45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+#view-board .keypop[hidden] { display: none; }
+#view-board .keypop-card { width: min(100%, 440px); padding: 16px 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.3); outline: none; }
+#view-board .keypop .keyrows { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+#view-board .keypop .majorrow + .majorrow .lbl { margin-top: 8px; }
+#view-board .keypop .keys { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+#view-board .keypop .keys button { min-width: 0; height: 44px; background: var(--bg); }
 #view-board .keys button[aria-pressed="true"] {
   background: var(--accent); color: var(--on-accent); border-color: var(--accent);
 }
@@ -970,10 +1014,10 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
   } catch (e) {}
   window.THEME = {
     mode: mode, accent: acc,
-    apply: function () {
+    apply: function (save) {   /* save only a choice made in Settings, not the default (Hermes F12) */
       if (this.mode === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', this.mode);
       root.setAttribute('data-accent', this.accent);
-      try { localStorage.setItem('violin-theme', JSON.stringify({ mode: this.mode, accent: this.accent })); } catch (e) {}
+      if (save) try { localStorage.setItem('violin-theme', JSON.stringify({ mode: this.mode, accent: this.accent })); } catch (e) {}
       this.bar();
     },
     /* the phone's status bar takes the page background, so it matches light/dark */
@@ -1074,6 +1118,16 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <div class="keys" id="keysMin"></div>
     </div>
   </div>
+
+  <div class="keybar" id="keyBar" hidden>
+    <button type="button" class="keyfold" id="keyFold" aria-haspopup="dialog"><span id="keyFoldName"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+    <label class="tempsel"><span class="visually-hidden">Intonation</span><select id="temperSel">
+      <option value="equal">Equal</option>
+      <option value="just">Just</option>
+      <option value="pyth">Pythagorean</option>
+    </select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></label>
+  </div>
+  <div class="keypop" id="keyPop" hidden><div class="keypop-card" id="keyCard" role="dialog" aria-modal="true" aria-label="Choose a key" tabindex="-1"></div></div>
 
   <div class="stage">
     <div class="board" id="board"></div>
@@ -1429,6 +1483,11 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <button type="button" role="radio" aria-checked="false" data-temper="just">Just</button>
       <button type="button" role="radio" aria-checked="false" data-temper="pyth">Pythagorean</button>
     </div>
+    <h3 id="lblKeys">Key list</h3>
+    <div class="segc two" role="radiogroup" aria-labelledby="lblKeys" id="segKeys">
+      <button type="button" role="radio" aria-checked="false" data-keys="fold">Folded</button>
+      <button type="button" role="radio" aria-checked="false" data-keys="all">All keys</button>
+    </div>
     <h3 id="lblApp">Appearance</h3>
     <div class="segc" role="radiogroup" aria-labelledby="lblApp" id="segApp">
       <button type="button" role="radio" aria-checked="false" data-mode="light">Light</button>
@@ -1459,7 +1518,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.13" data-build="20261031-162002" data-cache="violin-toolkit-"><span>Version 1.13</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.14" data-build="20261031-170722" data-cache="violin-toolkit-"><span>Version 1.14</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1513,6 +1572,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 <script>
 var APP = window.APP = { views: {}, a4: 442, onA4: [] };
 try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
+try { APP.keysAll = localStorage.getItem('violin-keys') === 'all'; } catch (e) { APP.keysAll = false; }   /* fingerboard keys folded into one button unless set to All */
 /* iPhones and iPads on silent (the ring/silent switch) mute a page's sound. iOS 16.4+ lets it play like a
    music app instead (Audio Session API). Asked for just before the first sound, not at load, so opening the
    page doesn't stop other music; while a microphone is on it is play-and-record (also not muted), even before
@@ -2360,6 +2420,8 @@ function noteGate() {
     var key = keyObj();
     /* no-break spaces inside each part, so a line that wraps breaks between parts (not "1st / position") */
     /* Pitch Check leaves its own name out (the position bar shows it), so its verdict fits in two lines */
+    var fold = document.getElementById('keyFoldName');
+    if (fold) fold.textContent = key.label + ' ' + key.mode;
     subEl.textContent = [key.label + '\u00a0' + key.mode,
       window.APP ? { just: 'Just', pyth: 'Pyth.' }[APP.temper && APP.temper.id] || 'Equal' : '',   /* Settings > Intonation (Pyth. so it fits two lines on a 360 px phone) */
       state.pos === 'pc' ? pcStatus : POSITIONS[state.pos].name.replace(/ /g, '\u00a0')].filter(Boolean).join(' · ');
@@ -2453,6 +2515,7 @@ function noteGate() {
     b.setAttribute('aria-label', k.label + ' ' + k.mode);
     b.addEventListener('click', function () {
       state.key = k.id; persist(); render(); flashKey(k);
+      closeKeys();
     });
     (k.mode === 'major' ? keysEl : keysMinEl).appendChild(b);
     keyButtons.push(b);
@@ -2484,6 +2547,54 @@ function noteGate() {
   }
   /* the view may be hidden at load (no widths yet): place the rows once they have a size */
   if (window.ResizeObserver) new ResizeObserver(showChosenKey).observe(document.getElementById('keyrows'));
+
+  /* Settings > Key list: Folded (default) moves the two rows into a window opened from one button
+     showing the chosen key; All keys puts them back above the board */
+  var keyrowsEl = document.getElementById('keyrows'), keyFold = document.getElementById('keyFold'), keyBar = document.getElementById('keyBar');
+  var temperSel = document.getElementById('temperSel');
+  var keyPop = document.getElementById('keyPop'), keyCard = document.getElementById('keyCard'), keyInert = [];
+  function setKeysAll() {
+    var all = !!(window.APP && APP.keysAll);
+    closeKeys(true);
+    if (all) keyBar.parentNode.insertBefore(keyrowsEl, keyBar); else keyCard.appendChild(keyrowsEl);
+    keyBar.hidden = all;
+    syncTemperSel();
+    showChosenKey();
+  }
+  function openKeys() {
+    keyPop.hidden = false;
+    /* the rest of the page is out of reach while it is open: siblings of the window and of each ancestor (Hermes R18.2) */
+    for (var el = keyPop; el.parentNode && el !== document.body; el = el.parentNode) {
+      Array.prototype.forEach.call(el.parentNode.children, function (sib) {
+        if (sib !== el && !sib.inert && sib.tagName !== 'SCRIPT') { sib.inert = true; keyInert.push(sib); }
+      });
+    }
+    document.addEventListener('keydown', onKeysKey, true);
+    (keyButtons.filter(function (x) { return x.dataset.id === state.key; })[0] || keyCard).focus();
+  }
+  function closeKeys(quiet) {
+    if (keyPop.hidden) return;
+    keyPop.hidden = true;
+    keyInert.forEach(function (el) { el.inert = false; }); keyInert = [];
+    document.removeEventListener('keydown', onKeysKey, true);
+    if (!quiet) keyFold.focus();
+  }
+  function onKeysKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeKeys(); }
+    else if (e.key === 'Tab') {   /* keep focus inside the window */
+      var i = keyButtons.indexOf(document.activeElement), last = keyButtons.length - 1;
+      if (e.shiftKey && i <= 0) { e.preventDefault(); keyButtons[last].focus(); }
+      else if (!e.shiftKey && (i === last || i < 0)) { e.preventDefault(); keyButtons[0].focus(); }
+    }
+  }
+  function syncTemperSel() { temperSel.value = (window.APP && APP.temper) ? APP.temper.id : 'equal'; }
+  temperSel.addEventListener('change', function () { if (window.APP && APP.setTemper) APP.setTemper(temperSel.value); });
+  if (window.APP && APP.onTemper) APP.onTemper.push(syncTemperSel);
+  else temperSel.parentNode.hidden = true;   /* no Intonation outside the toolkit */
+  keyFold.addEventListener('click', openKeys);
+  keyPop.addEventListener('click', function (e) { if (e.target === keyPop) closeKeys(); });
+  if (window.APP) APP.setKeysAll = setKeysAll;
+  setKeysAll();
   Array.prototype.forEach.call(posbar.children, function (b) {
     b.addEventListener('click', function () {
       var id = b.dataset.id;
@@ -3255,7 +3366,7 @@ function noteGate() {
   var segNames = document.getElementById('segNames');
   var segA4 = document.getElementById('segA4'), segTemper = document.getElementById('segTemper');
   var segApp = document.getElementById('segApp'), swatches = document.getElementById('swatches');
-  var segFlash = document.getElementById('segFlash');
+  var segFlash = document.getElementById('segFlash'), segKeys = document.getElementById('segKeys');
   var openBtn = document.getElementById('openSettings');
   function syncSheet() {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
@@ -3264,6 +3375,7 @@ function noteGate() {
     Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', b.dataset.temper === (APP.temper ? APP.temper.id : 'equal') ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segKeys.children, function (b) { b.setAttribute('aria-checked', (b.dataset.keys === 'all') === APP.keysAll ? 'true' : 'false'); });
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
   }
   var opener = openBtn;   /* the gear in the app bar, or the one on the start overlay */
@@ -3347,6 +3459,13 @@ function noteGate() {
     try { localStorage.setItem('violin-flash', APP.flash ? 'on' : 'off'); } catch (err) {}
     syncSheet();
   });
+  segKeys.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    APP.keysAll = b.dataset.keys === 'all';
+    try { localStorage.setItem('violin-keys', APP.keysAll ? 'all' : 'fold'); } catch (err) {}
+    if (APP.setKeysAll) APP.setKeysAll();
+    syncSheet();
+  });
   segA4.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     APP.setA4(+b.dataset.a4); syncSheet();
@@ -3396,11 +3515,11 @@ function noteGate() {
   })();
   segApp.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
-    THEME.mode = b.dataset.mode; THEME.apply(); syncSheet();
+    THEME.mode = b.dataset.mode; THEME.apply(true); syncSheet();
   });
   swatches.addEventListener('click', function (e) {
     var b = e.target.closest('.swatch'); if (!b) return;
-    THEME.accent = b.dataset.accent; THEME.apply(); syncSheet();
+    THEME.accent = b.dataset.accent; THEME.apply(true); syncSheet();
   });
   document.getElementById('sheetDone').addEventListener('click', closeSheet);
   sheet.addEventListener('click', function (e) { if (e.target === sheet) closeSheet(); });
@@ -3470,7 +3589,10 @@ function noteGate() {
     board: [
       { sel: '#board .note:not(.off)', title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
       { sel: '#board .note:not(.off)', title: 'Hold for a steady tone', text: 'Hold a note for 5 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
-      { sel: '#keyrows', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.' },
+      { sel: '#keyrows, #keyFold', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.',
+        fold: 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.' },
+      { sel: '.tempsel', title: 'Intonation', when: function () { return !APP.keysAll; },   /* the menu shows only with Key list > Folded */
+        text: 'Equal is tuned like a piano. Just makes the intervals in the key pure. Pythagorean builds every note from pure fifths. The notes on the board move to match.' },
       { sel: '#posbar button:not([data-id="pc"])', title: 'Positions', text: '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.' },
       { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.',
         pic: '<div class="coach-pic" aria-hidden="true"><p class="cp-cap">Example: F on the E string, in C major</p><div class="cp-row">' +
@@ -3595,13 +3717,13 @@ function noteGate() {
     idx = i;
     var s = tour[i];
     targets = document.querySelectorAll(s.sel);
-    target = targets[0];
+    target = Array.prototype.filter.call(targets, function (el) { return el.getClientRects().length; })[0] || targets[0];   /* #keyrows or #keyFold, whichever shows */
     if (!target || !target.getClientRects().length) { if (i + 1 < tour.length) step(i + 1); else close(); return; }
     scrolled = false;
     target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     stepEl.textContent = (i + 1) + ' / ' + tour.length;
     titleEl.textContent = s.title;
-    textEl.textContent = s.text;
+    textEl.textContent = (target.id === 'keyFold' && s.fold) || s.text;
     picEl.innerHTML = s.pic || '';
     picEl.hidden = !s.pic;
     nextBtn.textContent = i + 1 < tour.length ? 'Next' : 'Got it';
@@ -3641,7 +3763,7 @@ function noteGate() {
   }
   function start(v) {
     if (tour || !TOURS[v] || busy()) return;
-    tour = TOURS[v]; view = v; lastFocus = document.activeElement;
+    tour = TOURS[v].filter(function (s) { return !s.when || s.when(); }); view = v; lastFocus = document.activeElement;
     root.hidden = false;
     /* the page behind is out of reach while the tour is up (screen readers and keyboard too) */
     Array.prototype.forEach.call(document.body.children, function (el) {
@@ -3938,7 +4060,9 @@ function noteGate() {
     'Violin or Chromatic': '小提琴或半音阶', 'Violin finds the nearest open string. Chromatic shows any note you play.': '小提琴模式找最接近的空弦；半音阶模式显示你拉的任何音。',
     'Press and hold a note': '按住一个音', 'Touch any coloured note to hear its pitch for as long as you hold it.': '按住任何彩色的音，按多久就响多久。',
     'Hold for a steady tone': '长按得到持续音', 'Hold a note for 5 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.': '按住一个音 5 秒，松手后它会继续响，平稳无揉弦，像音叉一样。点任意处即可停止。',
-    'Choose a key': '选择调', 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.': '选择大调或小调，左右滑动可看到更多调。调内的音是彩色的，其他的是灰色。',
+    'Choose a key': '选择调', 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.': '点这里选择大调或小调。调内的音是彩色的，其他的是灰色。',
+    'Equal is tuned like a piano. Just makes the intervals in the key pure. Pythagorean builds every note from pure fifths. The notes on the board move to match.': '平均律和钢琴的调音一样。纯律让调内的音程纯净。五度相生律用纯五度推出每个音。指板上的音会随之移动。',
+    'Key list': '调列表', 'Folded': '收起', 'All keys': '全部显示', 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.': '选择大调或小调，左右滑动可看到更多调。调内的音是彩色的，其他的是灰色。',
     'Positions': '把位', '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.': '一把位：手靠近琴头，一指按每根空弦上方紧挨的那个音。二把位手往上移，一指放到原来二指的位置；三把位放到原来三指的位置。指板上标出每个音和按它的手指。',
     'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.': '点“音准检测”后开始拉。圆盘显示你拉的音落在哪里：音准时圈住这个音，偏高时在它下方，偏低时在它上方。越绿越接近。',
     'Example: F on the E string, in C major': '例子：C 大调里 E 弦上的 F',
