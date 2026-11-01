@@ -587,6 +587,34 @@ nav_js = """(function () {
      Kept on this device only (violin-usage: { "YYYY-MM-DD": seconds }, every day kept, ~20 bytes
      each, so "Practised on N days" counts them all; a day needs a minute). Pending seconds are added
      to what is stored at save time, so two open tabs don't overwrite each other. */
+  /* true while the metronome plays or the tuner / Pitch Check listens (each pushes a check to APP.busy) */
+  function anyBusy() { return APP.busy.some(function (f) { try { return f(); } catch (e) { return false; } }); }
+
+  /* Keep the screen on while a tool is running, so the phone doesn't go dark mid-practice (Screen Wake
+     Lock: Safari 16.4+, Home Screen apps from iOS 18.4, Chrome 84+; elsewhere nothing happens). The
+     system drops the lock whenever the page is hidden, so it is asked for again on return. */
+  (function () {
+    if (!('wakeLock' in navigator)) return;
+    var lock = null, asking = false, failed = 0;
+    function sync() {
+      var want = !document.hidden && anyBusy();
+      if (want && !lock && !asking && Date.now() - failed > 10000) {
+        asking = true;
+        navigator.wakeLock.request('screen').then(function (l) {
+          asking = false; lock = l;
+          l.addEventListener('release', function () { if (lock === l) lock = null; });
+          if (document.hidden || !anyBusy()) sync();
+        }, function () { asking = false; failed = Date.now(); });
+      } else if (!want && lock) {
+        var l = lock; lock = null; l.release().catch(function () {});
+      }
+    }
+    setInterval(sync, 1000);
+    document.addEventListener('visibilitychange', sync);
+    document.addEventListener('click', function () { setTimeout(sync, 50); }, true);   /* Start / Stop take effect at once */
+    APP.wake = function () { return !!lock; };
+  })();
+
   var USAGE = (function () {
     var KEY = 'violin-usage', pend = {}, last = 0;
     function day(t) { var d = new Date(t); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -615,7 +643,7 @@ nav_js = """(function () {
     window.addEventListener('pagehide', end);
     setInterval(save, 15000);
     setInterval(function () {
-      if (!document.hidden && (APP.busy || []).some(function (f) { try { return f(); } catch (e) { return false; } })) touch();
+      if (!document.hidden && anyBusy()) touch();
     }, 5000);
     function series(n) {   /* [{ d: Date, s: seconds }] for the n days up to today, oldest first */
       save();
