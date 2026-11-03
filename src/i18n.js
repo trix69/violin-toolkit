@@ -4,6 +4,7 @@
     /* chrome */
     'Skip to content': '跳到内容',
     'Tools': '工具', 'Settings': '设置', 'Done': '完成', 'Check for updates': '检查更新', 'Checking…': '正在检查…', 'Up to date': '已是最新版本', 'Can’t check while offline': '离线时无法检查',
+    'Automatic update check': '自动检查更新', 'New version': '新版本', 'Later': '以后再说', 'Update': '更新', 'Your settings and practice time are kept.': '设置和练习时间都会保留。',
     'Fingerboard': '指板', 'Tuner': '调音器', 'Metronome': '节拍器',
     'Violin Toolkit': '小提琴工具箱',
     'What would you like to start with?': '想从哪个工具开始？',
@@ -303,6 +304,7 @@
     [/^(\d+) min$/, function (m, n) { return n + ' 分钟'; }],
     [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + ' 小时 ' + n + ' 分'; }],
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
+    [/^Version ([\d.]+(?:-test)?) is ready\. Update now\?$/, function (m, v) { return '版本 ' + v + ' 已推出，现在更新吗？'; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
     [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just|Pyth\.) · )?(1st|2nd|3rd)[ \u00a0]position$/, function (m, k, q, t, p) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + P[p]; }],
     [/^(.+)[ \u00a0](major|minor) · (Equal|Just|Pyth\.)(?: · (.+))?$/, function (m, k, q, t, s) { return k + Q[q] + ' · ' + T[t] + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],   /* Pitch Check: key · intonation · status */

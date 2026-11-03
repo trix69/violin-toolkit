@@ -287,6 +287,14 @@ html[lang="zh-CN"] {
 .howto-btn svg { flex: none; }
 /* practice time overlay: last 7 days as bars, today in the accent colour */
 #usage { z-index: 130; }
+/* "new version" popup: Later and Update side by side */
+#upd { z-index: 140; }
+.upd-msg { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
+.upd-note { margin: 6px 0 0; font: 400 13px/1.5 var(--font-note); color: var(--muted); }
+.upd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.upd-later { margin-top: 18px; height: 46px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--fg); font: 600 16px var(--font-note); cursor: pointer; }
+.upd-later:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+#updNow::before { display: none; }   /* the scroll fade behind Done would cover Later's edge; this card never scrolls */
 .ubars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; height: 200px; margin: 6px 0 0; padding: 0; list-style: none; }
 .ubars li { display: flex; flex-direction: column-reverse; align-items: center; gap: 4px; min-width: 0; }
 .ubars i { display: block; width: 100%; max-width: 30px; height: var(--h); min-height: 2px; border-radius: 6px 6px 2px 2px; background: color-mix(in srgb, var(--accent) 40%, transparent); }
@@ -448,7 +456,8 @@ t_js = must(t_js, "  fit();\n  startMic(true);\n})();", """  fit();
 
 app_js = """var APP = window.APP = { views: {}, a4: 442, onA4: [], busy: [] };   /* busy: functions, true while a tool is running (practice time) */
 try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
-try { APP.keysAll = localStorage.getItem('violin-keys') === 'all'; } catch (e) { APP.keysAll = false; }   /* fingerboard keys folded into one button unless set to All */
+try { APP.keysAll = localStorage.getItem('violin-keys') === 'all'; } catch (e) { APP.keysAll = false; }
+try { APP.autoUpd = localStorage.getItem('violin-autoupdate') !== 'off'; } catch (e) { APP.autoUpd = true; }   /* look for a new version on opening unless turned off */   /* fingerboard keys folded into one button unless set to All */
 /* iPhones and iPads on silent (the ring/silent switch) mute a page's sound. iOS 16.4+ lets it play like a
    music app instead (Audio Session API). Asked for just before the first sound, not at load, so opening the
    page doesn't stop other music; while a microphone is on it is play-and-record (also not muted), even before
@@ -569,6 +578,7 @@ nav_js = """(function () {
   var segA4 = document.getElementById('segA4'), segTemper = document.getElementById('segTemper');
   var segApp = document.getElementById('segApp'), swatches = document.getElementById('swatches');
   var segFlash = document.getElementById('segFlash'), segKeys = document.getElementById('segKeys');
+  var segUpd = document.getElementById('segUpd');
   var openBtn = document.getElementById('openSettings');
   function syncSheet() {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
@@ -579,6 +589,7 @@ nav_js = """(function () {
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
     Array.prototype.forEach.call(segKeys.children, function (b) { b.setAttribute('aria-checked', (b.dataset.keys === 'all') === APP.keysAll ? 'true' : 'false'); });
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segUpd.children, function (b) { b.setAttribute('aria-checked', (b.dataset.upd === 'on') === APP.autoUpd ? 'true' : 'false'); });
   }
   var opener = openBtn;   /* the gear in the app bar, or the one on the start overlay */
   /* Practice time, per local day: in each visit, the time from the first tap or key press to the
@@ -775,6 +786,12 @@ nav_js = """(function () {
     try { localStorage.setItem('violin-flash', APP.flash ? 'on' : 'off'); } catch (err) {}
     syncSheet();
   });
+  segUpd.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    APP.autoUpd = b.dataset.upd === 'on';
+    try { localStorage.setItem('violin-autoupdate', APP.autoUpd ? 'on' : 'off'); } catch (err) {}
+    syncSheet();
+  });
   segKeys.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     APP.keysAll = b.dataset.keys === 'all';
@@ -804,30 +821,77 @@ nav_js = """(function () {
         reg.update().then(function () { if (!reg.installing && !reg.waiting) { clearTimeout(t); done(); } }, function () { clearTimeout(t); done(); });
       });
     }
+    /* the release on the site when it is newer than this copy, else null (rejects when offline) */
+    function newer() {
+      return fetch('version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+        /* a different build stamp means a new release (test builds keep the same version number) */
+        return (j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version)) ? j : null;
+      });
+    }
+    function install(j) {
+      busy = true; say('Updating to ' + j.version + '…');
+      return navigator.serviceWorker.getRegistration().then(function (reg) { return reg && swapIn(reg); }).then(function () {
+        /* belt and braces: also put the fresh page into every saved copy before reloading */
+        return fetch('index.html', { cache: 'no-store' }).then(function (r) {
+          if (!r.ok) return;
+          /* only this site's caches (data-cache prefix + build stamp); the test site shares the origin */
+          var mine = new RegExp('^' + (btn.dataset.cache || 'violin-toolkit-') + '\\d{8}-\\d{6}$');
+          return caches.keys().then(function (ks) {
+            return Promise.all(ks.filter(function (k) { return mine.test(k); })
+              .map(function (k) { return caches.open(k).then(function (c) { return c.put('index.html', r.clone()); }); }));
+          });
+        }).catch(function () {});
+      }).then(function () { location.reload(); });
+    }
     btn.addEventListener('click', function () {
       if (busy) return;
       var sw = navigator.serviceWorker;
       if (!sw || !sw.controller) { location.reload(); return; }
       busy = true; say('Checking…');
-      fetch('version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
-        /* a different build stamp means a new release (test builds keep the same version number) */
-        var newer = j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version);
-        if (!newer) { busy = false; say('Up to date'); return; }
-        say('Updating to ' + j.version + '…');
-        return sw.getRegistration().then(function (reg) { return reg && swapIn(reg); }).then(function () {
-          /* belt and braces: also put the fresh page into every saved copy before reloading */
-          return fetch('index.html', { cache: 'no-store' }).then(function (r) {
-            if (!r.ok) return;
-            /* only this site's caches (data-cache prefix + build stamp); the test site shares the origin */
-            var mine = new RegExp('^' + (btn.dataset.cache || 'violin-toolkit-') + '\\d{8}-\\d{6}$');
-            return caches.keys().then(function (ks) {
-              return Promise.all(ks.filter(function (k) { return mine.test(k); })
-                .map(function (k) { return caches.open(k).then(function (c) { return c.put('index.html', r.clone()); }); }));
-            });
-          }).catch(function () {});
-        }).then(function () { location.reload(); });
+      newer().then(function (j) {
+        if (!j) { busy = false; say('Up to date'); return; }
+        return install(j);
       }).catch(function () { busy = false; say('Can’t check while offline'); });
     });
+
+    /* Automatic check (Settings > Automatic update check, on unless turned off): on opening, and on coming
+       back after 6 hours away, since a Home Screen app is often resumed rather than reopened. It asks
+       first, waits while the metronome plays, the tuner / Pitch Check listens or a tips tour is up, and asks once per release
+       per visit. Offline it stays silent and tries again on the next return. Only where a service worker
+       serves the page (not the single-file copy or the artifact). */
+    var upd = document.getElementById('upd'), updNow = document.getElementById('updNow'), updLater = document.getElementById('updLater');
+    var pending = null, offered = '', lastCheck = 0, updOpener = null;
+    function autoCheck() {
+      var sw = navigator.serviceWorker;
+      if (!APP.autoUpd || busy || document.hidden || !sw || !sw.controller || Date.now() - lastCheck < 6 * 3600e3) return;
+      lastCheck = Date.now();
+      newer().then(function (j) { if (j && (j.build || j.version) !== offered) ask(j); }).catch(function () { lastCheck = 0; });
+    }
+    function ask(j) {
+      if (!APP.autoUpd || busy) return;
+      var tips = document.getElementById('coach');   /* a first-use tour makes the rest of the page inert: wait for it */
+      if (anyBusy() || document.hidden || (tips && !tips.hidden)) { setTimeout(function () { ask(j); }, tips && !tips.hidden ? 1000 : 5000); return; }
+      pending = j; offered = j.build || j.version;
+      document.getElementById('updMsg').textContent = 'Version ' + j.version + ' is ready. Update now?';
+      updOpener = document.activeElement;
+      upd.hidden = false;
+      window.addEventListener('keydown', onUpdKey, true);
+      updNow.focus();
+    }
+    function closeUpd() {
+      upd.hidden = true;
+      window.removeEventListener('keydown', onUpdKey, true);
+      try { updOpener.focus(); } catch (e) {}
+    }
+    function onUpdKey(e) {   /* capture on window, so the overlays underneath stay quiet */
+      if (e.key === 'Escape') { e.stopPropagation(); closeUpd(); }
+      else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); (document.activeElement === updNow ? updLater : updNow).focus(); }
+    }
+    updLater.addEventListener('click', closeUpd);
+    upd.addEventListener('click', function (e) { if (e.target === upd) closeUpd(); });
+    updNow.addEventListener('click', function () { closeUpd(); if (pending && !busy) install(pending).catch(function () { location.reload(); }); });
+    setTimeout(autoCheck, 1500);
+    document.addEventListener('visibilitychange', autoCheck);
   })();
   segApp.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
@@ -1044,6 +1108,11 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-flash="on">On</button>
       <button type="button" role="radio" aria-checked="false" data-flash="off">Off</button>
     </div>
+    <h3 id="lblUpd">Automatic update check</h3>
+    <div class="segc two" role="radiogroup" aria-labelledby="lblUpd" id="segUpd">
+      <button type="button" role="radio" aria-checked="false" data-upd="on">On</button>
+      <button type="button" role="radio" aria-checked="false" data-upd="off">Off</button>
+    </div>
     <h3 id="lblUse">Practice time</h3>
     <button type="button" class="howto-btn" id="openUsage" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
     <h3 id="lblHelp">Help</h3>
@@ -1110,6 +1179,17 @@ markup = f"""
       <div><dt>Last 7 days</dt><dd id="useWeek">0 min</dd></div>
     </dl>
     <button type="button" class="sheet-done" id="usageDone">Done</button>
+  </div>
+</div>
+<div class="sheet" id="upd" role="dialog" aria-modal="true" aria-labelledby="updTitle" aria-describedby="updMsg" hidden>
+  <div class="sheet-card" id="updCard" tabindex="-1">
+    <h2 id="updTitle">New version</h2>
+    <p class="upd-msg" id="updMsg"></p>
+    <p class="upd-note">Your settings and practice time are kept.</p>
+    <div class="upd-row">
+      <button type="button" class="upd-later" id="updLater">Later</button>
+      <button type="button" class="sheet-done" id="updNow">Update</button>
+    </div>
   </div>
 </div>
 <div class="launch" id="launch" role="dialog" aria-modal="true" aria-labelledby="launchTitle" hidden>
