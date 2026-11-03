@@ -371,6 +371,8 @@ launch_css = '''
 }
 .launch[hidden] { display: none; }
 .tab.launch-set { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: calc(env(safe-area-inset-right, 0px) + 12px); }   /* Settings, so the language can be changed before choosing */
+/* on wide screens, over the app bar's own gear (the right end of the 720px column) rather than at the window's edge */
+@media (min-width: 481px) { .tab.launch-set { top: calc(env(safe-area-inset-top, 0px) + 15px); right: max(calc(env(safe-area-inset-right, 0px) + 12px), calc((100% - 720px) / 2)); } }
 .launch-card { width: min(100%, 720px); text-align: center; outline: none; }
 .launch h2 { margin: 0; font: 700 clamp(30px, 6vw, 44px)/1.1 var(--font-display); letter-spacing: -0.02em; }
 .launch-sub { margin: 8px 0 22px; font: 400 14px var(--font-mono); letter-spacing: .04em; color: var(--muted); }
