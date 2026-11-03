@@ -833,14 +833,18 @@ nav_js = """(function () {
     function install(j) {
       busy = true; say('Updating to ' + j.version + '…');
       return navigator.serviceWorker.getRegistration().then(function (reg) { return reg && swapIn(reg); }).then(function () {
-        /* belt and braces: also put the fresh page into every saved copy before reloading */
+        /* save the new page under its own build stamp (normally the new service worker already has), choose it
+           (the service worker shows the chosen copy, so Later keeps the old one), then drop older copies.
+           Only this site's caches (data-cache prefix + build stamp); the test site shares the origin. */
+        var pre = btn.dataset.cache || 'violin-toolkit-', want = pre + j.build, mine = new RegExp('^' + pre + '[0-9]{8}-[0-9]{6}$');
         return fetch('index.html', { cache: 'no-store' }).then(function (r) {
-          if (!r.ok) return;
-          /* only this site's caches (data-cache prefix + build stamp); the test site shares the origin */
-          var mine = new RegExp('^' + (btn.dataset.cache || 'violin-toolkit-') + '\\d{8}-\\d{6}$');
+          if (!r.ok) throw new Error('page');
+          return caches.open(want).then(function (c) { return c.put('index.html', r); });
+        }).then(function () {
+          return caches.open(pre + 'meta').then(function (m) { return m.put('current', new Response(j.build)); });
+        }).then(function () {
           return caches.keys().then(function (ks) {
-            return Promise.all(ks.filter(function (k) { return mine.test(k); })
-              .map(function (k) { return caches.open(k).then(function (c) { return c.put('index.html', r.clone()); }); }));
+            return Promise.all(ks.filter(function (k) { return mine.test(k) && k < want; }).map(function (k) { return caches.delete(k); }));
           });
         }).catch(function () {});
       }).then(function () { location.reload(); });
