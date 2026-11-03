@@ -135,16 +135,14 @@ self.addEventListener('install', e => {
     await Promise.all(CORE.filter(u => u !== 'index.html').map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => {})));
   }).then(() => self.skipWaiting()));
 });
-/* the saved copy to show: the one chosen, else (first run of this worker) the newest older copy
-   already on the phone, so an update still waits to be accepted, else this release */
+/* the saved copy to show: the one chosen, else this release (first install, or a phone coming from
+   1.20 or earlier, whose page never records a choice) */
 async function chosen() {
   const m = await caches.open(META), r = await m.match('current');
   const cur = r ? PREFIX + (await r.text()) : null;
   if (cur && await caches.has(cur)) return cur;
-  const older = (await caches.keys()).filter(k => MINE(k) && k < VERSION).sort().pop();
-  const pick = older || VERSION;
-  await m.put('current', new Response(pick.slice(PREFIX.length)));
-  return pick;
+  await m.put('current', new Response(VERSION.slice(PREFIX.length)));
+  return VERSION;
 }
 self.addEventListener('activate', e => {
   e.waitUntil(chosen().then(keep => caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && k !== keep && MINE(k)).map(k => caches.delete(k)))))
