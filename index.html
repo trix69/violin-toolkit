@@ -457,6 +457,45 @@ h1 {
 #view-board .note:hover:not(.down):not(.heard) { filter: brightness(1.1); }
 }
 #view-board .note:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+#view-board .vib {
+  position: absolute; top: var(--y); bottom: 0; left: var(--x); width: max(1.5px, calc(var(--w) * .7));
+  transform: translateX(-50%); transform-origin: 50% 0; border-radius: 2px; pointer-events: none;
+  background: color-mix(in srgb, var(--hue) 55%, white);
+  box-shadow: 0 0 3px 1px var(--hue), 0 0 10px 2px color-mix(in srgb, var(--hue) 55%, transparent);
+  animation: vibShake 50ms linear infinite alternate;
+}
+#view-board .vib::before {
+  
+  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 14px; transform: translateX(-50%); transform-origin: 50% 0;
+  background: linear-gradient(transparent, var(--hue) 60%); opacity: .45; filter: blur(1px);
+  -webkit-clip-path: polygon(50% 0, 100% 100%, 0 100%); clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  animation: vibBand 100ms ease-in-out infinite alternate;
+}
+@keyframes vibShake { from { transform: translateX(-50%) rotate(-.3deg); } to { transform: translateX(-50%) rotate(.3deg); } }
+@keyframes vibBand { from { transform: translateX(-50%) scaleX(.35); } to { transform: translateX(-50%) scaleX(1.2); } }
+#view-board .waves {
+  position: absolute; left: var(--x); top: var(--y); width: calc(var(--r) * 2 + 8px); height: calc(var(--r) * 2 + 8px);
+  transform: translate(-50%, -50%); pointer-events: none; border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, var(--hue) 70%, white);
+  box-shadow: 0 0 8px 2px var(--hue), inset 0 0 6px var(--hue);
+  animation: waveIn 180ms ease-out;
+}
+#view-board .waves::before,
+#view-board .waves::after {
+  content: ''; position: absolute; inset: -2.5px; border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, var(--hue) 75%, white); box-shadow: 0 0 6px 1px var(--hue);
+  opacity: 0; animation: wave 1s ease-out infinite;
+}
+#view-board .waves::after { animation-delay: .5s; }
+@keyframes waveIn { from { transform: translate(-50%, -50%) scale(.85); opacity: 0; } }
+@keyframes wave { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+#view-board .vib,
+#view-board .vib::before,
+#view-board .waves { animation: none; }
+#view-board .waves::before,
+#view-board .waves::after { display: none; }
+}
 #view-board .legend-row { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
 #view-board .tip { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); max-width: 65ch; }
 #view-board .ksig {
@@ -1596,7 +1635,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.22" data-build="20261106-063807" data-cache="violin-toolkit-"><span>Version 1.22</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.23" data-build="20261106-081408" data-cache="violin-toolkit-"><span>Version 1.23</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -2943,6 +2982,7 @@ function noteGate() {
     rec.latchT = setTimeout(function () { rec.latched = true; el.classList.add('latched'); applyVib(rec); }, 3000);   /* held 3 s: keep playing after release */
     el.classList.add('down');
     showHz(rec, nt);
+    showWave(rec, nt);
     followPosition(nt);
   }
   var latchN = 0;
@@ -2958,6 +2998,16 @@ function noteGate() {
     st.appendChild(d);
     rec.hz = d;
   }
+  /* string shaking from the finger to the bridge + sound waves from the note, under the notes */
+  function showWave(rec, nt) {
+    var x = rec.el.style.getPropertyValue('--x'), y = rec.el.style.getPropertyValue('--y'), hue = 'var(' + nt.s.v + ')';
+    var v = document.createElement('div'), w = document.createElement('div');
+    v.className = 'vib'; w.className = 'waves';
+    [v, w].forEach(function (d) { d.setAttribute('aria-hidden', 'true'); d.style.setProperty('--x', x); d.style.setProperty('--y', y); d.style.setProperty('--hue', hue); });
+    v.style.setProperty('--w', WIDTHS[nt.si] + 'px');
+    board.insertBefore(v, buttons[0]); board.insertBefore(w, buttons[0]);
+    rec.fx = [v, w];
+  }
   function end(id, force) {
     var rec = voices.get(id);
     if (!rec) return;
@@ -2969,6 +3019,7 @@ function noteGate() {
     clearTimeout(rec.timer); clearTimeout(rec.latchT);
     stopVoice(rec.v);
     if (rec.hz) { rec.hz.remove(); rec.hz = null; }
+    if (rec.fx) { rec.fx.forEach(function (d) { d.remove(); }); rec.fx = null; }
     var stillDown = false;
     voices.forEach(function (r) { if (r.el === rec.el) stillDown = true; });
     if (!stillDown) rec.el.classList.remove('down', 'latched');
