@@ -327,6 +327,38 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 @media (hover: hover) { .note:hover:not(.down):not(.heard) { filter: brightness(1.1); } }
 .note:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
+/* a sounding note: its string shakes from the finger to the bridge, and sound waves ring out from the note */
+.vib {
+  position: absolute; top: var(--y); bottom: 0; left: var(--x); width: var(--w);
+  transform: translateX(-50%); border-radius: 2px; pointer-events: none;
+  background: var(--hue); box-shadow: 0 0 6px 1px var(--hue);
+  animation: vibShake 70ms linear infinite alternate;
+}
+.vib::before {
+  /* the blur of a vibrating string: widest in the middle, still at the finger and the bridge */
+  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: calc(var(--w) + 9px); transform: translateX(-50%);
+  background: var(--hue); opacity: .35; border-radius: 6px; filter: blur(1.5px);
+  -webkit-mask: linear-gradient(transparent, #000 35%, #000 65%, transparent); mask: linear-gradient(transparent, #000 35%, #000 65%, transparent);
+  animation: vibBand 140ms ease-in-out infinite alternate;
+}
+@keyframes vibShake { from { transform: translateX(calc(-50% - 1px)); } to { transform: translateX(calc(-50% + 1px)); } }
+@keyframes vibBand { from { transform: translateX(-50%) scaleX(.7); } to { transform: translateX(-50%) scaleX(1.15); } }
+.waves {
+  position: absolute; left: var(--x); top: var(--y); width: calc(var(--r) * 2); height: calc(var(--r) * 2);
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+.waves::before, .waves::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid var(--hue); box-shadow: 0 0 8px var(--hue), inset 0 0 6px var(--hue);
+  opacity: 0; animation: wave 1.2s ease-out infinite;
+}
+.waves::after { animation-delay: .6s; }
+@keyframes wave { 0% { transform: scale(1); opacity: .85; } 100% { transform: scale(2.5); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .vib, .vib::before { animation: none; }
+  .waves { display: none; }
+}
+
 .legend-row { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
 .tip { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); max-width: 65ch; }
 
@@ -1128,6 +1160,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     rec.latchT = setTimeout(function () { rec.latched = true; el.classList.add('latched'); applyVib(rec); }, 3000);   /* held 3 s: keep playing after release */
     el.classList.add('down');
     showHz(rec, nt);
+    showWave(rec, nt);
     followPosition(nt);
   }
   var latchN = 0;
@@ -1143,6 +1176,16 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     st.appendChild(d);
     rec.hz = d;
   }
+  /* string shaking from the finger to the bridge + sound waves from the note, under the notes */
+  function showWave(rec, nt) {
+    var x = rec.el.style.getPropertyValue('--x'), y = rec.el.style.getPropertyValue('--y'), hue = 'var(' + nt.s.v + ')';
+    var v = document.createElement('div'), w = document.createElement('div');
+    v.className = 'vib'; w.className = 'waves';
+    [v, w].forEach(function (d) { d.setAttribute('aria-hidden', 'true'); d.style.setProperty('--x', x); d.style.setProperty('--y', y); d.style.setProperty('--hue', hue); });
+    v.style.setProperty('--w', WIDTHS[nt.si] + 'px');
+    board.insertBefore(v, buttons[0]); board.insertBefore(w, buttons[0]);
+    rec.fx = [v, w];
+  }
   function end(id, force) {
     var rec = voices.get(id);
     if (!rec) return;
@@ -1154,6 +1197,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     clearTimeout(rec.timer); clearTimeout(rec.latchT);
     stopVoice(rec.v);
     if (rec.hz) { rec.hz.remove(); rec.hz = null; }
+    if (rec.fx) { rec.fx.forEach(function (d) { d.remove(); }); rec.fx = null; }
     var stillDown = false;
     voices.forEach(function (r) { if (r.el === rec.el) stillDown = true; });
     if (!stillDown) rec.el.classList.remove('down', 'latched');
