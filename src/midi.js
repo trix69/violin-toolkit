@@ -9,6 +9,8 @@
   var playBtn = $('mpPlay'), seek = $('mpSeek'), timeEl = $('mpTime'), speedEl = $('mpSpeed'), bpmEl = $('mpBpm');
   var scoreEl = $('mpScore'), svg = $('mpSvg'), keySvg = $('mpKey'), headEl = $('mpHead'), subEl = $('ttl-midi-sub');
   var songs = [], song = null, pos = 0, speed = 1, playing = false, ni = 0, active = [], last = 0, raf = 0, shown = false;
+  var loop = false, loopBtn = $('mpLoop');   /* Loop: start again from the top at the end (Trix), remembered */
+  try { loop = localStorage.getItem('violin-midi-loop') === 'on'; } catch (e) {}
 
   function fail(text) { var e = new Error(text); e.mine = true; return e; }
 
@@ -250,6 +252,7 @@
     bpmEl.textContent = song ? '♩ = ' + Math.round(song.bpm * speed) : '';
     playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
     playBtn.classList.toggle('on', playing);
+    loopBtn.setAttribute('aria-pressed', loop ? 'true' : 'false');
     $('mpSlower').disabled = speed <= 0.5 + 1e-9;
     $('mpFaster').disabled = speed >= 1.5 - 1e-9;
   }
@@ -282,7 +285,10 @@
       active.push(ni); ni++;
     }
     scroll(); ui();
-    if (pos >= song.end && !active.length) { pause(); seekTo(song.end); return; }
+    if (pos >= song.end && !active.length) {
+      if (!loop) { pause(); seekTo(song.end); return; }
+      seekTo(0); last = performance.now();   /* round again, still playing */
+    }
     raf = requestAnimationFrame(frame);
   }
   function play() {
@@ -346,6 +352,11 @@
 
   playBtn.addEventListener('click', function () { if (playing) pause(); else play(); });
   $('mpStart').addEventListener('click', function () { seekTo(0); });
+  loopBtn.addEventListener('click', function () {
+    loop = !loop;
+    try { localStorage.setItem('violin-midi-loop', loop ? 'on' : 'off'); } catch (e) {}
+    ui();
+  });
   function setSpeed(d) { speed = Math.max(0.5, Math.min(1.5, Math.round((speed + d) * 10) / 10)); ui(); }
   $('mpSlower').addEventListener('click', function () { setSpeed(-0.1); });
   $('mpFaster').addEventListener('click', function () { setSpeed(0.1); });

@@ -40,6 +40,10 @@
 .mp-prog { display: flex; align-items: center; gap: 10px; }
 #mpSeek { flex: 1; min-width: 0; accent-color: var(--accent); height: 24px; }
 .mp-time { font: 500 12px var(--font-mono); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mp-loop { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--muted); cursor: pointer; }
+.mp-loop svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mp-loop[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.mp-loop:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .mp-ctl { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 4px; }
 .mp-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); font: 500 24px/1 var(--font-note); cursor: pointer; }
 .mp-btn:disabled { opacity: .4; cursor: default; }
