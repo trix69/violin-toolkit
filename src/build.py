@@ -110,7 +110,7 @@ t_tokens = strip_comments(t_tokens)
 rename = lambda s: re.sub(r'(?<![\w-])--([a-z][a-z0-9-]*)', r'--t-\1', s)
 t_tokens = rename(t_tokens)
 t_rest = rename(t_rest)
-for nm, val in [('s-g', '#E3A24C'), ('s-d', '#74C493'), ('s-a', '#66AEE6'), ('s-e', '#C592E6'), ('on-sc', '#15110F')]:
+for nm, val in [('s-g', '#66AEE6'), ('s-d', '#74C493'), ('s-a', '#E3A24C'), ('s-e', '#EE6A5E'), ('on-sc', '#15110F')]:
     t_tokens, n = re.subn(r'(--t-' + nm + r': )#[0-9A-Fa-f]{6};', r'\g<1>' + val + ';', t_tokens)
     assert n == 3, (nm, n)
 # audio-file upload is removed (keep .vh: the tuner's screen-reader-only #hintSr needs it, Hermes F6)
