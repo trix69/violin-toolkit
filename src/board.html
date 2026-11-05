@@ -327,36 +327,42 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 @media (hover: hover) { .note:hover:not(.down):not(.heard) { filter: brightness(1.1); } }
 .note:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
-/* a sounding note: its string shakes from the finger to the bridge, and sound waves ring out from the note */
+/* a sounding note (like the rednote video Trix sent): its string from the finger to the bridge turns into a thin
+   bright line in the string colour with a soft glow and a small wobble; a glowing ring hugs the note and thin rings ripple out */
 .vib {
-  position: absolute; top: var(--y); bottom: 0; left: var(--x); width: var(--w);
+  position: absolute; top: var(--y); bottom: 0; left: var(--x); width: max(1.5px, calc(var(--w) * .7));
   transform: translateX(-50%); border-radius: 2px; pointer-events: none;
-  background: var(--hue); box-shadow: 0 0 6px 1px var(--hue);
-  animation: vibShake 70ms linear infinite alternate;
+  background: color-mix(in srgb, var(--hue) 55%, white);
+  box-shadow: 0 0 3px 1px var(--hue), 0 0 10px 2px color-mix(in srgb, var(--hue) 55%, transparent);
+  animation: vibShake 60ms linear infinite alternate;
 }
 .vib::before {
-  /* the blur of a vibrating string: widest in the middle, still at the finger and the bridge */
-  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: calc(var(--w) + 9px); transform: translateX(-50%);
-  background: var(--hue); opacity: .35; border-radius: 6px; filter: blur(1.5px);
+  /* the faint blur of the moving string: widest mid-string, still at the finger and the bridge */
+  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 5px; transform: translateX(-50%);
+  background: var(--hue); opacity: .3; border-radius: 3px; filter: blur(1px);
   -webkit-mask: linear-gradient(transparent, #000 35%, #000 65%, transparent); mask: linear-gradient(transparent, #000 35%, #000 65%, transparent);
-  animation: vibBand 140ms ease-in-out infinite alternate;
+  animation: vibBand 120ms ease-in-out infinite alternate;
 }
-@keyframes vibShake { from { transform: translateX(calc(-50% - 1px)); } to { transform: translateX(calc(-50% + 1px)); } }
-@keyframes vibBand { from { transform: translateX(-50%) scaleX(.7); } to { transform: translateX(-50%) scaleX(1.15); } }
+@keyframes vibShake { from { transform: translateX(calc(-50% - .6px)); } to { transform: translateX(calc(-50% + .6px)); } }
+@keyframes vibBand { from { transform: translateX(-50%) scaleX(.6); } to { transform: translateX(-50%) scaleX(1.1); } }
 .waves {
-  position: absolute; left: var(--x); top: var(--y); width: calc(var(--r) * 2); height: calc(var(--r) * 2);
-  transform: translate(-50%, -50%); pointer-events: none;
+  position: absolute; left: var(--x); top: var(--y); width: calc(var(--r) * 2 + 8px); height: calc(var(--r) * 2 + 8px);
+  transform: translate(-50%, -50%); pointer-events: none; border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, var(--hue) 70%, white);
+  box-shadow: 0 0 8px 2px var(--hue), inset 0 0 6px var(--hue);
+  animation: waveIn 180ms ease-out;
 }
 .waves::before, .waves::after {
-  content: ''; position: absolute; inset: 0; border-radius: 50%;
-  border: 2px solid var(--hue); box-shadow: 0 0 8px var(--hue), inset 0 0 6px var(--hue);
-  opacity: 0; animation: wave 1.2s ease-out infinite;
+  content: ''; position: absolute; inset: -2.5px; border-radius: 50%;
+  border: 1.5px solid var(--hue); box-shadow: 0 0 4px var(--hue);
+  opacity: 0; animation: wave 1.1s ease-out infinite;
 }
-.waves::after { animation-delay: .6s; }
-@keyframes wave { 0% { transform: scale(1); opacity: .85; } 100% { transform: scale(2.5); opacity: 0; } }
+.waves::after { animation-delay: .55s; }
+@keyframes waveIn { from { transform: translate(-50%, -50%) scale(.85); opacity: 0; } }
+@keyframes wave { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.9); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .vib, .vib::before { animation: none; }
-  .waves { display: none; }
+  .vib, .vib::before, .waves { animation: none; }
+  .waves::before, .waves::after { display: none; }
 }
 
 .legend-row { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
