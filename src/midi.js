@@ -97,7 +97,7 @@
   }
 
   /* ---------- the score: one line that scrolls past the playhead ---------- */
-  var S = 9, Y0 = 34, PX = 46;             /* staff space, top line, pixels per beat */
+  var S = 9, Y0 = 34, xAt = null;          /* staff space, top line, beats to x (set by drawScore) */
   var BOT = Y0 + 4 * S;                    /* bottom line, E4 */
   var LET = 'CDEFGAB', SHARP_K = [3, 0, 4, 1, 5, 2, 6], FLAT_K = [6, 2, 5, 1, 4, 0, 3];   /* F C G D A E B / B E A D G C F as letter numbers */
   var SHARP_P = [10, 7, 11, 8, 5, 9, 6], FLAT_P = [6, 9, 5, 8, 4, 7, 3];                 /* where they sit on the treble staff */
@@ -129,42 +129,95 @@
     out.push('<text class="ts" x="' + x + '" y="' + (Y0 + 2 * S - 1) + '">' + sg.sig.num + '</text><text class="ts" x="' + x + '" y="' + (Y0 + 4 * S - 1) + '">' + sg.sig.den + '</text>');
     X0 = x + 30;
     var barBeats = sg.sig.num * 4 / sg.sig.den;
-    W = X0 + sg.beats * PX + 30;
-    for (var b = barBeats; b < sg.beats - 1e-6; b += barBeats) out.push('<path class="bl" d="M' + (X0 + b * PX - PX * 0.35) + ' ' + Y0 + 'V' + BOT + '"/>');
-    var endX = X0 + sg.beats * PX - PX * 0.35;
+    /* spacing by note length, as printed music does (a semiquaver ~41 px, a crotchet 56, a semibreve 86), with
+       room at each bar line; xAt() maps beats to x for placing and scrolling */
+    var ons = [];
+    sg.notes.forEach(function (n) { if (!ons.length || n.b > ons[ons.length - 1] + 1e-6) ons.push(n.b); });
+    var pts = [], cx = X0, lastBar = 0;
+    ons.forEach(function (b, i) {
+      var bn = Math.floor(b / barBeats + 1e-6);
+      if (bn > lastBar) { out.push('<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>'); cx += 12; lastBar = bn; }
+      pts.push([b, cx]);
+      cx += 26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < ons.length ? ons[i + 1] : sg.beats) - b));
+    });
+    pts.push([sg.beats, cx]);
+    xAt = function (b) {
+      if (b <= pts[0][0]) return pts[0][1] - (pts[0][0] - b) * 50;
+      for (var i = 1; i < pts.length; i++) if (b <= pts[i][0]) { var a = pts[i - 1], c = pts[i]; return a[1] + (c[1] - a[1]) * (b - a[0]) / ((c[0] - a[0]) || 1); }
+      return cx + (b - sg.beats) * 50;
+    };
+    W = cx + 30;
+    var endX = cx - 8;
     out.push('<path class="bl" d="M' + (endX - 4) + ' ' + Y0 + 'V' + BOT + '"/><path class="bl end" d="M' + endX + ' ' + Y0 + 'V' + BOT + '"/>');
-    /* accidentals hold to the end of the bar */
-    var barNo = -1, inBar = {};
-    sg.notes.forEach(function (nt, k) {
+    /* first pass: where each note sits; accidentals hold to the end of the bar */
+    var barNo = -1, inBar = {}, inf = sg.notes.map(function (nt) {
       var bn = Math.floor(nt.b / barBeats + 1e-6);
       if (bn !== barNo) { barNo = bn; inBar = {}; }
       var spl = sp[nt.m % 12], L = spl[0], acc = spl[1], oct = Math.floor(nt.m / 12) - 1;
-      var step = L + 7 * (oct - 4), y = yOf(step), hx = X0 + nt.b * PX, id = L + '/' + oct;
-      var want = acc, have = id in inBar ? inBar[id] : (keyAcc[L] || 0), g = [];
-      if (want !== have) { g.push('<text class="acc" x="' + (hx - 15) + '" y="' + (y + 4.5) + '">' + ACC[String(want)] + '</text>'); inBar[id] = want; }
+      var step = L + 7 * (oct - 4), id = L + '/' + oct, have = id in inBar ? inBar[id] : (keyAcc[L] || 0), sign = null;
+      if (acc !== have) { sign = ACC[String(acc)]; inBar[id] = acc; }
+      return { nt: nt, step: step, y: yOf(step), hx: xAt(nt.b), len: nt.len, sign: sign, up: step < 6, beam: -1 };
+    });
+    /* beams: quavers and semiquavers that follow on one another within a beat (a dotted crotchet in 6/8, 9/8,
+       12/8) share a beam, all stems one way: up when the group sits below the middle line */
+    var unit = sg.sig.den === 8 && sg.sig.num % 3 === 0 ? 1.5 : 1, groups = [], cur = null;
+    inf.forEach(function (f, k) {
+      var prev = inf[k - 1], ok = f.len < 1;
+      var joins = ok && cur && prev && Math.floor(f.nt.b / unit + 1e-6) === Math.floor(prev.nt.b / unit + 1e-6) && Math.abs(prev.nt.b + prev.len - f.nt.b) < 0.02 && f.nt.b > prev.nt.b + 1e-6;
+      if (joins) cur.push(k); else { cur = ok ? [k] : null; if (cur) groups.push(cur); }
+    });
+    var beams = [];
+    groups.forEach(function (gr, gi) {
+      if (gr.length < 2) return;
+      var mean = gr.reduce(function (t, k) { return t + inf[k].step; }, 0) / gr.length, up = mean < 6, d = up ? -1 : 1;
+      var f0 = inf[gr[0]], f1 = inf[gr[gr.length - 1]];
+      var x0 = f0.hx + (up ? 4.9 : -4.9), x1 = f1.hx + (up ? 4.9 : -4.9);
+      var slope = x1 > x0 ? Math.max(-0.2, Math.min(0.2, (f1.y - f0.y) / (x1 - x0) * 0.5)) : 0;
+      var line = function (x) { return base + slope * (x - x0); }, base = f0.y + d * 3.4 * S;
+      /* every stem at least 2.8 spaces long */
+      gr.forEach(function (k) { var f = inf[k], x = f.hx + (up ? 4.9 : -4.9), need = f.y + d * 2.8 * S; if (up ? line(x) > need : line(x) < need) base += need - line(x); });
+      gr.forEach(function (k) { inf[k].up = up; inf[k].beam = gi; inf[k].tip = line(inf[k].hx + (up ? 4.9 : -4.9)); });
+      function bar(xa, xb, off) {   /* a beam 4 px thick, off = how far in from the stem tips */
+        var ya = line(xa) - d * off, yb = line(xb) - d * off;
+        return '<path class="beam" d="M' + xa + ' ' + ya + 'L' + xb + ' ' + yb + 'L' + xb + ' ' + (yb - d * 4) + 'L' + xa + ' ' + (ya - d * 4) + 'Z"/>';
+      }
+      var sx = function (k) { return inf[k].hx + (up ? 4.9 : -4.9); }, b = [bar(sx(gr[0]) - (up ? 0.65 : -0.65), sx(gr[gr.length - 1]) + (up ? 0.65 : -0.65), 0)];
+      /* second beam between neighbouring semiquavers; a short stub for one on its own */
+      gr.forEach(function (k, i) {
+        if (inf[k].len > 0.25) return;
+        var nx = gr[i + 1], pv = gr[i - 1];
+        if (nx !== undefined && inf[nx].len <= 0.25) b.push(bar(sx(k), sx(nx), 7));
+        else if (!(pv !== undefined && inf[pv].len <= 0.25)) b.push(nx !== undefined ? bar(sx(k), sx(k) + 9, 7) : bar(sx(k) - 9, sx(k), 7));
+      });
+      beams.push(b.join(''));
+    });
+    /* second pass: draw */
+    inf.forEach(function (f, k) {
+      var nt = f.nt, y = f.y, hx = f.hx, step = f.step, len = f.len, up = f.up, g = [];
+      if (f.sign) g.push('<text class="acc" x="' + (hx - 15) + '" y="' + (y + 4.5) + '">' + f.sign + '</text>');
       for (var l = 0; l >= step; l -= 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
       for (l = 12; l <= step; l += 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
-      var len = nt.len, hollow = len >= 2, stem = len < 4, dotted = len === 3 || len === 1.5 || len === 0.75;
-      var flags = len <= 0.25 ? 2 : len <= 0.75 && len < 1 ? 1 : 0, up = step < 6;
+      var hollow = len >= 2, stem = len < 4, dotted = len === 3 || len === 1.5 || len === 0.75;
+      var flags = f.beam >= 0 ? 0 : len <= 0.25 ? 2 : len < 1 ? 1 : 0;
       g.push('<ellipse class="' + (hollow ? 'head hollow' : 'head') + '" cx="' + hx + '" cy="' + y + '" rx="5.4" ry="3.9" transform="rotate(-20 ' + hx + ' ' + y + ')"/>');
       if (stem) {
-        var sx = up ? hx + 4.9 : hx - 4.9, sy = up ? y - 3.4 * S : y + 3.4 * S;
+        var sx = up ? hx + 4.9 : hx - 4.9, sy = f.beam >= 0 ? f.tip : up ? y - 3.4 * S : y + 3.4 * S;
         g.push('<path class="stem" d="M' + sx + ' ' + (y + (up ? -1 : 1)) + 'V' + sy + '"/>');
-        for (var f = 0; f < flags; f++) {
-          var fy = sy + (up ? 1 : -1) * f * 7, d = up ? 1 : -1;
+        for (var q = 0; q < flags; q++) {
+          var fy = sy + (up ? 1 : -1) * q * 7, d = up ? 1 : -1;
           g.push('<path class="flag" d="M' + sx + ' ' + fy + 'c1 ' + (5 * d) + ' 8 ' + (7 * d) + ' 6 ' + (15 * d) + 'c1 ' + (-6 * d) + ' -3 ' + (-9 * d) + ' -6 ' + (-10 * d) + 'z"/>');
         }
       }
       /* fingering, in the string colour, on the side of the note away from the stem (Trix) */
       var fg = fingerOf(nt.m);
       if (fg !== null) {
-        var fy = stem && up ? Math.max(y + 17, BOT + 13) : Math.min(y - 9, Y0 - 5);
-        if (stem && up && y + 17 < BOT + 13 && step >= 2) fy = BOT + 13;   /* below the staff, clear of the lines */
-        g.push('<text class="fing" x="' + hx + '" y="' + fy + '">' + fg + '</text>');
+        var ty = stem && up ? Math.max(y + 17, BOT + 13) : Math.min(y - 9, Y0 - 5);
+        g.push('<text class="fing" x="' + hx + '" y="' + ty + '">' + fg + '</text>');
       }
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
       out.push('<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt.m) + '">' + g.join('') + '</g>');
     });
+    out.push('<g class="mp-beams">' + beams.join('') + '</g>');
     var lines = '';
     for (i = 0; i < 5; i++) lines += '<path class="sl" d="M0 ' + (Y0 + i * S) + 'H' + W + '"/>';
     svg.setAttribute('width', W); svg.setAttribute('height', BOT + 46);
@@ -181,10 +234,10 @@
   /* the playhead sits a third of the way across; the score slides under it */
   function scroll() {
     if (!song) return;
-    var beat = song.toBeat(pos), w = scoreEl.clientWidth, x = X0 + beat * PX, hx = Math.max(w * 0.36, X0 + 50);
+    var beat = song.toBeat(pos), w = scoreEl.clientWidth, x = xAt(beat), hx = Math.max(w * 0.36, X0 + 50);
     headEl.style.left = hx + 'px';
     /* half a beat early, so a note glows while it passes through the playhead rather than after it */
-    svg.style.transform = 'translateX(' + Math.round(Math.min(0, hx - x + PX / 2)) + 'px)';
+    svg.style.transform = 'translateX(' + Math.round(Math.min(0, hx - x + 22)) + 'px)';
   }
 
   /* ---------- playing ---------- */
