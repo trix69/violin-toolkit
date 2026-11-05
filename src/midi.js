@@ -105,6 +105,15 @@
   var SP_F = [[0, 0], [1, -1], [1, 0], [2, -1], [2, 0], [3, 0], [4, -1], [4, 0], [5, -1], [5, 0], [6, -1], [6, 0]];
   var STR = [[76, '--e'], [69, '--a'], [62, '--d'], [55, '--g']];
   function yOf(step) { return BOT - (step - 2) * S / 2; }   /* step: letters above C4 (E4 = 2, on the bottom line) */
+  /* the string and finger the fingerboard uses for a pitch: the highest string that has it within the octave;
+     first position (1st finger a semitone or tone up, 2nd at 3-4, 3rd at 5-6, 4th at 7), third position above that */
+  function fingerOf(m) {
+    for (var i = 0; i < STR.length; i++) {
+      var n = m - STR[i][0];
+      if (n >= 0 && n <= 12) return n === 0 ? 0 : n <= 7 ? [0, 1, 1, 2, 2, 3, 3, 4][n] : n <= 8 ? 2 : n <= 10 ? 3 : 4;
+    }
+    return null;
+  }
   function hueOf(m) { for (var i = 0; i < STR.length; i++) if (m >= STR[i][0] && m <= STR[i][0] + 12) return 'var(' + STR[i][1] + ')'; return 'var(--accent)'; }
   var CLEF = '<g transform="translate(2 ' + (Y0 - 36) + ') scale(0.9)"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></g>';
   var ACC = { '1': '♯', '-1': '♭', '0': '♮' };
@@ -146,19 +155,26 @@
           g.push('<path class="flag" d="M' + sx + ' ' + fy + 'c1 ' + (5 * d) + ' 8 ' + (7 * d) + ' 6 ' + (15 * d) + 'c1 ' + (-6 * d) + ' -3 ' + (-9 * d) + ' -6 ' + (-10 * d) + 'z"/>');
         }
       }
+      /* fingering, in the string colour, on the side of the note away from the stem (Trix) */
+      var fg = fingerOf(nt.m);
+      if (fg !== null) {
+        var fy = stem && up ? Math.max(y + 17, BOT + 13) : Math.min(y - 9, Y0 - 5);
+        if (stem && up && y + 17 < BOT + 13 && step >= 2) fy = BOT + 13;   /* below the staff, clear of the lines */
+        g.push('<text class="fing" x="' + hx + '" y="' + fy + '">' + fg + '</text>');
+      }
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
       out.push('<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt.m) + '">' + g.join('') + '</g>');
     });
     var lines = '';
     for (i = 0; i < 5; i++) lines += '<path class="sl" d="M0 ' + (Y0 + i * S) + 'H' + W + '"/>';
-    svg.setAttribute('width', W); svg.setAttribute('height', BOT + 34);
-    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + (BOT + 34));
+    svg.setAttribute('width', W); svg.setAttribute('height', BOT + 46);
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + (BOT + 46));
     svg.innerHTML = lines + out.slice(head).join('');
     /* the clef, key and time signature stay at the left while the notes scroll under them */
     var kw = X0 - 12, kl = '';
     for (i = 0; i < 5; i++) kl += '<path class="sl" d="M0 ' + (Y0 + i * S) + 'H' + kw + '"/>';
-    keySvg.setAttribute('width', kw + 14); keySvg.setAttribute('height', BOT + 34);
-    keySvg.setAttribute('viewBox', '0 0 ' + (kw + 14) + ' ' + (BOT + 34));
+    keySvg.setAttribute('width', kw + 14); keySvg.setAttribute('height', BOT + 46);
+    keySvg.setAttribute('viewBox', '0 0 ' + (kw + 14) + ' ' + (BOT + 46));
     keySvg.innerHTML = kl + CLEF + out.slice(0, head).join('');
     noteEls = Array.prototype.slice.call(svg.querySelectorAll('.mp-n'));
   }

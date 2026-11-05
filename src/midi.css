@@ -12,7 +12,7 @@
 .mp-msg { margin: 8px 2px 0; font: 400 13px/1.4 var(--font-note); color: var(--muted); }
 .mp-msg[hidden] { display: none; }
 /* the score strip: dark like the board, the playhead a third of the way in */
-.mp-score { position: relative; margin-top: 10px; height: 104px; overflow: hidden; border-radius: 14px; background: var(--board, #46524C); color: #E9E2D2; }
+.mp-score { position: relative; margin-top: 10px; height: 116px; overflow: hidden; border-radius: 14px; background: var(--board, #46524C); color: #E9E2D2; }
 .mp-score svg { position: absolute; left: 0; top: 4px; will-change: transform; }
 /* the clef and key at the left: the board colour, fading out over the notes passing underneath */
 .mp-score .mp-key { left: 0; z-index: 1; background: linear-gradient(90deg, var(--board, #46524C) calc(100% - 14px), color-mix(in srgb, var(--board, #46524C) 0%, transparent)); }
@@ -28,6 +28,7 @@
 .mp-n .head.hollow { fill: none; stroke: currentColor; stroke-width: 1.8; }
 .mp-n .stem { stroke: currentColor; stroke-width: 1.3; }
 .mp-n .acc { fill: currentColor; }
+.mp-n .fing { fill: var(--hue); font: 700 13px var(--font-note); text-anchor: middle; }   /* fingering: 0 open, 1-4 fingers, in the string colour */
 .mp-n.done { opacity: .5; }
 /* the note sounding: in its string colour and glowing, like the board */
 .mp-n.on { color: var(--hue); opacity: 1; filter: drop-shadow(0 0 3px var(--hue)) drop-shadow(0 0 7px var(--hue)); }
