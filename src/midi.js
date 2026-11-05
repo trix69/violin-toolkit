@@ -280,10 +280,14 @@
       return false;
     });
     while (ni < ns.length && ns[ni].t <= pos) {
+      /* a note that already ended between two frames (very fast notes, a slow phone) is skipped, not left lit */
+      if (ns[ni].e <= pos) { noteEls[ni].classList.add('done'); ni++; continue; }
       APP.board.on(ns[ni].m, 'n' + ni);
       noteEls[ni].classList.add('on');
       active.push(ni); ni++;
     }
+    /* the board keeps one note per string; drop the ones it replaced */
+    active = active.filter(function (k) { if (APP.board.has('n' + k)) return true; noteEls[k].classList.remove('on'); noteEls[k].classList.add('done'); return false; });
     scroll(); ui();
     if (pos >= song.end && !active.length) {
       if (!loop) { pause(); seekTo(song.end); return; }
