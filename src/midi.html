@@ -1,0 +1,21 @@
+<div class="mp" id="mp">
+  <div class="mp-top" id="mpTop">
+    <div class="mp-row">
+      <label class="mp-song"><span class="mp-vh">Tune</span><select id="mpSong"></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></label>
+      <button type="button" class="mp-import" id="mpImport"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4"/></svg>Import</button>
+      <input type="file" id="mpFile" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+    </div>
+    <p class="mp-msg" id="mpMsg" role="status" hidden></p>
+    <div class="mp-score" id="mpScore" aria-hidden="true" translate="no"><svg id="mpSvg" xmlns="http://www.w3.org/2000/svg"></svg><svg class="mp-key" id="mpKey" xmlns="http://www.w3.org/2000/svg"></svg><div class="mp-head" id="mpHead"></div></div>
+  </div>
+  <div class="mp-bar" id="mpBar">
+    <div class="mp-prog"><input type="range" id="mpSeek" min="0" max="1000" value="0" aria-label="Playback position"><span class="mp-time" id="mpTime">0:00 / 0:00</span></div>
+    <div class="mp-ctl">
+      <button type="button" class="mp-btn" id="mpStart" aria-label="Back to start"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"/><path d="M18 5.5v13L8.5 12z" fill="currentColor"/></svg></button>
+      <button type="button" class="mp-btn" id="mpSlower" aria-label="Slower">−</button>
+      <button type="button" class="mp-play" id="mpPlay" aria-label="Play"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13L19 12z" fill="currentColor"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13M16 5.5v13"/></svg></button>
+      <button type="button" class="mp-btn" id="mpFaster" aria-label="Faster">+</button>
+      <div class="mp-speed"><span id="mpSpeed">100%</span><small id="mpBpm" translate="no"></small></div>
+    </div>
+  </div>
+</div>

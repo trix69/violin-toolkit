@@ -1,0 +1,55 @@
+/* MIDI player: the score and tune picker above, the fingerboard (#view-board in player mode) below, the
+   controls in a bar at the bottom where the position bar usually is */
+#view-midi { color: var(--fg); font-family: var(--font-note); }
+.mp-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mp-row { display: flex; gap: 8px; }
+.mp-song { position: relative; flex: 1; min-width: 0; }
+.mp-song select { width: 100%; height: 44px; padding: 0 36px 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--fg); font: 600 16px var(--font-note); -webkit-appearance: none; appearance: none; text-overflow: ellipsis; }
+.mp-song svg { position: absolute; right: 12px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.mp-import { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--fg); font: 600 15px var(--font-note); cursor: pointer; }
+.mp-import svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mp-song select:focus-visible, .mp-import:focus-visible, .mp-btn:focus-visible, .mp-play:focus-visible, #mpSeek:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.mp-msg { margin: 8px 2px 0; font: 400 13px/1.4 var(--font-note); color: var(--muted); }
+.mp-msg[hidden] { display: none; }
+/* the score strip: dark like the board, the playhead a third of the way in */
+.mp-score { position: relative; margin-top: 10px; height: 104px; overflow: hidden; border-radius: 14px; background: var(--board, #46524C); color: #E9E2D2; }
+.mp-score svg { position: absolute; left: 0; top: 4px; will-change: transform; }
+/* the clef and key at the left: the board colour, fading out over the notes passing underneath */
+.mp-score .mp-key { left: 0; z-index: 1; background: linear-gradient(90deg, var(--board, #46524C) calc(100% - 14px), color-mix(in srgb, var(--board, #46524C) 0%, transparent)); }
+.mp-head { position: absolute; z-index: 2; top: 10px; bottom: 10px; left: 33%; width: 2px; margin-left: -1px; border-radius: 1px; background: color-mix(in srgb, #E9E2D2 35%, transparent); pointer-events: none; }
+.mp-score .sl { stroke: color-mix(in srgb, currentColor 55%, transparent); stroke-width: 1; }
+.mp-score .bl { stroke: color-mix(in srgb, currentColor 70%, transparent); stroke-width: 1.2; }
+.mp-score .bl.end { stroke-width: 3.5; }
+.mp-score .ledger { stroke: color-mix(in srgb, currentColor 70%, transparent); stroke-width: 1.2; }
+.mp-score .acc { fill: currentColor; font: 400 15px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
+.mp-score .ts { fill: currentColor; font: 700 19px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
+.mp-n { color: #E9E2D2; transition: color .15s, opacity .3s; }
+.mp-n .head, .mp-n .flag, .mp-n .dot { fill: currentColor; }
+.mp-n .head.hollow { fill: none; stroke: currentColor; stroke-width: 1.8; }
+.mp-n .stem { stroke: currentColor; stroke-width: 1.3; }
+.mp-n .acc { fill: currentColor; }
+.mp-n.done { opacity: .5; }
+/* the note sounding: in its string colour and glowing, like the board */
+.mp-n.on { color: var(--hue); opacity: 1; filter: drop-shadow(0 0 3px var(--hue)) drop-shadow(0 0 7px var(--hue)); }
+@media (prefers-reduced-motion: reduce) { .mp-n { transition: none; } .mp-n.on { filter: none; } }
+/* controls: progress, then back / slower / play / faster / speed */
+.mp-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 10px); background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-top: 1px solid var(--line); }
+.mp-bar > div { max-width: 688px; margin: 0 auto; }
+.mp-prog { display: flex; align-items: center; gap: 10px; }
+#mpSeek { flex: 1; min-width: 0; accent-color: var(--accent); height: 24px; }
+.mp-time { font: 500 12px var(--font-mono); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mp-ctl { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 4px; }
+.mp-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); font: 500 24px/1 var(--font-note); cursor: pointer; }
+.mp-btn:disabled { opacity: .4; cursor: default; }
+.mp-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; fill: none; }
+.mp-play { width: 58px; height: 58px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--accent); color: var(--on-accent); cursor: pointer; }
+.mp-play svg { width: 26px; height: 26px; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
+.mp-play .i-pause, .mp-play.on .i-play { display: none; }
+.mp-play.on .i-pause { display: block; }
+.mp-speed { display: grid; justify-items: center; min-width: 52px; font: 600 15px var(--font-note); font-variant-numeric: tabular-nums; }
+.mp-speed small { font: 500 11px var(--font-mono); color: var(--muted); }
+/* the fingerboard in player mode: only the board, with room for the bar */
+.shell[data-view="midi"] #view-board .controls, .shell[data-view="midi"] #view-board .keyrows,
+.shell[data-view="midi"] #view-board .keybar, .shell[data-view="midi"] #view-board .posbar,
+.shell[data-view="midi"] #view-board .ksig, .shell[data-view="midi"] #view-board .forkhz { display: none !important; }
+.shell[data-view="midi"] #view-board { margin-top: 10px; padding-bottom: 130px; }

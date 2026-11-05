@@ -258,11 +258,15 @@ html[lang="zh-CN"] {
 @media (max-width: 380px) { .appbar h1 { font-size: 23px; } .appbar { gap: 8px; } .tabs { gap: 4px; } }
 @media (max-width: 480px) { .tab { width: 40px; height: 40px; } .tabs { gap: 5px; } .tab svg { width: 22px; height: 22px; } }
 @media (max-width: 350px) { .appbar { gap: 6px; } .tabs { gap: 3px; } .appbar h1 { font-size: 18px; letter-spacing: -0.02em; } }   /* "Fingerboard" clear of the tabs at 320 px (Hermes F11) */
-/* five buttons since Symbols became a tool (2026-11-06): smaller buttons and titles on phones so "Fingerboard" clears them */
-@media (max-width: 480px) { .tab { width: 36px; height: 36px; } .tabs { gap: 4px; } .tab svg { width: 21px; height: 21px; } }
-@media (max-width: 430px) { .appbar h1 { font-size: 24px; } }
-@media (max-width: 380px) { .appbar h1 { font-size: 21px; } }
-@media (max-width: 350px) { .appbar h1 { font-size: 17px; } .tab { width: 34px; height: 34px; } .tabs { gap: 3px; } .tab svg { width: 20px; height: 20px; } }
+/* six buttons since the MIDI player (2026-11-06): on phones they get their own row above the title */
+@media (max-width: 480px) {
+  .appbar { flex-wrap: wrap; row-gap: 10px; }
+  .tabs { order: -1; flex: 1 1 100%; justify-content: space-between; gap: 0; }
+  .tab { width: 44px; height: 44px; } .tab svg { width: 22px; height: 22px; } .tab-set { margin-left: 0; }
+  .appbar > div { flex: 1 1 100%; }
+  .appbar h1 { font-size: 26px; letter-spacing: -0.02em; }
+}
+@media (max-width: 350px) { .tab { width: 42px; height: 42px; } .appbar h1 { font-size: 24px; } }
 /* ---- settings sheet ---- */
 .tab-set { margin-left: 2px; }
 .sheet {
@@ -381,9 +385,10 @@ launch_css = '''
 .launch-card { width: min(100%, 720px); text-align: center; outline: none; }
 .launch h2 { margin: 0; font: 700 clamp(30px, 6vw, 44px)/1.1 var(--font-display); letter-spacing: -0.02em; }
 .launch-sub { margin: 8px 0 22px; font: 400 14px var(--font-mono); letter-spacing: .04em; color: var(--muted); }
-.launch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 10px; }   /* four tools: 2 x 2 on phones */
+.launch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 10px; }   /* five tools: 2 x 2, the last across */
+.launch-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 @media (min-width: 640px) { .launch-grid { gap: 16px; } }
-@media (min-width: 900px) { .launch-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .launch-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .launch-grid > :last-child:nth-child(odd) { grid-column: auto; } }
 @media (max-width: 480px) { .launch-btn { padding: 16px 10px; min-height: 0; gap: 6px; } .launch-btn b { font-size: 18px; } .launch-btn span { font-size: 13px; } }
 .launch-btn {
   display: grid; justify-items: center; gap: 8px; align-content: center;
@@ -413,6 +418,14 @@ met_js = open(SP + 'met.js').read()
 sym_css = open(SP + 'sym.css').read()
 sym_html = open(SP + 'sym.html').read()
 sym_js = open(SP + 'sym.js').read()
+# MIDI player (2026-11-06): demo tunes from src/midi/ (made by src/midi/make_demos.py) embedded as base64
+import base64, json
+midi_css = open(SP + 'midi.css').read()
+midi_html = open(SP + 'midi.html').read()
+MIDI_DEMOS = [('twinkle.mid', 'Twinkle, Twinkle, Little Star'), ('ode.mid', 'Ode to Joy')]
+midi_js = open(SP + 'midi.js').read()
+assert midi_js.count('/*DEMOS*/[]') == 1
+midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps([{'title': t, 'b64': base64.b64encode(open(SP + 'midi/' + f, 'rb').read()).decode()} for f, t in MIDI_DEMOS]))
 i18n_js = open(SP + 'i18n.js').read()
 coach_js = open(SP + 'coach.js').read()
 coach_css = open(SP + 'coach.css').read()
@@ -553,7 +566,7 @@ APP.setA4 = function (v) {
 nav_js = """(function () {
   /* Each tool registers APP.views[name] = { show, hide } and has a #view-name section,
      a #ttl-name heading block and a .tab button with data-view="name". */
-  var names = ['tuner', 'board', 'metronome', 'symbols'];
+  var names = ['tuner', 'board', 'metronome', 'symbols', 'midi'];
   var shell = document.getElementById('shell');
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab[data-view]'));
   var cur = null;
@@ -567,7 +580,7 @@ nav_js = """(function () {
     if (name === 'tuner' && APP.views.metronome && APP.views.metronome.stop) APP.views.metronome.stop();
     names.forEach(function (n) {
       var v = document.getElementById('view-' + n), t = document.getElementById('ttl-' + n);
-      if (v) v.hidden = n !== name;
+      if (v) v.hidden = n !== name && !(name === 'midi' && n === 'board');   /* the MIDI player shows the fingerboard below its own part */
       if (t) t.hidden = n !== name;
     });
     tabs.forEach(function (b) {
@@ -926,8 +939,8 @@ nav_js = """(function () {
   sheet.addEventListener('click', function (e) { if (e.target === sheet) closeSheet(); });
 
   var h = (location.hash || '').replace('#', '').split(/[,&;]/).map(function (t) { return t.trim().toLowerCase(); })
-    .filter(function (t) { return ['fingerboard', 'board', 'tuner', 'metronome', 'symbols'].indexOf(t) >= 0; })[0] || '';
-  var map = { fingerboard: 'board', board: 'board', tuner: 'tuner', metronome: 'metronome', symbols: 'symbols' };
+    .filter(function (t) { return ['fingerboard', 'board', 'tuner', 'metronome', 'symbols', 'midi'].indexOf(t) >= 0; })[0] || '';
+  var map = { fingerboard: 'board', board: 'board', tuner: 'tuner', metronome: 'metronome', symbols: 'symbols', midi: 'midi' };
   show(map[h] || 'board');
 
   /* start overlay: asked once per load unless the link already names a tool (#tuner, #metronome, #fingerboard) */
@@ -1031,6 +1044,7 @@ ICON_BOARD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11"/><
 ICON_MET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l3.4 18H5.8z"/><path d="M12 17.5L15.6 6.5"/><circle cx="14.2" cy="10.6" r="1.2" fill="currentColor"/><path d="M8 21h8" opacity=".0"/></svg>'
 ICON_SET = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
 ICON_SYM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 6-1 8.5.8 2.5-1.8 5.5-2 8.5-.8v13.2c-3-1.2-6-1-8.5.8-2.5-1.8-5.5-2-8.5-.8z"/><path d="M12 6.3v13.2"/><path d="M16.2 9v5.2"/><ellipse cx="15.2" cy="14.4" rx="1.3" ry="1" fill="currentColor"/></svg>'
+ICON_MIDI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2" fill="currentColor"/><path d="M9 9.5l10-2"/></svg>'
 ICON_TUNER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0"/><path d="M12 17.5l3.6-7"/><circle cx="12" cy="17.5" r="1.2"/><path d="M12 5.8v1.8M5.6 9l1.3 1.2M18.4 9l-1.3 1.2"/></svg>'
 
 markup = f"""
@@ -1053,16 +1067,25 @@ markup = f"""
       <h1>Symbols</h1>
       <p class="appsub">Tap for the meaning</p>
     </div>
+    <div id="ttl-midi" hidden>
+      <h1>MIDI Player</h1>
+      <p class="appsub" id="ttl-midi-sub"></p>
+    </div>
     <nav class="tabs" aria-label="Tools">
       <button type="button" class="tab" data-view="tuner" aria-label="Tuner" title="Tuner">{ICON_TUNER}</button>
       <button type="button" class="tab" data-view="board" aria-current="page" aria-label="Fingerboard" title="Fingerboard">{ICON_BOARD}</button>
       <button type="button" class="tab" data-view="metronome" aria-label="Metronome" title="Metronome">{ICON_MET}</button>
       <button type="button" class="tab" data-view="symbols" aria-label="Symbols" title="Symbols">{ICON_SYM}</button>
+      <button type="button" class="tab" data-view="midi" aria-label="MIDI Player" title="MIDI Player">{ICON_MIDI}</button>
       <button type="button" class="tab tab-set" id="openSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog">{ICON_SET}</button>
     </nav>
   </header>
 
   <main id="main" tabindex="-1">
+  <section id="view-midi" aria-label="MIDI player" hidden>
+{midi_html}
+  </section>
+
   <section id="view-board" aria-label="Violin fingerboard">
 {b_main}
   </section>
@@ -1232,6 +1255,7 @@ markup = f"""
       <button type="button" class="launch-btn" data-view="board">{ICON_BOARD}<b>Fingerboard</b><span>Find and play notes in each position</span></button>
       <button type="button" class="launch-btn" data-view="metronome">{ICON_MET}<b>Metronome</b><span>Keep steady time at any tempo</span></button>
       <button type="button" class="launch-btn" data-view="symbols">{ICON_SYM}<b>Symbols</b><span>Look up music signs and what they mean</span></button>
+      <button type="button" class="launch-btn" data-view="midi">{ICON_MIDI}<b>MIDI Player</b><span>Play a tune and watch it on the fingerboard</span></button>
     </div>
     <button type="button" class="launch-days" id="launchDays" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
   </div>
@@ -1240,9 +1264,9 @@ markup = f"""
 """
 
 doc = (head + '<style>\n' + b_tokens.strip() + '\n\n/* Tuner tokens, prefixed --t- so they never clash with the fingerboard */\n' + t_tokens.strip() + '\n'
-       + chrome_css + '\n/* ---- fingerboard ---- */\n' + board_css + '\n/* ---- tuner ---- */\n' + tuner_css + '\n/* ---- metronome ---- */\n' + met_css + '\n/* ---- symbols ---- */\n' + sym_css + launch_css + settings_css + coach_css + accent_css + '</style>\n'
+       + chrome_css + '\n/* ---- fingerboard ---- */\n' + board_css + '\n/* ---- tuner ---- */\n' + tuner_css + '\n/* ---- metronome ---- */\n' + met_css + '\n/* ---- symbols ---- */\n' + sym_css + '\n/* ---- midi player ---- */\n' + midi_css + launch_css + settings_css + coach_css + accent_css + '</style>\n'
        + '\n' + init_js + markup
-       + '\n<script>\n' + app_js + '</script>\n<script>\n' + dsp + '</script>\n<script>' + t_js + '</script>\n<script>' + b_js + '</script>\n<script>\n' + met_js + '</script>\n<script>\n' + sym_js + '</script>\n<script>\n' + nav_js + '</script>\n<script>\n' + coach_js + '</script>\n<script>\n' + i18n_js + '</script>\n')
+       + '\n<script>\n' + app_js + '</script>\n<script>\n' + dsp + '</script>\n<script>' + t_js + '</script>\n<script>' + b_js + '</script>\n<script>\n' + met_js + '</script>\n<script>\n' + sym_js + '</script>\n<script>\n' + midi_js + '</script>\n<script>\n' + nav_js + '</script>\n<script>\n' + coach_js + '</script>\n<script>\n' + i18n_js + '</script>\n')
 
 open(DIST + 'violin-fingerboard.html', 'w', encoding='utf-8').write(doc)
 
