@@ -211,7 +211,7 @@ b_js = must(b_js, "  render();\n  setTimeout(layout, 300);\n})();",
             "  render();\n  setTimeout(layout, 300);\n\n"
             "  APP.views.board = {\n"
             "    show: function () { layout(); if (state.pos === 'pc') startMic(); },\n"
-            "    hide: function () { stopAll(); if (state.pos === 'pc') stopMic(); }\n"
+            "    hide: function () { stopAll(); if (APP.closeKeys) APP.closeKeys(true); if (state.pos === 'pc') stopMic(); }\n"
             "  };\n})();")
 
 

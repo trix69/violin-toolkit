@@ -899,7 +899,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     /* the rest of the page is out of reach while it is open: siblings of the window and of each ancestor (Hermes R18.2) */
     for (var el = keyPop; el.parentNode && el !== document.body; el = el.parentNode) {
       Array.prototype.forEach.call(el.parentNode.children, function (sib) {
-        if (sib !== el && !sib.inert && sib.tagName !== 'SCRIPT') { sib.inert = true; keyInert.push(sib); }
+        /* only what is on screen now: a dialog that appears later (update prompt, Settings) must stay usable (Hermes R18.4) */
+        if (sib !== el && !sib.inert && !sib.hidden && sib.tagName !== 'SCRIPT') { sib.inert = true; keyInert.push(sib); }
       });
     }
     document.addEventListener('keydown', onKeysKey, true);
@@ -926,7 +927,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   else temperSel.parentNode.hidden = true;   /* no Intonation outside the toolkit */
   keyFold.addEventListener('click', openKeys);
   keyPop.addEventListener('click', function (e) { if (e.target === keyPop) closeKeys(); });
-  if (window.APP) APP.setKeysAll = setKeysAll;
+  if (window.APP) { APP.setKeysAll = setKeysAll; APP.closeKeys = closeKeys; }   /* closed when the board is hidden (Hermes R18.4) */
   setKeysAll();
   Array.prototype.forEach.call(posbar.children, function (b) {
     b.addEventListener('click', function () {
