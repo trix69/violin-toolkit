@@ -331,20 +331,21 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
    bright line in the string colour with a soft glow and a small wobble; a glowing ring hugs the note and thin rings ripple out */
 .vib {
   position: absolute; top: var(--y); bottom: 0; left: var(--x); width: max(1.5px, calc(var(--w) * .7));
-  transform: translateX(-50%); border-radius: 2px; pointer-events: none;
+  transform: translateX(-50%); transform-origin: 50% 0; border-radius: 2px; pointer-events: none;
   background: color-mix(in srgb, var(--hue) 55%, white);
   box-shadow: 0 0 3px 1px var(--hue), 0 0 10px 2px color-mix(in srgb, var(--hue) 55%, transparent);
   animation: vibShake 50ms linear infinite alternate;
 }
 .vib::before {
-  /* the faint blur of the moving string: widest mid-string, still at the finger and the bridge */
-  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 9px; transform: translateX(-50%);
-  background: var(--hue); opacity: .45; border-radius: 5px; filter: blur(1px);
-  -webkit-mask: linear-gradient(transparent, #000 35%, #000 65%, transparent); mask: linear-gradient(transparent, #000 35%, #000 65%, transparent);
+  /* the blur of the moving string: a wedge, still at the finger and widest towards the bridge (Trix) */
+  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 14px; transform: translateX(-50%); transform-origin: 50% 0;
+  background: linear-gradient(transparent, var(--hue) 60%); opacity: .45; filter: blur(1px);
+  -webkit-clip-path: polygon(50% 0, 100% 100%, 0 100%); clip-path: polygon(50% 0, 100% 100%, 0 100%);
   animation: vibBand 100ms ease-in-out infinite alternate;
 }
-@keyframes vibShake { from { transform: translateX(calc(-50% - 1.6px)); } to { transform: translateX(calc(-50% + 1.6px)); } }
-@keyframes vibBand { from { transform: translateX(-50%) scaleX(.35); } to { transform: translateX(-50%) scaleX(1.25); } }
+/* the line pivots at the finger, so it moves little there and most towards the bridge */
+@keyframes vibShake { from { transform: translateX(-50%) rotate(-.3deg); } to { transform: translateX(-50%) rotate(.3deg); } }
+@keyframes vibBand { from { transform: translateX(-50%) scaleX(.35); } to { transform: translateX(-50%) scaleX(1.2); } }
 .waves {
   position: absolute; left: var(--x); top: var(--y); width: calc(var(--r) * 2 + 8px); height: calc(var(--r) * 2 + 8px);
   transform: translate(-50%, -50%); pointer-events: none; border-radius: 50%;
