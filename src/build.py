@@ -256,17 +256,12 @@ html[lang="zh-CN"] {
 #sub { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 /* narrow Android phones (360 px): keep the title clear of the tool buttons */
 @media (max-width: 380px) { .appbar h1 { font-size: 23px; } .appbar { gap: 8px; } .tabs { gap: 4px; } }
-@media (max-width: 480px) { .tab { width: 40px; height: 40px; } .tabs { gap: 5px; } .tab svg { width: 22px; height: 22px; } }
-@media (max-width: 350px) { .appbar { gap: 6px; } .tabs { gap: 3px; } .appbar h1 { font-size: 18px; letter-spacing: -0.02em; } }   /* "Fingerboard" clear of the tabs at 320 px (Hermes F11) */
-/* six buttons since the MIDI player (2026-11-06): on phones they get their own row above the title */
-@media (max-width: 480px) {
-  .appbar { flex-wrap: wrap; row-gap: 10px; }
-  .tabs { order: -1; flex: 1 1 100%; justify-content: space-between; gap: 0; }
-  .tab { width: 44px; height: 44px; } .tab svg { width: 22px; height: 22px; } .tab-set { margin-left: 0; }
-  .appbar > div { flex: 1 1 100%; }
-  .appbar h1 { font-size: 26px; letter-spacing: -0.02em; }
-}
-@media (max-width: 350px) { .tab { width: 42px; height: 42px; } .appbar h1 { font-size: 24px; } }
+/* header buttons (Trix, 2026-11-06): switch tool (opens the start screen) and Settings on every page, plus the
+   metronome on the fingerboard; the other tool buttons stay in the markup for show() but are not shown */
+.tabs .tab[data-view] { display: none; }
+.shell[data-view="board"] .tabs .tab[data-view="metronome"] { display: grid; }
+@media (max-width: 480px) { .tab { width: 42px; height: 42px; } .tabs { gap: 6px; } .tab svg { width: 22px; height: 22px; } .appbar h1 { font-size: 26px; letter-spacing: -0.02em; } }
+@media (max-width: 350px) { .appbar { gap: 6px; } .tabs { gap: 4px; } .tab { width: 40px; height: 40px; } .appbar h1 { font-size: 22px; } }   /* "Fingerboard" clear of the three buttons at 320 px */
 /* ---- settings sheet ---- */
 .tab-set { margin-left: 2px; }
 .sheet {
@@ -403,6 +398,7 @@ launch_css = '''
   transition: transform .12s, border-color .12s, box-shadow .12s;
 }
 .launch-btn:hover { border-color: var(--accent); transform: translateY(-2px); }
+.launch-btn[aria-current="page"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }   /* the tool in use, when reopened with Switch tool */
 .launch-days { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; min-height: 40px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
 .launch-days[hidden] { display: none; }
 .launch-days:hover { border-color: var(--accent); }
@@ -982,12 +978,18 @@ nav_js = """(function () {
       if (t.indexOf('solfege') >= 0 || t.indexOf('sol') >= 0) I18N.setNames('solfege'); else if (t.indexOf('letter') >= 0) I18N.setNames('letter');
     }
   });
-  if (!map[h]) {
-    lastFocus = document.activeElement;
+  function openLaunch(mark, from) {
+    lastFocus = from || document.activeElement;   /* Safari doesn't focus a clicked button */
+    Array.prototype.forEach.call(launch.querySelectorAll('.launch-btn'), function (b) {   /* the tool in use, marked */
+      if (mark && b.dataset.view === cur) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
     launch.hidden = false;
     document.addEventListener('keydown', onKey);
     document.getElementById('launchCard').focus({ preventScroll: true });   /* a focus scroll would push the gear up (Hermes R11.1) */
   }
+  /* switch tool (Trix): back to the start screen to pick another tool; Escape returns to this one */
+  document.getElementById('switchTool').addEventListener('click', function () { if (APP.coach) APP.coach.interrupt(); openLaunch(true, this); });
+  if (!map[h]) openLaunch();
 })();
 """
 
@@ -1047,6 +1049,7 @@ head = f"""<title>Violin Toolkit</title>
 
 ICON_BOARD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11"/><path d="M8.4 3.5L7.2 21M10.8 3.5l-.5 17.5M13.2 3.5l.5 17.5M15.6 3.5L16.8 21" opacity=".7"/><path d="M7.7 11h8.6M7.3 17h9.4" opacity=".7"/><circle cx="10.8" cy="7.3" r="1.3" fill="currentColor"/><circle cx="15.6" cy="14" r="1.3" fill="currentColor"/></svg>'
 ICON_MET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l3.4 18H5.8z"/><path d="M12 17.5L15.6 6.5"/><circle cx="14.2" cy="10.6" r="1.2" fill="currentColor"/><path d="M8 21h8" opacity=".0"/></svg>'
+ICON_SWITCH = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></svg>'
 ICON_SET = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
 ICON_SYM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 6-1 8.5.8 2.5-1.8 5.5-2 8.5-.8v13.2c-3-1.2-6-1-8.5.8-2.5-1.8-5.5-2-8.5-.8z"/><path d="M12 6.3v13.2"/><path d="M16.2 9v5.2"/><ellipse cx="15.2" cy="14.4" rx="1.3" ry="1" fill="currentColor"/></svg>'
 ICON_MIDI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2" fill="currentColor"/><path d="M9 9.5l10-2"/></svg>'
@@ -1082,6 +1085,7 @@ markup = f"""
       <button type="button" class="tab" data-view="metronome" aria-label="Metronome" title="Metronome">{ICON_MET}</button>
       <button type="button" class="tab" data-view="midi" aria-label="MIDI Player" title="MIDI Player">{ICON_MIDI}</button>
       <button type="button" class="tab" data-view="symbols" aria-label="Symbols" title="Symbols">{ICON_SYM}</button>
+      <button type="button" class="tab" id="switchTool" aria-label="Switch tool" title="Switch tool" aria-haspopup="dialog">{ICON_SWITCH}</button>
       <button type="button" class="tab tab-set" id="openSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog">{ICON_SET}</button>
     </nav>
   </header>

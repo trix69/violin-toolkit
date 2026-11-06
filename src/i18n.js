@@ -3,7 +3,7 @@
   var DICT = {
     /* chrome */
     'Skip to content': '跳到内容',
-    'Tools': '工具', 'Settings': '设置', 'Done': '完成', 'Check for updates': '检查更新', 'Checking…': '正在检查…', 'Up to date': '已是最新版本', 'Can’t check while offline': '离线时无法检查',
+    'Tools': '工具', 'Switch tool': '切换工具', 'Settings': '设置', 'Done': '完成', 'Check for updates': '检查更新', 'Checking…': '正在检查…', 'Up to date': '已是最新版本', 'Can’t check while offline': '离线时无法检查',
     'Automatic update check': '自动检查更新', 'New version': '新版本', 'Later': '以后再说', 'Update': '更新', 'Your settings and practice time are kept.': '设置和练习时间都会保留。',
     'Fingerboard': '指板', 'Tuner': '调音器', 'Metronome': '节拍器',
     'Violin Toolkit': '小提琴工具箱',
