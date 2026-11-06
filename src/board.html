@@ -306,7 +306,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .note.harm { border: 2px dashed var(--nut); }
 .note.root { box-shadow: 0 2px 4px rgba(0, 0, 0, .45), inset 0 0 0 2px var(--nut); }
 .note.down {
-  --s: 0.97; --ty: 1.5px;
+  --s: 1; --ty: 0px;   /* no press offset: the note stays centred in its sound-wave rings (Trix; was 0.97 / 1.5px) */
   filter: brightness(1.05);
 }
 .note.down:not(.off) {
@@ -811,7 +811,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       if (!b) return;
       /* Pitch Check colours the key's notes across both positions */
       var on = !playerOn && nt.inKey && (pc || (nt.n >= P.lo && nt.n <= P.hi));   /* the MIDI player starts every note grey */
-      var tint = playerOn && !!playerKey && !!playerKey[nt.midi % 12];   /* ... except the tune's key, pale */
+      var tint = playerOn && !!playerKey && !!playerKey[nt.midi % 12] && !(nt.n > playerKey.top);   /* ... except the tune's key, pale, up to the highest position the tune uses */
       b.classList.toggle('off', !on && !tint);
       b.classList.toggle('tint', tint);
       if (tint) { b.classList.toggle('root', nt.midi % 12 === playerKey.tonic); b.style.setProperty('--hue', 'var(' + nt.s.v + ')'); return; }
