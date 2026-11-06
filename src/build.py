@@ -304,11 +304,12 @@ html[lang="zh-CN"] {
 .ubars i { display: block; width: 100%; max-width: 30px; height: var(--h); min-height: 2px; border-radius: 6px 6px 2px 2px; background: color-mix(in srgb, var(--accent) 40%, transparent); }
 .ubars .zero i { background: var(--line); }
 .ubars .today i { background: var(--accent); }
-.ubars .uv { font: 600 13px/1 var(--font-note); font-variant-numeric: tabular-nums; }
+.ubars .uv { font: 600 13px/1 var(--font-note); font-variant-numeric: tabular-nums; white-space: nowrap; }   /* 1.5h on one line (Hermes F24) */
 .ubars .ud { font: 400 12px/1 var(--font-note); color: var(--muted); white-space: nowrap; }
 .ubars .today .ud { color: var(--fg); font-weight: 600; }
 .uhid { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.usage { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 0; }
+.usage { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 18px 0 0; }
+@media (max-width: 360px) { .usage div dd { white-space: normal; font-size: 17px; } }   /* a long total ("11 小时 21 分") wraps inside its box on a narrow phone (Hermes F24) */
 .usage div { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
 .usage dt { font: 400 13px/1.2 var(--font-note); color: var(--muted); }
 .usage dd { margin: 4px 0 0; font: 600 19px/1.2 var(--font-note); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -719,13 +720,13 @@ nav_js = """(function () {
     }
     /* practice time is time with a tool running (Trix, 2026-11-06, Hermes F20): the metronome playing, the
        tuner or Pitch Check listening, the MIDI player playing, a fingerboard note held. Taps and browsing
-       add nothing, so opening the app does not make a practice day. Counted in 1 s steps while visible. */
-    function tick() { var now = Date.now(); if (!document.hidden && anyBusy()) { if (last && now > last) add(last, now); last = now; } else last = 0; }
+       add nothing, so opening the app does not make a practice day. Counted in 1/4 s steps while visible. */
+    function tick() { var now = Date.now(); if (!document.hidden && last && now > last && anyBusy()) add(last, now); last = document.hidden ? 0 : now; }   /* each busy sample credits the time since the one before, so short notes count at their real length (Hermes F23) */
     function end() { last = 0; save(); }
     document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
     window.addEventListener('pagehide', end);
     setInterval(function () { save(); if (APP.syncDays) APP.syncDays(true); }, 15000);   /* text only: the pill appearing under an open start screen would move the tiles (Hermes F15); the day count follows along as today is practised (Trix) */
-    setInterval(tick, 1000);
+    setInterval(tick, 250);
     function series(n) {   /* [{ d: Date, s: seconds }] for the n days up to today, oldest first */
       save();
       var o = load(), d = new Date(), out = [];
@@ -754,7 +755,7 @@ nav_js = """(function () {
     ser.forEach(function (x, i) {
       var m = Math.floor(x.s / 60), last = i === ser.length - 1;
       html += '<li class="' + (last ? 'today' : '') + (x.s <= 0 ? ' zero' : '') + '"><span class="ud">' + (last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()]) + '</span>'
-        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv">' + (x.s > 0 && m < 1 ? '&lt;1' : m >= 60 ? Math.round(m / 6) / 10 + (zh ? '小时' : 'h') : m) + (m >= 60 ? '' : '<span class="uhid">' + (zh ? ' 分钟' : ' min') + '</span>') + '</span></li>';   /* an hour or more: 1h, 1.5h (Hermes F21) */   /* some practice, under a minute: <1, not 0 */
+        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv">' + (x.s > 0 && m < 1 ? '&lt;1' : m >= 60 ? Math.round(m / 6) / 10 + 'h' : m) + '<span class="uhid">' + (m >= 60 ? (zh ? ' 小时' : ' hours') : (zh ? ' 分钟' : ' min')) + '</span></span></li>';   /* an hour or more: 1h, 1.5h (Hermes F21) */   /* some practice, under a minute: <1, not 0 */
     });
     document.getElementById('ubars').innerHTML = html;
     document.getElementById('useToday').textContent = USAGE.fmt(ser[ser.length - 1].s);

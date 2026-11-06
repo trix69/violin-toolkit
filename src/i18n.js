@@ -309,7 +309,7 @@
     [/^(\d+) min$/, function (m, n) { return n + ' 分钟'; }],
     [/^<1 min$/, function () { return '<1 分钟'; }],
     [/^(\d+) h$/, function (m, h) { return h + ' 小时'; }],
-    [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + ' 小时 ' + n + ' 分'; }],
+    [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + '\u00a0小时 ' + n + '\u00a0分'; }],   /* each number stays with its unit when a narrow box wraps (Hermes F24) */
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Version ([\d.]+(?:-test)?) is ready\. Update now\?$/, function (m, v) { return '版本 ' + v + ' 已推出，现在更新吗？'; }],
     [/^(\d+) notes? (?:is|are) below the violin’s G string and left out\.(?: (\d+) notes? (?:is|are) above the fingerboard shown: heard, not lit\.)?$/, function (m, a, b) { return a + ' 个音低于小提琴的 G 弦，已略去。' + (b ? b + ' 个音高于所显示的指板：只播放声音，不点亮。' : ''); }],
