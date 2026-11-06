@@ -723,7 +723,7 @@ nav_js = """(function () {
     document.addEventListener('keydown', touch, true);
     document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
     window.addEventListener('pagehide', end);
-    setInterval(function () { save(); if (APP.syncDays) APP.syncDays(true); }, 15000);   /* text only: the pill appearing under an open start screen would move the tiles (Hermes F15) */   /* the day count follows along: today joins it once it reaches a minute (Trix) */
+    setInterval(function () { save(); if (APP.syncDays) APP.syncDays(true); }, 15000);   /* text only: the pill appearing under an open start screen would move the tiles (Hermes F15); the day count follows along as today is practised (Trix) */
     setInterval(function () {
       if (!document.hidden && anyBusy()) touch();
     }, 5000);
@@ -733,7 +733,7 @@ nav_js = """(function () {
       for (var i = n - 1; i >= 0; i--) { var t = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i); out.push({ d: t, s: +o[day(t.getTime())] || 0 }); }
       return out;
     }
-    function fmt(s) { var m = Math.floor(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
+    function fmt(s) { var m = Math.floor(s / 60); return s > 0 && m < 1 ? '<1 min' : m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }   /* some practice under a minute: <1 min, not 0 (Hermes F19) */
     function days() { save(); var o = load(); return Object.keys(o).filter(function (k) { return +o[k] > 0; }).length; }   /* any practice counts as a day (Trix, 2026-11-06; was a minute) */
     function total() { save(); var o = load(), t = 0; Object.keys(o).forEach(function (k) { t += +o[k] || 0; }); return t; }   /* seconds, every day kept */
     return { series: series, fmt: fmt, days: days, total: total };
@@ -754,7 +754,7 @@ nav_js = """(function () {
     ser.forEach(function (x) { if (x.s > max) max = x.s; tot += x.s; });
     ser.forEach(function (x, i) {
       var m = Math.floor(x.s / 60), last = i === ser.length - 1;
-      html += '<li class="' + (last ? 'today' : '') + (x.s < 60 ? ' zero' : '') + '"><span class="ud">' + (last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()]) + '</span>'
+      html += '<li class="' + (last ? 'today' : '') + (x.s <= 0 ? ' zero' : '') + '"><span class="ud">' + (last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()]) + '</span>'
         + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv">' + (x.s > 0 && m < 1 ? '&lt;1' : m) + '<span class="uhid">' + (zh ? ' 分钟' : ' min') + '</span></span></li>';   /* some practice, under a minute: <1, not 0 */
     });
     document.getElementById('ubars').innerHTML = html;

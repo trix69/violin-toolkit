@@ -307,6 +307,7 @@
     [/^Practised on (\d+) days?$/, function (m, n) { return '已练习 ' + n + ' 天'; }],
     [/^(\d+) days?$/, function (m, n) { return n + ' 天'; }],
     [/^(\d+) min$/, function (m, n) { return n + ' 分钟'; }],
+    [/^<1 min$/, function () { return '<1 分钟'; }],
     [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + ' 小时 ' + n + ' 分'; }],
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Version ([\d.]+(?:-test)?) is ready\. Update now\?$/, function (m, v) { return '版本 ' + v + ' 已推出，现在更新吗？'; }],
