@@ -24,27 +24,29 @@
   content: '!'; flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
   background: var(--t-bad); color: var(--panel); font: 800 15px/1 var(--font-note); margin-top: 1px;
 }
-/* the score strip: dark like the board, the playhead a third of the way in */
-.mp-score { position: relative; margin-top: 10px; height: 128px; overflow: hidden; border-radius: 14px; background: var(--board, #46524C); color: #E9E2D2; }
+/* the sheet: black notes on white paper in light appearance, light notes on the board colour in dark (Trix) */
+.mp-score { --sc-bg: #FFFFFF; --sc-ink: #1A1A1A; --sc-fing: 30%; position: relative; margin-top: 10px; height: 128px; overflow: hidden; border-radius: 14px; background: var(--sc-bg); color: var(--sc-ink); box-shadow: inset 0 0 0 1px var(--line, rgba(0,0,0,.12)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mp-score { --sc-bg: var(--board, #46524C); --sc-ink: #E9E2D2; --sc-fing: 0%; box-shadow: none; } }
+:root[data-theme="dark"] .mp-score { --sc-bg: var(--board, #46524C); --sc-ink: #E9E2D2; --sc-fing: 0%; box-shadow: none; }
 .mp-score .mp-strip { position: absolute; left: 0; top: 4px; will-change: transform; }
 .mp-strip .mp-chunk { position: absolute; top: 0; }
 .mp-score .mp-key { position: absolute; top: 4px; }
-/* the clef and key at the left: the board colour, fading out over the notes passing underneath */
-.mp-score .mp-key { left: 0; z-index: 1; background: linear-gradient(90deg, var(--board, #46524C) calc(100% - 14px), color-mix(in srgb, var(--board, #46524C) 0%, transparent)); }
-.mp-head { position: absolute; z-index: 2; top: 10px; bottom: 10px; left: 33%; width: 2px; margin-left: -1px; border-radius: 1px; background: color-mix(in srgb, #E9E2D2 35%, transparent); pointer-events: none; }
+/* the clef and key at the left: the sheet colour, fading out over the notes passing underneath */
+.mp-score .mp-key { left: 0; z-index: 1; background: linear-gradient(90deg, var(--sc-bg) calc(100% - 14px), color-mix(in srgb, var(--sc-bg) 0%, transparent)); }
+.mp-head { position: absolute; z-index: 2; top: 10px; bottom: 10px; left: 33%; width: 2px; margin-left: -1px; border-radius: 1px; background: color-mix(in srgb, var(--sc-ink) 35%, transparent); pointer-events: none; }
 .mp-score .sl { stroke: color-mix(in srgb, currentColor 55%, transparent); stroke-width: 1; }
 .mp-score .bl { stroke: color-mix(in srgb, currentColor 70%, transparent); stroke-width: 1.2; }
 .mp-score .bl.end { stroke-width: 3.5; }
 .mp-score .ledger { stroke: color-mix(in srgb, currentColor 70%, transparent); stroke-width: 1.2; }
 .mp-score .acc { fill: currentColor; font: 400 15px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
 .mp-score .ts { fill: currentColor; font: 700 19px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
-.mp-n { color: #E9E2D2; transition: color .15s, opacity .3s; }
+.mp-n { color: var(--sc-ink); transition: color .15s, opacity .3s; }
 .mp-n .head, .mp-n .flag, .mp-n .dot { fill: currentColor; }
 .mp-n .head.hollow { fill: none; stroke: currentColor; stroke-width: 1.8; }
 .mp-n .stem { stroke: currentColor; stroke-width: 1.3; }
-.mp-score .beam { fill: #E9E2D2; }
+.mp-score .beam { fill: var(--sc-ink); }
 .mp-n .acc { fill: currentColor; }
-.mp-n .fing { fill: var(--hue); font: 700 13px var(--font-note); text-anchor: middle; }
+.mp-n .fing { fill: color-mix(in srgb, var(--hue), #000 var(--sc-fing)); font: 700 13px var(--font-note); text-anchor: middle; }
 .mp-n .fing.side { font-size: 11px; text-anchor: start; }   /* fingering: 0 open, 1-4 fingers, in the string colour */
 .mp-n.done { opacity: .5; }
 /* the note sounding: in its string colour and glowing, like the board */
@@ -52,7 +54,7 @@
 .mp-n.on.quick { filter: none; }   /* short notes: colour only */
 @media (prefers-reduced-motion: reduce) { .mp-n { transition: none; } .mp-n.on { filter: none; } }
 /* the count-in number over the score */
-.mp-count { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: color-mix(in srgb, var(--board, #46524C) 55%, transparent); color: #E9E2D2; font: 700 64px/1 var(--font-display); text-shadow: 0 0 14px var(--accent); pointer-events: none; }
+.mp-count { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: color-mix(in srgb, var(--sc-bg) 55%, transparent); color: var(--sc-ink); font: 700 64px/1 var(--font-display); text-shadow: 0 0 14px var(--accent); pointer-events: none; }
 .mp-count[hidden] { display: none; }
 .mp-count.beat { animation: mpCount .35s ease-out; }
 @keyframes mpCount { from { transform: scale(1.35); opacity: .4; } }
