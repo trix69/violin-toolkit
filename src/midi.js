@@ -152,11 +152,11 @@
     var sg = song, sharps = sg.sf >= 0, sp = sharps ? SP_S : SP_F, n = Math.abs(sg.sf), keyAcc = {};
     for (var i = 0; i < n; i++) keyAcc[(sharps ? SHARP_K : FLAT_K)[i]] = sharps ? 1 : -1;
     var out = [], x = 40;
-    for (i = 0; i < n; i++) out.push('<text class="acc" x="' + (x + i * 9) + '" y="' + (yOf((sharps ? SHARP_P : FLAT_P)[i]) + 4.5) + '">' + (sharps ? '♯' : '♭') + '</text>');
-    x += n * 9 + 6;
+    for (i = 0; i < n; i++) out.push('<text class="acc key" x="' + (x + i * 10) + '" y="' + (yOf((sharps ? SHARP_P : FLAT_P)[i]) + 4.5) + '">' + (sharps ? '♯' : '♭') + '</text>');
+    x += n * 10 + (n ? 10 : 6);   /* the time signature (centred on x) clear of the last sharp or flat */
     var head = n + 2;   /* key signature + the two time-signature numbers */
     out.push('<text class="ts" x="' + x + '" y="' + (Y0 + 2 * S - 1) + '">' + sg.sig.num + '</text><text class="ts" x="' + x + '" y="' + (Y0 + 4 * S - 1) + '">' + sg.sig.den + '</text>');
-    X0 = x + 30;
+    X0 = x + 34;
     var barBeats = sg.sig.num * 4 / sg.sig.den;
     /* spacing by note length, as printed music does (a semiquaver ~41 px, a crotchet 56, a semibreve 86), with
        room at each bar line; xAt() maps beats to x for placing and scrolling */
