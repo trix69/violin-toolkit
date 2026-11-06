@@ -723,7 +723,7 @@ nav_js = """(function () {
     document.addEventListener('keydown', touch, true);
     document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
     window.addEventListener('pagehide', end);
-    setInterval(function () { save(); if (APP.syncDays) APP.syncDays(); }, 15000);   /* the day count follows along: today joins it once it reaches a minute (Trix) */
+    setInterval(function () { save(); if (APP.syncDays) APP.syncDays(true); }, 15000);   /* text only: the pill appearing under an open start screen would move the tiles (Hermes F15) */   /* the day count follows along: today joins it once it reaches a minute (Trix) */
     setInterval(function () {
       if (!document.hidden && anyBusy()) touch();
     }, 5000);
@@ -738,10 +738,10 @@ nav_js = """(function () {
     return { series: series, fmt: fmt, days: days };
   })();
   APP.usage = USAGE;
-  function syncDays() {
+  function syncDays(textOnly) {
     var n = USAGE.days();
     Array.prototype.forEach.call(document.querySelectorAll('.use-days'), function (e) { e.textContent = 'Practised on ' + n + (n === 1 ? ' day' : ' days'); });
-    document.getElementById('launchDays').hidden = !n;
+    if (!textOnly) document.getElementById('launchDays').hidden = !n;   /* shown or hidden only as the start screen opens */
   }
   APP.syncDays = syncDays;
   /* the overlay: built in the current language when it opens (translate="no" on the bars) */
