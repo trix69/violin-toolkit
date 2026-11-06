@@ -15,6 +15,53 @@
   var metro = false, metroBtn = $('mpMetro'), lastTick = -1;
   try { metro = localStorage.getItem('violin-midi-metro') === 'on'; } catch (e) {}   /* Loop: start again from the top at the end (Trix), remembered */
   try { loop = localStorage.getItem('violin-midi-loop') === 'on'; } catch (e) {}
+  /* Mixer (Trix): violin and accompaniment levels, 0-1, remembered */
+  var mix = { v: 1, a: 0.8 };
+  try { var mj = JSON.parse(localStorage.getItem('violin-midi-mix') || 'null'); if (mj && isFinite(mj.v) && isFinite(mj.a)) mix = { v: Math.max(0, Math.min(1, mj.v)), a: Math.max(0, Math.min(1, mj.a)) }; } catch (e) {}
+
+  /* ---------- the accompaniment: every part but the solo, on a soft synth (triangle through a low-pass), scheduled
+     a quarter of a second ahead on the audio clock; it follows play, pause, seek, speed and loop ---------- */
+  var accBus = null, ai = 0, accLive = [];
+  function accOut() {
+    var a = APP.board.audio(); if (!a) return null;
+    if (!accBus || accBus.context !== a.ctx) {
+      accBus = a.ctx.createGain(); accBus.gain.value = mix.a;
+      var lp = a.ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+      accBus.connect(lp); lp.connect(a.out);
+    }
+    return accBus;
+  }
+  function accNote(n, from) {   /* from: song seconds where it starts sounding (a note already under way on resume) */
+    var bus = accOut(); if (!bus) return;
+    var c = bus.context, now = c.currentTime;
+    var t0 = now + Math.max(0, (from - pos) / speed), t1 = now + Math.max(0.03, (n.e - pos) / speed);
+    if (t1 <= t0 + 0.02) return;
+    var o = c.createOscillator(), g = c.createGain(), pk = 0.16 * n.v, a4 = (window.APP && APP.a4) || 442;
+    o.type = 'triangle'; o.frequency.value = a4 * Math.pow(2, (n.m - 69) / 12);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(pk, t0 + 0.012);
+    g.gain.setTargetAtTime(pk * 0.55, t0 + 0.012, 0.25);   /* a piano-ish fall after the attack */
+    g.gain.setTargetAtTime(0, t1, 0.04);
+    o.connect(g); g.connect(bus); o.start(t0); o.stop(t1 + 0.3);
+    var rec = { o: o, g: g }; accLive.push(rec);
+    o.onended = function () { var i = accLive.indexOf(rec); if (i >= 0) accLive.splice(i, 1); try { g.disconnect(); } catch (e) {} };
+  }
+  function accStop() {
+    accLive.forEach(function (r) {
+      try { var t = r.g.context.currentTime; r.g.gain.cancelScheduledValues(t); r.g.gain.setTargetAtTime(0, t, 0.02); r.o.stop(t + 0.15); } catch (e) {}
+    });
+    accLive = [];
+  }
+  function accFrom(p) { var a = song ? song.acc : [], i = 0; while (i < a.length && a[i].t < p - 1e-6) i++; return i; }
+  function accStart() {   /* resuming: the accompaniment notes already sounding at this point join in */
+    accStop(); if (!song || !song.acc.length) return;
+    song.acc.forEach(function (n) { if (n.t < pos - 1e-6 && n.e > pos + 0.05) accNote(n, pos); });
+    ai = accFrom(pos);
+  }
+  function accAhead() {
+    var a = song.acc;
+    while (ai < a.length && a[ai].t <= pos + 0.25 * speed) { if (a[ai].e > pos) accNote(a[ai], a[ai].t); ai++; }
+  }
 
   function fail(text) { var e = new Error(text); e.mine = true; return e; }
 
@@ -34,7 +81,7 @@
       var id = str(p, 4), end = Math.min(p + 8 + u32(p + 4), u8.length);
       p += 8;
       if (id !== 'MTrk') { p = end; continue; }
-      var tick = 0, rs = 0, open = {}, notes = [], chans = {};
+      var tick = 0, rs = 0, open = {}, notes = [], chans = {}, name = '';
       while (p < end) {
         tick += vlq();
         var st = u8[p];
@@ -44,31 +91,51 @@
           if (ty === 0x51 && l >= 3) tempos.push({ tick: tick, us: (u8[p] << 16) | (u8[p + 1] << 8) | u8[p + 2] });
           else if (ty === 0x58 && l >= 2 && !sig) sig = { num: u8[p], den: Math.pow(2, u8[p + 1]) };
           else if (ty === 0x59 && l >= 1 && sf === null) { sf = (u8[p] << 24) >> 24; minor = l >= 2 && u8[p + 1] === 1; }
+          else if (ty === 0x03 && !name) name = str(p, Math.min(l, 40)).replace(/[^\x20-\x7e]/g, '').trim();   /* track name */
           p += l;
         } else if (st === 0xf0 || st === 0xf7) {
           p += vlq();
         } else if (st >= 0x80) {
           var hi = st & 0xf0, ch = st & 15, a = u8[p++], b = (hi === 0xc0 || hi === 0xd0) ? 0 : u8[p++], k = ch + ':' + a;
-          if (hi === 0x90 && b > 0) (open[k] = open[k] || []).push(tick);
+          if (hi === 0x90 && b > 0) (open[k] = open[k] || []).push([tick, b]);
           else if (hi === 0x80 || hi === 0x90) {
-            if (open[k] && open[k].length) { notes.push({ m: a, t0: open[k].shift(), t1: tick }); chans[ch] = 1; }
+            if (open[k] && open[k].length) { var on = open[k].shift(); notes.push({ m: a, t0: on[0], t1: tick, ch: ch, v: on[1] }); chans[ch] = 1; }
           }
         } else break;   /* a data byte with no status: the file is damaged, stop reading this track */
       }
-      Object.keys(open).forEach(function (k) { open[k].forEach(function (t0) { notes.push({ m: +k.split(':')[1], t0: t0, t1: tick }); }); });
-      if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1 });
+      Object.keys(open).forEach(function (k) { open[k].forEach(function (on) { notes.push({ m: +k.split(':')[1], t0: on[0], t1: tick, ch: +k.split(':')[0], v: on[1] }); }); });
+      if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1, name: name });
       p = end;
     }
     if (!tracks.length) throw fail('This file has no notes.');
-    var parts = tracks.length > 1 ? tracks.length : tracks[0].chans;
-    if (parts > 1) throw fail('Multiple sound tracks detected. The MIDI player only supports MIDI files with a single violin solo track.');
-    var sg = build(tracks[0].notes, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0);
+    /* several parts (Trix): the first track with notes is the violin solo, every other one accompaniment; a
+       one-track file with several channels splits by channel the same way (the first channel heard is the solo).
+       Drums (channel 10) are left out: the accompaniment synth plays pitched notes only. */
+    var DRUM = 9, solo, acc = [];
+    tracks = tracks.map(function (tr) { tr.notes = tr.notes.filter(function (n) { return n.ch !== DRUM; }); return tr; }).filter(function (tr) { return tr.notes.length; });
+    if (!tracks.length) throw fail('This file has no notes.');
+    if (tracks.length === 1 && tracks[0].chans > 1) {
+      var first = tracks[0].notes.reduce(function (a, n) { return !a || n.t0 < a.t0 ? n : a; }, null).ch;
+      solo = tracks[0].notes.filter(function (n) { return n.ch === first; });
+      acc = tracks[0].notes.filter(function (n) { return n.ch !== first; });
+    } else {
+      solo = tracks[0].notes;
+      tracks.slice(1).forEach(function (tr) { acc = acc.concat(tr.notes); });
+    }
+    var firstTick = acc.reduce(function (a, n) { return Math.min(a, n.t0); }, Infinity);
+    var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick);
     sg.minor = minor;
+    sg.parts = tracks.length > 1 ? tracks.length : tracks[0].chans;
+    sg.soloName = tracks[0].name || '';
+    /* the accompaniment in seconds from the first bar kept, by start time */
+    sg.acc = acc.map(function (n) { var t = sg.sec(n.t0); return { m: n.m, t: t, e: Math.max(t + 0.03, sg.sec(Math.max(n.t1, n.t0 + 1))), v: (n.v || 90) / 127 }; })
+      .filter(function (n) { return n.e > 0; }).sort(function (a, b) { return a.t - b.t; });
+    if (sg.acc.length) sg.end = Math.max(sg.end, sg.acc[sg.acc.length - 1].e, Math.max.apply(null, sg.acc.map(function (n) { return n.e; })));
     return sg;
   }
 
   /* ticks to seconds through the tempo changes, and back */
-  function build(raw, tpq, tempos, sig, sf) {
+  function build(raw, tpq, tempos, sig, sf, firstTick) {   /* firstTick: the accompaniment's first note, if any */
     tempos.sort(function (a, b) { return a.tick - b.tick; });
     if (!tempos.length || tempos[0].tick > 0) tempos.unshift({ tick: 0, us: 500000 });
     var segs = [], sec = 0;
@@ -87,7 +154,8 @@
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
-    var barQ = sig.num * 4 / sig.den, skipB = Math.floor(notes[0].b / barQ + 1e-6) * barQ, skipT = toSec(skipB * tpq);
+    var barQ = sig.num * 4 / sig.den, firstB = Math.min(notes[0].b, isFinite(firstTick) ? firstTick / tpq : Infinity);
+    var skipB = Math.floor(firstB / barQ + 1e-6) * barQ, skipT = toSec(skipB * tpq);   /* with an accompaniment: bars where every part is silent */
     if (skipB > 0) notes.forEach(function (n) { n.b -= skipB; n.t -= skipT; n.e -= skipT; });
     /* how long each note looks on the score: until the next note starts (a short breath between notes is
        not a rest), else its own length; rounded to note values a beginner part uses */
@@ -143,7 +211,8 @@
         var g = segs[0]; for (var i = 1; i < segs.length && segs[i].sec <= s; i++) g = segs[i];
         return (g.tick + (s - g.sec) / g.spt) / tpq - skipB;
       },
-      low: low, high: high
+      low: low, high: high,
+      sec: function (tick) { return toSec(tick) - skipT; }   /* ticks to seconds from the first bar kept (the accompaniment) */
     };
   }
 
@@ -234,7 +303,7 @@
         rests.push({ b: a, v: v }); a += v;
       }
     }
-    if (sg.notes.length) restRun(Math.floor(sg.notes[0].b / barBeats + 1e-6) * barBeats, sg.notes[0].b);
+    if (sg.notes.length) restRun(0, sg.notes[0].b);   /* from the first bar kept: bars where only the accompaniment plays are whole-bar rests */
     ons.forEach(function (b, i) {
       if (i + 1 >= ons.length) return;
       var end = b; sg.notes.forEach(function (n) { if (Math.abs(n.b - b) < 1e-6) end = Math.max(end, n.b + n.len); });
@@ -416,10 +485,11 @@
     noteEls.forEach(function (el) { el.classList.remove('on'); });
   }
   function seekTo(p) {
-    allOff();
+    allOff(); accStop();
     pos = Math.max(0, Math.min(p, song ? song.end : 0));
     ni = 0;
     if (song) while (ni < song.notes.length && song.notes[ni].t < pos - 1e-6) ni++;
+    ai = accFrom(pos);
     noteEls.forEach(function (el, k) { el.classList.toggle('done', k < ni); });
     /* the metronome clicks from the next beat on (on the first one when starting from the top) */
     lastTick = !song || pos < 0.01 ? -1 : Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);
@@ -434,6 +504,7 @@
       if (k > lastTick) { lastTick = k; if (pos < song.end) APP.board.click(k % song.sig.num === 0); }
     }
     last = now;
+    if (song.acc.length) accAhead();
     var ns = song.notes;
     active = active.filter(function (k) {   /* notes ending first, so a repeated note sounds twice */
       if (ns[k].e > pos) return true;
@@ -507,6 +578,7 @@
       noteEls[k].classList.add('on'); active.push(k);
     });
     playing = true; last = performance.now();
+    accStart();
     raf = requestAnimationFrame(frame);
     ui();
   }
@@ -519,6 +591,7 @@
   function pause() {
     stopCount();
     playing = false;
+    accStop();
     cancelAnimationFrame(raf);
     showAt();
     ui();
@@ -526,8 +599,11 @@
 
   /* ---------- tunes ---------- */
   /* notes about a tune in small grey text; an import that failed as a red alert (Trix: make errors obvious) */
-  function say(text, err) {
-    msg.textContent = text || ''; msg.hidden = !text;
+  function say(text, err) {   /* text: a string, or a list shown as separate sentences (each translated on its own) */
+    var list = Array.isArray(text) ? text : text ? [text] : [];
+    msg.textContent = '';
+    list.forEach(function (t, i) { if (i) msg.appendChild(document.createTextNode(' ')); var sp = document.createElement('span'); sp.textContent = t; msg.appendChild(sp); });
+    msg.hidden = !list.length;
     msg.classList.toggle('err', !!err);
     msg.setAttribute('role', err ? 'alert' : 'status');
   }
@@ -541,7 +617,9 @@
     var warn = [];
     if (song.low) warn.push(song.low + (song.low > 1 ? ' notes are' : ' note is') + ' below the violin’s G string and left out.');
     if (song.high) warn.push(song.high + (song.high > 1 ? ' notes are' : ' note is') + ' above the fingerboard shown: heard, not lit.');
-    say(warn.join(' '));
+    if (song.acc.length) warn.unshift('Violin: ' + (song.soloName || 'the first part') + '. The other ' + (song.parts - 1) + (song.parts > 2 ? ' parts play' : ' part plays') + ' as accompaniment (Mixer sets the levels).');
+    say(warn);
+    mixUi();
     APP.board.toTop();   /* a new tune opens at the open strings, whatever the last one scrolled to (Hermes F14) */
     if (shown) fit();
   }
@@ -617,6 +695,26 @@
     rd.readAsArrayBuffer(f);
   });
 
+  /* the mixer: a small panel above the controls with Violin and Accompaniment sliders */
+  var mixBtn = $('mpMix'), mixPop = $('mpMixPop'), volV = $('mpVolV'), volA = $('mpVolA');
+  function mixUi() {
+    volV.value = Math.round(mix.v * 100); volA.value = Math.round(mix.a * 100);
+    var none = !song || !song.acc.length;
+    volA.disabled = none; $('mpMixNone').hidden = !none;
+    $('mpVolVOut').textContent = volV.value + '%'; $('mpVolAOut').textContent = none ? '' : volA.value + '%';
+    APP.board.soloVolume(mix.v);
+    if (accBus) accBus.gain.setTargetAtTime(mix.a, accBus.context.currentTime, 0.03);
+  }
+  function setMixOpen(open) {
+    mixPop.hidden = !open; mixBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) volV.focus();
+  }
+  function saveMix() { try { localStorage.setItem('violin-midi-mix', JSON.stringify(mix)); } catch (e) {} }
+  mixBtn.addEventListener('click', function (e) { e.stopPropagation(); setMixOpen(mixPop.hidden); });
+  volV.addEventListener('input', function () { mix.v = volV.value / 100; mixUi(); saveMix(); });
+  volA.addEventListener('input', function () { mix.a = volA.value / 100; mixUi(); saveMix(); });
+  document.addEventListener('pointerdown', function (e) { if (!mixPop.hidden && !mixPop.contains(e.target) && !mixBtn.contains(e.target)) setMixOpen(false); }, true);
+  mixPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setMixOpen(false); mixBtn.focus(); } });
   playBtn.addEventListener('click', function () { if (playing || counting) pause(); else play(); });
   $('mpStart').addEventListener('click', function () { seekTo(0); });
   metroBtn.addEventListener('click', function () {
@@ -679,7 +777,7 @@
   function fit() { APP.board.player(true, topH, reach(), keySet(), song && song.sf < 0); scroll(); }
   APP.views.midi = {
     show: function () { shown = true; fit(); },
-    hide: function () { shown = false; pause(); APP.board.player(false); }
+    hide: function () { shown = false; pause(); setMixOpen(false); APP.board.player(false); }
   };
   load(0);
 })();

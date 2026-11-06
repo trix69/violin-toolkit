@@ -1374,6 +1374,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     /* a string sounds one note at a time: a new note on it replaces the one before (overlapping legato in the file) */
     if (nt) pvoices.forEach(function (r, k) { if (r.si === nt.si && k !== id && (grp === undefined || r.grp !== grp)) pOff(k); });
     var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : startVoice(nt ? noteFreq(nt) : midiFreq(midi), false, 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
+    if (rec.v) { rec.v.out.disconnect(); rec.v.out.connect(soloOut()); }   /* through the mixer's violin level */
     if (!quiet) rec.timer = setTimeout(function () { applyVib(rec); }, 200);
     if (el) {
       el.classList.remove('off');
@@ -1417,6 +1418,12 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     }
   }
   function pAllOff() { Array.from(pvoices.keys()).forEach(pOff); }
+  /* the MIDI player's mixer (Trix): the violin part through its own level; the accompaniment (midi.js) joins master */
+  var soloBus = null, soloVol = 1;
+  function soloOut() {
+    if (!soloBus || soloBus.context !== ctx) { soloBus = ctx.createGain(); soloBus.gain.value = soloVol; soloBus.connect(master); }
+    return soloBus;
+  }
   if (window.APP) APP.board = {
     toTop: function () { stage.scrollTop = 0; },   /* a newly chosen tune starts at the open strings (Hermes F14) */
     /* on: player mode; top(): height of the player's own part above the board, so the board fits below it */
@@ -1437,6 +1444,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.09);
     },
     prime: function () { if (window.APP && APP.playThroughSilent) APP.playThroughSilent(); return !!ensureCtx(); },
+    soloVolume: function (v) { soloVol = v; if (soloBus) soloBus.gain.setTargetAtTime(v, soloBus.context.currentTime, 0.03); },
+    audio: function () { return ensureCtx() ? { ctx: ctx, out: master } : null; },   /* for the accompaniment */
     where: function (midi) { return midi >= STRINGS[0].midi && midi <= STRINGS[3].midi + PTOP; },
     name: function (midi) { return noteName(midi, true); }
   };

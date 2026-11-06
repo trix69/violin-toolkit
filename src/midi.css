@@ -93,3 +93,17 @@
 .shell[data-view="midi"] #view-board .ksig, .shell[data-view="midi"] #view-board .forkhz { display: none !important; }
 .shell[data-view="midi"] #view-board { margin-top: 10px; padding-bottom: 130px; }
 .shell[data-view="midi"] #board .note { pointer-events: none; cursor: default; }   /* the player only shows the notes */
+/* Mixer (Trix): a panel above the controls */
+.mp-mix svg { stroke-width: 1.8; }
+.mp-mix[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.mp-mixpop { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); width: min(340px, calc(100vw - 32px)); box-sizing: border-box;
+  padding: 14px 16px 10px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--fg);
+  box-shadow: 0 10px 30px rgba(0,0,0,.18); z-index: 20; display: grid; gap: 10px; }
+.mp-mixpop[hidden] { display: none; }
+.mp-vol { display: grid; grid-template-columns: 7.2em 1fr 3em; align-items: center; gap: 10px; font: 500 15px var(--font-note); }
+.mp-vol input { width: 100%; accent-color: var(--accent); min-height: 32px; }
+.mp-vol input:disabled { opacity: .4; }
+.mp-vol output { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted, inherit); font-size: 14px; }
+.mp-mixnone { margin: 0; font: 400 13px var(--font-body); color: var(--muted, inherit); }
+@media (max-width: 380px) { .mp-vol { grid-template-columns: 6.4em 1fr 2.6em; gap: 6px; font-size: 14px; } }
+@media (max-width: 340px) { .mp-ctl { gap: 5px; } .mp-btn { width: 38px; height: 38px; } }   /* seven controls with the Mixer button at 320 px */
