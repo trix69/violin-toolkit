@@ -727,10 +727,12 @@
   /* the mixer: a small panel above the controls with Violin and Accompaniment sliders */
   var mixBtn = $('mpMix'), mixPop = $('mpMixPop'), volV = $('mpVolV'), volA = $('mpVolA');
   function mixUi() {
-    volV.value = Math.round(mix.v * 100); volA.value = Math.round(mix.a * 100);
     var none = !song || !song.acc.length;
+    /* a one-part tune (Trix): the accompaniment fader sits at 0 and is disabled; the violin's still works. The saved
+       level is kept for tunes that have an accompaniment. */
+    volV.value = Math.round(mix.v * 100); volA.value = none ? 0 : Math.round(mix.a * 100);
     volA.disabled = none; $('mpMixNone').hidden = !none;
-    $('mpVolVOut').textContent = volV.value + '%'; $('mpVolAOut').textContent = none ? '' : volA.value + '%';
+    $('mpVolVOut').textContent = volV.value + '%'; $('mpVolAOut').textContent = volA.value + '%';
     APP.board.soloVolume(mix.v);
     if (accBus) accBus.gain.setTargetAtTime(mix.a, accBus.context.currentTime, 0.03);
   }

@@ -11,8 +11,8 @@
   </div>
   <div class="mp-bar" id="mpBar">
     <div class="mp-mixpop" id="mpMixPop" role="group" aria-label="Mixer" hidden>
-      <label class="mp-vol"><span>Violin</span><input type="range" id="mpVolV" min="0" max="100" step="5" aria-label="Violin volume"><output id="mpVolVOut" translate="no"></output></label>
-      <label class="mp-vol"><span>Accompaniment</span><input type="range" id="mpVolA" min="0" max="100" step="5" aria-label="Accompaniment volume"><output id="mpVolAOut" translate="no"></output></label>
+      <label class="mp-vol"><span>Violin</span><span class="mp-fader"><input type="range" id="mpVolV" min="0" max="100" step="5" aria-label="Violin volume"></span><output id="mpVolVOut" translate="no"></output></label>
+      <label class="mp-vol"><span>Accompaniment</span><span class="mp-fader"><input type="range" id="mpVolA" min="0" max="100" step="5" aria-label="Accompaniment volume"></span><output id="mpVolAOut" translate="no"></output></label>
       <p class="mp-mixnone" id="mpMixNone" hidden>This tune has no accompaniment.</p>
     </div>
     <div class="mp-prog"><input type="range" id="mpSeek" min="0" max="1000" value="0" aria-label="Playback position"><span class="mp-time" id="mpTime">0:00 / 0:00</span><button type="button" class="mp-loop" id="mpLoop" aria-pressed="false" aria-label="Loop" title="Loop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3l3 3-3 3"/><path d="M20 6H8a4 4 0 0 0-4 4v1"/><path d="M7 21l-3-3 3-3"/><path d="M4 18h12a4 4 0 0 0 4-4v-1"/></svg></button></div>
