@@ -556,9 +556,12 @@
   /* the board fits below the app bar, the score and the controls */
   function topH() { var a = document.querySelector('.appbar'); return (a ? a.offsetHeight + 10 : 0) + top.offsetHeight + 20 + Math.max(0, bar.offsetHeight - 64); }   /* + the board's own margin and padding */
   function reach() {   /* semitones above the open string, on the string the board plays each note on */
-    var top = 7;   /* at least 1st position's 4th finger; the board ends at the tune's highest row (Trix) */
+    /* the board ends at the highest finger the tune uses (Trix: Twinkle only needs the 3rd finger, so the 3rd
+       finger sits near the bottom edge and the rows spread out): in 1st position the 1st finger is 1-2 semitones
+       up, the 2nd 3-4, the 3rd 5-6, the 4th 7; above that, the tune's highest note. At least the 2nd finger. */
+    var top = 0;
     if (song) song.notes.forEach(function (n) { if (n.si >= 0) top = Math.max(top, n.m - OPEN[n.si]); });
-    return top;
+    return top <= 4 ? 4 : top <= 6 ? 6 : top;
   }
   /* the tune's key from its key signature: a minor key has the notes of its relative major (natural minor), as on
      the fingerboard; those notes show pale in their string colour (Trix) */

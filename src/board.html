@@ -821,7 +821,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       b.style.setProperty('--hue', on ? 'var(' + nt.s.v + ')' : 'var(--off)');
     });
     var sp = document.getElementById('splits');
-    if (sp) sp.innerHTML = pc ? '' : P.splits.map(function (n) {
+    if (sp) sp.innerHTML = (pc ? POSITIONS['1'] : P).splits.map(function (n) {   /* Pitch Check: 1st position's finger lines too (Trix) */
       return '<div class="split" style="--y:' + yFor(n) + '"></div>';
     }).join('');
     labels.innerHTML =
@@ -838,7 +838,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     vibBtn.disabled = pc;   /* reference notes stay steady while checking pitch */
     if (pc) labels.innerHTML = PC_HTML;
     if (playerOn) {
-      if (sp) sp.innerHTML = '';
+      /* the fingerboard's dashed lines between the fingers (1st position), as far as the board reaches (Trix) */
+      if (sp) sp.innerHTML = POSITIONS['1'].splits.filter(function (n) { return n < playerN; }).map(function (n) {
+        return '<div class="split" style="--y:' + yFor(n) + '"></div>';
+      }).join('');
       labels.innerHTML = '<span style="--y:var(--oy)">open</span><span style="--y:' + yFor(MAXN) + '">harm.<small>octave</small></span>';
     }
     pcShow(pc ? pcCur : null);
