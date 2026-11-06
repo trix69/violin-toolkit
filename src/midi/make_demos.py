@@ -48,7 +48,7 @@ twinkle = [(A4,q),(A4,q),(E5,q),(E5,q),(Fs5,q),(Fs5,q),(E5,h),
            (E5,q),(E5,q),(D5,q),(D5,q),(Cs5,q),(Cs5,q),(B4,h),
            (A4,q),(A4,q),(E5,q),(E5,q),(Fs5,q),(Fs5,q),(E5,h),
            (D5,q),(D5,q),(Cs5,q),(Cs5,q),(B4,q),(B4,q),(A4,h)]
-write('twinkle.mid', 'Twinkle, Twinkle, Little Star', 100, 3, twinkle)
+# write('twinkle.mid', 'Twinkle, Twinkle, Little Star', 100, 3, twinkle)   # replaced by Trix's string orchestra arrangement (2026-11-07): don't overwrite it
 
 D4, E4, Fs4, G4, A4_ = 62, 64, 66, 67, 69
 line = [(Fs4,q),(Fs4,q),(G4,q),(A4_,q),(A4_,q),(G4,q),(Fs4,q),(E4,q),(D4,q),(D4,q),(E4,q),(Fs4,q)]
