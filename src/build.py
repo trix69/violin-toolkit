@@ -723,7 +723,7 @@ nav_js = """(function () {
     document.addEventListener('keydown', touch, true);
     document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
     window.addEventListener('pagehide', end);
-    setInterval(save, 15000);
+    setInterval(function () { save(); if (APP.syncDays) APP.syncDays(); }, 15000);   /* the day count follows along: today joins it once it reaches a minute (Trix) */
     setInterval(function () {
       if (!document.hidden && anyBusy()) touch();
     }, 5000);
@@ -1019,6 +1019,7 @@ nav_js = """(function () {
     }
   });
   function openLaunch(mark, from) {
+    if (APP.syncDays) APP.syncDays();   /* up to date when the start screen comes back */
     lastFocus = from || document.activeElement;   /* Safari doesn't focus a clicked button */
     Array.prototype.forEach.call(launch.querySelectorAll('.launch-btn'), function (b) {   /* the tool in use, marked */
       if (mark && b.dataset.view === cur) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
