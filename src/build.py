@@ -426,7 +426,7 @@ sym_js = open(SP + 'sym.js').read()
 import base64, json
 midi_css = open(SP + 'midi.css').read()
 midi_html = open(SP + 'midi.html').read()
-MIDI_DEMOS = [('twinkle.mid', 'Twinkle, Twinkle, Little Star'), ('ode.mid', 'Ode to Joy'), ('canon.mid', 'Canon'), ('mountain_king.mid', 'In the Hall of the Mountain King'), ('night_music.mid', 'A Little Night Music'), ('winter.mid', 'Winter, 1st movement')]   # canon.mid, mountain_king.mid, night_music.mid, winter.mid (Vivaldi, accompaniment part): Trix's own files (2026-11-06), not made by make_demos.py
+MIDI_DEMOS = [('twinkle.mid', 'Twinkle, Twinkle, Little Star'), ('ode.mid', 'Ode to Joy'), ('mountain_king.mid', 'In the Hall of the Mountain King'), ('canon.mid', 'Canon'), ('night_music.mid', 'A Little Night Music'), ('winter.mid', 'Winter, 1st movement')]   # canon.mid, mountain_king.mid, night_music.mid, winter.mid (Vivaldi, accompaniment part): Trix's own files (2026-11-06), not made by make_demos.py
 midi_js = open(SP + 'midi.js').read()
 assert midi_js.count('/*DEMOS*/[]') == 1
 midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps([{'title': t, 'b64': base64.b64encode(open(SP + 'midi/' + f, 'rb').read()).decode()} for f, t in MIDI_DEMOS]))

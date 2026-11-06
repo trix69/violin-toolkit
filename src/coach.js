@@ -31,7 +31,7 @@
       { sel: '#mTap', title: 'Tap tempo', text: 'Tap in time a few times to set the tempo from your own beat.' }
     ],
     midi: [
-      { sel: '#mpSong', title: 'Pick a tune', text: 'Choose a built-in tune from this list: Twinkle, Twinkle, Little Star, Ode to Joy, Canon, In the Hall of the Mountain King, A Little Night Music or Winter (1st movement). They are ready to play, so you can try the player straight away.' },
+      { sel: '#mpSong', title: 'Pick a tune', text: 'Choose a built-in tune from this list: Twinkle, Twinkle, Little Star, Ode to Joy, In the Hall of the Mountain King, Canon, A Little Night Music or Winter (1st movement). They are ready to play, so you can try the player straight away.' },
       { sel: '#mpSeek, #mpTime, #mpLoop, #mpStart, #mpSlower, #mpPlay, #mpFaster, .mp-speed', title: 'Play and follow along', text: 'Tap play: it counts in one bar (3 2 1 in 3/4, 4 3 2 1 in 4/4), then each note lights up on the fingerboard in its string colour, and the music scrolls past the line above with the finger to use. − and + slow it down or speed it up; the first button goes back to the start. The loop button by the time plays the tune over and over.' },
       { sel: '#mpImport', title: 'Import your own', text: 'Tap Import and choose a MIDI file (.mid) from your phone or computer. It stays in the list for next time; the bin button next to the list deletes it.' },
       { sel: '#mpImport', title: 'Which files work', text: 'The file must have one part only: the violin. A file with piano or other parts is refused, so save just the violin part as its own MIDI file. Notes below the G string are left out; very high notes are heard but not lit on the board.' }
