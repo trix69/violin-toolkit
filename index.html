@@ -835,7 +835,7 @@ h1 {
   -webkit-appearance: none; appearance: none; -webkit-user-select: text; user-select: text;
 }
 #symbols .symsearch input::placeholder { color: var(--muted); }
-#symbols .symsearch input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+#symbols .symsearch input:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }   /* drawn inside: outside it was cut off at the page edges (Trix) */
 #symbols .symnone { margin: 14px 0 4px; text-align: center; color: var(--muted); font: 400 14px var(--font-note); }
 #symbols .sym-grid[hidden], #symbols .sym-grid li[hidden], #symbols h3[hidden], #symbols .symnone[hidden] { display: none; }
 #symbols .sym-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(var(--c), minmax(0, 1fr)); gap: 8px; }
@@ -852,7 +852,7 @@ h1 {
 #symbols .sym-grid li:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 /* the explanation shown while a symbol is held */
 /* the card floats over the symbols without blocking them: a tap outside it reaches the symbol underneath */
-#symTip { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; padding: 20px; pointer-events: none; }
+#symTip { position: fixed; inset: 0; z-index: 6;   /* above the sticky search (z 5), Trix */ display: grid; place-items: center; padding: 20px; pointer-events: none; }
 #symTip { align-items: end; }   /* padding-bottom keeps it above Done (met.js) */
 #symTip.up { align-items: start; padding-top: calc(env(safe-area-inset-top, 0px) + 20px); }
 #symTip .sym-tip-card { pointer-events: auto; animation: symTipIn .12s ease-out; }
@@ -999,6 +999,8 @@ h1 {
 .launch-card { width: min(100%, 720px); text-align: center; outline: none; }
 .launch h2 { margin: 0; font: 700 clamp(30px, 6vw, 44px)/1.1 var(--font-display); letter-spacing: -0.02em; }
 .launch-sub { margin: 8px 0 22px; font: 400 14px var(--font-mono); letter-spacing: .04em; color: var(--muted); }
+.launch.switching .launch-sub { display: none; }   /* opened with Switch tool: no "start with" question (Trix) */
+.launch.switching h2 { margin-bottom: 22px; }
 .launch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 10px; }   /* five tools: 2 x 2, the last across */
 .launch-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 @media (min-width: 640px) { .launch-grid { gap: 16px; } }
@@ -1017,6 +1019,7 @@ h1 {
   transition: transform .12s, border-color .12s, box-shadow .12s;
 }
 .launch-btn:hover { border-color: var(--accent); transform: translateY(-2px); }
+.launch-btn[aria-current="page"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }   /* the tool in use, when reopened with Switch tool */
 .launch-days { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; min-height: 40px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
 .launch-days[hidden] { display: none; }
 .launch-days:hover { border-color: var(--accent); }
@@ -1048,17 +1051,12 @@ html[lang="zh-CN"] {
 #sub { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 /* narrow Android phones (360 px): keep the title clear of the tool buttons */
 @media (max-width: 380px) { .appbar h1 { font-size: 23px; } .appbar { gap: 8px; } .tabs { gap: 4px; } }
-@media (max-width: 480px) { .tab { width: 40px; height: 40px; } .tabs { gap: 5px; } .tab svg { width: 22px; height: 22px; } }
-@media (max-width: 350px) { .appbar { gap: 6px; } .tabs { gap: 3px; } .appbar h1 { font-size: 18px; letter-spacing: -0.02em; } }   /* "Fingerboard" clear of the tabs at 320 px (Hermes F11) */
-/* six buttons since the MIDI player (2026-11-06): on phones they get their own row above the title */
-@media (max-width: 480px) {
-  .appbar { flex-wrap: wrap; row-gap: 10px; }
-  .tabs { order: -1; flex: 1 1 100%; justify-content: space-between; gap: 0; }
-  .tab { width: 44px; height: 44px; } .tab svg { width: 22px; height: 22px; } .tab-set { margin-left: 0; }
-  .appbar > div { flex: 1 1 100%; }
-  .appbar h1 { font-size: 26px; letter-spacing: -0.02em; }
-}
-@media (max-width: 350px) { .tab { width: 42px; height: 42px; } .appbar h1 { font-size: 24px; } }
+/* header buttons (Trix, 2026-11-06): switch tool (opens the start screen) and Settings on every page, plus the
+   metronome on the fingerboard; the other tool buttons stay in the markup for show() but are not shown */
+.tabs .tab[data-view] { display: none; }
+.shell[data-view="board"] .tabs .tab[data-view="metronome"] { display: grid; }
+@media (max-width: 480px) { .tab { width: 42px; height: 42px; } .tabs { gap: 6px; } .tab svg { width: 22px; height: 22px; } .appbar h1 { font-size: 26px; letter-spacing: -0.02em; } }
+@media (max-width: 350px) { .appbar { gap: 6px; } .tabs { gap: 4px; } .tab { width: 40px; height: 40px; } .appbar h1 { font-size: 22px; } }   /* "Fingerboard" clear of the three buttons at 320 px */
 /* ---- settings sheet ---- */
 .tab-set { margin-left: 2px; }
 .sheet {
@@ -1322,6 +1320,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <button type="button" class="tab" data-view="metronome" aria-label="Metronome" title="Metronome"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l3.4 18H5.8z"/><path d="M12 17.5L15.6 6.5"/><circle cx="14.2" cy="10.6" r="1.2" fill="currentColor"/><path d="M8 21h8" opacity=".0"/></svg></button>
       <button type="button" class="tab" data-view="midi" aria-label="MIDI Player" title="MIDI Player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2" fill="currentColor"/><path d="M9 9.5l10-2"/></svg></button>
       <button type="button" class="tab" data-view="symbols" aria-label="Symbols" title="Symbols"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 6-1 8.5.8 2.5-1.8 5.5-2 8.5-.8v13.2c-3-1.2-6-1-8.5.8-2.5-1.8-5.5-2-8.5-.8z"/><path d="M12 6.3v13.2"/><path d="M16.2 9v5.2"/><ellipse cx="15.2" cy="14.4" rx="1.3" ry="1" fill="currentColor"/></svg></button>
+      <button type="button" class="tab" id="switchTool" aria-label="Switch tool" title="Switch tool" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></svg></button>
       <button type="button" class="tab tab-set" id="openSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </nav>
   </header>
@@ -1333,7 +1332,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     <div class="mp-row">
       <label class="mp-song"><span class="mp-vh">Tune</span><select id="mpSong"></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></label>
       <button type="button" class="mp-del" id="mpDel" aria-label="Delete this file" title="Delete this file" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/><path d="M10 11v5M14 11v5"/></svg></button>
-      <button type="button" class="mp-import" id="mpImport"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4"/></svg>Import</button>
+      <button type="button" class="mp-import" id="mpImport"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4"/></svg>Import</button>
       <input type="file" id="mpFile" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
     </div>
     <p class="mp-msg" id="mpMsg" role="status" hidden></p>
@@ -1790,7 +1789,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.26" data-build="20261106-155522" data-cache="violin-toolkit-"><span>Version 1.26</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.27" data-build="20261106-163931" data-cache="violin-toolkit-"><span>Version 1.27</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -4800,12 +4799,19 @@ function noteGate() {
       if (t.indexOf('solfege') >= 0 || t.indexOf('sol') >= 0) I18N.setNames('solfege'); else if (t.indexOf('letter') >= 0) I18N.setNames('letter');
     }
   });
-  if (!map[h]) {
-    lastFocus = document.activeElement;
+  function openLaunch(mark, from) {
+    lastFocus = from || document.activeElement;   /* Safari doesn't focus a clicked button */
+    Array.prototype.forEach.call(launch.querySelectorAll('.launch-btn'), function (b) {   /* the tool in use, marked */
+      if (mark && b.dataset.view === cur) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    launch.classList.toggle('switching', !!mark);
     launch.hidden = false;
     document.addEventListener('keydown', onKey);
     document.getElementById('launchCard').focus({ preventScroll: true });   /* a focus scroll would push the gear up (Hermes R11.1) */
   }
+  /* switch tool (Trix): back to the start screen to pick another tool; Escape returns to this one */
+  document.getElementById('switchTool').addEventListener('click', function () { if (APP.coach) APP.coach.interrupt(); openLaunch(true, this); });
+  if (!map[h]) openLaunch();
 })();
 </script>
 <script>
@@ -5060,7 +5066,7 @@ function noteGate() {
   var DICT = {
     /* chrome */
     'Skip to content': '跳到内容',
-    'Tools': '工具', 'Settings': '设置', 'Done': '完成', 'Check for updates': '检查更新', 'Checking…': '正在检查…', 'Up to date': '已是最新版本', 'Can’t check while offline': '离线时无法检查',
+    'Tools': '工具', 'Switch tool': '切换工具', 'Settings': '设置', 'Done': '完成', 'Check for updates': '检查更新', 'Checking…': '正在检查…', 'Up to date': '已是最新版本', 'Can’t check while offline': '离线时无法检查',
     'Automatic update check': '自动检查更新', 'New version': '新版本', 'Later': '以后再说', 'Update': '更新', 'Your settings and practice time are kept.': '设置和练习时间都会保留。',
     'Fingerboard': '指板', 'Tuner': '调音器', 'Metronome': '节拍器',
     'Violin Toolkit': '小提琴工具箱',
