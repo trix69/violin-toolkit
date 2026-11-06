@@ -807,7 +807,7 @@ nav_js = """(function () {
   var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-  if (standalone) { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }
+  if (standalone || location.hostname === 'appassets.androidplatform.net') { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }   /* installed, or the offline Android app */
   function showDev(d) {
     Array.prototype.forEach.call(segDev.children, function (b) { b.setAttribute('aria-checked', b.dataset.dev === d ? 'true' : 'false'); });
     document.getElementById('stepsIos').hidden = d !== 'ios';
@@ -891,6 +891,10 @@ nav_js = """(function () {
      Without a service worker (local file, artifact) it just reloads. */
   (function () {
     var btn = document.getElementById('verBtn'), msg = document.getElementById('verMsg'), busy = false;
+    /* the offline Android app (Android/wrapper: the page served from appassets.androidplatform.net) has no service
+       worker, so it cannot update itself: it checks the website's version and offers the new APK instead (Trix) */
+    var APK = location.hostname === 'appassets.androidplatform.net';
+    var APK_URL = 'https://github.com/trix69/violin-toolkit/releases/latest/download/violin-toolkit-android.apk';
     function num(v) { var p = String(v).split('.'); return +p[0] * 100 + +((p[1] || '0') + '0').slice(0, 2); }
     function say(t) { msg.textContent = t; }
     function swapIn(reg) {
@@ -903,7 +907,8 @@ nav_js = """(function () {
     }
     /* the release on the site when it is newer than this copy, else null (rejects when offline) */
     function newer() {
-      return fetch('version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+      return fetch(APK ? 'https://trix69.github.io/violin-toolkit/version.json' : 'version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+        if (APK) return num(j.version) > num(btn.dataset.version) ? j : null;   /* the app: only a higher version number */
         /* a different build stamp means a new release (test builds keep the same version number) */
         return (j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version)) ? j : null;
       });
@@ -930,10 +935,11 @@ nav_js = """(function () {
     btn.addEventListener('click', function () {
       if (busy) return;
       var sw = navigator.serviceWorker;
-      if (!sw || !sw.controller) { location.reload(); return; }
+      if (!APK && (!sw || !sw.controller)) { location.reload(); return; }
       busy = true; say('Checking…');
       newer().then(function (j) {
         if (!j) { busy = false; say('Up to date'); return; }
+        if (APK) { busy = false; say('Version ' + j.version + ' available'); ask(j, true); return; }
         return install(j);
       }).catch(function () { busy = false; say('Can’t check while offline'); });
     });
@@ -947,16 +953,17 @@ nav_js = """(function () {
     var pending = null, offered = '', lastCheck = 0, updOpener = null;
     function autoCheck() {
       var sw = navigator.serviceWorker;
-      if (!APP.autoUpd || busy || document.hidden || !sw || !sw.controller || Date.now() - lastCheck < 6 * 3600e3) return;
+      if (!APP.autoUpd || busy || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
       lastCheck = Date.now();
       newer().then(function (j) { if (j && (j.build || j.version) !== offered) ask(j); }).catch(function () { lastCheck = 0; });
     }
-    function ask(j) {
-      if (!APP.autoUpd || busy) return;
+    function ask(j, now) {   /* now: asked for (Check for updates), so not held back by the automatic-check setting */
+      if ((!APP.autoUpd && !now) || busy) return;
       var tips = document.getElementById('coach');   /* a first-use tour makes the rest of the page inert: wait for it */
       if (anyBusy() || document.hidden || (tips && !tips.hidden)) { setTimeout(function () { ask(j); }, tips && !tips.hidden ? 1000 : 5000); return; }
       pending = j; offered = j.build || j.version;
-      document.getElementById('updMsg').textContent = 'Version ' + j.version + ' is ready. Update now?';
+      document.getElementById('updMsg').textContent = APK ? 'Version ' + j.version + ' is available. Download the new Android app from the website to update.' : 'Version ' + j.version + ' is ready. Update now?';
+      if (APK) { updNow.textContent = 'Download'; document.getElementById('updNote').textContent = 'Install it over this app: your settings and practice time are kept.'; }
       updOpener = document.activeElement;
       upd.hidden = false;
       window.addEventListener('keydown', onUpdKey, true);
@@ -973,7 +980,11 @@ nav_js = """(function () {
     }
     updLater.addEventListener('click', closeUpd);
     upd.addEventListener('click', function (e) { if (e.target === upd) closeUpd(); });
-    updNow.addEventListener('click', function () { closeUpd(); if (pending && !busy) install(pending).catch(function () { location.reload(); }); });
+    updNow.addEventListener('click', function () {
+      closeUpd();
+      if (APK) { location.href = APK_URL; return; }   /* the app opens it in the browser, which downloads the APK */
+      if (pending && !busy) install(pending).catch(function () { location.reload(); });
+    });
     setTimeout(autoCheck, 1500);
     document.addEventListener('visibilitychange', autoCheck);
   })();
@@ -1309,7 +1320,7 @@ markup = f"""
   <div class="sheet-card" id="updCard" tabindex="-1">
     <h2 id="updTitle">New version</h2>
     <p class="upd-msg" id="updMsg"></p>
-    <p class="upd-note">Your settings and practice time are kept.</p>
+    <p class="upd-note" id="updNote">Your settings and practice time are kept.</p>
     <div class="upd-row">
       <button type="button" class="upd-later" id="updLater">Later</button>
       <button type="button" class="sheet-done" id="updNow">Update</button>
