@@ -1316,21 +1316,23 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     }
     return -1;
   }
-  function pOn(midi, id, fx, si, grp) {   /* si: the string to use (a double stop's two strings); grp: its chord */   /* fx false: light the note only, no string wobble or rings */
-    if (window.APP && APP.playThroughSilent) APP.playThroughSilent();
-    if (!ensureCtx()) return;
+  function pOn(midi, id, fx, si, grp, quiet) {   /* si: the string to use (a double stop's two strings); grp: its chord; fx false: no wobble or rings; quiet: shown, not sounded (paused) */
+    if (!quiet) {
+      if (window.APP && APP.playThroughSilent) APP.playThroughSilent();
+      if (!ensureCtx()) return;
+    }
     var i = -1, n0 = si >= 0 ? midi - STRINGS[si].midi : -1;
     if (n0 >= 0 && n0 <= TOPN) i = si * (TOPN + 1) + n0; else i = pick(midi);
     var nt = notes[i], el = buttons[i];
     /* a string sounds one note at a time: a new note on it replaces the one before (overlapping legato in the file) */
     if (nt) pvoices.forEach(function (r, k) { if (r.si === nt.si && k !== id && (grp === undefined || r.grp !== grp)) pOff(k); });
-    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: startVoice(midiFreq(midi), false, 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
-    rec.timer = setTimeout(function () { applyVib(rec); }, 200);
+    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : startVoice(midiFreq(midi), false, 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
+    if (!quiet) rec.timer = setTimeout(function () { applyVib(rec); }, 200);
     if (el) {
       el.classList.remove('off');
       el.style.setProperty('--hue', 'var(' + nt.s.v + ')');
       el.classList.add('down');
-      showWave(rec, nt, fx === false);   /* a short note: the string lights, without the wobble and rings (Trix) */
+      showWave(rec, nt, fx === false || quiet);   /* a short note: the string lights, without the wobble and rings (Trix) */
       follow();
     }
     pOff(id);
@@ -1355,7 +1357,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (!rec) return;
     pvoices.delete(id);
     clearTimeout(rec.timer);
-    stopVoice(rec.v, 0.04);
+    if (rec.v) stopVoice(rec.v, 0.04);
     if (rec.fx) { rec.fx.forEach(function (d) { d.remove(); }); rec.fx = null; }
     var still = false;
     pvoices.forEach(function (r) { if (r.el === rec.el) still = true; });

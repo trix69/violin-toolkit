@@ -341,6 +341,7 @@
     noteEls.forEach(function (el, k) { el.classList.toggle('done', k < ni); });
     /* the metronome clicks from the next beat on (on the first one when starting from the top) */
     lastTick = !song || pos < 0.01 ? -1 : Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);
+    if (!playing && !counting) showAt();   /* moving the slider while paused shows what sounds there */
     scroll(); ui();
   }
   function frame(now) {
@@ -400,7 +401,29 @@
     })();
   }
   function stopCount() { counting = false; clearTimeout(countT); countEl.hidden = true; }
+  /* paused: the notes sounding at this point stay lit, silent and still (Trix) */
+  function showAt() {
+    allOff();
+    if (!song || pos < 0.01) return;   /* at the top nothing has sounded yet */
+    var ns = song.notes, show = [], k, lastB = null;
+    for (k = Math.max(0, ni - 64); k < ns.length && ns[k].t <= pos + 1e-6; k++) if (ns[k].e > pos) show.push(k);
+    /* in the short break between two notes: the one just played */
+    if (!show.length) for (k = Math.min(ni, ns.length) - 1; k >= 0 && (lastB === null || ns[k].b === lastB); k--) { lastB = ns[k].b; show.push(k); }
+    show.forEach(function (k) {
+      APP.board.on(ns[k].m, 'n' + k, false, ns[k].si, ns[k].b, true);
+      noteEls[k].classList.add('on'); noteEls[k].classList.add('quick');
+      active.push(k);
+    });
+  }
   function go() {
+    /* resuming: the notes held over the pause sound again */
+    var held = active.slice();
+    allOff();
+    held.forEach(function (k) {
+      var nt = song.notes[k];
+      APP.board.on(nt.m, 'n' + k, (nt.e - nt.t) / speed >= 0.25, nt.si, nt.b);
+      noteEls[k].classList.add('on'); active.push(k);
+    });
     playing = true; last = performance.now();
     raf = requestAnimationFrame(frame);
     ui();
@@ -415,7 +438,7 @@
     stopCount();
     playing = false;
     cancelAnimationFrame(raf);
-    allOff();
+    showAt();
     ui();
   }
 
