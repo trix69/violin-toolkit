@@ -25,7 +25,7 @@
   background: var(--t-bad); color: var(--panel); font: 800 15px/1 var(--font-note); margin-top: 1px;
 }
 /* the sheet: black notes on white paper in light appearance, light notes on the board colour in dark (Trix) */
-.mp-score { --sc-bg: #FFFFFF; --sc-ink: #1A1A1A; --sc-fing: 30%; position: relative; margin-top: 10px; height: 128px; overflow: hidden; border-radius: 14px; background: var(--sc-bg); color: var(--sc-ink); box-shadow: inset 0 0 0 1px var(--line, rgba(0,0,0,.12)); }
+.mp-score { --sc-bg: #FFFFFF; --sc-ink: #1A1A1A; --sc-fing: 8%; position: relative; margin-top: 10px; height: 128px; overflow: hidden; border-radius: 14px; background: var(--sc-bg); color: var(--sc-ink); box-shadow: inset 0 0 0 1px var(--line, rgba(0,0,0,.12)); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mp-score { --sc-bg: var(--board, #46524C); --sc-ink: #E9E2D2; --sc-fing: 0%; box-shadow: none; } }
 :root[data-theme="dark"] .mp-score { --sc-bg: var(--board, #46524C); --sc-ink: #E9E2D2; --sc-fing: 0%; box-shadow: none; }
 .mp-score .mp-strip { position: absolute; left: 0; top: 4px; will-change: transform; }

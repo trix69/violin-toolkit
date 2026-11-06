@@ -617,7 +617,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   function stopCents(midi) {
     var j = J();
     if (!j) return 0;
-    if (!j.chain) return j.cents(midi, keyObj());
+    if (!j.chain) return j.cents(midi, tuneKey());
     /* Pythagorean: from the name the note is shown with, so a grey D♯ in G major is a D♯, not an E♭ (Hermes R16.1) */
     var nm = noteName(midi, false), acc = 0, i;
     for (i = 1; i < nm.length; i++) acc += nm[i] === '♯' ? 1 : nm[i] === '♭' ? -1 : 0;
@@ -625,7 +625,13 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
   function noteCents(nt) { return nt.n === 0 || nt.n === MAXN ? openCents(nt.s) : stopCents(nt.midi); }
   function noteFreq(nt) { return midiFreq(nt.midi) * Math.pow(2, noteCents(nt) / 1200); }
-  function noteN(nt) { return nt.n === 0 || nt.n === MAXN || playerOn ? nt.n : nt.n + (noteCents(nt) - openCents(nt.s)) / 100; }   /* the MIDI player: equal temperament, like MIDI */   /* semitones from its open string */
+  function noteN(nt) { return nt.n === 0 || nt.n === MAXN ? nt.n : nt.n + (noteCents(nt) - openCents(nt.s)) / 100; }   /* semitones from its open string; the MIDI player too, so Equal and Just sit apart there (Trix) */
+  /* the key Just intonation tunes to: the MIDI player's tune, else the fingerboard's chosen key */
+  function tuneKey() {
+    if (!playerOn || !playerKey) return keyObj();
+    var mode = playerKey.minor ? 'minor' : 'major';
+    return KEYS.filter(function (k) { return k.root === playerKey.tonic && k.mode === mode; })[0] || keyObj();
+  }
   function yFor(n) { return n === 0 ? 'var(--oy)' : 'calc(var(--head) + ' + mm(n).toFixed(2) + ' * var(--k))'; }
 
   /* ---------- Size the board to the screen ---------- */
@@ -1336,7 +1342,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     var nt = notes[i], el = buttons[i];
     /* a string sounds one note at a time: a new note on it replaces the one before (overlapping legato in the file) */
     if (nt) pvoices.forEach(function (r, k) { if (r.si === nt.si && k !== id && (grp === undefined || r.grp !== grp)) pOff(k); });
-    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : startVoice(midiFreq(midi), false, 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
+    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : startVoice(nt ? noteFreq(nt) : midiFreq(midi), false, 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
     if (!quiet) rec.timer = setTimeout(function () { applyVib(rec); }, 200);
     if (el) {
       el.classList.remove('off');
