@@ -556,8 +556,8 @@
   /* the board fits below the app bar, the score and the controls */
   function topH() { var a = document.querySelector('.appbar'); return (a ? a.offsetHeight + 10 : 0) + top.offsetHeight + 20 + Math.max(0, bar.offsetHeight - 64); }   /* + the board's own margin and padding */
   function reach() {   /* semitones above the open string, on the string the board plays each note on */
-    var top = 7;
-    if (song) song.notes.forEach(function (n) { if (n.si >= 0) top = Math.max(top, n.m - OPEN[n.si] + 1); });
+    var top = 7;   /* at least 1st position's 4th finger; the board ends at the tune's highest row (Trix) */
+    if (song) song.notes.forEach(function (n) { if (n.si >= 0) top = Math.max(top, n.m - OPEN[n.si]); });
     return top;
   }
   /* the tune's key from its key signature: a minor key has the notes of its relative major (natural minor), as on
