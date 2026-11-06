@@ -580,8 +580,9 @@ nav_js = """(function () {
     if (APP.coach) APP.coach.interrupt();   /* a tour for the old tool stops (not marked seen); the new tool's may start below */
     if (cur && APP.views[cur]) APP.views[cur].hide();
     cur = name;
-    /* the tuner listens through the microphone, so the metronome stops when it opens; the fingerboard leaves it running */
-    if (name === 'tuner' && APP.views.metronome && APP.views.metronome.stop) APP.views.metronome.stop();
+    /* the tuner listens through the microphone and the MIDI player plays its own time (Trix), so the metronome
+       stops when either opens; the fingerboard and Symbols leave it running */
+    if ((name === 'tuner' || name === 'midi') && APP.views.metronome && APP.views.metronome.stop) APP.views.metronome.stop();
     names.forEach(function (n) {
       var v = document.getElementById('view-' + n), t = document.getElementById('ttl-' + n);
       if (v) v.hidden = n !== name && !(name === 'midi' && n === 'board');   /* the MIDI player shows the fingerboard below its own part */
