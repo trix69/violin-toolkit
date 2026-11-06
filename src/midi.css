@@ -98,7 +98,7 @@
 .mp-mix[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .mp-mixpop { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); width: auto; max-width: calc(100vw - 32px); box-sizing: border-box;
   padding: 12px 18px 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--fg);
-  box-shadow: 0 10px 30px rgba(0,0,0,.18); z-index: 20; display: grid; grid-template-columns: repeat(2, minmax(96px, auto)); column-gap: 12px; row-gap: 6px; justify-items: center; }
+  box-shadow: 0 10px 30px rgba(0,0,0,.18); z-index: 20; display: grid; grid-template-columns: repeat(3, auto); column-gap: 14px; row-gap: 6px; justify-items: center; }
 .mp-mixpop[hidden] { display: none; }
 /* vertical faders (Trix): level on top, the fader, the name below; a horizontal range turned a quarter turn
    (works the same in every browser; arrow keys and touch drags follow it) */
@@ -116,3 +116,4 @@
 .mp-btn { width: clamp(33px, 9.6vw, 44px); }
 .mp-play { width: clamp(44px, 12.5vw, 58px); }
 .mp-speed { flex: none; }
+@media (max-width: 380px) { .mp-mixpop { column-gap: 6px; padding: 12px 10px; } .mp-vol { font-size: 13px; } }   /* three faders at 320 px */

@@ -12,12 +12,12 @@
   var loop = false, loopBtn = $('mpLoop');
   /* Metronome (Trix): clicks with the tune, on its own beats (time signature, tempo, speed), the first of each bar
      stronger; remembered */
-  var metro = false, metroBtn = $('mpMetro'), lastTick = -1;
-  try { metro = localStorage.getItem('violin-midi-metro') === 'on'; } catch (e) {}   /* Loop: start again from the top at the end (Trix), remembered */
+  var lastTick = -1;   /* since the Mixer (Trix): no button; it clicks when its fader is above 0 */   /* Loop: start again from the top at the end (Trix), remembered */
   try { loop = localStorage.getItem('violin-midi-loop') === 'on'; } catch (e) {}
   /* Mixer (Trix): violin and accompaniment levels, 0-1, remembered */
-  var mix = { v: 1, a: 0.8 };
-  try { var mj = JSON.parse(localStorage.getItem('violin-midi-mix') || 'null'); if (mj && isFinite(mj.v) && isFinite(mj.a)) mix = { v: Math.max(0, Math.min(1, mj.v)), a: Math.max(0, Math.min(1, mj.a)) }; } catch (e) {}
+  var mix = { v: 1, a: 0.8, m: 0 };   /* the metronome starts silent (Trix) */
+  function lv(x, d) { return isFinite(x) ? Math.max(0, Math.min(1, +x)) : d; }
+  try { var mj = JSON.parse(localStorage.getItem('violin-midi-mix') || 'null'); if (mj) mix = { v: lv(mj.v, 1), a: lv(mj.a, 0.8), m: lv(mj.m, 0) }; } catch (e) {}
 
   /* ---------- the accompaniment: every part but the solo, on a soft synth (triangle through a low-pass), scheduled
      a quarter of a second ahead on the audio clock; it follows play, pause, seek, speed and loop ---------- */
@@ -504,7 +504,6 @@
     playBtn.classList.toggle('on', playing || counting);
     scoreEl.classList.toggle('playing', playing || counting);   /* tap-a-note only while paused */
     loopBtn.setAttribute('aria-pressed', loop ? 'true' : 'false');
-    metroBtn.setAttribute('aria-pressed', metro ? 'true' : 'false');
     $('mpSlower').disabled = speed <= 0.5 + 1e-9;
     $('mpFaster').disabled = speed >= 1.5 - 1e-9;
   }
@@ -528,10 +527,8 @@
   function frame(now) {
     if (!playing) return;
     pos += (now - last) / 1000 * speed;
-    if (metro) {
-      var k = Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);
-      if (k > lastTick) { lastTick = k; if (pos < song.end) APP.board.click(k % song.sig.num === 0); }
-    }
+    var k = Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);   /* the beat is tracked even at 0, so raising the fader clicks from the next beat */
+    if (k > lastTick) { lastTick = k; if (pos < song.end && mix.m > 0) APP.board.click(k % song.sig.num === 0, mix.m); }
     last = now;
     if (song.acc.length) accAhead();
     var ns = song.notes;
@@ -725,14 +722,15 @@
   });
 
   /* the mixer: a small panel above the controls with Violin and Accompaniment sliders */
-  var mixBtn = $('mpMix'), mixPop = $('mpMixPop'), volV = $('mpVolV'), volA = $('mpVolA');
+  var mixBtn = $('mpMix'), mixPop = $('mpMixPop'), volV = $('mpVolV'), volA = $('mpVolA'), volM = $('mpVolM');
   function mixUi() {
     var none = !song || !song.acc.length;
     /* a one-part tune (Trix): the accompaniment fader sits at 0 and is disabled; the violin's still works. The saved
        level is kept for tunes that have an accompaniment. */
     volV.value = Math.round(mix.v * 100); volA.value = none ? 0 : Math.round(mix.a * 100);
     volA.disabled = none; $('mpMixNone').hidden = !none;
-    $('mpVolVOut').textContent = volV.value + '%'; $('mpVolAOut').textContent = volA.value + '%';
+    volM.value = Math.round(mix.m * 100);
+    $('mpVolVOut').textContent = volV.value + '%'; $('mpVolAOut').textContent = volA.value + '%'; $('mpVolMOut').textContent = volM.value + '%';
     APP.board.soloVolume(mix.v);
     if (accBus) accBus.gain.setTargetAtTime(mix.a, accBus.context.currentTime, 0.03);
   }
@@ -744,16 +742,11 @@
   mixBtn.addEventListener('click', function (e) { e.stopPropagation(); setMixOpen(mixPop.hidden); });
   volV.addEventListener('input', function () { mix.v = volV.value / 100; mixUi(); saveMix(); });
   volA.addEventListener('input', function () { mix.a = volA.value / 100; mixUi(); saveMix(); });
+  volM.addEventListener('input', function () { mix.m = volM.value / 100; mixUi(); saveMix(); });
   document.addEventListener('pointerdown', function (e) { if (!mixPop.hidden && !mixPop.contains(e.target) && !mixBtn.contains(e.target)) setMixOpen(false); }, true);
   mixPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setMixOpen(false); mixBtn.focus(); } });
   playBtn.addEventListener('click', function () { if (playing || counting) pause(); else play(); });
   $('mpStart').addEventListener('click', function () { seekTo(0); });
-  metroBtn.addEventListener('click', function () {
-    metro = !metro;
-    if (song) lastTick = pos < 0.01 && !playing ? -1 : Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);   /* from the next beat (the first, at the top) */
-    try { localStorage.setItem('violin-midi-metro', metro ? 'on' : 'off'); } catch (e) {}
-    ui();
-  });
   loopBtn.addEventListener('click', function () {
     loop = !loop;
     try { localStorage.setItem('violin-midi-loop', loop ? 'on' : 'off'); } catch (e) {}
