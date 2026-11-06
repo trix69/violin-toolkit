@@ -760,6 +760,7 @@ nav_js = """(function () {
         + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv" aria-hidden="true">' + num + (hrs ? 'h' : '') + '</span></li>';   /* screen readers hear one full phrase ("Today, 1.5 hours"), the bar shows the short form (Hermes F25) */   /* an hour or more: 1h, 1.5h (Hermes F21) */   /* some practice, under a minute: <1, not 0 */
     });
     document.getElementById('ubars').innerHTML = html;
+    document.getElementById('ubars').setAttribute('aria-label', zh ? '最近 7 天' : 'Last 7 days');   /* translate="no" keeps i18n off this label (Hermes F26) */
     document.getElementById('useToday').textContent = USAGE.fmt(ser[ser.length - 1].s);
     document.getElementById('useWeek').textContent = USAGE.fmt(tot);
     var nd = USAGE.days(); document.getElementById('useDays').textContent = nd + (nd === 1 ? ' day' : ' days');   /* all time (Trix) */
