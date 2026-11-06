@@ -118,7 +118,17 @@
        every other track is accompaniment. A one-track file with several channels splits by channel the same way
        (the Violin channel, else the first channel heard). Drums (channel 10) are left out: the accompaniment synth
        plays pitched notes only. */
-    var DRUM = 9, VIOLIN = /violin|violín|小提琴/i, GM_VIOLIN = 40, solo, acc = [];
+    /* unnamed parts are called by their General MIDI instrument (Trix's Ode to Joy names none): the channel's
+       first program anywhere in the file */
+    var chanProg = {}; tracks.forEach(function (tr) { Object.keys(tr.prog).forEach(function (c) { if (!(c in chanProg)) chanProg[c] = tr.prog[c]; }); });
+    function gmName(p) {
+      return p === undefined ? '' : p < 8 ? 'Piano' : p < 16 ? 'Bells' : p < 24 ? 'Organ' : p < 32 ? 'Guitar' : p < 40 ? 'Bass' :
+        ['Violin', 'Viola', 'Cello', 'Double bass', 'Strings', 'Strings', 'Harp', 'Timpani'][p - 40] ||
+        (p < 56 ? 'Strings' : p < 64 ? 'Brass' : p < 72 ? ['Saxophone', 'Saxophone', 'Saxophone', 'Saxophone', 'Oboe', 'Cor anglais', 'Bassoon', 'Clarinet'][p - 64] :
+        p < 80 ? ['Piccolo', 'Flute', 'Recorder', 'Pan flute', 'Flute', 'Flute', 'Whistle', 'Ocarina'][p - 72] : 'Synth');
+    }
+    tracks.forEach(function (tr) { if (!tr.name && tr.notes.length) tr.name = gmName(chanProg[tr.notes[0].ch]); });
+    var DRUM = 9, VIOLIN = /violin|violín|violon(?!c)|geige|小提琴/i   /* violin, violino, violine, violín, violon (not violoncello), Geige */, GM_VIOLIN = 40, solo, acc = [];
     /* also left out: a part named as drums or percussion, and channels set to General MIDI's percussive and
        sound-effect instruments (112-127: woodblock, taiko, synth drum…), which a pitched synth can't play */
     /* whole words only in Latin script (a "Violin (kit)" part is not drums: Hermes F27); Chinese has no spaces */

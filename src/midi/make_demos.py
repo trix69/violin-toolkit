@@ -53,4 +53,4 @@ write('twinkle.mid', 'Twinkle, Twinkle, Little Star', 100, 3, twinkle)
 D4, E4, Fs4, G4, A4_ = 62, 64, 66, 67, 69
 line = [(Fs4,q),(Fs4,q),(G4,q),(A4_,q),(A4_,q),(G4,q),(Fs4,q),(E4,q),(D4,q),(D4,q),(E4,q),(Fs4,q)]
 ode = line + [(Fs4,1.5),(E4,.5),(E4,h)] + line + [(E4,1.5),(D4,.5),(D4,h)]
-write('ode.mid', 'Ode to Joy', 108, 2, ode)
+# write('ode.mid', 'Ode to Joy', 108, 2, ode)   # replaced by Trix's violin + piano arrangement (2026-11-07): don't overwrite it
