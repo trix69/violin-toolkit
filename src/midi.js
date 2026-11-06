@@ -29,7 +29,7 @@
     var ntr = u16(10), tpq = u16(12);
     if (tpq & 0x8000) throw fail('This MIDI file keeps time in a way the player can’t read.');
     p = 8 + u32(4);
-    var tempos = [], sig = null, sf = null, tracks = [];
+    var tempos = [], sig = null, sf = null, minor = false, tracks = [];
     for (var t = 0; t < ntr && p + 8 <= u8.length; t++) {
       var id = str(p, 4), end = Math.min(p + 8 + u32(p + 4), u8.length);
       p += 8;
@@ -43,7 +43,7 @@
           var ty = u8[p++], l = vlq();
           if (ty === 0x51 && l >= 3) tempos.push({ tick: tick, us: (u8[p] << 16) | (u8[p + 1] << 8) | u8[p + 2] });
           else if (ty === 0x58 && l >= 2 && !sig) sig = { num: u8[p], den: Math.pow(2, u8[p + 1]) };
-          else if (ty === 0x59 && l >= 1 && sf === null) sf = (u8[p] << 24) >> 24;
+          else if (ty === 0x59 && l >= 1 && sf === null) { sf = (u8[p] << 24) >> 24; minor = l >= 2 && u8[p + 1] === 1; }
           p += l;
         } else if (st === 0xf0 || st === 0xf7) {
           p += vlq();
@@ -62,7 +62,9 @@
     if (!tracks.length) throw fail('This file has no notes.');
     var parts = tracks.length > 1 ? tracks.length : tracks[0].chans;
     if (parts > 1) throw fail('This file has ' + parts + ' parts. The player plays one violin part: save just the violin part as its own MIDI file.');
-    return build(tracks[0].notes, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0);
+    var sg = build(tracks[0].notes, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0);
+    sg.minor = minor;
+    return sg;
   }
 
   /* ticks to seconds through the tempo changes, and back */
@@ -540,7 +542,15 @@
     if (song) song.notes.forEach(function (n) { if (n.si >= 0) top = Math.max(top, n.m - OPEN[n.si] + 1); });
     return top;
   }
-  function fit() { APP.board.player(true, topH, reach()); scroll(); }
+  /* the tune's key from its key signature: a minor key has the notes of its relative major (natural minor), as on
+     the fingerboard; those notes show pale in their string colour (Trix) */
+  function keySet() {
+    if (!song) return null;
+    var root = ((song.sf * 7) % 12 + 12) % 12, set = {};
+    [0, 2, 4, 5, 7, 9, 11].forEach(function (i) { set[(root + i) % 12] = true; });
+    return set;
+  }
+  function fit() { APP.board.player(true, topH, reach(), keySet(), song && song.sf < 0); scroll(); }
   APP.views.midi = {
     show: function () { shown = true; fit(); },
     hide: function () { shown = false; pause(); APP.board.player(false); }

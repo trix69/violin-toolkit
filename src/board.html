@@ -345,6 +345,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 }
 /* the line pivots at the finger, so it moves little there and most towards the bridge */
 .stage.small .note { border-width: 1px; }
+/* MIDI player: the tune's key in a pale string colour; the note being played in full */
+.note.tint:not(.down) { background: color-mix(in srgb, var(--hue) 38%, var(--board)); color: color-mix(in srgb, var(--ink) 75%, var(--board)); box-shadow: none; border-color: color-mix(in srgb, var(--hue) 45%, var(--board)); }
 .vib.still { animation: none; transform: translateX(-50%); }
 .vib.still::before { display: none; }
 @keyframes vibShake { from { transform: translateX(-50%) rotate(-.3deg); } to { transform: translateX(-50%) rotate(.3deg); } }
@@ -593,6 +595,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     return (key.sp = sp);
   }
   function noteName(midi, octave) {
+    if (playerOn && playerFlat !== null) {   /* the MIDI player spells by the tune's key signature: flats or sharps */
+      var pn = (playerFlat ? NAMES_F : NAMES_S)[midi % 12];
+      return octave ? pn + (Math.floor(midi / 12) - 1) : pn;
+    }
     var key = keyObj(), s = spelling(key)[midi % 12];
     var nm = s ? s.nm : (key.flat ? NAMES_F : NAMES_S)[midi % 12];
     return octave ? nm + (Math.floor(midi / 12) - 1 + (s ? s.oct : 0)) : nm;
@@ -798,7 +804,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       if (!b) return;
       /* Pitch Check colours the key's notes across both positions */
       var on = !playerOn && nt.inKey && (pc || (nt.n >= P.lo && nt.n <= P.hi));   /* the MIDI player starts every note grey */
-      b.classList.toggle('off', !on);
+      var tint = playerOn && !!playerKey && !!playerKey[nt.midi % 12];   /* ... except the tune's key, pale */
+      b.classList.toggle('off', !on && !tint);
+      b.classList.toggle('tint', tint);
+      if (tint) { b.classList.remove('root'); b.style.setProperty('--hue', 'var(' + nt.s.v + ')'); return; }
       b.classList.toggle('root', on && nt.midi % 12 === key.root);
       b.style.setProperty('--hue', on ? 'var(' + nt.s.v + ')' : 'var(--off)');
     });
@@ -1307,7 +1316,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     else if (state.pos === 'pc' && !mic && !playerOn && board.offsetParent) startMic();
   });
   /* ---------- MIDI player (built page): this board with every note grey; the player lights and sounds the notes it plays ---------- */
-  var playerOn = false, playerTop = null, playerN = MAXN, pvoices = new Map(), PTOP = 19, renderedEvenly = false;   /* the player's board reaches a twelfth up each string */
+  var playerOn = false, playerTop = null, playerN = MAXN, pvoices = new Map(), PTOP = 19, renderedEvenly = false, playerKey = null, playerFlat = null;   /* the player's board reaches a twelfth up each string */
   /* where a pitch is played: the highest string that has it within the octave, so the lowest position (A4 = open A) */
   function pick(midi) {
     for (var si = STRINGS.length - 1; si >= 0; si--) {
@@ -1363,14 +1372,14 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     pvoices.forEach(function (r) { if (r.el === rec.el) still = true; });
     if (rec.el && !still) {
       rec.el.classList.remove('down');
-      if (playerOn) { rec.el.classList.add('off'); rec.el.style.setProperty('--hue', 'var(--off)'); }
+      if (playerOn && !rec.el.classList.contains('tint')) { rec.el.classList.add('off'); rec.el.style.setProperty('--hue', 'var(--off)'); }
     }
   }
   function pAllOff() { Array.from(pvoices.keys()).forEach(pOff); }
   if (window.APP) APP.board = {
     /* on: player mode; top(): height of the player's own part above the board, so the board fits below it */
-    player: function (on, top, n) {
-      pAllOff(); stopAll(); playerOn = on; playerTop = top || null;
+    player: function (on, top, n, key, flat) {
+      pAllOff(); stopAll(); playerOn = on; playerTop = top || null; playerKey = on ? key || null : null; playerFlat = on ? !!flat : null;
       playerN = on ? Math.max(4, Math.min(PTOP, n || MAXN)) : MAXN;
       TOPN = on ? Math.max(MAXN, playerN) : MAXN;
       renderedEvenly = null; layout(); if (renderedEvenly === null) { renderedEvenly = false; render(); layout(); }
