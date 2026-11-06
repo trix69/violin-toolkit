@@ -972,7 +972,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     document.addEventListener(ev, unlock, { passive: true });
   });
 
-  function startVoice(freq, pure) {
+  function startVoice(freq, pure, att) {   /* att: seconds to full volume (the MIDI player uses a quicker one) */
     var t = ctx.currentTime;
     var out = ctx.createGain();
     var nodes = [];
@@ -1027,18 +1027,18 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       nodes.push(lfo);
       lp.connect(body);
       body.connect(out);
-      out.gain.linearRampToValueAtTime(0.32, t + 0.07);
+      out.gain.linearRampToValueAtTime(0.32, t + (att || 0.07));
       out.connect(master);
     }
     return { out: out, nodes: nodes, vib: vib };
   }
-  function stopVoice(v) {
-    var t = ctx.currentTime;
+  function stopVoice(v, rel) {   /* rel: seconds to fade out (the MIDI player uses a shorter one) */
+    var t = ctx.currentTime, r = rel || 0.09;
     var g = v.out.gain;
     g.cancelScheduledValues(t);
     g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(0, t + 0.09);
-    v.nodes.forEach(function (n) { try { n.stop(t + 0.12); } catch (err) {} });
+    g.linearRampToValueAtTime(0, t + r);
+    v.nodes.forEach(function (n) { try { n.stop(t + r + 0.03); } catch (err) {} });
     setTimeout(function () { try { v.out.disconnect(); } catch (err) {} }, 400);
   }
 
@@ -1288,7 +1288,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     var i = pick(midi), nt = notes[i], el = buttons[i];
     /* a string sounds one note at a time: a new note on it replaces the one before (overlapping legato in the file) */
     if (nt) pvoices.forEach(function (r, k) { if (r.si === nt.si && k !== id) pOff(k); });
-    var rec = { el: el, si: nt ? nt.si : -1, v: startVoice(midiFreq(midi)), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
+    var rec = { el: el, si: nt ? nt.si : -1, v: startVoice(midiFreq(midi), false, 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
     rec.timer = setTimeout(function () { applyVib(rec); }, 200);
     if (el) {
       el.classList.remove('off');
@@ -1304,7 +1304,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (!rec) return;
     pvoices.delete(id);
     clearTimeout(rec.timer);
-    stopVoice(rec.v);
+    stopVoice(rec.v, 0.04);
     if (rec.fx) { rec.fx.forEach(function (d) { d.remove(); }); rec.fx = null; }
     var still = false;
     pvoices.forEach(function (r) { if (r.el === rec.el) still = true; });

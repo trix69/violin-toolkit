@@ -75,7 +75,9 @@
     var low = 0, high = 0;
     var notes = raw.map(function (n) {
       if (n.m < 55) low++; else if (!APP.board.where(n.m)) high++;
-      return { m: n.m, t: toSec(n.t0), e: toSec(Math.max(n.t1, n.t0 + 1)), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq };
+      var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
+      /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
+      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* how long each note looks on the score: until the next note starts (a short breath between notes is
@@ -296,7 +298,8 @@
     raf = requestAnimationFrame(frame);
   }
   /* count-in (Trix): one bar of the time signature counted down (3 2 1 in 3/4, 4 3 2 1 in 4/4) with a click
-     on each beat, at the tune's tempo and the chosen speed; before every start, and before each round of Loop */
+     on each beat, at the tune's tempo and the chosen speed; when starting from the beginning, and before each
+     round of Loop; resuming after a pause plays straight on */
   var counting = false, countT = 0, countEl = $('mpCount');
   function countIn(then) {
     var n = song.sig.num, k = n, step = 60 / song.bpm * 4 / song.sig.den / speed * 1000;
@@ -320,7 +323,7 @@
     if (!song || playing || counting) return;
     if (!APP.board.prime()) return;   /* the sound engine starts inside the tap (iPhone) */
     if (pos >= song.end - 0.01) seekTo(0);
-    countIn(go);
+    if (pos < 0.01) countIn(go); else go();   /* the count-in only at the beginning, not on resume (Trix) */
   }
   function pause() {
     stopCount();
