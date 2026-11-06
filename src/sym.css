@@ -32,7 +32,7 @@
 #symbols .sym-grid li:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 /* the explanation shown while a symbol is held */
 /* the card floats over the symbols without blocking them: a tap outside it reaches the symbol underneath */
-#symTip { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; padding: 20px; pointer-events: none; }
+#symTip { position: fixed; inset: 0; z-index: 6;   /* above the sticky search (z 5), Trix */ display: grid; place-items: center; padding: 20px; pointer-events: none; }
 #symTip { align-items: end; }   /* padding-bottom keeps it above Done (met.js) */
 #symTip.up { align-items: start; padding-top: calc(env(safe-area-inset-top, 0px) + 20px); }
 #symTip .sym-tip-card { pointer-events: auto; animation: symTipIn .12s ease-out; }
