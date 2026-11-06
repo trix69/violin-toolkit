@@ -348,6 +348,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 /* MIDI player: the tune's key in a pale string colour; the note being played in full */
 .note.tint:not(.down) { background: color-mix(in srgb, var(--hue) 15%, transparent); color: color-mix(in srgb, var(--hue) 55%, #fff); box-shadow: none; border-color: color-mix(in srgb, var(--hue) 30%, transparent); }   /* paler (Trix), so the played note stands out */   /* see-through like the grey notes, so a lit string shows under them (Trix) */
 .note.tint.root:not(.down) { box-shadow: inset 0 0 0 2px var(--nut); }   /* the key note keeps the fingerboard's white ring */
+.note.down.quiet { filter: saturate(.35) brightness(.8); opacity: .75; }   /* pressed but silent: a higher finger holds the same string (Hermes F22) */
 .note.beyond { visibility: hidden; }   /* MIDI player: rows past the tune's range */
 .vib.still { animation: none; transform: translateX(-50%); }
 .vib.still::before { display: none; }
@@ -1287,6 +1288,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     voices.delete(id);
     clearTimeout(rec.timer); clearTimeout(rec.latchT);
     stopVoice(rec.v);
+    if (rec.mute) { var mu = rec.mute; rec.mute = null; setTimeout(function () { try { mu.disconnect(); } catch (e) {} }, 400); }   /* let the node go with its voice (Hermes F22) */
     if (rec.hz) { rec.hz.remove(); rec.hz = null; }
     if (rec.fx) { rec.fx.forEach(function (d) { d.remove(); }); rec.fx = null; }
     var stillDown = false;
