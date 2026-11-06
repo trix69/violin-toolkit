@@ -36,7 +36,7 @@
     var c = bus.context, now = c.currentTime;
     var t0 = now + Math.max(0, (from - pos) / speed), t1 = now + Math.max(0.03, (n.e - pos) / speed);
     if (t1 <= t0 + 0.02) return;
-    var o = c.createOscillator(), g = c.createGain(), pk = 0.16 * n.v, a4 = (window.APP && APP.a4) || 442;
+    var o = c.createOscillator(), g = c.createGain(), pk = 0.44 * n.v,   /* at 100 % as loud as the violin at 100 % (Trix: far too quiet; was 0.16, ~9 dB under) */ a4 = (window.APP && APP.a4) || 442;
     o.type = 'triangle'; o.frequency.value = a4 * Math.pow(2, (n.m - 69) / 12);
     g.gain.setValueAtTime(0, t0);
     g.gain.linearRampToValueAtTime(pk, t0 + 0.012);
@@ -121,11 +121,12 @@
     var DRUM = 9, VIOLIN = /violin|violín|小提琴/i, GM_VIOLIN = 40, solo, acc = [];
     /* also left out: a part named as drums or percussion, and channels set to General MIDI's percussive and
        sound-effect instruments (112-127: woodblock, taiko, synth drum…), which a pitched synth can't play */
-    var NOISE = /drum|perc|kit|鼓|打击/i;
-    tracks = tracks.filter(function (tr) { return !NOISE.test(tr.label); })
+    /* whole words only in Latin script (a "Violin (kit)" part is not drums: Hermes F27); Chinese has no spaces */
+    var NOISE = /(^|[^a-z])(drums?|drum ?kit|perc|percussion|kits?)([^a-z]|$)|鼓|打击/i, dropped = [];
+    tracks = tracks.filter(function (tr) { if (NOISE.test(tr.label) && !VIOLIN.test(tr.label)) {   /* a part named as a violin is never drums */ dropped.push(tr.name || tr.label.trim() || 'Drums'); return false; } return true; })
       .map(function (tr) { tr.notes = tr.notes.filter(function (n) { return n.ch !== DRUM && !(tr.prog[n.ch] >= 112); }); return tr; })
-      .filter(function (tr) { return tr.notes.length; });
-    if (!tracks.length) throw fail('This file has no notes.');
+      .filter(function (tr) { if (tr.notes.length) return true; dropped.push(tr.name || 'Drums'); return false; });
+    if (!tracks.length) throw fail('This file has only percussion.');   /* it has notes, all of them drums (Hermes F28) */
     var soloName = '', accNames = [];
     function gmViolin(tr) { return Object.keys(tr.prog).some(function (c) { return tr.prog[c] === GM_VIOLIN && tr.notes.some(function (n) { return n.ch === +c; }); }); }
     if (tracks.length === 1 && tracks[0].chans > 1) {
@@ -159,6 +160,7 @@
     sg.parts = tracks.length > 1 ? tracks.length : Object.keys(used).length;   /* channels that still play: drums not counted (Hermes R20.1) */
     sg.soloName = soloName || '';
     sg.accNames = accNames;
+    sg.dropped = dropped;   /* said in the parts flash (Hermes F27) */
     /* the accompaniment in seconds from the first bar kept, by start time */
     sg.acc = acc.map(function (n) { var t = sg.sec(n.t0); return { m: n.m, t: t, e: Math.max(t + 0.03, sg.sec(Math.max(n.t1, n.t0 + 1))), v: (n.v || 90) / 127 }; })
       .filter(function (n) { return n.e > 0; }).sort(function (a, b) { return a.t - b.t; });
@@ -641,13 +643,15 @@
   var partsEl = $('mpParts'), partsSr = $('mpPartsSr'), partsT = 0;
   function flashParts() {
     clearTimeout(partsT); partsEl.classList.remove('show'); partsEl.hidden = true; partsSr.textContent = '';
-    if (!song || !song.acc.length) return;
+    if (!song || (!song.acc.length && !song.dropped.length)) return;
     var zh = window.I18N && I18N.lang === 'zh', lv = zh ? '小提琴' : 'Violin', la = zh ? '伴奏' : 'Accompaniment';   /* the score is translate="no" */
     var v = song.soloName || (zh ? '第 1 声部' : 'Part 1'), a = song.accNames.join(zh ? '、' : ', ');
-    $('mpPartsLV').textContent = lv; $('mpPartsLA').textContent = la;
-    $('mpPartsV').textContent = v; $('mpPartsA').textContent = a;
+    var ld = zh ? '已略去' : 'Left out', d = song.dropped.join(zh ? '、' : ', ');
+    $('mpPartsLV').textContent = lv; $('mpPartsLA').textContent = la; $('mpPartsLD').textContent = ld;
+    $('mpPartsV').textContent = v; $('mpPartsA').textContent = a; $('mpPartsD').textContent = d;
+    $('mpPartsA').parentNode.hidden = !a; $('mpPartsD').parentNode.hidden = !d;
     partsEl.hidden = false; void partsEl.offsetWidth; partsEl.classList.add('show');
-    partsSr.textContent = lv + (zh ? '：' : ': ') + v + (zh ? '。' : '. ') + la + (zh ? '：' : ': ') + a;
+    partsSr.textContent = lv + (zh ? '：' : ': ') + v + (zh ? '。' : '. ') + (a ? la + (zh ? '：' : ': ') + a + (zh ? '。' : '. ') : '') + (d ? ld + (zh ? '：' : ': ') + d + (zh ? '。' : '.') : '');
     partsT = setTimeout(function () { partsEl.hidden = true; partsEl.classList.remove('show'); }, 5200);
   }
   function load(i) {

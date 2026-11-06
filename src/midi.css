@@ -75,9 +75,7 @@
 .mp-ctl { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 4px; }
 .mp-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); font: 500 24px/1 var(--font-note); cursor: pointer; }
 .mp-btn:disabled { opacity: .4; cursor: default; }
-.mp-metro svg { stroke-width: 1.6; stroke-linejoin: round; }
-.mp-metro[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-@media (max-width: 380px) { .mp-ctl { gap: 7px; } .mp-btn { width: 40px; height: 40px; } .mp-play { width: 52px; height: 52px; } .mp-speed { min-width: 44px; } }
+@media (max-width: 380px) { .mp-speed { min-width: 44px; } }   /* button sizes: the clamp() rules below */
 .mp-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; fill: none; }
 .mp-play { width: 58px; height: 58px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--accent); color: var(--on-accent); cursor: pointer; }
 .mp-play svg { width: 26px; height: 26px; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
@@ -109,7 +107,6 @@
 .mp-vol input { position: absolute; left: 50%; top: 50%; width: 150px; height: 44px; margin: 0; transform: translate(-50%, -50%) rotate(-90deg); accent-color: var(--accent); touch-action: none; }
 .mp-vol input:disabled { opacity: .4; }
 .mp-mixnone { grid-column: 1 / -1; margin: 0; max-width: 220px; text-align: center; font: 400 13px var(--font-body); color: var(--muted, inherit); }
-@media (max-width: 340px) { .mp-ctl { gap: 5px; } .mp-btn { width: 38px; height: 38px; } }   /* seven controls with the Mixer button at 320 px */
 /* controls stay perfect circles (Trix): they never shrink in the row; size and spacing follow the screen width */
 .mp-ctl { gap: clamp(3px, calc(2.2vw - 3px), 12px); }
 .mp-btn, .mp-play { flex: none; aspect-ratio: 1; height: auto; }
@@ -126,3 +123,4 @@
 .mp-parts p { margin: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .mp-parts p + p { margin-top: 4px; }
 .mp-parts b { font: 600 13px var(--font-note); color: var(--accent); margin-right: 8px; }
+.mp-parts p[hidden] { display: none; }
