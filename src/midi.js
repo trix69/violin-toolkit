@@ -568,8 +568,8 @@
     [0, 2, 4, 5, 7, 9, 11].forEach(function (i) { set[(root + i) % 12] = true; });
     set.tonic = song.minor ? (root + 9) % 12 : root;   /* the key note, ringed as on the fingerboard */
     set.minor = !!song.minor;   /* so Just intonation tunes to the tune's key, not the fingerboard's */
-    /* colour key notes only as high up the strings as the tune itself plays (Trix: Twinkle never needs the 4th finger) */
-    set.top = 0;
+    /* colour key notes as high up the strings as the tune plays (Trix) */
+    set.top = 7;   /* at least 1st position's 4th finger on every string; higher if the tune goes higher, the same on all four (Trix) */
     song.notes.forEach(function (n) { if (n.si >= 0) set.top = Math.max(set.top, n.m - OPEN[n.si]); });
     return set;
   }
