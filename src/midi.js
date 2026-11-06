@@ -577,19 +577,26 @@
       var name = f.name.replace(/\.(mid|midi|smf)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6), i;
       try { i = addSong(name, rd.result, id); }   /* reading the file: only a failure here means it could not be read */
       catch (e) { if (!e.mine) console.error('MIDI import', e); say(e.mine ? e.message : 'This MIDI file could not be read.', true); return; }
-      kept.push({ id: id, name: name, b64: toB64(rd.result) });
-      var ok = saveKept();
-      songSel.value = i;
+      var ok = false, prevI = +songSel.value;
+      try { kept.push({ id: id, name: name, b64: toB64(rd.result) }); ok = saveKept(); }   /* keeping it for next time; a failure here only means not kept (Hermes F17) */
+      catch (e) { console.error('MIDI import: keep', e); if (kept.length && kept[kept.length - 1].id === id) kept.pop(); }
       /* showing it: Trix saw "could not be read" for a file that then played fine after choosing another tune and
-         back, so a slip here gets one more try, the same as choosing it again, and is logged for a fix */
-      try { load(i); }
+         back, so a slip here gets one more try, the same as choosing it again, and is logged for a fix. The list
+         moves to the new tune only once it is shown; if both tries fail it goes back to the tune still on screen,
+         so choosing the new one is a real change (Hermes F18) */
+      try { load(i); songSel.value = i; }
       catch (e) {
         console.error('MIDI import: first load', e);
-        try { load(i); } catch (e2) { console.error('MIDI import: second load', e2); say('The tune was added, but it could not be shown. Choose it again from the list.', true); return; }
+        try { load(i); songSel.value = i; }
+        catch (e2) {
+          console.error('MIDI import: second load', e2);
+          songSel.value = prevI; try { load(prevI); } catch (e3) {}
+          say('The tune was added, but it could not be shown. Choose it again from the list.', true); return;
+        }
       }
-      if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.', true); }
+      if (!ok) { kept = kept.filter(function (k) { return k.id !== id; }); say('This file plays now, but there is no room to keep it for next time.', true); }
     };
-    rd.onerror = function () { say('This MIDI file could not be read.', true); };
+    rd.onerror = function () { console.error('MIDI import: read', rd.error); say('This MIDI file could not be read.', true); };   /* the reason, for the console (Hermes F16) */
     rd.readAsArrayBuffer(f);
   });
 
