@@ -521,14 +521,20 @@
     if (!f) return;
     var rd = new FileReader();
     rd.onload = function () {
-      try {
-        var name = f.name.replace(/\.(mid|midi|smf)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-        var i = addSong(name, rd.result, id);
-        kept.push({ id: id, name: name, b64: toB64(rd.result) });
-        var ok = saveKept();
-        songSel.value = i; load(i);
-        if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.', true); }
-      } catch (e) { say(e.mine ? e.message : 'This MIDI file could not be read.', true); }
+      var name = f.name.replace(/\.(mid|midi|smf)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6), i;
+      try { i = addSong(name, rd.result, id); }   /* reading the file: only a failure here means it could not be read */
+      catch (e) { if (!e.mine) console.error('MIDI import', e); say(e.mine ? e.message : 'This MIDI file could not be read.', true); return; }
+      kept.push({ id: id, name: name, b64: toB64(rd.result) });
+      var ok = saveKept();
+      songSel.value = i;
+      /* showing it: Trix saw "could not be read" for a file that then played fine after choosing another tune and
+         back, so a slip here gets one more try, the same as choosing it again, and is logged for a fix */
+      try { load(i); }
+      catch (e) {
+        console.error('MIDI import: first load', e);
+        try { load(i); } catch (e2) { console.error('MIDI import: second load', e2); say('The tune was added, but it could not be shown. Choose it again from the list.', true); return; }
+      }
+      if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.', true); }
     };
     rd.onerror = function () { say('This MIDI file could not be read.', true); };
     rd.readAsArrayBuffer(f);
