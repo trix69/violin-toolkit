@@ -472,7 +472,7 @@ h1 {
   animation: vibBand 100ms ease-in-out infinite alternate;
 }
 #view-board .stage.small .note { border-width: 1px; }
-#view-board .note.tint:not(.down) { background: color-mix(in srgb, var(--hue) 38%, var(--board)); color: color-mix(in srgb, var(--ink) 75%, var(--board)); box-shadow: none; border-color: color-mix(in srgb, var(--hue) 45%, var(--board)); }
+#view-board .note.tint:not(.down) { background: color-mix(in srgb, var(--hue) 45%, transparent); color: color-mix(in srgb, var(--ink) 80%, transparent); box-shadow: none; border-color: color-mix(in srgb, var(--hue) 55%, transparent); }
 #view-board .note.tint.root:not(.down) { box-shadow: inset 0 0 0 2px var(--nut); }
 #view-board .vib.still { animation: none; transform: translateX(-50%); }
 #view-board .vib.still::before { display: none; }
@@ -904,27 +904,38 @@ h1 {
 .mp-song select:focus-visible, .mp-import:focus-visible, .mp-btn:focus-visible, .mp-play:focus-visible, #mpSeek:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .mp-msg { margin: 8px 2px 0; font: 400 13px/1.4 var(--font-note); color: var(--muted); }
 .mp-msg[hidden] { display: none; }
-/* the score strip: dark like the board, the playhead a third of the way in */
-.mp-score { position: relative; margin-top: 10px; height: 128px; overflow: hidden; border-radius: 14px; background: var(--board, #46524C); color: #E9E2D2; }
+.mp-msg.err {
+  display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; padding: 12px 14px; border-radius: 12px;
+  background: color-mix(in srgb, var(--t-bad) 12%, var(--panel)); border: 1.5px solid var(--t-bad);
+  color: var(--fg); font: 500 15px/1.45 var(--font-note);
+}
+.mp-msg.err::before {   /* a warning sign */
+  content: '!'; flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--t-bad); color: var(--panel); font: 800 15px/1 var(--font-note); margin-top: 1px;
+}
+/* the sheet: black notes on white paper in light appearance, light notes on the board colour in dark (Trix) */
+.mp-score { --sc-bg: #FFFFFF; --sc-ink: #1A1A1A; --sc-fing: 8%; position: relative; margin-top: 10px; height: 128px; overflow: hidden; border-radius: 14px; background: var(--sc-bg); color: var(--sc-ink); box-shadow: inset 0 0 0 1px var(--line, rgba(0,0,0,.12)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mp-score { --sc-bg: var(--board, #46524C); --sc-ink: #E9E2D2; --sc-fing: 0%; box-shadow: none; } }
+:root[data-theme="dark"] .mp-score { --sc-bg: var(--board, #46524C); --sc-ink: #E9E2D2; --sc-fing: 0%; box-shadow: none; }
 .mp-score .mp-strip { position: absolute; left: 0; top: 4px; will-change: transform; }
 .mp-strip .mp-chunk { position: absolute; top: 0; }
 .mp-score .mp-key { position: absolute; top: 4px; }
-/* the clef and key at the left: the board colour, fading out over the notes passing underneath */
-.mp-score .mp-key { left: 0; z-index: 1; background: linear-gradient(90deg, var(--board, #46524C) calc(100% - 14px), color-mix(in srgb, var(--board, #46524C) 0%, transparent)); }
-.mp-head { position: absolute; z-index: 2; top: 10px; bottom: 10px; left: 33%; width: 2px; margin-left: -1px; border-radius: 1px; background: color-mix(in srgb, #E9E2D2 35%, transparent); pointer-events: none; }
+/* the clef and key at the left: the sheet colour, fading out over the notes passing underneath */
+.mp-score .mp-key { left: 0; z-index: 1; background: linear-gradient(90deg, var(--sc-bg) calc(100% - 14px), color-mix(in srgb, var(--sc-bg) 0%, transparent)); }
+.mp-head { position: absolute; z-index: 2; top: 10px; bottom: 10px; left: 33%; width: 2px; margin-left: -1px; border-radius: 1px; background: color-mix(in srgb, var(--sc-ink) 35%, transparent); pointer-events: none; }
 .mp-score .sl { stroke: color-mix(in srgb, currentColor 55%, transparent); stroke-width: 1; }
 .mp-score .bl { stroke: color-mix(in srgb, currentColor 70%, transparent); stroke-width: 1.2; }
 .mp-score .bl.end { stroke-width: 3.5; }
 .mp-score .ledger { stroke: color-mix(in srgb, currentColor 70%, transparent); stroke-width: 1.2; }
 .mp-score .acc { fill: currentColor; font: 400 15px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
 .mp-score .ts { fill: currentColor; font: 700 19px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
-.mp-n { color: #E9E2D2; transition: color .15s, opacity .3s; }
+.mp-n { color: var(--sc-ink); transition: color .15s, opacity .3s; }
 .mp-n .head, .mp-n .flag, .mp-n .dot { fill: currentColor; }
 .mp-n .head.hollow { fill: none; stroke: currentColor; stroke-width: 1.8; }
 .mp-n .stem { stroke: currentColor; stroke-width: 1.3; }
-.mp-score .beam { fill: #E9E2D2; }
+.mp-score .beam { fill: var(--sc-ink); }
 .mp-n .acc { fill: currentColor; }
-.mp-n .fing { fill: var(--hue); font: 700 13px var(--font-note); text-anchor: middle; }
+.mp-n .fing { fill: color-mix(in srgb, var(--hue), #000 var(--sc-fing)); font: 700 13px var(--font-note); text-anchor: middle; }
 .mp-n .fing.side { font-size: 11px; text-anchor: start; }   /* fingering: 0 open, 1-4 fingers, in the string colour */
 .mp-n.done { opacity: .5; }
 /* the note sounding: in its string colour and glowing, like the board */
@@ -932,7 +943,7 @@ h1 {
 .mp-n.on.quick { filter: none; }   /* short notes: colour only */
 @media (prefers-reduced-motion: reduce) { .mp-n { transition: none; } .mp-n.on { filter: none; } }
 /* the count-in number over the score */
-.mp-count { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: color-mix(in srgb, var(--board, #46524C) 55%, transparent); color: #E9E2D2; font: 700 64px/1 var(--font-display); text-shadow: 0 0 14px var(--accent); pointer-events: none; }
+.mp-count { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: color-mix(in srgb, var(--sc-bg) 55%, transparent); color: var(--sc-ink); font: 700 64px/1 var(--font-display); text-shadow: 0 0 14px var(--accent); pointer-events: none; }
 .mp-count[hidden] { display: none; }
 .mp-count.beat { animation: mpCount .35s ease-out; }
 @keyframes mpCount { from { transform: scale(1.35); opacity: .4; } }
@@ -968,6 +979,7 @@ h1 {
 .shell[data-view="midi"] #view-board .ksig, .shell[data-view="midi"] #view-board .forkhz { display: none !important; }
 .shell[data-view="midi"] #view-board { margin-top: 10px; padding-bottom: 130px; }
 .shell[data-view="midi"] #board .note { pointer-events: none; cursor: default; }   /* the player only shows the notes */
+.shell[data-view="midi"] #board .note.down { --ty: 0px; --s: 1; }   /* not pressed, just lit: stays centred in its rings */
 
 /* ---- start overlay ---- */
 .launch {
@@ -1258,21 +1270,21 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
 <meta name="apple-mobile-web-app-title" content="Violin Toolkit">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta name="description" content="Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and 中文.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Violin Toolkit">
-<meta property="og:description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta property="og:description" content="Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and 中文.">
 <meta property="og:url" content="https://trix69.github.io/violin-toolkit/">
 <meta property="og:image" content="https://trix69.github.io/violin-toolkit/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Violin Toolkit">
-<meta name="twitter:description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta name="twitter:description" content="Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and 中文.">
 <meta name="twitter:image" content="https://trix69.github.io/violin-toolkit/og-image.png">
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Violin Toolkit",
- "description": "Free violin tuner, fingerboard chart and metronome. Works offline, in English and Chinese.",
+ "description": "Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and Chinese.",
  "url": "https://trix69.github.io/violin-toolkit/", "applicationCategory": "MusicApplication", "operatingSystem": "Any",
  "inLanguage": ["en", "zh-CN"], "isAccessibleForFree": true,
  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
@@ -1308,8 +1320,8 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <button type="button" class="tab" data-view="tuner" aria-label="Tuner" title="Tuner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0"/><path d="M12 17.5l3.6-7"/><circle cx="12" cy="17.5" r="1.2"/><path d="M12 5.8v1.8M5.6 9l1.3 1.2M18.4 9l-1.3 1.2"/></svg></button>
       <button type="button" class="tab" data-view="board" aria-current="page" aria-label="Fingerboard" title="Fingerboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11"/><path d="M8.4 3.5L7.2 21M10.8 3.5l-.5 17.5M13.2 3.5l.5 17.5M15.6 3.5L16.8 21" opacity=".7"/><path d="M7.7 11h8.6M7.3 17h9.4" opacity=".7"/><circle cx="10.8" cy="7.3" r="1.3" fill="currentColor"/><circle cx="15.6" cy="14" r="1.3" fill="currentColor"/></svg></button>
       <button type="button" class="tab" data-view="metronome" aria-label="Metronome" title="Metronome"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l3.4 18H5.8z"/><path d="M12 17.5L15.6 6.5"/><circle cx="14.2" cy="10.6" r="1.2" fill="currentColor"/><path d="M8 21h8" opacity=".0"/></svg></button>
-      <button type="button" class="tab" data-view="symbols" aria-label="Symbols" title="Symbols"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 6-1 8.5.8 2.5-1.8 5.5-2 8.5-.8v13.2c-3-1.2-6-1-8.5.8-2.5-1.8-5.5-2-8.5-.8z"/><path d="M12 6.3v13.2"/><path d="M16.2 9v5.2"/><ellipse cx="15.2" cy="14.4" rx="1.3" ry="1" fill="currentColor"/></svg></button>
       <button type="button" class="tab" data-view="midi" aria-label="MIDI Player" title="MIDI Player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2" fill="currentColor"/><path d="M9 9.5l10-2"/></svg></button>
+      <button type="button" class="tab" data-view="symbols" aria-label="Symbols" title="Symbols"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 6-1 8.5.8 2.5-1.8 5.5-2 8.5-.8v13.2c-3-1.2-6-1-8.5.8-2.5-1.8-5.5-2-8.5-.8z"/><path d="M12 6.3v13.2"/><path d="M16.2 9v5.2"/><ellipse cx="15.2" cy="14.4" rx="1.3" ry="1" fill="currentColor"/></svg></button>
       <button type="button" class="tab tab-set" id="openSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </nav>
   </header>
@@ -1778,7 +1790,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.25" data-build="20261106-133212" data-cache="violin-toolkit-"><span>Version 1.25</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.26" data-build="20261106-155522" data-cache="violin-toolkit-"><span>Version 1.26</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1846,8 +1858,8 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       <button type="button" class="launch-btn" data-view="tuner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0"/><path d="M12 17.5l3.6-7"/><circle cx="12" cy="17.5" r="1.2"/><path d="M12 5.8v1.8M5.6 9l1.3 1.2M18.4 9l-1.3 1.2"/></svg><b>Tuner</b><span>Tune G · D · A · E with your microphone</span></button>
       <button type="button" class="launch-btn" data-view="board"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11"/><path d="M8.4 3.5L7.2 21M10.8 3.5l-.5 17.5M13.2 3.5l.5 17.5M15.6 3.5L16.8 21" opacity=".7"/><path d="M7.7 11h8.6M7.3 17h9.4" opacity=".7"/><circle cx="10.8" cy="7.3" r="1.3" fill="currentColor"/><circle cx="15.6" cy="14" r="1.3" fill="currentColor"/></svg><b>Fingerboard</b><span>Find and play notes in each position</span></button>
       <button type="button" class="launch-btn" data-view="metronome"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l3.4 18H5.8z"/><path d="M12 17.5L15.6 6.5"/><circle cx="14.2" cy="10.6" r="1.2" fill="currentColor"/><path d="M8 21h8" opacity=".0"/></svg><b>Metronome</b><span>Keep steady time at any tempo</span></button>
-      <button type="button" class="launch-btn" data-view="symbols"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 6-1 8.5.8 2.5-1.8 5.5-2 8.5-.8v13.2c-3-1.2-6-1-8.5.8-2.5-1.8-5.5-2-8.5-.8z"/><path d="M12 6.3v13.2"/><path d="M16.2 9v5.2"/><ellipse cx="15.2" cy="14.4" rx="1.3" ry="1" fill="currentColor"/></svg><b>Symbols</b><span>Look up music signs and what they mean</span></button>
       <button type="button" class="launch-btn" data-view="midi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2" fill="currentColor"/><path d="M9 9.5l10-2"/></svg><b>MIDI Player</b><span>Play a tune and watch it on the fingerboard</span></button>
+      <button type="button" class="launch-btn" data-view="symbols"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 6-1 8.5.8 2.5-1.8 5.5-2 8.5-.8v13.2c-3-1.2-6-1-8.5.8-2.5-1.8-5.5-2-8.5-.8z"/><path d="M12 6.3v13.2"/><path d="M16.2 9v5.2"/><ellipse cx="15.2" cy="14.4" rx="1.3" ry="1" fill="currentColor"/></svg><b>Symbols</b><span>Look up music signs and what they mean</span></button>
     </div>
     <button type="button" class="launch-days" id="launchDays" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
   </div>
@@ -2570,7 +2582,7 @@ function noteGate() {
   function stopCents(midi) {
     var j = J();
     if (!j) return 0;
-    if (!j.chain) return j.cents(midi, keyObj());
+    if (!j.chain) return j.cents(midi, tuneKey());
     /* Pythagorean: from the name the note is shown with, so a grey D♯ in G major is a D♯, not an E♭ (Hermes R16.1) */
     var nm = noteName(midi, false), acc = 0, i;
     for (i = 1; i < nm.length; i++) acc += nm[i] === '♯' ? 1 : nm[i] === '♭' ? -1 : 0;
@@ -2578,7 +2590,13 @@ function noteGate() {
   }
   function noteCents(nt) { return nt.n === 0 || nt.n === MAXN ? openCents(nt.s) : stopCents(nt.midi); }
   function noteFreq(nt) { return midiFreq(nt.midi) * Math.pow(2, noteCents(nt) / 1200); }
-  function noteN(nt) { return nt.n === 0 || nt.n === MAXN || playerOn ? nt.n : nt.n + (noteCents(nt) - openCents(nt.s)) / 100; }   /* the MIDI player: equal temperament, like MIDI */   /* semitones from its open string */
+  function noteN(nt) { return nt.n === 0 || nt.n === MAXN ? nt.n : nt.n + (noteCents(nt) - openCents(nt.s)) / 100; }   /* semitones from its open string; the MIDI player too, so Equal and Just sit apart there (Trix) */
+  /* the key Just intonation tunes to: the MIDI player's tune, else the fingerboard's chosen key */
+  function tuneKey() {
+    if (!playerOn || !playerKey) return keyObj();
+    var mode = playerKey.minor ? 'minor' : 'major';
+    return KEYS.filter(function (k) { return k.root === playerKey.tonic && k.mode === mode; })[0] || keyObj();
+  }
   function yFor(n) { return n === 0 ? 'var(--oy)' : 'calc(var(--head) + ' + mm(n).toFixed(2) + ' * var(--k))'; }
 
   /* ---------- Size the board to the screen ---------- */
@@ -3290,7 +3308,7 @@ function noteGate() {
     var nt = notes[i], el = buttons[i];
     /* a string sounds one note at a time: a new note on it replaces the one before (overlapping legato in the file) */
     if (nt) pvoices.forEach(function (r, k) { if (r.si === nt.si && k !== id && (grp === undefined || r.grp !== grp)) pOff(k); });
-    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : startVoice(midiFreq(midi), false, 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
+    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : startVoice(nt ? noteFreq(nt) : midiFreq(midi), false, 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
     if (!quiet) rec.timer = setTimeout(function () { applyVib(rec); }, 200);
     if (el) {
       el.classList.remove('off');
@@ -3862,7 +3880,7 @@ function noteGate() {
     }
     if (!tracks.length) throw fail('This file has no notes.');
     var parts = tracks.length > 1 ? tracks.length : tracks[0].chans;
-    if (parts > 1) throw fail('This file has ' + parts + ' parts. The player plays one violin part: save just the violin part as its own MIDI file.');
+    if (parts > 1) throw fail('Multiple sound tracks detected. The MIDI player only supports MIDI files with a single violin solo track.');
     var sg = build(tracks[0].notes, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0);
     sg.minor = minor;
     return sg;
@@ -4246,7 +4264,12 @@ function noteGate() {
   }
 
   /* ---------- tunes ---------- */
-  function say(text) { msg.textContent = text || ''; msg.hidden = !text; }
+  /* notes about a tune in small grey text; an import that failed as a red alert (Trix: make errors obvious) */
+  function say(text, err) {
+    msg.textContent = text || ''; msg.hidden = !text;
+    msg.classList.toggle('err', !!err);
+    msg.setAttribute('role', err ? 'alert' : 'status');
+  }
   function load(i) {
     pause();
     song = songs[i].song;
@@ -4308,10 +4331,10 @@ function noteGate() {
         kept.push({ id: id, name: name, b64: toB64(rd.result) });
         var ok = saveKept();
         songSel.value = i; load(i);
-        if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.'); }
-      } catch (e) { say(e.mine ? e.message : 'This MIDI file could not be read.'); }
+        if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.', true); }
+      } catch (e) { say(e.mine ? e.message : 'This MIDI file could not be read.', true); }
     };
-    rd.onerror = function () { say('This MIDI file could not be read.'); };
+    rd.onerror = function () { say('This MIDI file could not be read.', true); };
     rd.readAsArrayBuffer(f);
   });
 
@@ -4350,6 +4373,7 @@ function noteGate() {
     var root = ((song.sf * 7) % 12 + 12) % 12, set = {};
     [0, 2, 4, 5, 7, 9, 11].forEach(function (i) { set[(root + i) % 12] = true; });
     set.tonic = song.minor ? (root + 9) % 12 : root;   /* the key note, ringed as on the fingerboard */
+    set.minor = !!song.minor;   /* so Just intonation tunes to the tune's key, not the fingerboard's */
     return set;
   }
   function fit() { APP.board.player(true, topH, reach(), keySet(), song && song.sf < 0); scroll(); }
@@ -5055,7 +5079,7 @@ function noteGate() {
     'in tune': '音准正确', 'off the board': '超出指板',
     'no sharps or flats': '无升降号', 'no ♯ or ♭': '无升降号',
     /* metronome */
-    'Symbols': '符号', 'MIDI Player': 'MIDI 播放器', 'Play': '播放', 'Pause': '暂停', 'MIDI player': 'MIDI 播放器', 'Play a tune and watch it on the fingerboard': '播放乐曲，在指板上看指法', 'Import': '导入', 'Delete this file': '删除这个文件', 'This file plays now, but there is no room to keep it for next time.': '这个文件现在可以播放，但没有空间留到下次。', 'Tune': '曲目', 'Back to start': '回到开头', 'Loop': '循环', 'Playback position': '播放进度', 'Twinkle, Twinkle, Little Star': '小星星', 'Ode to Joy': '欢乐颂', 'Canon': '卡农', 'In the Hall of the Mountain King': '在山魔王的宫殿里', 'A Little Night Music': '小夜曲', 'Winter, 1st movement': '冬 · 第一乐章', 'This is not a MIDI file.': '这不是 MIDI 文件。', 'This MIDI file keeps time in a way the player can’t read.': '播放器无法读取这个 MIDI 文件的计时方式。', 'This file has no notes.': '这个文件里没有音符。', 'Every note in this file is below the violin’s G string.': '这个文件的所有音符都低于小提琴的 G 弦。', 'This MIDI file could not be read.': '无法读取这个 MIDI 文件。', 'Music symbols': '乐谱符号', 'Tap for the meaning': '点按查看含义', 'Look up music signs and what they mean': '查找乐谱符号及其含义', 'Search': '搜索', 'Search symbols': '搜索符号', 'No symbols match.': '没有匹配的符号。', 'Notes': '音符', 'Bowing': '弓法', 'Accidentals': '变音记号',
+    'Symbols': '符号', 'MIDI Player': 'MIDI 播放器', 'Play': '播放', 'Pause': '暂停', 'MIDI player': 'MIDI 播放器', 'Play a tune and watch it on the fingerboard': '播放乐曲，在指板上看指法', 'Import': '导入', 'Delete this file': '删除这个文件', 'This file plays now, but there is no room to keep it for next time.': '这个文件现在可以播放，但没有空间留到下次。', 'Tune': '曲目', 'Back to start': '回到开头', 'Loop': '循环', 'Playback position': '播放进度', 'Twinkle, Twinkle, Little Star': '小星星', 'Ode to Joy': '欢乐颂', 'Canon': '卡农', 'In the Hall of the Mountain King': '在山魔王的宫殿里', 'A Little Night Music': '小夜曲', 'Winter, 1st movement': '冬 · 第一乐章', 'This is not a MIDI file.': '这不是 MIDI 文件。', 'This MIDI file keeps time in a way the player can’t read.': '播放器无法读取这个 MIDI 文件的计时方式。', 'This file has no notes.': '这个文件里没有音符。', 'Multiple sound tracks detected. The MIDI player only supports MIDI files with a single violin solo track.': '检测到多个音轨。MIDI 播放器只支持仅含一个小提琴独奏音轨的 MIDI 文件。', 'Every note in this file is below the violin’s G string.': '这个文件的所有音符都低于小提琴的 G 弦。', 'This MIDI file could not be read.': '无法读取这个 MIDI 文件。', 'Music symbols': '乐谱符号', 'Tap for the meaning': '点按查看含义', 'Look up music signs and what they mean': '查找乐谱符号及其含义', 'Search': '搜索', 'Search symbols': '搜索符号', 'No symbols match.': '没有匹配的符号。', 'Notes': '音符', 'Bowing': '弓法', 'Accidentals': '变音记号',
     'Quaver (eighth note)': '八分音符', 'Crotchet (quarter note)': '四分音符', 'Minim (half note)': '二分音符', 'Semibreve (whole note)': '全音符',
     '½ beat in 4/4': '4/4 拍中占半拍', '1 beat in 4/4': '4/4 拍中占 1 拍', '2 beats in 4/4': '4/4 拍中占 2 拍', '4 beats in 4/4': '4/4 拍中占 4 拍',
     'Up bow': '上弓', 'Push, tip to frog': '推弓：弓尖到弓根', 'Down bow': '下弓', 'Pull, frog to tip': '拉弓：弓根到弓尖',
@@ -5342,7 +5366,6 @@ function noteGate() {
     [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + ' 小时 ' + n + ' 分'; }],
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Version ([\d.]+(?:-test)?) is ready\. Update now\?$/, function (m, v) { return '版本 ' + v + ' 已推出，现在更新吗？'; }],
-    [/^This file has (\d+) parts\. The player plays one violin part: save just the violin part as its own MIDI file\.$/, function (m, n) { return '这个文件有 ' + n + ' 个声部。播放器只播放一个小提琴声部：请把小提琴声部单独存成一个 MIDI 文件。'; }],
     [/^(\d+) notes? (?:is|are) below the violin’s G string and left out\.(?: (\d+) notes? (?:is|are) above the fingerboard shown: heard, not lit\.)?$/, function (m, a, b) { return a + ' 个音低于小提琴的 G 弦，已略去。' + (b ? b + ' 个音高于所显示的指板：只播放声音，不点亮。' : ''); }],
     [/^(\d+) notes? (?:is|are) above the fingerboard shown: heard, not lit\.$/, function (m, b) { return b + ' 个音高于所显示的指板：只播放声音，不点亮。'; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
