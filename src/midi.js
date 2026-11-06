@@ -159,7 +159,7 @@
     else if (base === 2) out = '<rect x="' + (x - 5.5) + '" y="' + (Y0 + 2 * S - S / 2) + '" width="11" height="' + (S / 2) + '"/>';   /* sits on the middle line */
     else if (base === 1) {   /* the printed crotchet rest (Trix): thin top, thick wedge, lower stroke, hook; in staff spaces */
       /* traced from Trix's reference picture: body (thin top flaring into the wedge, lower stroke) + hook */
-      out = ['M-0.36 0.58 L-0.27 0.52 L0.02 0.95 L0.42 1.44 L-0.02 2.02 L0.55 2.80 L0.42 2.86 L-0.20 2.30 L-0.46 1.92 L-0.10 1.02 Z',
+      out = ['M-0.36 0.58 L-0.27 0.52 L0.02 0.95 L0.34 1.44 L-0.04 2.02 L0.50 2.78 L0.38 2.86 L-0.20 2.30 L-0.46 1.92 L-0.10 1.02 Z',
         'M0.50 2.76 C0.20 2.40 -0.30 2.35 -0.47 2.62 C-0.60 2.95 -0.30 3.18 0.03 3.38 C-0.10 3.15 -0.12 2.88 0.06 2.74 C0.22 2.64 0.40 2.68 0.50 2.76 Z'
       ].map(function (d) { return '<path d="' + d.replace(/(-?[\d.]+) (-?[\d.]+)/g, function (m, u, v) { return (x + u * S).toFixed(2) + ' ' + (Y0 + v * S).toFixed(2); }) + '"/>'; }).join('');
     }
