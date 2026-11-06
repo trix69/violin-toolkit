@@ -116,6 +116,23 @@
       fingers(unit);
       i = j;
     }
+    /* open string or 4th finger for the open D, A and E (Trix, the usual rule): going up next, the open string;
+       going down, staying on the same note, or at the end, the 4th finger on the string below; and a long note
+       (a minim or longer, where vibrato is wanted) always the 4th finger. Single notes only; chords keep theirs. */
+    /* onsets as units: [first index, end index] */
+    var units = [];
+    for (var u0 = 0; u0 < notes.length; ) { var u1 = u0; while (u1 < notes.length && Math.abs(notes[u1].b - notes[u0].b) < 1e-6) u1++; units.push([u0, u1]); u0 = u1; }
+    function single(q) { var un = units[q]; return un && un[1] - un[0] === 1 ? notes[un[0]] : null; }
+    function topM(q) { var un = units[q], m = -1; for (var z = un[0]; z < un[1]; z++) m = Math.max(m, notes[z].m); return m; }
+    for (var q = 0; q < units.length; ) {
+      var one = single(q), k4 = one ? OPEN.indexOf(one.m) : -1;
+      if (!one || k4 <= 0 || one.si !== k4) { q++; continue; }
+      /* a run of the same note repeated stays on one string, decided by the note after the run */
+      var r = q, long = false; while (single(r) && single(r).m === one.m && single(r).si === k4) { if (single(r).len >= 2) long = true; r++; }
+      var nextM = r < units.length ? topM(r) : null;
+      if (long || nextM === null || nextM < one.m) for (var z = q; z < r; z++) { single(z).si = k4 - 1; single(z).fg = 4; }
+      q = r;
+    }
     var lastN = notes[notes.length - 1];
     return {
       notes: notes, sig: sig, sf: Math.max(-7, Math.min(7, sf)),
