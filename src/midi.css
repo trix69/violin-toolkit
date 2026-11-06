@@ -107,3 +107,9 @@
 .mp-mixnone { margin: 0; font: 400 13px var(--font-body); color: var(--muted, inherit); }
 @media (max-width: 380px) { .mp-vol { grid-template-columns: 6.4em 1fr 2.6em; gap: 6px; font-size: 14px; } }
 @media (max-width: 340px) { .mp-ctl { gap: 5px; } .mp-btn { width: 38px; height: 38px; } }   /* seven controls with the Mixer button at 320 px */
+/* controls stay perfect circles (Trix): they never shrink in the row; size and spacing follow the screen width */
+.mp-ctl { gap: clamp(3px, calc(2.2vw - 3px), 12px); }
+.mp-btn, .mp-play { flex: none; aspect-ratio: 1; height: auto; }
+.mp-btn { width: clamp(33px, 9.6vw, 44px); }
+.mp-play { width: clamp(44px, 12.5vw, 58px); }
+.mp-speed { flex: none; }

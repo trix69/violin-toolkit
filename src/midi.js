@@ -81,7 +81,7 @@
       var id = str(p, 4), end = Math.min(p + 8 + u32(p + 4), u8.length);
       p += 8;
       if (id !== 'MTrk') { p = end; continue; }
-      var tick = 0, rs = 0, open = {}, notes = [], chans = {}, name = '';
+      var tick = 0, rs = 0, open = {}, notes = [], chans = {}, name = '', inst = '', prog = {};
       while (p < end) {
         tick += vlq();
         var st = u8[p];
@@ -91,12 +91,17 @@
           if (ty === 0x51 && l >= 3) tempos.push({ tick: tick, us: (u8[p] << 16) | (u8[p + 1] << 8) | u8[p + 2] });
           else if (ty === 0x58 && l >= 2 && !sig) sig = { num: u8[p], den: Math.pow(2, u8[p + 1]) };
           else if (ty === 0x59 && l >= 1 && sf === null) { sf = (u8[p] << 24) >> 24; minor = l >= 2 && u8[p + 1] === 1; }
-          else if (ty === 0x03 && !name) name = str(p, Math.min(l, 40)).replace(/[^\x20-\x7e]/g, '').trim();   /* track name */
+          else if ((ty === 0x03 && !name) || (ty === 0x04 && !inst)) {   /* track name, instrument name (UTF-8, e.g. 小提琴) */
+            var txt = ''; try { txt = new TextDecoder().decode(u8.subarray(p, p + Math.min(l, 60))); } catch (e) { txt = str(p, Math.min(l, 60)); }
+            txt = txt.replace(/[\u0000-\u001f\ufffd]/g, '').trim();
+            if (ty === 0x03) name = txt; else inst = txt;
+          }
           p += l;
         } else if (st === 0xf0 || st === 0xf7) {
           p += vlq();
         } else if (st >= 0x80) {
           var hi = st & 0xf0, ch = st & 15, a = u8[p++], b = (hi === 0xc0 || hi === 0xd0) ? 0 : u8[p++], k = ch + ':' + a;
+          if (hi === 0xc0 && !(ch in prog)) prog[ch] = a;   /* the channel's instrument (General MIDI program) */
           if (hi === 0x90 && b > 0) (open[k] = open[k] || []).push([tick, b]);
           else if (hi === 0x80 || hi === 0x90) {
             if (open[k] && open[k].length) { var on = open[k].shift(); notes.push({ m: a, t0: on[0], t1: tick, ch: ch, v: on[1] }); chans[ch] = 1; }
@@ -104,29 +109,39 @@
         } else break;   /* a data byte with no status: the file is damaged, stop reading this track */
       }
       Object.keys(open).forEach(function (k) { open[k].forEach(function (on) { notes.push({ m: +k.split(':')[1], t0: on[0], t1: tick, ch: +k.split(':')[0], v: on[1] }); }); });
-      if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1, name: name });
+      if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1, name: name || inst, label: name + ' ' + inst, prog: prog });
       p = end;
     }
     if (!tracks.length) throw fail('This file has no notes.');
-    /* several parts (Trix): the first track with notes is the violin solo, every other one accompaniment; a
-       one-track file with several channels splits by channel the same way (the first channel heard is the solo).
-       Drums (channel 10) are left out: the accompaniment synth plays pitched notes only. */
-    var DRUM = 9, solo, acc = [];
+    /* several parts (Trix): the violin is the first track named as one (track or instrument name: violin, violino,
+       violín, 小提琴), else the first set to General MIDI's Violin (program 40), else the first track with notes;
+       every other track is accompaniment. A one-track file with several channels splits by channel the same way
+       (the Violin channel, else the first channel heard). Drums (channel 10) are left out: the accompaniment synth
+       plays pitched notes only. */
+    var DRUM = 9, VIOLIN = /violin|violín|小提琴/i, GM_VIOLIN = 40, solo, acc = [];
     tracks = tracks.map(function (tr) { tr.notes = tr.notes.filter(function (n) { return n.ch !== DRUM; }); return tr; }).filter(function (tr) { return tr.notes.length; });
     if (!tracks.length) throw fail('This file has no notes.');
+    var soloName = '';
+    function gmViolin(tr) { return Object.keys(tr.prog).some(function (c) { return tr.prog[c] === GM_VIOLIN && tr.notes.some(function (n) { return n.ch === +c; }); }); }
     if (tracks.length === 1 && tracks[0].chans > 1) {
-      var first = tracks[0].notes.reduce(function (a, n) { return !a || n.t0 < a.t0 ? n : a; }, null).ch;
+      var pr = tracks[0].prog, vc = Object.keys(pr).filter(function (c) { return pr[c] === GM_VIOLIN; }).map(Number)
+        .filter(function (c) { return tracks[0].notes.some(function (n) { return n.ch === c; }); });
+      var first = vc.length ? vc[0] : tracks[0].notes.reduce(function (a, n) { return !a || n.t0 < a.t0 ? n : a; }, null).ch;
       solo = tracks[0].notes.filter(function (n) { return n.ch === first; });
       acc = tracks[0].notes.filter(function (n) { return n.ch !== first; });
+      soloName = tracks[0].name;
     } else {
-      solo = tracks[0].notes;
-      tracks.slice(1).forEach(function (tr) { acc = acc.concat(tr.notes); });
+      var si = 0, byName = -1, byProg = -1;
+      tracks.forEach(function (tr, i) { if (byName < 0 && VIOLIN.test(tr.label)) byName = i; if (byProg < 0 && gmViolin(tr)) byProg = i; });
+      si = byName >= 0 ? byName : byProg >= 0 ? byProg : 0;
+      solo = tracks[si].notes; soloName = tracks[si].name;
+      tracks.forEach(function (tr, i) { if (i !== si) acc = acc.concat(tr.notes); });
     }
     var firstTick = acc.reduce(function (a, n) { return Math.min(a, n.t0); }, Infinity);
     var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick);
     sg.minor = minor;
     sg.parts = tracks.length > 1 ? tracks.length : tracks[0].chans;
-    sg.soloName = tracks[0].name || '';
+    sg.soloName = soloName || '';
     /* the accompaniment in seconds from the first bar kept, by start time */
     sg.acc = acc.map(function (n) { var t = sg.sec(n.t0); return { m: n.m, t: t, e: Math.max(t + 0.03, sg.sec(Math.max(n.t1, n.t0 + 1))), v: (n.v || 90) / 127 }; })
       .filter(function (n) { return n.e > 0; }).sort(function (a, b) { return a.t - b.t; });
