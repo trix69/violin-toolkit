@@ -326,6 +326,8 @@ html[lang="zh-CN"] {
 /* keep the page in the same place on every tool, whether or not it needs a scrollbar */
 html { scrollbar-gutter: stable; }
 a.howto-btn { text-decoration: none; box-sizing: border-box; }
+.apk-btn { margin-top: 10px; }
+.howto-sub { margin: 6px 2px 0; font: 400 12.5px/1.45 var(--font-note); color: var(--muted); }
 .howto-btn:hover { border-color: var(--accent); }
 .howto-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .howto-btn svg, .howto-steps svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
@@ -812,6 +814,7 @@ nav_js = """(function () {
     document.getElementById('stepsAndroid').hidden = d !== 'android';
     document.getElementById('stepsDesktop').hidden = d !== 'desktop';
     document.getElementById('howtoDesk').hidden = d !== 'desktop';
+    document.getElementById('howtoApk').hidden = d !== 'android';   /* the offline Android app, from the latest GitHub release (Trix) */
   }
   function closeHowto() {
     howto.hidden = true;
@@ -821,7 +824,7 @@ nav_js = """(function () {
   function onHowtoKey(e) {
     if (e.key === 'Escape') { closeHowto(); return; }
     if (e.key === 'Tab') {
-      var els = Array.prototype.slice.call(howto.querySelectorAll('button'));
+      var els = Array.prototype.slice.call(howto.querySelectorAll('button, a[href]')).filter(function (e) { return e.offsetParent; });
       var i = els.indexOf(document.activeElement);
       if (e.shiftKey && i <= 0) { e.preventDefault(); els[els.length - 1].focus(); }
       else if (!e.shiftKey && i === els.length - 1) { e.preventDefault(); els[0].focus(); }
@@ -1280,6 +1283,11 @@ markup = f"""
       <li><span>Open it from its new icon once while you have internet.</span></li>
     </ol>
     <p class="howto-note" id="howtoNote">After the first visit, it also works offline.</p>
+    <div id="howtoApk" hidden>
+      <p class="howto-note">Or install the Android app: it carries the whole toolkit and works offline from the start.</p>
+      <a class="howto-btn apk-btn" id="apkLink" href="https://github.com/trix69/violin-toolkit/releases/latest/download/violin-toolkit-android.apk" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4"/></svg>Download the Android app (APK)</a>
+      <p class="howto-sub">Android will ask you to allow installs from your browser (Install unknown apps).</p>
+    </div>
     <p class="howto-note" id="howtoDesk" hidden>No install icon? Open the browser menu and choose Install Violin Toolkit. In Safari on a Mac, use File, then Add to Dock. Firefox cannot install apps, but the page still opens offline in a browser tab after one visit.</p>
     <button type="button" class="sheet-done" id="howtoDone">Done</button>
   </div>
