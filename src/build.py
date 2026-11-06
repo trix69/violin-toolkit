@@ -754,8 +754,10 @@ nav_js = """(function () {
     ser.forEach(function (x) { if (x.s > max) max = x.s; tot += x.s; });
     ser.forEach(function (x, i) {
       var m = Math.floor(x.s / 60), last = i === ser.length - 1;
-      html += '<li class="' + (last ? 'today' : '') + (x.s <= 0 ? ' zero' : '') + '"><span class="ud">' + (last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()]) + '</span>'
-        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv">' + (x.s > 0 && m < 1 ? '&lt;1' : m >= 60 ? Math.round(m / 6) / 10 + 'h' : m) + '<span class="uhid">' + (m >= 60 ? (zh ? ' 小时' : ' hours') : (zh ? ' 分钟' : ' min')) + '</span></span></li>';   /* an hour or more: 1h, 1.5h (Hermes F21) */   /* some practice, under a minute: <1, not 0 */
+      var day = last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()], hrs = m >= 60, num = x.s > 0 && m < 1 ? '&lt;1' : hrs ? Math.round(m / 6) / 10 : m;
+      html += '<li class="' + (last ? 'today' : '') + (x.s <= 0 ? ' zero' : '') + '"><span class="uhid">' + day + (zh ? ' ' : ', ') + num + (hrs ? (zh ? ' 小时' : ' hours') : (zh ? ' 分钟' : ' min')) + '</span>'
+        + '<span class="ud" aria-hidden="true">' + day + '</span>'
+        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv" aria-hidden="true">' + num + (hrs ? 'h' : '') + '</span></li>';   /* screen readers hear one full phrase ("Today, 1.5 hours"), the bar shows the short form (Hermes F25) */   /* an hour or more: 1h, 1.5h (Hermes F21) */   /* some practice, under a minute: <1, not 0 */
     });
     document.getElementById('ubars').innerHTML = html;
     document.getElementById('useToday').textContent = USAGE.fmt(ser[ser.length - 1].s);
