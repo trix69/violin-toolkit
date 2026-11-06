@@ -88,6 +88,20 @@
       var len = j < notes.length && notes[j].b - n.b <= n.own + 0.5 ? notes[j].b - n.b : n.own;
       n.len = VALS.reduce(function (best, v) { return Math.abs(v - len) < Math.abs(best - len) ? v : best; }, 4);
     });
+    /* the string each note is played on: the highest that has it within the octave; notes sounding together (double
+       stops) go on different strings, high note on the higher string, where the board can show it */
+    for (var i = 0; i < notes.length; ) {
+      var j = i; while (j < notes.length && Math.abs(notes[j].b - notes[i].b) < 1e-6) j++;
+      var maxSi = 3, unit = notes.slice(i, j).sort(function (a, b) { return b.m - a.m; });
+      unit.forEach(function (n, u) {
+        /* within the octave first (lowest position); a double stop's lower note goes up the next string down */
+        var si = u === 0 ? strFor(n.m, 3, 12) : strFor(n.m, maxSi, 19);
+        if (si < 0) si = strFor(n.m, 3, 19);
+        n.si = si; if (si >= 0) maxSi = si - 1;
+      });
+      fingers(unit);
+      i = j;
+    }
     var lastN = notes[notes.length - 1];
     return {
       notes: notes, sig: sig, sf: Math.max(-7, Math.min(7, sf)), bpm: Math.round(60e6 / tempos[0].us),   /* crotchets a minute */
@@ -101,24 +115,35 @@
   }
 
   /* ---------- the score: one line that scrolls past the playhead ---------- */
-  var S = 9, Y0 = 34, xAt = null;          /* staff space, top line, beats to x (set by drawScore) */
+  var S = 9, Y0 = 46, xAt = null;          /* staff space, top line, beats to x (set by drawScore) */
   var BOT = Y0 + 4 * S;                    /* bottom line, E4 */
   var LET = 'CDEFGAB', SHARP_K = [3, 0, 4, 1, 5, 2, 6], FLAT_K = [6, 2, 5, 1, 4, 0, 3];   /* F C G D A E B / B E A D G C F as letter numbers */
   var SHARP_P = [10, 7, 11, 8, 5, 9, 6], FLAT_P = [6, 9, 5, 8, 4, 7, 3];                 /* where they sit on the treble staff */
   var SP_S = [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0]];
   var SP_F = [[0, 0], [1, -1], [1, 0], [2, -1], [2, 0], [3, 0], [4, -1], [4, 0], [5, -1], [5, 0], [6, -1], [6, 0]];
   var STR = [[76, '--e'], [69, '--a'], [62, '--d'], [55, '--g']];
+  var OPEN = [55, 62, 69, 76], HUE = ['--g', '--d', '--a', '--e'];   /* by string, G = 0 */
+  function strFor(m, maxSi, lim) { for (var si = Math.min(3, maxSi); si >= 0; si--) if (m >= OPEN[si] && m <= OPEN[si] + lim) return si; return -1; }
+  /* fingering for notes played together, in one hand position that reaches them all: 1st, 3rd, 5th or 7th
+     (1st finger at 1, 5, 8, 12 semitones up; each finger about a tone further; 1st position only to the 4th
+     finger at 7). 0 = open string. */
+  var POS = [[1, 6], [5, 7], [8, 7], [12, 7]];
+  function fingers(unit) {
+    var ns = unit.filter(function (n) { return n.si >= 0 && n.m > OPEN[n.si]; }).map(function (n) { return n.m - OPEN[n.si]; });
+    var p = POS.filter(function (q) { return ns.every(function (n) { return n >= q[0] && n <= q[0] + q[1]; }); })[0] || POS[3];
+    unit.forEach(function (n) {
+      if (n.si < 0) { n.fg = null; return; }
+      var k = n.m - OPEN[n.si], d = k - p[0];
+      n.fg = k === 0 ? 0 : d <= 1 ? 1 : d <= 3 ? 2 : d <= 5 ? 3 : 4;
+    });
+  }
   function yOf(step) { return BOT - (step - 2) * S / 2; }   /* step: letters above C4 (E4 = 2, on the bottom line) */
   /* the string and finger the fingerboard uses for a pitch: the highest string that has it within the octave;
      first position (1st finger a semitone or tone up, 2nd at 3-4, 3rd at 5-6, 4th at 7), third position above that */
-  function fingerOf(m) {
-    for (var i = 0; i < STR.length; i++) {
-      var n = m - STR[i][0];
-      if (n >= 0 && n <= 12) return n === 0 ? 0 : n <= 7 ? [0, 1, 1, 2, 2, 3, 3, 4][n] : n <= 8 ? 2 : n <= 10 ? 3 : 4;
-    }
-    return null;
+  function fingerOf(nt) {   /* 0 open, 1-4; first position up to the 4th finger (n 7), third position above */
+    return nt.fg;   /* worked out per chord in build() */
   }
-  function hueOf(m) { for (var i = 0; i < STR.length; i++) if (m >= STR[i][0] && m <= STR[i][0] + 12) return 'var(' + STR[i][1] + ')'; return 'var(--accent)'; }
+  function hueOf(nt) { return nt.si >= 0 ? 'var(' + HUE[nt.si] + ')' : 'var(--accent)'; }
   var CLEF = '<g transform="translate(2 ' + (Y0 - 36) + ') scale(0.9)"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></g>';
   var ACC = { '1': '♯', '-1': '♭', '0': '♮' };
   var noteEls = [], X0 = 0, W = 0, chunks = [], shownFrom = -1;
@@ -164,22 +189,39 @@
     });
     /* beams: quavers and semiquavers that follow on one another within a beat (a dotted crotchet in 6/8, 9/8,
        12/8) share a beam, all stems one way: up when the group sits below the middle line */
-    var unit = sg.sig.den === 8 && sg.sig.num % 3 === 0 ? 1.5 : 1, groups = [], cur = null;
+    /* chords: notes starting together share one stem and beam (Winter's double stops) */
+    var heads = [];
     inf.forEach(function (f, k) {
-      var prev = inf[k - 1], ok = f.len < 1;
+      var p = inf[k - 1];
+      if (p && Math.abs(p.nt.b - f.nt.b) < 1e-6) { f.head = p.head; inf[p.head].members.push(k); }
+      else { f.head = k; f.members = [k]; heads.push(k); }
+    });
+    heads.forEach(function (k) {
+      var f = inf[k], ys = f.members.map(function (j) { return inf[j].y; });
+      f.yTop = Math.min.apply(null, ys); f.yBot = Math.max.apply(null, ys);
+      f.len = Math.min.apply(null, f.members.map(function (j) { return inf[j].len; }));
+      f.mean = f.members.reduce(function (t, j) { return t + inf[j].step; }, 0) / f.members.length;
+      f.up = f.mean < 6;
+      var last = -99;   /* chord fingerings beside the notes, top down, at least 11 px apart */
+      f.members.slice().sort(function (a, b) { return inf[a].y - inf[b].y; }).forEach(function (j) { last = Math.max(inf[j].y + 4, last + 11); inf[j].fy = last; });
+    });
+    var unit = sg.sig.den === 8 && sg.sig.num % 3 === 0 ? 1.5 : 1, groups = [], cur = null;
+    heads.forEach(function (k, hi) {
+      var f = inf[k], prev = hi ? inf[heads[hi - 1]] : null, ok = f.len < 1;
       var joins = ok && cur && prev && Math.floor(f.nt.b / unit + 1e-6) === Math.floor(prev.nt.b / unit + 1e-6) && Math.abs(prev.nt.b + prev.len - f.nt.b) < 0.02 && f.nt.b > prev.nt.b + 1e-6;
       if (joins) cur.push(k); else { cur = ok ? [k] : null; if (cur) groups.push(cur); }
     });
     var beams = [];
     groups.forEach(function (gr, gi) {
       if (gr.length < 2) return;
-      var mean = gr.reduce(function (t, k) { return t + inf[k].step; }, 0) / gr.length, up = mean < 6, d = up ? -1 : 1;
+      var mean = gr.reduce(function (t, k) { return t + inf[k].mean; }, 0) / gr.length, up = mean < 6, d = up ? -1 : 1;
+      var tipY = function (f) { return up ? f.yTop : f.yBot; };   /* the stem runs past the chord's far note */
       var f0 = inf[gr[0]], f1 = inf[gr[gr.length - 1]];
       var x0 = f0.hx + (up ? 4.9 : -4.9), x1 = f1.hx + (up ? 4.9 : -4.9);
-      var slope = x1 > x0 ? Math.max(-0.2, Math.min(0.2, (f1.y - f0.y) / (x1 - x0) * 0.5)) : 0;
-      var line = function (x) { return base + slope * (x - x0); }, base = f0.y + d * 3.4 * S;
+      var slope = x1 > x0 ? Math.max(-0.2, Math.min(0.2, (tipY(f1) - tipY(f0)) / (x1 - x0) * 0.5)) : 0;
+      var line = function (x) { return base + slope * (x - x0); }, base = tipY(f0) + d * 3.4 * S;
       /* every stem at least 2.8 spaces long */
-      gr.forEach(function (k) { var f = inf[k], x = f.hx + (up ? 4.9 : -4.9), need = f.y + d * 2.8 * S; if (up ? line(x) > need : line(x) < need) base += need - line(x); });
+      gr.forEach(function (k) { var f = inf[k], x = f.hx + (up ? 4.9 : -4.9), need = tipY(f) + d * 2.8 * S; if (up ? line(x) > need : line(x) < need) base += need - line(x); });
       gr.forEach(function (k) { inf[k].up = up; inf[k].beam = gi; inf[k].tip = line(inf[k].hx + (up ? 4.9 : -4.9)); });
       function bar(xa, xb, off) {   /* a beam 4 px thick, off = how far in from the stem tips */
         var ya = line(xa) - d * off, yb = line(xb) - d * off;
@@ -195,31 +237,32 @@
       });
       beams.push([x0, '<g class="mp-beams">' + b.join('') + '</g>']);
     });
-    /* second pass: draw */
+    /* second pass: draw (a chord's stem, flags and beam belong to its first note) */
     inf.forEach(function (f, k) {
-      var nt = f.nt, y = f.y, hx = f.hx, step = f.step, len = f.len, up = f.up, g = [];
+      var hd = inf[f.head], isHead = f.head === k, chord = hd.members.length > 1;
+      var nt = f.nt, y = f.y, hx = f.hx, step = f.step, len = f.len, up = hd.up, g = [];
       if (f.sign) g.push('<text class="acc" x="' + (hx - 15) + '" y="' + (y + 4.5) + '">' + f.sign + '</text>');
       for (var l = 0; l >= step; l -= 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
       for (l = 12; l <= step; l += 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
       var hollow = len >= 2, stem = len < 4, dotted = len === 3 || len === 1.5 || len === 0.75;
-      var flags = f.beam >= 0 ? 0 : len <= 0.25 ? 2 : len < 1 ? 1 : 0;
+      var flags = hd.beam >= 0 ? 0 : hd.len <= 0.25 ? 2 : hd.len < 1 ? 1 : 0;
       g.push('<ellipse class="' + (hollow ? 'head hollow' : 'head') + '" cx="' + hx + '" cy="' + y + '" rx="5.4" ry="3.9" transform="rotate(-20 ' + hx + ' ' + y + ')"/>');
-      if (stem) {
-        var sx = up ? hx + 4.9 : hx - 4.9, sy = f.beam >= 0 ? f.tip : up ? y - 3.4 * S : y + 3.4 * S;
-        g.push('<path class="stem" d="M' + sx + ' ' + (y + (up ? -1 : 1)) + 'V' + sy + '"/>');
+      if (stem && isHead) {
+        var sx = up ? hx + 4.9 : hx - 4.9, sy = hd.beam >= 0 ? hd.tip : up ? hd.yTop - 3.4 * S : hd.yBot + 3.4 * S, sy0 = up ? hd.yBot : hd.yTop;
+        g.push('<path class="stem" d="M' + sx + ' ' + (sy0 + (up ? -1 : 1)) + 'V' + sy + '"/>');
         for (var q = 0; q < flags; q++) {
           var fy = sy + (up ? 1 : -1) * q * 7, d = up ? 1 : -1;
           g.push('<path class="flag" d="M' + sx + ' ' + fy + 'c1 ' + (5 * d) + ' 8 ' + (7 * d) + ' 6 ' + (15 * d) + 'c1 ' + (-6 * d) + ' -3 ' + (-9 * d) + ' -6 ' + (-10 * d) + 'z"/>');
         }
       }
       /* fingering, in the string colour, on the side of the note away from the stem (Trix) */
-      var fg = fingerOf(nt.m);
+      var fg = fingerOf(nt);
       if (fg !== null) {
-        var ty = stem && up ? Math.max(y + 17, BOT + 13) : Math.min(y - 9, Y0 - 5);
-        g.push('<text class="fing" x="' + hx + '" y="' + ty + '">' + fg + '</text>');
+        if (chord) g.push('<text class="fing side" x="' + (hx + (up ? -15 : 9)) + '" y="' + f.fy + '">' + fg + '</text>');   /* beside each note of a chord, spaced apart */
+        else g.push('<text class="fing" x="' + hx + '" y="' + Math.max(10, stem && up ? Math.max(y + 17, BOT + 13) : Math.min(y - 9, Y0 - 5)) + '">' + fg + '</text>');
       }
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
-      items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt.m) + '">' + g.join('') + '</g>']);
+      items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
     });
     items = items.concat(beams);
     /* the score in sections ~1200 px wide, each its own svg, only those near the playhead shown: one svg as
@@ -303,7 +346,7 @@
       if (ns[ni].e <= pos) { noteEls[ni].classList.add('done'); ni++; continue; }
       /* a note under a quarter of a second just lights up: no string wobble, rings or glow (Trix: fast pieces lagged) */
       var quick = (ns[ni].e - ns[ni].t) / speed < 0.25;
-      APP.board.on(ns[ni].m, 'n' + ni, !quick);
+      APP.board.on(ns[ni].m, 'n' + ni, !quick, ns[ni].si, ns[ni].b);   /* its string, and its chord (both notes of a double stop stay lit) */
       noteEls[ni].classList.add('on');
       noteEls[ni].classList.toggle('quick', quick);
       active.push(ni); ni++;
@@ -442,7 +485,7 @@
   function topH() { var a = document.querySelector('.appbar'); return (a ? a.offsetHeight + 10 : 0) + top.offsetHeight + 20 + Math.max(0, bar.offsetHeight - 64); }   /* + the board's own margin and padding */
   function reach() {   /* semitones above the open string, on the string the board plays each note on */
     var top = 7;
-    if (song) song.notes.forEach(function (n) { for (var i = 0; i < STR.length; i++) if (n.m >= STR[i][0] && n.m <= STR[i][0] + 12) { top = Math.max(top, n.m - STR[i][0] + 1); break; } });
+    if (song) song.notes.forEach(function (n) { if (n.si >= 0) top = Math.max(top, n.m - OPEN[n.si] + 1); });
     return top;
   }
   function fit() { APP.board.player(true, topH, reach()); scroll(); }
