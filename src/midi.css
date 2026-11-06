@@ -117,3 +117,12 @@
 .mp-play { width: clamp(44px, 12.5vw, 58px); }
 .mp-speed { flex: none; }
 @media (max-width: 380px) { .mp-mixpop { column-gap: 6px; padding: 12px 10px; } .mp-vol { font-size: 13px; } }   /* three faders at 320 px */
+/* which part is the violin (Trix): a flash over the score that fades out, taking no room */
+.mp-parts { position: absolute; left: 10px; right: 10px; top: 50%; transform: translateY(-50%); z-index: 5; margin: 0 auto; max-width: 420px; box-sizing: border-box;
+  padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--panel) 94%, transparent); color: var(--fg); box-shadow: 0 6px 20px rgba(0,0,0,.18);
+  pointer-events: none; opacity: 0; font: 400 14px/1.35 var(--font-body); }
+.mp-parts.show { animation: mpParts 5s ease forwards; }
+@keyframes mpParts { 0% { opacity: 0; } 6% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+.mp-parts p { margin: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mp-parts p + p { margin-top: 4px; }
+.mp-parts b { font: 600 13px var(--font-note); color: var(--accent); margin-right: 8px; }

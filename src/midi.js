@@ -126,7 +126,7 @@
       .map(function (tr) { tr.notes = tr.notes.filter(function (n) { return n.ch !== DRUM && !(tr.prog[n.ch] >= 112); }); return tr; })
       .filter(function (tr) { return tr.notes.length; });
     if (!tracks.length) throw fail('This file has no notes.');
-    var soloName = '';
+    var soloName = '', accNames = [];
     function gmViolin(tr) { return Object.keys(tr.prog).some(function (c) { return tr.prog[c] === GM_VIOLIN && tr.notes.some(function (n) { return n.ch === +c; }); }); }
     if (tracks.length === 1 && tracks[0].chans > 1) {
       var pr = tracks[0].prog, vc = Object.keys(pr).filter(function (c) { return pr[c] === GM_VIOLIN; }).map(Number)
@@ -135,6 +135,7 @@
       solo = tracks[0].notes.filter(function (n) { return n.ch === first; });
       acc = tracks[0].notes.filter(function (n) { return n.ch !== first; });
       soloName = tracks[0].name;
+      var seen = {}; acc.forEach(function (n) { seen[n.ch] = 1; }); accNames = Object.keys(seen).map(function (c) { return 'Channel ' + (+c + 1); });
     } else {
       var si = 0, byName = -1, byProg = -1;
       /* among violins, the first violin (Violin I, Violin 1, 1st violin, Violino primo, solo) wins (Trix) */
@@ -148,6 +149,7 @@
       if (byFirst >= 0) byName = byFirst;
       si = byName >= 0 ? byName : byProg >= 0 ? byProg : 0;
       solo = tracks[si].notes; soloName = tracks[si].name;
+      tracks.forEach(function (tr, i) { if (i !== si) accNames.push(tr.name || 'Part ' + (i + 1)); });
       tracks.forEach(function (tr, i) { if (i !== si) acc = acc.concat(tr.notes); });
     }
     var firstTick = acc.reduce(function (a, n) { return Math.min(a, n.t0); }, Infinity);
@@ -156,6 +158,7 @@
     var used = {}; solo.forEach(function (n) { used[n.ch] = 1; }); acc.forEach(function (n) { used[n.ch] = 1; });
     sg.parts = tracks.length > 1 ? tracks.length : Object.keys(used).length;   /* channels that still play: drums not counted (Hermes R20.1) */
     sg.soloName = soloName || '';
+    sg.accNames = accNames;
     /* the accompaniment in seconds from the first bar kept, by start time */
     sg.acc = acc.map(function (n) { var t = sg.sec(n.t0); return { m: n.m, t: t, e: Math.max(t + 0.03, sg.sec(Math.max(n.t1, n.t0 + 1))), v: (n.v || 90) / 127 }; })
       .filter(function (n) { return n.e > 0; }).sort(function (a, b) { return a.t - b.t; });
@@ -633,6 +636,20 @@
     msg.classList.toggle('err', !!err);
     msg.setAttribute('role', err ? 'alert' : 'status');
   }
+  /* which part is the violin and which play along (Trix): a flash over the score that fades, taking no room;
+     also said once to screen readers (the score itself is hidden from them) */
+  var partsEl = $('mpParts'), partsSr = $('mpPartsSr'), partsT = 0;
+  function flashParts() {
+    clearTimeout(partsT); partsEl.classList.remove('show'); partsEl.hidden = true; partsSr.textContent = '';
+    if (!song || !song.acc.length) return;
+    var zh = window.I18N && I18N.lang === 'zh', lv = zh ? '小提琴' : 'Violin', la = zh ? '伴奏' : 'Accompaniment';   /* the score is translate="no" */
+    var v = song.soloName || (zh ? '第 1 声部' : 'Part 1'), a = song.accNames.join(zh ? '、' : ', ');
+    $('mpPartsLV').textContent = lv; $('mpPartsLA').textContent = la;
+    $('mpPartsV').textContent = v; $('mpPartsA').textContent = a;
+    partsEl.hidden = false; void partsEl.offsetWidth; partsEl.classList.add('show');
+    partsSr.textContent = lv + (zh ? '：' : ': ') + v + (zh ? '。' : '. ') + la + (zh ? '：' : ': ') + a;
+    partsT = setTimeout(function () { partsEl.hidden = true; partsEl.classList.remove('show'); }, 5200);
+  }
   function load(i) {
     pause();
     song = songs[i].song;
@@ -643,7 +660,7 @@
     var warn = [];
     if (song.low) warn.push(song.low + (song.low > 1 ? ' notes are' : ' note is') + ' below the violin’s G string and left out.');
     if (song.high) warn.push(song.high + (song.high > 1 ? ' notes are' : ' note is') + ' above the fingerboard shown: heard, not lit.');
-    if (song.acc.length) warn.unshift('Violin: ' + (song.soloName || 'the first part') + '. The other ' + (song.parts - 1) + (song.parts > 2 ? ' parts play' : ' part plays') + ' as accompaniment (Mixer sets the levels).');
+    flashParts();
     say(warn);
     mixUi();
     APP.board.toTop();   /* a new tune opens at the open strings, whatever the last one scrolled to (Hermes F14) */
