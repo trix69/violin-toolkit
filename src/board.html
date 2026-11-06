@@ -344,6 +344,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   animation: vibBand 100ms ease-in-out infinite alternate;
 }
 /* the line pivots at the finger, so it moves little there and most towards the bridge */
+.stage.small .note { border-width: 1px; }
 .vib.still { animation: none; transform: translateX(-50%); }
 .vib.still::before { display: none; }
 @keyframes vibShake { from { transform: translateX(-50%) rotate(-.3deg); } to { transform: translateX(-50%) rotate(.3deg); } }
@@ -599,7 +600,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   function midiFreq(midi) { return state.tuning * Math.pow(2, (midi - 69) / 12); }
 
   /* real spacing: distance from the nut = string length x (1 - 2^(-semitones/12)) */
-  function mm(n) { return STRING_MM * (1 - Math.pow(2, -n / 12)); }
+  function mm(n) { return evenly ? n * 9.5 : STRING_MM * (1 - Math.pow(2, -n / 12)); }
+  var evenly = false;   /* the MIDI player, for a tune high up the string: semitones evenly spaced so all fit */
   /* Settings > Intonation (built page only): in just or Pythagorean intonation (APP.temper) each stopped note
      follows the key and the open strings are pure fifths, so a note sounds and sits a few cents away from
      its equal-tempered place. */
@@ -637,17 +639,26 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
        size and the board scrolls in its own box, following the notes played */
     var N = playerOn ? playerN : MAXN, room = 0;
     if (playerOn && playerTop) {
-      room = Math.max(160, avail - playerTop());
-      /* fit the room, but no tighter than keeps 19 px notes apart (up to the octave; above it they may touch) */
-      var N1 = Math.min(N, MAXN), g1 = mm(N1) - mm(N1 - 1);
-      for (i = 0; i < 3; i++) {   /* the note size and the spacing depend on each other: settle them */
-        K = Math.max((2 * 19 + 3) / g1, Math.min(5, (room - (r + 4) - r - 10 - 16) / mm(N)));
-        r = Math.round(Math.min(26, Math.max(19, (g1 * K - 3) / 2)));
-      }
-    }
+      /* the whole tune's range fits the room: real spacing if the notes stay 16 px or more, else even spacing;
+         the notes and their letters shrink as needed, never overlapping (Trix: no pressing in the player anyway) */
+      room = Math.max(120, avail - playerTop());
+      var fit = function () {
+        var rr = 19, KK = 3, g = mm(N) - mm(N - 1);
+        for (var j = 0; j < 4; j++) {
+          KK = Math.min(5, (room - (rr + 4) - rr - 10 - 16) / mm(N));
+          rr = Math.min(26, Math.max(6, (g * KK - 3) / 2));
+        }
+        return [KK, rr];
+      };
+      var want = false;
+      if (evenly) { evenly = false; }
+      var f = fit();
+      if (f[1] < 16) { evenly = true; f = fit(); want = true; }
+      if (want !== renderedEvenly) { renderedEvenly = want; render(); }   /* positions are baked in at render */
+      K = f[0]; r = Math.round(f[1]);
+    } else if (evenly || renderedEvenly) { evenly = false; renderedEvenly = false; render(); }
     stage.style.maxHeight = room ? room + 'px' : '';
-    /* scroll only when the tune needs more than the room; otherwise notes above its reach stay clipped */
-    stage.style.overflowY = room && (r + 4) + K * mm(N) + r + 10 + 16 > room + 2 ? 'auto' : '';
+    stage.style.overflowY = '';
     var st = stage.style;
     st.setProperty('--r', r + 'px');
     st.setProperty('--head', (r + 4) + 'px');
@@ -655,6 +666,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     st.setProperty('--k', K.toFixed(3) + 'px');
     st.setProperty('--span', Math.round(K * mm(N)) + 'px');
     st.setProperty('--fs', Math.round(r * 0.95) + 'px');
+    stage.classList.toggle('small', r < 15);   /* small notes: thinner rim */
     curK = K; curR = r;
     hitAreas();
   }
@@ -776,7 +788,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 
   function paint() {
     var key = keyObj();
-    var pc = state.pos === 'pc';
+    var pc = state.pos === 'pc' && !playerOn;   /* the MIDI player is never in Pitch Check */
     var P = POSITIONS[state.pos];
     notes.forEach(function (nt, i) {
       var b = buttons[i];
@@ -1179,7 +1191,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
 
   function begin(el, id) {
-    if (state.pos === 'pc') return;   /* Pitch Check listens instead of playing */
+    if (state.pos === 'pc' || playerOn) return;   /* Pitch Check listens instead of playing; the MIDI player only shows */
     if (voices.has(id)) return;
     APP.playThroughSilent();
     if (!ensureCtx()) return;
@@ -1266,7 +1278,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   board.addEventListener('dragstart', function (e) { e.preventDefault(); });
   board.addEventListener('touchstart', function (e) {
     /* in Pitch Check a touch may scroll the page instead */
-    if (state.pos !== 'pc' && e.target.closest && e.target.closest('.note')) e.preventDefault();
+    if (state.pos !== 'pc' && !playerOn && e.target.closest && e.target.closest('.note')) e.preventDefault();
   }, { passive: false });
 
   board.addEventListener('keydown', function (e) {
@@ -1292,7 +1304,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     else if (state.pos === 'pc' && !mic && !playerOn && board.offsetParent) startMic();
   });
   /* ---------- MIDI player (built page): this board with every note grey; the player lights and sounds the notes it plays ---------- */
-  var playerOn = false, playerTop = null, playerN = MAXN, pvoices = new Map(), PTOP = 19;   /* the player's board reaches a twelfth up each string */
+  var playerOn = false, playerTop = null, playerN = MAXN, pvoices = new Map(), PTOP = 19, renderedEvenly = false;   /* the player's board reaches a twelfth up each string */
   /* where a pitch is played: the highest string that has it within the octave, so the lowest position (A4 = open A) */
   function pick(midi) {
     for (var si = STRINGS.length - 1; si >= 0; si--) {
@@ -1316,12 +1328,6 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       el.style.setProperty('--hue', 'var(' + nt.s.v + ')');
       el.classList.add('down');
       showWave(rec, nt, fx === false);   /* a short note: the string lights, without the wobble and rings (Trix) */
-      /* the board scrolls in its box when the tune goes high: keep the note in view */
-      if (stage.scrollHeight > stage.clientHeight + 2) {
-        var er = el.getBoundingClientRect(), sr = stage.getBoundingClientRect();
-        if (er.top < sr.top + 10 || er.bottom > sr.bottom - 10)
-          stage.scrollBy({ top: er.top - sr.top - sr.height / 2 + er.height / 2, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-      }
     }
     pOff(id);
     pvoices.set(id, rec);
@@ -1347,7 +1353,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       pAllOff(); stopAll(); playerOn = on; playerTop = top || null;
       playerN = on ? Math.max(4, Math.min(PTOP, n || MAXN)) : MAXN;
       TOPN = on ? Math.max(MAXN, playerN) : MAXN;
-      render(); layout(); stage.scrollTop = 0;
+      renderedEvenly = null; layout(); if (renderedEvenly === null) { renderedEvenly = false; render(); layout(); }
     },
     on: pOn, off: pOff, allOff: pAllOff, has: function (id) { return pvoices.has(id); },
     click: function (strong) {   /* the MIDI player's count-in: a metronome-like tick, the first one stronger */

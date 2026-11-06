@@ -75,3 +75,4 @@
 .shell[data-view="midi"] #view-board .keybar, .shell[data-view="midi"] #view-board .posbar,
 .shell[data-view="midi"] #view-board .ksig, .shell[data-view="midi"] #view-board .forkhz { display: none !important; }
 .shell[data-view="midi"] #view-board { margin-top: 10px; padding-bottom: 130px; }
+.shell[data-view="midi"] #board .note { pointer-events: none; cursor: default; }   /* the player only shows the notes */
