@@ -119,7 +119,12 @@
        (the Violin channel, else the first channel heard). Drums (channel 10) are left out: the accompaniment synth
        plays pitched notes only. */
     var DRUM = 9, VIOLIN = /violin|violín|小提琴/i, GM_VIOLIN = 40, solo, acc = [];
-    tracks = tracks.map(function (tr) { tr.notes = tr.notes.filter(function (n) { return n.ch !== DRUM; }); return tr; }).filter(function (tr) { return tr.notes.length; });
+    /* also left out: a part named as drums or percussion, and channels set to General MIDI's percussive and
+       sound-effect instruments (112-127: woodblock, taiko, synth drum…), which a pitched synth can't play */
+    var NOISE = /drum|perc|kit|鼓|打击/i;
+    tracks = tracks.filter(function (tr) { return !NOISE.test(tr.label); })
+      .map(function (tr) { tr.notes = tr.notes.filter(function (n) { return n.ch !== DRUM && !(tr.prog[n.ch] >= 112); }); return tr; })
+      .filter(function (tr) { return tr.notes.length; });
     if (!tracks.length) throw fail('This file has no notes.');
     var soloName = '';
     function gmViolin(tr) { return Object.keys(tr.prog).some(function (c) { return tr.prog[c] === GM_VIOLIN && tr.notes.some(function (n) { return n.ch === +c; }); }); }
@@ -132,7 +137,15 @@
       soloName = tracks[0].name;
     } else {
       var si = 0, byName = -1, byProg = -1;
-      tracks.forEach(function (tr, i) { if (byName < 0 && VIOLIN.test(tr.label)) byName = i; if (byProg < 0 && gmViolin(tr)) byProg = i; });
+      /* among violins, the first violin (Violin I, Violin 1, 1st violin, Violino primo, solo) wins (Trix) */
+      var FIRST = /(^|[^a-z])(i|1|1st|first|primo|solo)([^a-z0-9]|$)|第一|一提/i, byFirst = -1;
+      tracks.forEach(function (tr, i) {
+        if (!VIOLIN.test(tr.label)) { if (byProg < 0 && gmViolin(tr)) byProg = i; return; }
+        if (byName < 0) byName = i;
+        if (byFirst < 0 && FIRST.test(tr.label.replace(VIOLIN, ' '))) byFirst = i;
+        if (byProg < 0 && gmViolin(tr)) byProg = i;
+      });
+      if (byFirst >= 0) byName = byFirst;
       si = byName >= 0 ? byName : byProg >= 0 ? byProg : 0;
       solo = tracks[si].notes; soloName = tracks[si].name;
       tracks.forEach(function (tr, i) { if (i !== si) acc = acc.concat(tr.notes); });
