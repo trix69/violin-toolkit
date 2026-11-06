@@ -380,6 +380,8 @@ launch_css = '''
 .launch-card { width: min(100%, 720px); text-align: center; outline: none; }
 .launch h2 { margin: 0; font: 700 clamp(30px, 6vw, 44px)/1.1 var(--font-display); letter-spacing: -0.02em; }
 .launch-sub { margin: 8px 0 22px; font: 400 14px var(--font-mono); letter-spacing: .04em; color: var(--muted); }
+.launch.switching .launch-sub { display: none; }   /* opened with Switch tool: no "start with" question (Trix) */
+.launch.switching h2 { margin-bottom: 22px; }
 .launch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 10px; }   /* five tools: 2 x 2, the last across */
 .launch-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 @media (min-width: 640px) { .launch-grid { gap: 16px; } }
@@ -983,6 +985,7 @@ nav_js = """(function () {
     Array.prototype.forEach.call(launch.querySelectorAll('.launch-btn'), function (b) {   /* the tool in use, marked */
       if (mark && b.dataset.view === cur) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
+    launch.classList.toggle('switching', !!mark);
     launch.hidden = false;
     document.addEventListener('keydown', onKey);
     document.getElementById('launchCard').focus({ preventScroll: true });   /* a focus scroll would push the gear up (Hermes R11.1) */
