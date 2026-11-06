@@ -555,8 +555,9 @@
     [0, 2, 4, 5, 7, 9, 11].forEach(function (i) { set[(root + i) % 12] = true; });
     set.tonic = song.minor ? (root + 9) % 12 : root;   /* the key note, ringed as on the fingerboard */
     set.minor = !!song.minor;   /* so Just intonation tunes to the tune's key, not the fingerboard's */
-    /* a tune that stays in 1st position (nothing above the 4th finger, 7 semitones up) colours only that far (Trix) */
-    set.top = reach() <= 8 ? 7 : Infinity;
+    /* colour key notes only as high up the strings as the tune itself plays (Trix: Twinkle never needs the 4th finger) */
+    set.top = 0;
+    song.notes.forEach(function (n) { if (n.si >= 0) set.top = Math.max(set.top, n.m - OPEN[n.si]); });
     return set;
   }
   function fit() { APP.board.player(true, topH, reach(), keySet(), song && song.sf < 0); scroll(); }
