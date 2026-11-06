@@ -86,8 +86,8 @@ b_css = board[board.index('<style>') + 7:board.index('</style>')]
 b_tokens, b_rest = b_css.split('\n* { box-sizing: border-box; }', 1)
 b_rest = '* { box-sizing: border-box; }' + b_rest
 
-b_tokens = re.sub(r"--font-display:[^;]*;", "--font-display: 'Outfit', 'DM Sans', system-ui, sans-serif;", b_tokens)
-b_tokens = re.sub(r"--font-note:[^;]*;", "--font-note: 'Outfit', 'DM Sans', system-ui, sans-serif;\n  --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;", b_tokens)
+b_tokens = re.sub(r"--font-display:[^;]*;", "--font-display: 'Outfit', 'DM Sans', 'VT Ord', system-ui, sans-serif;", b_tokens)
+b_tokens = re.sub(r"--font-note:[^;]*;", "--font-note: 'Outfit', 'DM Sans', 'VT Ord', system-ui, sans-serif;\n  --font-body: 'DM Sans', 'VT Ord', system-ui, -apple-system, 'Segoe UI', sans-serif;", b_tokens)
 assert '--font-body' in b_tokens
 
 # global bits that stay unprefixed (page chrome + header)
@@ -239,9 +239,9 @@ swatch_html = ''.join('<button type="button" class="swatch" role="radio" aria-ch
 settings_css = """
 .segc.two { grid-template-columns: repeat(2, 1fr); }
 html[lang="zh-CN"] {
-  --font-display: 'Outfit', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
-  --font-note: 'Outfit', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
-  --font-body: 'DM Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  --font-display: 'Outfit', 'VT Ord', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  --font-note: 'Outfit', 'VT Ord', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  --font-body: 'DM Sans', 'VT Ord', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
   --font-mono: 'DM Mono', ui-monospace, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', monospace;
   --t-sans-display: 'Outfit', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
   --t-body: 'DM Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
@@ -1088,6 +1088,9 @@ def face(family, file, weight):
 # fonts live in src/fonts (SIL Open Font License, see OFL.txt) and are inlined, so nothing is fetched from Google
 font_faces = (face('DM Sans', 'dm-sans-latin-wght-normal.woff2', '100 1000') + face('Outfit', 'outfit-latin-wght-normal.woff2', '100 900')
               + face('DM Mono', 'dm-mono-latin-400-normal.woff2', '400') + face('DM Mono', 'dm-mono-latin-500-normal.woff2', '500'))
+# raised ordinal letters (1ˢᵗ 2ⁿᵈ 3ʳᵈ 4ᵗʰ): on iOS system-ui and Helvetica Neue Medium have none (? boxes), Helvetica Neue regular has them; one face for every weight
+font_faces += ("@font-face { font-family: 'VT Ord'; font-style: normal; font-weight: 100 1000; src: local('HelveticaNeue'), local('Helvetica Neue');\n"
+               "  unicode-range: U+02B0-02FF, U+1D2C-1DBF, U+2070-209F; }\n")
 
 head = f"""<title>Violin Toolkit</title>
 <meta name="claude:viewport-fit-sides" content="cover">
