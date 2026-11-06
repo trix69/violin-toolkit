@@ -153,7 +153,8 @@
     var firstTick = acc.reduce(function (a, n) { return Math.min(a, n.t0); }, Infinity);
     var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick);
     sg.minor = minor;
-    sg.parts = tracks.length > 1 ? tracks.length : tracks[0].chans;
+    var used = {}; solo.forEach(function (n) { used[n.ch] = 1; }); acc.forEach(function (n) { used[n.ch] = 1; });
+    sg.parts = tracks.length > 1 ? tracks.length : Object.keys(used).length;   /* channels that still play: drums not counted (Hermes R20.1) */
     sg.soloName = soloName || '';
     /* the accompaniment in seconds from the first bar kept, by start time */
     sg.acc = acc.map(function (n) { var t = sg.sec(n.t0); return { m: n.m, t: t, e: Math.max(t + 0.03, sg.sec(Math.max(n.t1, n.t0 + 1))), v: (n.v || 90) / 127 }; })
@@ -756,7 +757,7 @@
     try { localStorage.setItem('violin-midi-loop', loop ? 'on' : 'off'); } catch (e) {}
     ui();
   });
-  function setSpeed(d) { speed = Math.max(0.5, Math.min(1.5, Math.round((speed + d) * 20) / 20)); ui(); }   /* 5 % steps (Trix) */
+  function setSpeed(d) { speed = Math.max(0.5, Math.min(1.5, Math.round((speed + d) * 20) / 20)); ui(); if (playing) { accStop(); accStart(); } }   /* notes under way take the new speed (Hermes R20.2) */   /* 5 % steps (Trix) */
   $('mpSlower').addEventListener('click', function () { setSpeed(-0.05); });
   $('mpFaster').addEventListener('click', function () { setSpeed(0.05); });
   seek.addEventListener('input', function () { if (song) seekTo(seek.value / 1000 * song.end); });
