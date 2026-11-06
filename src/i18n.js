@@ -261,7 +261,7 @@
     'Import your own': '导入自己的文件', 'Tap Import and choose a MIDI file (.mid) from your phone or computer. It stays in the list for next time; the bin button next to the list deletes it.': '点导入，从手机或电脑选择一个 MIDI 文件（.mid）。它会留在列表里，下次还能用；点列表旁的垃圾桶按钮可以删除。',
     'Which files work': '哪些文件可以用', 'The file must have one part only: the violin. A file with piano or other parts is refused, so save just the violin part as its own MIDI file. Notes below the G string are left out; very high notes are heard but not lit on the board.': '文件只能有一个声部：小提琴。含有钢琴或其他声部的文件会被拒绝，请把小提琴声部单独存成一个 MIDI 文件。低于 G 弦的音会略去；很高的音只播放声音，不在指板上亮起。', 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.': '点这里选择大调或小调。调内的音是彩色的，其他的是灰色。',
     'Equal is tuned like a piano. Just makes the intervals in the key pure. Pythagorean builds every note from pure fifths. The notes on the board move to match.': '平均律和钢琴的调音一样。纯律让调内的音程纯净。五度相生律用纯五度推出每个音。指板上的音会随之移动。',
-    'Practice time': '练习时间', 'Today': '今天', 'Last 7 days': '最近 7 天',
+    'Practice time': '练习时间', 'Today': '今天', 'Last 7 days': '最近 7 天', 'Days practised': '练习天数', 'Total time': '总练习时间',
     'Key list': '调列表', 'Folded': '收起', 'All keys': '全部显示', 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.': '选择大调或小调，左右滑动可看到更多调。调内的音是彩色的，其他的是灰色。',
     'Positions': '把位', '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.': '一把位：手靠近琴头，一指按每根空弦上方紧挨的那个音。二把位手往上移，一指放到原来二指的位置；三把位放到原来三指的位置。指板上标出每个音和按它的手指。',
     'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.': '点“音准检测”后开始拉。圆盘显示你拉的音落在哪里：音准时圈住这个音，偏高时在它下方，偏低时在它上方。越绿越接近。',
@@ -305,6 +305,7 @@
   }
   var RX = [
     [/^Practised on (\d+) days?$/, function (m, n) { return '已练习 ' + n + ' 天'; }],
+    [/^(\d+) days?$/, function (m, n) { return n + ' 天'; }],
     [/^(\d+) min$/, function (m, n) { return n + ' 分钟'; }],
     [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + ' 小时 ' + n + ' 分'; }],
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],

@@ -734,8 +734,9 @@ nav_js = """(function () {
       return out;
     }
     function fmt(s) { var m = Math.floor(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
-    function days() { save(); var o = load(); return Object.keys(o).filter(function (k) { return +o[k] >= 60; }).length; }
-    return { series: series, fmt: fmt, days: days };
+    function days() { save(); var o = load(); return Object.keys(o).filter(function (k) { return +o[k] > 0; }).length; }   /* any practice counts as a day (Trix, 2026-11-06; was a minute) */
+    function total() { save(); var o = load(), t = 0; Object.keys(o).forEach(function (k) { t += +o[k] || 0; }); return t; }   /* seconds, every day kept */
+    return { series: series, fmt: fmt, days: days, total: total };
   })();
   APP.usage = USAGE;
   function syncDays(textOnly) {
@@ -754,11 +755,13 @@ nav_js = """(function () {
     ser.forEach(function (x, i) {
       var m = Math.floor(x.s / 60), last = i === ser.length - 1;
       html += '<li class="' + (last ? 'today' : '') + (x.s < 60 ? ' zero' : '') + '"><span class="ud">' + (last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()]) + '</span>'
-        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv">' + m + '<span class="uhid">' + (zh ? ' 分钟' : ' min') + '</span></span></li>';
+        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv">' + (x.s > 0 && m < 1 ? '&lt;1' : m) + '<span class="uhid">' + (zh ? ' 分钟' : ' min') + '</span></span></li>';   /* some practice, under a minute: <1, not 0 */
     });
     document.getElementById('ubars').innerHTML = html;
     document.getElementById('useToday').textContent = USAGE.fmt(ser[ser.length - 1].s);
     document.getElementById('useWeek').textContent = USAGE.fmt(tot);
+    var nd = USAGE.days(); document.getElementById('useDays').textContent = nd + (nd === 1 ? ' day' : ' days');   /* all time (Trix) */
+    document.getElementById('useTotal').textContent = USAGE.fmt(USAGE.total());
     usage.hidden = false;
     window.addEventListener('keydown', onUsageKey, true);
     document.getElementById('usageCard').focus();
@@ -1282,6 +1285,8 @@ markup = f"""
     <dl class="usage">
       <div><dt>Today</dt><dd id="useToday">0 min</dd></div>
       <div><dt>Last 7 days</dt><dd id="useWeek">0 min</dd></div>
+      <div><dt>Days practised</dt><dd id="useDays">0 days</dd></div>
+      <div><dt>Total time</dt><dd id="useTotal">0 min</dd></div>
     </dl>
     <button type="button" class="sheet-done" id="usageDone">Done</button>
   </div>
