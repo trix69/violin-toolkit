@@ -119,6 +119,10 @@
 }
 #view-metronome .tsn.hi { align-items: flex-end; }
 #view-metronome .tsn.lo { align-items: flex-start; }
+/* each number fills two staff spaces as printed: the top one from the top line to the middle line, the bottom one
+   from the middle line to the bottom line (svg baseline at its bottom edge; size from APP.digitRatio in met.js) (Trix) */
+#view-metronome .tsd { display: block; width: calc(var(--sp) * 4); height: calc(var(--sp) * 2); overflow: visible; pointer-events: none; }
+#view-metronome .tsd text { fill: currentColor; font-family: 'Times New Roman', 'Noto Serif', 'DejaVu Serif', Georgia, serif; font-weight: 900; text-anchor: middle; }
 #view-metronome .tsn:active { color: var(--accent); }
 #view-metronome .tsn:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 #view-metronome .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

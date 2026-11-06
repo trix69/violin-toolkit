@@ -115,6 +115,8 @@
   }
   function drawSig() {
     $('mNumTxt').textContent = state.num; $('mDenTxt').textContent = state.den;
+    var tsz = (20 / APP.digitRatio(APP.TS_FONT)).toFixed(2);   /* svg units: 20 = two staff spaces */
+    $('mNumTxt').setAttribute('font-size', tsz); $('mDenTxt').setAttribute('font-size', tsz);
     $('mNoteG').innerHTML = noteSvg(state.den, -32);
   }
   drawSig();

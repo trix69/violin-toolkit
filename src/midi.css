@@ -39,7 +39,7 @@
 .mp-score .bl.end { stroke-width: 3.5; }
 .mp-score .ledger { stroke: color-mix(in srgb, currentColor 70%, transparent); stroke-width: 1.2; }
 .mp-score .acc { fill: currentColor; font: 400 15px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
-.mp-score .ts { fill: currentColor; font: 700 19px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
+.mp-score .ts { fill: currentColor; font-family: 'Times New Roman', 'Noto Serif', 'DejaVu Serif', Georgia, serif; font-weight: 900; text-anchor: middle; }   /* size set per score: digits two staff spaces tall (APP.digitRatio) */
 .mp-n { color: var(--sc-ink); transition: color .15s, opacity .3s; }
 .mp-n .head, .mp-n .flag, .mp-n .dot { fill: currentColor; }
 .mp-n .head.hollow { fill: none; stroke: currentColor; stroke-width: 1.8; }

@@ -483,6 +483,44 @@ t_js = must(t_js, "  fit();\n  startMic(true);\n})();", """  fit();
 })();""")
 
 app_js = """var APP = window.APP = { views: {}, a4: 442, onA4: [], busy: [] };   /* busy: functions, true while a tool is running (practice time) */
+/* Music signs drawn as shapes, so they sit exactly on the staff in any font (Trix: as printed key and time
+   signatures). APP.accSvg(kind, x, y, sp): a sharp ('#'), flat ('b') or natural ('n') centred on the line or
+   space at y, for a staff with spaces sp apart: a sharp about 2.8 spaces tall with thick rising bars, a flat's
+   stem 2 spaces above its bowl. APP.digitRatio(font): how tall the digits' ink is per font-size unit, measured
+   once, so a time-signature number can be sized to fill exactly two spaces with whatever serif the device has. */
+APP.accSvg = function (kind, x, y, sp) {
+  function P(pts) { return pts.map(function (q, i) { return (i ? 'L' : 'M') + (x + q[0] * sp).toFixed(2) + ' ' + (y + q[1] * sp).toFixed(2); }).join('') + 'Z'; }
+  function bar(yc, x0, x1, rise, t) { return P([[x0, yc + rise - t], [x1, yc - rise - t], [x1, yc - rise + t], [x0, yc + rise + t]]); }
+  var d = '';
+  if (kind === '#') {
+    d = P([[-0.29, -1.2], [-0.17, -1.24], [-0.17, 1.5], [-0.29, 1.54]]) + P([[0.17, -1.54], [0.29, -1.5], [0.29, 1.24], [0.17, 1.2]]) +
+        bar(-0.42, -0.55, 0.55, 0.14, 0.2) + bar(0.58, -0.55, 0.55, 0.14, 0.2);
+  } else if (kind === 'b') {
+    var X = function (v) { return (x + v * sp).toFixed(2); }, Y = function (v) { return (y + v * sp).toFixed(2); };
+    d = P([[-0.42, -2.05], [-0.3, -2.05], [-0.3, 0.5], [-0.42, 0.5]]) +
+        'M' + X(-0.3) + ' ' + Y(0.5) + 'C' + X(0.25) + ' ' + Y(0.2) + ' ' + X(0.62) + ' ' + Y(-0.12) + ' ' + X(0.55) + ' ' + Y(-0.4) +
+        'C' + X(0.48) + ' ' + Y(-0.68) + ' ' + X(0.05) + ' ' + Y(-0.62) + ' ' + X(-0.3) + ' ' + Y(-0.22) +
+        'L' + X(-0.3) + ' ' + Y(-0.02) + 'C' + X(-0.05) + ' ' + Y(-0.32) + ' ' + X(0.26) + ' ' + Y(-0.42) + ' ' + X(0.3) + ' ' + Y(-0.24) +
+        'C' + X(0.34) + ' ' + Y(-0.05) + ' ' + X(0.05) + ' ' + Y(0.2) + ' ' + X(-0.3) + ' ' + Y(0.38) + 'Z';
+  } else if (kind === 'n') {
+    d = P([[-0.36, -1.45], [-0.24, -1.45], [-0.24, 0.62], [-0.36, 0.66]]) + P([[0.24, -0.66], [0.36, -0.62], [0.36, 1.45], [0.24, 1.45]]) +
+        bar(-0.42, -0.36, 0.36, 0.1, 0.17) + bar(0.42, -0.36, 0.36, 0.1, 0.17);
+  }
+  return '<path class="accp" fill="currentColor" stroke="none" fill-rule="nonzero" d="' + d + '"/>';
+};
+APP.digitRatio = function (font) {
+  APP.digitRatio.c = APP.digitRatio.c || {};
+  if (APP.digitRatio.c[font]) return APP.digitRatio.c[font];
+  var r = 0.66;
+  try {
+    var cx = document.createElement('canvas').getContext('2d'); cx.font = '900 100px ' + font;
+    var m = cx.measureText('0123456789');
+    if (m.actualBoundingBoxAscent > 0) r = (m.actualBoundingBoxAscent + Math.max(0, m.actualBoundingBoxDescent)) / 100;
+  } catch (e) {}
+  if (!(r > 0.4 && r < 1)) r = 0.66;
+  return (APP.digitRatio.c[font] = r);
+};
+APP.TS_FONT = "'Times New Roman', 'Noto Serif', 'DejaVu Serif', Georgia, serif";
 try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
 try { APP.keysAll = localStorage.getItem('violin-keys') === 'all'; } catch (e) { APP.keysAll = false; }
 try { APP.autoUpd = localStorage.getItem('violin-autoupdate') !== 'off'; } catch (e) { APP.autoUpd = true; }   /* look for a new version on opening unless turned off */   /* fingerboard keys folded into one button unless set to All */

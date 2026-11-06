@@ -86,6 +86,9 @@
       return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
+    /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
+    var barQ = sig.num * 4 / sig.den, skipB = Math.floor(notes[0].b / barQ + 1e-6) * barQ, skipT = toSec(skipB * tpq);
+    if (skipB > 0) notes.forEach(function (n) { n.b -= skipB; n.t -= skipT; n.e -= skipT; });
     /* how long each note looks on the score: until the next note starts (a short breath between notes is
        not a rest), else its own length; rounded to note values a beginner part uses */
     var VALS = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25];
@@ -110,11 +113,13 @@
     }
     var lastN = notes[notes.length - 1];
     return {
-      notes: notes, sig: sig, sf: Math.max(-7, Math.min(7, sf)), bpm: Math.round(60e6 / tempos[0].us),   /* crotchets a minute */
+      notes: notes, sig: sig, sf: Math.max(-7, Math.min(7, sf)),
+      bpm: Math.round(60e6 / tempos.filter(function (tp) { return tp.tick <= skipB * tpq; }).pop().us),   /* crotchets a minute, where the song starts */
       end: Math.max.apply(null, notes.map(function (n) { return n.e; })), beats: lastN.b + lastN.len,
-      toBeat: function (s) {   /* seconds to beats, for scrolling the score */
+      toBeat: function (s) {   /* seconds to beats, for scrolling the score (both counted from the first bar kept) */
+        s += skipT;
         var g = segs[0]; for (var i = 1; i < segs.length && segs[i].sec <= s; i++) g = segs[i];
-        return (g.tick + (s - g.sec) / g.spt) / tpq;
+        return (g.tick + (s - g.sec) / g.spt) / tpq - skipB;
       },
       low: low, high: high
     };
@@ -151,18 +156,22 @@
   }
   function hueOf(nt) { return nt.si >= 0 ? 'var(' + HUE[nt.si] + ')' : 'var(--accent)'; }
   var CLEF = '<g transform="translate(2 ' + (Y0 - 36) + ') scale(0.9)"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></g>';
-  var ACC = { '1': '♯', '-1': '♭', '0': '♮' };
+  var ACC = { '1': '#', '-1': 'b', '0': 'n' };   /* drawn by APP.accSvg */
   var noteEls = [], X0 = 0, W = 0, chunks = [], shownFrom = -1;
 
   function drawScore() {
     var sg = song, sharps = sg.sf >= 0, sp = sharps ? SP_S : SP_F, n = Math.abs(sg.sf), keyAcc = {};
     for (var i = 0; i < n; i++) keyAcc[(sharps ? SHARP_K : FLAT_K)[i]] = sharps ? 1 : -1;
     var out = [], x = 40;
-    for (i = 0; i < n; i++) out.push('<text class="acc key" x="' + (x + i * 10) + '" y="' + (yOf((sharps ? SHARP_P : FLAT_P)[i]) + 4.5) + '">' + (sharps ? '♯' : '♭') + '</text>');
-    x += n * 10 + (n ? 10 : 6);   /* the time signature (centred on x) clear of the last sharp or flat */
+    /* key signature as printed: each sign on its own line or space, about a space apart (Trix) */
+    for (i = 0; i < n; i++) out.push('<g class="acc key">' + APP.accSvg(sharps ? '#' : 'b', x + 2 + i * 10.5, yOf((sharps ? SHARP_P : FLAT_P)[i]), S) + '</g>');
+    /* time signature: each number two spaces tall (top line to middle, middle to bottom), sized from the
+       measured ink of the device's serif digits, and placed by its width */
+    var tsz = 2 * S / APP.digitRatio(APP.TS_FONT), tw = Math.max(String(sg.sig.num).length, String(sg.sig.den).length) * tsz * 0.5;
+    x += (n ? n * 10.5 - 1 : 6) + tw / 2 + 4;
     var head = n + 2;   /* key signature + the two time-signature numbers */
-    out.push('<text class="ts" x="' + x + '" y="' + (Y0 + 2 * S - 1) + '">' + sg.sig.num + '</text><text class="ts" x="' + x + '" y="' + (Y0 + 4 * S - 1) + '">' + sg.sig.den + '</text>');
-    X0 = x + 34;
+    out.push('<text class="ts" style="font-size:' + tsz.toFixed(2) + 'px" x="' + x + '" y="' + (Y0 + 2 * S) + '">' + sg.sig.num + '</text><text class="ts" style="font-size:' + tsz.toFixed(2) + 'px" x="' + x + '" y="' + (Y0 + 4 * S) + '">' + sg.sig.den + '</text>');
+    X0 = x + tw / 2 + 22;
     var barBeats = sg.sig.num * 4 / sg.sig.den;
     /* spacing by note length, as printed music does (a semiquaver ~41 px, a crotchet 56, a semibreve 86), with
        room at each bar line; xAt() maps beats to x for placing and scrolling */
@@ -251,7 +260,7 @@
     inf.forEach(function (f, k) {
       var hd = inf[f.head], isHead = f.head === k, chord = hd.members.length > 1;
       var nt = f.nt, y = f.y, hx = f.hx, step = f.step, len = f.len, up = hd.up, g = [];
-      if (f.sign) g.push('<text class="acc" x="' + (hx - 15) + '" y="' + (y + 4.5) + '">' + f.sign + '</text>');
+      if (f.sign) g.push('<g class="acc">' + APP.accSvg(f.sign, hx - 14, y, S) + '</g>');
       for (var l = 0; l >= step; l -= 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
       for (l = 12; l <= step; l += 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
       var hollow = len >= 2, stem = len < 4, dotted = len === 3 || len === 1.5 || len === 0.75;
