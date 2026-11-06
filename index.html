@@ -1794,7 +1794,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.29" data-build="20261106-181522" data-cache="violin-toolkit-"><span>Version 1.29</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.30" data-build="20261106-210706" data-cache="violin-toolkit-"><span>Version 1.30</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -3403,6 +3403,7 @@ function noteGate() {
   }
   function pAllOff() { Array.from(pvoices.keys()).forEach(pOff); }
   if (window.APP) APP.board = {
+    toTop: function () { stage.scrollTop = 0; },   /* a newly chosen tune starts at the open strings (Hermes F14) */
     /* on: player mode; top(): height of the player's own part above the board, so the board fits below it */
     player: function (on, top, n, key, flat) {
       pAllOff(); stopAll(); playerOn = on; playerTop = top || null; playerKey = on ? key || null : null; playerFlat = on ? !!flat : null;
@@ -4343,6 +4344,7 @@ function noteGate() {
     if (song.low) warn.push(song.low + (song.low > 1 ? ' notes are' : ' note is') + ' below the violin’s G string and left out.');
     if (song.high) warn.push(song.high + (song.high > 1 ? ' notes are' : ' note is') + ' above the fingerboard shown: heard, not lit.');
     say(warn.join(' '));
+    APP.board.toTop();   /* a new tune opens at the open strings, whatever the last one scrolled to (Hermes F14) */
     if (shown) fit();
   }
   function addSong(title, buf, kept) {   /* kept: an imported file, with its id in the saved list */
@@ -4391,14 +4393,20 @@ function noteGate() {
     if (!f) return;
     var rd = new FileReader();
     rd.onload = function () {
-      try {
-        var name = f.name.replace(/\.(mid|midi|smf)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-        var i = addSong(name, rd.result, id);
-        kept.push({ id: id, name: name, b64: toB64(rd.result) });
-        var ok = saveKept();
-        songSel.value = i; load(i);
-        if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.', true); }
-      } catch (e) { say(e.mine ? e.message : 'This MIDI file could not be read.', true); }
+      var name = f.name.replace(/\.(mid|midi|smf)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6), i;
+      try { i = addSong(name, rd.result, id); }   /* reading the file: only a failure here means it could not be read */
+      catch (e) { if (!e.mine) console.error('MIDI import', e); say(e.mine ? e.message : 'This MIDI file could not be read.', true); return; }
+      kept.push({ id: id, name: name, b64: toB64(rd.result) });
+      var ok = saveKept();
+      songSel.value = i;
+      /* showing it: Trix saw "could not be read" for a file that then played fine after choosing another tune and
+         back, so a slip here gets one more try, the same as choosing it again, and is logged for a fix */
+      try { load(i); }
+      catch (e) {
+        console.error('MIDI import: first load', e);
+        try { load(i); } catch (e2) { console.error('MIDI import: second load', e2); say('The tune was added, but it could not be shown. Choose it again from the list.', true); return; }
+      }
+      if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.', true); }
     };
     rd.onerror = function () { say('This MIDI file could not be read.', true); };
     rd.readAsArrayBuffer(f);
@@ -4592,7 +4600,7 @@ function noteGate() {
     document.addEventListener('keydown', touch, true);
     document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
     window.addEventListener('pagehide', end);
-    setInterval(save, 15000);
+    setInterval(function () { save(); if (APP.syncDays) APP.syncDays(true); }, 15000);   /* text only: the pill appearing under an open start screen would move the tiles (Hermes F15) */   /* the day count follows along: today joins it once it reaches a minute (Trix) */
     setInterval(function () {
       if (!document.hidden && anyBusy()) touch();
     }, 5000);
@@ -4607,10 +4615,10 @@ function noteGate() {
     return { series: series, fmt: fmt, days: days };
   })();
   APP.usage = USAGE;
-  function syncDays() {
+  function syncDays(textOnly) {
     var n = USAGE.days();
     Array.prototype.forEach.call(document.querySelectorAll('.use-days'), function (e) { e.textContent = 'Practised on ' + n + (n === 1 ? ' day' : ' days'); });
-    document.getElementById('launchDays').hidden = !n;
+    if (!textOnly) document.getElementById('launchDays').hidden = !n;   /* shown or hidden only as the start screen opens */
   }
   APP.syncDays = syncDays;
   /* the overlay: built in the current language when it opens (translate="no" on the bars) */
@@ -4888,6 +4896,7 @@ function noteGate() {
     }
   });
   function openLaunch(mark, from) {
+    if (APP.syncDays) APP.syncDays();   /* up to date when the start screen comes back */
     lastFocus = from || document.activeElement;   /* Safari doesn't focus a clicked button */
     Array.prototype.forEach.call(launch.querySelectorAll('.launch-btn'), function (b) {   /* the tool in use, marked */
       if (mark && b.dataset.view === cur) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
@@ -5173,7 +5182,7 @@ function noteGate() {
     'in tune': '音准正确', 'off the board': '超出指板',
     'no sharps or flats': '无升降号', 'no ♯ or ♭': '无升降号',
     /* metronome */
-    'Symbols': '符号', 'MIDI Player': 'MIDI 播放器', 'Play': '播放', 'Pause': '暂停', 'MIDI player': 'MIDI 播放器', 'Play a tune and watch it on the fingerboard': '播放乐曲，在指板上看指法', 'Import': '导入', 'Delete this file': '删除这个文件', 'This file plays now, but there is no room to keep it for next time.': '这个文件现在可以播放，但没有空间留到下次。', 'Tune': '曲目', 'Back to start': '回到开头', 'Loop': '循环', 'Playback position': '播放进度', 'Twinkle, Twinkle, Little Star': '小星星', 'Ode to Joy': '欢乐颂', 'Canon': '卡农', 'In the Hall of the Mountain King': '在山魔王的宫殿里', 'A Little Night Music': '小夜曲', 'Winter, 1st movement': '冬 · 第一乐章', 'This is not a MIDI file.': '这不是 MIDI 文件。', 'This MIDI file keeps time in a way the player can’t read.': '播放器无法读取这个 MIDI 文件的计时方式。', 'This file has no notes.': '这个文件里没有音符。', 'Multiple sound tracks detected. The MIDI player only supports MIDI files with a single violin solo track.': '检测到多个音轨。MIDI 播放器只支持仅含一个小提琴独奏音轨的 MIDI 文件。', 'Every note in this file is below the violin’s G string.': '这个文件的所有音符都低于小提琴的 G 弦。', 'This MIDI file could not be read.': '无法读取这个 MIDI 文件。', 'Music symbols': '乐谱符号', 'Tap for the meaning': '点按查看含义', 'Look up music signs and what they mean': '查找乐谱符号及其含义', 'Search': '搜索', 'Search symbols': '搜索符号', 'No symbols match.': '没有匹配的符号。', 'Notes': '音符', 'Bowing': '弓法', 'Accidentals': '变音记号',
+    'Symbols': '符号', 'MIDI Player': 'MIDI 播放器', 'Play': '播放', 'Pause': '暂停', 'MIDI player': 'MIDI 播放器', 'Play a tune and watch it on the fingerboard': '播放乐曲，在指板上看指法', 'Import': '导入', 'Delete this file': '删除这个文件', 'This file plays now, but there is no room to keep it for next time.': '这个文件现在可以播放，但没有空间留到下次。', 'Tune': '曲目', 'Back to start': '回到开头', 'Loop': '循环', 'Playback position': '播放进度', 'Twinkle, Twinkle, Little Star': '小星星', 'Ode to Joy': '欢乐颂', 'Canon': '卡农', 'In the Hall of the Mountain King': '在山魔王的宫殿里', 'A Little Night Music': '小夜曲', 'Winter, 1st movement': '冬 · 第一乐章', 'This is not a MIDI file.': '这不是 MIDI 文件。', 'This MIDI file keeps time in a way the player can’t read.': '播放器无法读取这个 MIDI 文件的计时方式。', 'This file has no notes.': '这个文件里没有音符。', 'Multiple sound tracks detected. The MIDI player only supports MIDI files with a single violin solo track.': '检测到多个音轨。MIDI 播放器只支持仅含一个小提琴独奏音轨的 MIDI 文件。', 'Every note in this file is below the violin’s G string.': '这个文件的所有音符都低于小提琴的 G 弦。', 'This MIDI file could not be read.': '无法读取这个 MIDI 文件。', 'The tune was added, but it could not be shown. Choose it again from the list.': '乐曲已添加，但无法显示。请在列表中重新选择它。', 'Music symbols': '乐谱符号', 'Tap for the meaning': '点按查看含义', 'Look up music signs and what they mean': '查找乐谱符号及其含义', 'Search': '搜索', 'Search symbols': '搜索符号', 'No symbols match.': '没有匹配的符号。', 'Notes': '音符', 'Bowing': '弓法', 'Accidentals': '变音记号',
     'Quaver (eighth note)': '八分音符', 'Crotchet (quarter note)': '四分音符', 'Minim (half note)': '二分音符', 'Semibreve (whole note)': '全音符',
     '½ beat in 4/4': '4/4 拍中占半拍', '1 beat in 4/4': '4/4 拍中占 1 拍', '2 beats in 4/4': '4/4 拍中占 2 拍', '4 beats in 4/4': '4/4 拍中占 4 拍',
     'Up bow': '上弓', 'Push, tip to frog': '推弓：弓尖到弓根', 'Down bow': '下弓', 'Pull, frog to tip': '拉弓：弓根到弓尖',
