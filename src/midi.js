@@ -334,6 +334,7 @@
     bpmEl.textContent = song ? '♩ = ' + Math.round(song.bpm * speed) : '';
     playBtn.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play');
     playBtn.classList.toggle('on', playing || counting);
+    scoreEl.classList.toggle('playing', playing || counting);   /* tap-a-note only while paused */
     loopBtn.setAttribute('aria-pressed', loop ? 'true' : 'false');
     metroBtn.setAttribute('aria-pressed', metro ? 'true' : 'false');
     $('mpSlower').disabled = speed <= 0.5 + 1e-9;
@@ -413,9 +414,9 @@
   }
   function stopCount() { counting = false; clearTimeout(countT); countEl.hidden = true; }
   /* paused: the notes sounding at this point stay lit, silent and still (Trix) */
-  function showAt() {
+  function showAt(force) {
     allOff();
-    if (!song || pos < 0.01) return;   /* at the top nothing has sounded yet */
+    if (!song || (pos < 0.01 && !force)) return;   /* at the top nothing has sounded yet (unless its first note was tapped) */
     var ns = song.notes, show = [], k, lastB = null;
     for (k = Math.max(0, ni - 64); k < ns.length && ns[k].t <= pos + 1e-6; k++) if (ns[k].e > pos) show.push(k);
     /* in the short break between two notes: the one just played */
@@ -549,6 +550,21 @@
   $('mpSlower').addEventListener('click', function () { setSpeed(-0.05); });
   $('mpFaster').addEventListener('click', function () { setSpeed(0.05); });
   seek.addEventListener('input', function () { if (song) seekTo(seek.value / 1000 * song.end); });
+  /* paused (or not started): tap a note on the score to jump there and see its fingering on the board; Play
+     carries on from that note (Trix). The nearest note to the tap, within 28 px sideways. */
+  scoreEl.addEventListener('click', function (e) {
+    if (!song || playing || counting) return;
+    var best = -1, bd = 28;
+    noteEls.forEach(function (el, k) {
+      if (!el) return;
+      var r = el.getBoundingClientRect(); if (!r.width) return;   /* in a hidden section */
+      var d = Math.abs(r.left + r.width / 2 - e.clientX); if (d < bd) { bd = d; best = k; }
+    });
+    if (best < 0) return;
+    var t = song.notes[best].t;
+    if (t < 0.01) { seekTo(0); showAt(true); }   /* the first note: stay at the top (the count-in still comes), but show it */
+    else seekTo(t + 0.001);   /* just inside the note, so it shows lit and resumes sounding */
+  });
   document.addEventListener('visibilitychange', function () { if (document.hidden && (playing || counting)) pause(); });
   window.addEventListener('resize', scroll);
   if (APP.busy) APP.busy.push(function () { return playing || counting; });   /* playing along counts as practice time */

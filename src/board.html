@@ -346,7 +346,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 /* the line pivots at the finger, so it moves little there and most towards the bridge */
 .stage.small .note { border-width: 1px; }
 /* MIDI player: the tune's key in a pale string colour; the note being played in full */
-.note.tint:not(.down) { background: color-mix(in srgb, var(--hue) 45%, transparent); color: color-mix(in srgb, var(--ink) 80%, transparent); box-shadow: none; border-color: color-mix(in srgb, var(--hue) 55%, transparent); }   /* see-through like the grey notes, so a lit string shows under them (Trix) */
+.note.tint:not(.down) { background: color-mix(in srgb, var(--hue) 26%, transparent); color: color-mix(in srgb, var(--ink) 62%, transparent); box-shadow: none; border-color: color-mix(in srgb, var(--hue) 40%, transparent); }   /* paler (Trix), so the played note stands out */   /* see-through like the grey notes, so a lit string shows under them (Trix) */
 .note.tint.root:not(.down) { box-shadow: inset 0 0 0 2px var(--nut); }   /* the key note keeps the fingerboard's white ring */
 .note.beyond { visibility: hidden; }   /* MIDI player: rows past the tune's range */
 .vib.still { animation: none; transform: translateX(-50%); }
