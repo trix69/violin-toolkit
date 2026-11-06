@@ -162,7 +162,11 @@
        room at each bar line; xAt() maps beats to x for placing and scrolling */
     var ons = [], items = [];   /* what scrolls: [x, svg markup], drawn in sections */
     sg.notes.forEach(function (n) { if (!ons.length || n.b > ons[ons.length - 1] + 1e-6) ons.push(n.b); });
-    var pts = [], cx = X0, lastBar = 0;
+    /* an empty bar before the first note: the count-in scrolls through it, so the first note reaches the
+       playhead as the music starts (Trix) */
+    var leadW = Math.max(120, barBeats * 40), pts = [[-barBeats, X0]], cx = X0 + leadW, lastBar = 0;
+    items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']);
+    cx += 12;
     ons.forEach(function (b, i) {
       var bn = Math.floor(b / barBeats + 1e-6);
       if (bn > lastBar) { items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); cx += 12; lastBar = bn; }
@@ -171,7 +175,7 @@
     });
     pts.push([sg.beats, cx]);
     xAt = function (b) {
-      if (b <= pts[0][0]) return pts[0][1] - (pts[0][0] - b) * 50;
+      if (b <= pts[0][0]) return pts[0][1] - (pts[0][0] - b) * 50;   /* pts[0] is the start of the empty bar */
       for (var i = 1; i < pts.length; i++) if (b <= pts[i][0]) { var a = pts[i - 1], c = pts[i]; return a[1] + (c[1] - a[1]) * (b - a[0]) / ((c[0] - a[0]) || 1); }
       return cx + (b - sg.beats) * 50;
     };
@@ -290,7 +294,9 @@
   /* the playhead sits a third of the way across; the score slides under it */
   function scroll() {
     if (!song) return;
-    var beat = song.toBeat(pos), w = scoreEl.clientWidth, x = xAt(beat), hx = Math.max(w * 0.36, X0 + 50);
+    var bar = song.sig.num * 4 / song.sig.den;
+    var beat = counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar */
+    var w = scoreEl.clientWidth, x = xAt(beat), hx = Math.max(w * 0.36, X0 + 50);
     headEl.style.left = hx + 'px';
     /* half a beat early, so a note glows while it passes through the playhead rather than after it */
     var tx = Math.round(Math.min(0, hx - x + 22));
@@ -363,10 +369,17 @@
   /* count-in (Trix): one bar of the time signature counted down (3 2 1 in 3/4, 4 3 2 1 in 4/4) with a click
      on each beat, at the tune's tempo and the chosen speed; when starting from the beginning, and before each
      round of Loop; resuming after a pause plays straight on */
-  var counting = false, countT = 0, countEl = $('mpCount');
+  var counting = false, countT = 0, countEl = $('mpCount'), countBeat = 0;
   function countIn(then) {
     var n = song.sig.num, k = n, step = 60 / song.bpm * 4 / song.sig.den / speed * 1000;
-    counting = true; ui();
+    var bar = n * 4 / song.sig.den, t0 = performance.now();
+    counting = true; countBeat = -bar; ui();
+    (function slide() {   /* the score moves through the empty bar in time with the count */
+      if (!counting) return;
+      countBeat = -bar * Math.max(0, 1 - (performance.now() - t0) / (n * step));
+      scroll();
+      requestAnimationFrame(slide);
+    })();
     (function beat() {
       if (!counting) return;
       if (k === 0) { counting = false; countEl.hidden = true; then(); return; }
