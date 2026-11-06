@@ -358,6 +358,7 @@
   function load(i) {
     pause();
     song = songs[i].song;
+    delBtn.hidden = !songs[i].kept;   /* the bin only for an imported file */
     subEl.textContent = songs[i].title;
     drawScore();
     seekTo(0);
@@ -367,19 +368,40 @@
     say(warn.join(' '));
     if (shown) fit();
   }
-  function addSong(title, buf, imported) {
+  function addSong(title, buf, kept) {   /* kept: an imported file, with its id in the saved list */
     var sg = parse(buf);
-    songs.push({ title: title, song: sg, imported: imported });
-    var o = document.createElement('option');
-    o.value = songs.length - 1; o.textContent = title;
-    if (imported) o.setAttribute('translate', 'no');   /* a file name stays as it is in 中文 */
-    songSel.appendChild(o);
+    songs.push({ title: title, song: sg, kept: kept || null });
+    options();
     return songs.length - 1;
   }
-  DEMOS.forEach(function (d) {
-    var bin = atob(d.b64), u8 = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    addSong(d.title, u8.buffer, false);
+  function options() {
+    songSel.textContent = '';
+    songs.forEach(function (s, i) {
+      var o = document.createElement('option');
+      o.value = i; o.textContent = s.title;
+      if (s.kept) o.setAttribute('translate', 'no');   /* a file name stays as it is in 中文 */
+      songSel.appendChild(o);
+    });
+  }
+  function fromB64(b64) { var bin = atob(b64), u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8.buffer; }
+  function toB64(buf) { var u8 = new Uint8Array(buf), s = ''; for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); return btoa(s); }
+  DEMOS.forEach(function (d) { addSong(d.title, fromB64(d.b64), null); });
+  /* imported files are kept on this device until deleted with the bin button (Trix): violin-midi-files,
+     a list of { id, name, b64 }; MIDI files are small (a few KB), well inside the storage limit */
+  var KEEP = 'violin-midi-files', kept = [];
+  try { kept = JSON.parse(localStorage.getItem(KEEP) || '[]'); if (!Array.isArray(kept)) kept = []; } catch (e) { kept = []; }
+  kept = kept.filter(function (f) { try { addSong(f.name, fromB64(f.b64), f.id); return true; } catch (e) { return false; } });
+  function saveKept() { try { localStorage.setItem(KEEP, JSON.stringify(kept)); return true; } catch (e) { return false; } }
+  var delBtn = $('mpDel');
+  delBtn.addEventListener('click', function () {
+    var i = +songSel.value, s = songs[i];
+    if (!s || !s.kept) return;
+    kept = kept.filter(function (f) { return f.id !== s.kept; });
+    saveKept();
+    songs.splice(i, 1);
+    options();
+    songSel.value = 0; load(0);
+    songSel.focus();
   });
   songSel.addEventListener('change', function () { load(+songSel.value); });
   $('mpImport').addEventListener('click', function () { fileIn.value = ''; fileIn.click(); });
@@ -389,8 +411,12 @@
     var rd = new FileReader();
     rd.onload = function () {
       try {
-        var i = addSong(f.name.replace(/\.(mid|midi|smf)$/i, ''), rd.result, true);
+        var name = f.name.replace(/\.(mid|midi|smf)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        var i = addSong(name, rd.result, id);
+        kept.push({ id: id, name: name, b64: toB64(rd.result) });
+        var ok = saveKept();
         songSel.value = i; load(i);
+        if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.'); }
       } catch (e) { say(e.mine ? e.message : 'This MIDI file could not be read.'); }
     };
     rd.onerror = function () { say('This MIDI file could not be read.'); };
