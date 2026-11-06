@@ -2,7 +2,7 @@
    A new release is saved as soon as it is out, but the page shown stays the one the user is on until
    they choose Update (Settings version line, or the "new version" popup): the page writes that build
    stamp to META 'current'. So Later, or Settings > Automatic update check Off, keeps the old version. */
-const VERSION = 'violin-toolkit-20261106-230328';
+const VERSION = 'violin-toolkit-20261107-073044';
 const PREFIX = 'violin-toolkit-', META = PREFIX + 'meta';
 /* only this site's saved copies: production and test share trix69.github.io, so never touch the other's */
 const MINE = k => /^violin-toolkit-\d{8}-\d{6}$/.test(k);
@@ -41,6 +41,9 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (url.origin !== location.origin && !fonts) return;
+  /* only the app's own address opens the app; other pages on the site (docs/privacy.html) come from the network */
+  const scope = new URL(self.registration.scope).pathname;
+  if (req.mode === 'navigate' && url.origin === location.origin && url.pathname !== scope && url.pathname !== scope + 'index.html') return;
   if (req.mode === 'navigate') {
     /* always open from the chosen saved copy; the network only when nothing is saved yet */
     e.respondWith((async () => {

@@ -1107,11 +1107,12 @@ html[lang="zh-CN"] {
 .ubars i { display: block; width: 100%; max-width: 30px; height: var(--h); min-height: 2px; border-radius: 6px 6px 2px 2px; background: color-mix(in srgb, var(--accent) 40%, transparent); }
 .ubars .zero i { background: var(--line); }
 .ubars .today i { background: var(--accent); }
-.ubars .uv { font: 600 13px/1 var(--font-note); font-variant-numeric: tabular-nums; }
+.ubars .uv { font: 600 13px/1 var(--font-note); font-variant-numeric: tabular-nums; white-space: nowrap; }   /* 1.5h on one line (Hermes F24) */
 .ubars .ud { font: 400 12px/1 var(--font-note); color: var(--muted); white-space: nowrap; }
 .ubars .today .ud { color: var(--fg); font-weight: 600; }
 .uhid { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.usage { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 0; }
+.usage { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 18px 0 0; }
+@media (max-width: 360px) { .usage div dd { white-space: normal; font-size: 17px; } }   /* a long total ("11 小时 21 分") wraps inside its box on a narrow phone (Hermes F24) */
 .usage div { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
 .usage dt { font: 400 13px/1.2 var(--font-note); color: var(--muted); }
 .usage dd { margin: 4px 0 0; font: 600 19px/1.2 var(--font-note); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -1797,7 +1798,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.33" data-build="20261106-230328" data-cache="violin-toolkit-"><span>Version 1.33</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.34" data-build="20261107-073044" data-cache="violin-toolkit-"><span>Version 1.34</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -4699,13 +4700,13 @@ function noteGate() {
     }
     /* practice time is time with a tool running (Trix, 2026-11-06, Hermes F20): the metronome playing, the
        tuner or Pitch Check listening, the MIDI player playing, a fingerboard note held. Taps and browsing
-       add nothing, so opening the app does not make a practice day. Counted in 1 s steps while visible. */
-    function tick() { var now = Date.now(); if (!document.hidden && anyBusy()) { if (last && now > last) add(last, now); last = now; } else last = 0; }
+       add nothing, so opening the app does not make a practice day. Counted in 1/4 s steps while visible. */
+    function tick() { var now = Date.now(); if (!document.hidden && last && now > last && anyBusy()) add(last, now); last = document.hidden ? 0 : now; }   /* each busy sample credits the time since the one before, so short notes count at their real length (Hermes F23) */
     function end() { last = 0; save(); }
     document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
     window.addEventListener('pagehide', end);
     setInterval(function () { save(); if (APP.syncDays) APP.syncDays(true); }, 15000);   /* text only: the pill appearing under an open start screen would move the tiles (Hermes F15); the day count follows along as today is practised (Trix) */
-    setInterval(tick, 1000);
+    setInterval(tick, 250);
     function series(n) {   /* [{ d: Date, s: seconds }] for the n days up to today, oldest first */
       save();
       var o = load(), d = new Date(), out = [];
@@ -4733,10 +4734,13 @@ function noteGate() {
     ser.forEach(function (x) { if (x.s > max) max = x.s; tot += x.s; });
     ser.forEach(function (x, i) {
       var m = Math.floor(x.s / 60), last = i === ser.length - 1;
-      html += '<li class="' + (last ? 'today' : '') + (x.s <= 0 ? ' zero' : '') + '"><span class="ud">' + (last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()]) + '</span>'
-        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv">' + (x.s > 0 && m < 1 ? '&lt;1' : m >= 60 ? Math.round(m / 6) / 10 + (zh ? '小时' : 'h') : m) + (m >= 60 ? '' : '<span class="uhid">' + (zh ? ' 分钟' : ' min') + '</span>') + '</span></li>';   /* an hour or more: 1h, 1.5h (Hermes F21) */   /* some practice, under a minute: <1, not 0 */
+      var day = last ? (zh ? '今天' : 'Today') : WD[x.d.getDay()], hrs = m >= 60, num = x.s > 0 && m < 1 ? '&lt;1' : hrs ? Math.round(m / 6) / 10 : m;
+      html += '<li class="' + (last ? 'today' : '') + (x.s <= 0 ? ' zero' : '') + '"><span class="uhid">' + day + (zh ? ' ' : ', ') + num + (hrs ? (zh ? ' 小时' : ' hours') : (zh ? ' 分钟' : ' min')) + '</span>'
+        + '<span class="ud" aria-hidden="true">' + day + '</span>'
+        + '<i style="--h:' + (max ? Math.round(x.s / max * 100) : 0) + '%"></i><span class="uv" aria-hidden="true">' + num + (hrs ? 'h' : '') + '</span></li>';   /* screen readers hear one full phrase ("Today, 1.5 hours"), the bar shows the short form (Hermes F25) */   /* an hour or more: 1h, 1.5h (Hermes F21) */   /* some practice, under a minute: <1, not 0 */
     });
     document.getElementById('ubars').innerHTML = html;
+    document.getElementById('ubars').setAttribute('aria-label', zh ? '最近 7 天' : 'Last 7 days');   /* translate="no" keeps i18n off this label (Hermes F26) */
     document.getElementById('useToday').textContent = USAGE.fmt(ser[ser.length - 1].s);
     document.getElementById('useWeek').textContent = USAGE.fmt(tot);
     var nd = USAGE.days(); document.getElementById('useDays').textContent = nd + (nd === 1 ? ' day' : ' days');   /* all time (Trix) */
@@ -5574,7 +5578,7 @@ function noteGate() {
     [/^(\d+) min$/, function (m, n) { return n + ' 分钟'; }],
     [/^<1 min$/, function () { return '<1 分钟'; }],
     [/^(\d+) h$/, function (m, h) { return h + ' 小时'; }],
-    [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + ' 小时 ' + n + ' 分'; }],
+    [/^(\d+) h (\d+) min$/, function (m, h, n) { return h + '\u00a0小时 ' + n + '\u00a0分'; }],   /* each number stays with its unit when a narrow box wraps (Hermes F24) */
     [/^Version ([\d.]+(?:-test)?)$/, function (m, v) { return '版本 ' + v; }],
     [/^Version ([\d.]+(?:-test)?) is ready\. Update now\?$/, function (m, v) { return '版本 ' + v + ' 已推出，现在更新吗？'; }],
     [/^(\d+) notes? (?:is|are) below the violin’s G string and left out\.(?: (\d+) notes? (?:is|are) above the fingerboard shown: heard, not lit\.)?$/, function (m, a, b) { return a + ' 个音低于小提琴的 G 弦，已略去。' + (b ? b + ' 个音高于所显示的指板：只播放声音，不点亮。' : ''); }],
