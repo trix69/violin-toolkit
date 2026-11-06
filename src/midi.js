@@ -158,8 +158,10 @@
     if (r.whole || base === 4) out = '<rect x="' + (x - 5.5) + '" y="' + (Y0 + S) + '" width="11" height="' + (S / 2) + '"/>';   /* hangs from the 4th line */
     else if (base === 2) out = '<rect x="' + (x - 5.5) + '" y="' + (Y0 + 2 * S - S / 2) + '" width="11" height="' + (S / 2) + '"/>';   /* sits on the middle line */
     else if (base === 1) {   /* the printed crotchet rest (Trix): thin top, thick wedge, lower stroke, hook; in staff spaces */
-      var CR = 'M-0.30 0.45 L-0.16 0.40 L0.55 1.42 L0.02 1.98 L0.58 2.70 L0.50 2.80 C0.12 2.56 -0.30 2.86 0.20 3.52 L0.10 3.56 C-0.52 3.00 -0.26 2.40 0.24 2.56 L-0.36 1.96 L0.08 1.20 Z';
-      out = '<path d="' + CR.replace(/(-?[\d.]+) (-?[\d.]+)/g, function (m, u, v) { return (x + u * S).toFixed(2) + ' ' + (Y0 + v * S).toFixed(2); }) + '"/>';
+      /* traced from Trix's reference picture: body (thin top flaring into the wedge, lower stroke) + hook */
+      out = ['M-0.36 0.58 L-0.27 0.52 L0.02 0.95 L0.42 1.44 L-0.02 2.02 L0.55 2.80 L0.42 2.86 L-0.20 2.30 L-0.46 1.92 L-0.10 1.02 Z',
+        'M0.50 2.76 C0.20 2.40 -0.30 2.35 -0.47 2.62 C-0.60 2.95 -0.30 3.18 0.03 3.38 C-0.10 3.15 -0.12 2.88 0.06 2.74 C0.22 2.64 0.40 2.68 0.50 2.76 Z'
+      ].map(function (d) { return '<path d="' + d.replace(/(-?[\d.]+) (-?[\d.]+)/g, function (m, u, v) { return (x + u * S).toFixed(2) + ' ' + (Y0 + v * S).toFixed(2); }) + '"/>'; }).join('');
     }
     else {   /* quaver: one flag; semiquaver: two */
       var n = base <= 0.25 ? 2 : 1, top = Y0 + 1.5 * S, foot = Y0 + (n === 2 ? 4 : 3.2) * S;
