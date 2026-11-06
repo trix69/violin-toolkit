@@ -1282,7 +1282,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     }
     return -1;
   }
-  function pOn(midi, id) {
+  function pOn(midi, id, fx) {   /* fx false: light the note only, no string wobble or rings */
     if (window.APP && APP.playThroughSilent) APP.playThroughSilent();
     if (!ensureCtx()) return;
     var i = pick(midi), nt = notes[i], el = buttons[i];
@@ -1294,7 +1294,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       el.classList.remove('off');
       el.style.setProperty('--hue', 'var(' + nt.s.v + ')');
       el.classList.add('down');
-      showWave(rec, nt);
+      if (fx !== false) showWave(rec, nt);
     }
     pOff(id);
     pvoices.set(id, rec);

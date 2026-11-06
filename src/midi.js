@@ -121,7 +121,7 @@
   function hueOf(m) { for (var i = 0; i < STR.length; i++) if (m >= STR[i][0] && m <= STR[i][0] + 12) return 'var(' + STR[i][1] + ')'; return 'var(--accent)'; }
   var CLEF = '<g transform="translate(2 ' + (Y0 - 36) + ') scale(0.9)"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></g>';
   var ACC = { '1': '♯', '-1': '♭', '0': '♮' };
-  var noteEls = [], X0 = 0, W = 0;
+  var noteEls = [], X0 = 0, W = 0, chunks = [], shownFrom = -1;
 
   function drawScore() {
     var sg = song, sharps = sg.sf >= 0, sp = sharps ? SP_S : SP_F, n = Math.abs(sg.sf), keyAcc = {};
@@ -135,12 +135,12 @@
     var barBeats = sg.sig.num * 4 / sg.sig.den;
     /* spacing by note length, as printed music does (a semiquaver ~41 px, a crotchet 56, a semibreve 86), with
        room at each bar line; xAt() maps beats to x for placing and scrolling */
-    var ons = [];
+    var ons = [], items = [];   /* what scrolls: [x, svg markup], drawn in sections */
     sg.notes.forEach(function (n) { if (!ons.length || n.b > ons[ons.length - 1] + 1e-6) ons.push(n.b); });
     var pts = [], cx = X0, lastBar = 0;
     ons.forEach(function (b, i) {
       var bn = Math.floor(b / barBeats + 1e-6);
-      if (bn > lastBar) { out.push('<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>'); cx += 12; lastBar = bn; }
+      if (bn > lastBar) { items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); cx += 12; lastBar = bn; }
       pts.push([b, cx]);
       cx += 26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < ons.length ? ons[i + 1] : sg.beats) - b));
     });
@@ -152,7 +152,7 @@
     };
     W = cx + 30;
     var endX = cx - 8;
-    out.push('<path class="bl" d="M' + (endX - 4) + ' ' + Y0 + 'V' + BOT + '"/><path class="bl end" d="M' + endX + ' ' + Y0 + 'V' + BOT + '"/>');
+    items.push([endX - 4, '<path class="bl" d="M' + (endX - 4) + ' ' + Y0 + 'V' + BOT + '"/><path class="bl end" d="M' + endX + ' ' + Y0 + 'V' + BOT + '"/>']);
     /* first pass: where each note sits; accidentals hold to the end of the bar */
     var barNo = -1, inBar = {}, inf = sg.notes.map(function (nt) {
       var bn = Math.floor(nt.b / barBeats + 1e-6);
@@ -193,7 +193,7 @@
         if (nx !== undefined && inf[nx].len <= 0.25) b.push(bar(sx(k), sx(nx), 7));
         else if (!(pv !== undefined && inf[pv].len <= 0.25)) b.push(nx !== undefined ? bar(sx(k), sx(k) + 9, 7) : bar(sx(k) - 9, sx(k), 7));
       });
-      beams.push(b.join(''));
+      beams.push([x0, '<g class="mp-beams">' + b.join('') + '</g>']);
     });
     /* second pass: draw */
     inf.forEach(function (f, k) {
@@ -219,21 +219,30 @@
         g.push('<text class="fing" x="' + hx + '" y="' + ty + '">' + fg + '</text>');
       }
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
-      out.push('<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt.m) + '">' + g.join('') + '</g>');
+      items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt.m) + '">' + g.join('') + '</g>']);
     });
-    out.push('<g class="mp-beams">' + beams.join('') + '</g>');
-    var lines = '';
-    for (i = 0; i < 5; i++) lines += '<path class="sl" d="M0 ' + (Y0 + i * S) + 'H' + W + '"/>';
-    svg.setAttribute('width', W); svg.setAttribute('height', BOT + 46);
-    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + (BOT + 46));
-    svg.innerHTML = lines + out.slice(head).join('');
+    items = items.concat(beams);
+    /* the score in sections ~1200 px wide, each its own svg, only those near the playhead shown: one svg as
+       wide as a long piece (Winter: 47 000 px, 9 800 shapes) was redrawn on every frame and stalled phones */
+    var CH = 1200, H = BOT + 46, nC = Math.ceil(W / CH), parts = [];
+    for (i = 0; i < nC; i++) parts.push([]);
+    items.forEach(function (it) { parts[Math.max(0, Math.min(nC - 1, Math.floor(it[0] / CH)))].push(it[1]); });
+    svg.style.width = W + 'px'; svg.style.height = H + 'px';
+    svg.innerHTML = parts.map(function (p, c) {
+      var lines = '';
+      for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M' + c * CH + ' ' + (Y0 + j * S) + 'H' + Math.min(W, (c + 1) * CH) + '"/>';
+      return '<svg class="mp-chunk" xmlns="http://www.w3.org/2000/svg" overflow="visible" style="left:' + c * CH + 'px" width="' + CH + '" height="' + H + '" viewBox="' + c * CH + ' 0 ' + CH + ' ' + H + '">' + lines + p.join('') + '</svg>';
+    }).join('');
+    chunks = Array.prototype.slice.call(svg.children);
+    shownFrom = -1;
     /* the clef, key and time signature stay at the left while the notes scroll under them */
     var kw = X0 - 12, kl = '';
     for (i = 0; i < 5; i++) kl += '<path class="sl" d="M0 ' + (Y0 + i * S) + 'H' + kw + '"/>';
     keySvg.setAttribute('width', kw + 14); keySvg.setAttribute('height', BOT + 46);
     keySvg.setAttribute('viewBox', '0 0 ' + (kw + 14) + ' ' + (BOT + 46));
     keySvg.innerHTML = kl + CLEF + out.slice(0, head).join('');
-    noteEls = Array.prototype.slice.call(svg.querySelectorAll('.mp-n'));
+    noteEls = [];
+    Array.prototype.forEach.call(svg.querySelectorAll('.mp-n'), function (el) { noteEls[+el.getAttribute('data-k')] = el; });
   }
   /* the playhead sits a third of the way across; the score slides under it */
   function scroll() {
@@ -241,7 +250,15 @@
     var beat = song.toBeat(pos), w = scoreEl.clientWidth, x = xAt(beat), hx = Math.max(w * 0.36, X0 + 50);
     headEl.style.left = hx + 'px';
     /* half a beat early, so a note glows while it passes through the playhead rather than after it */
-    svg.style.transform = 'translateX(' + Math.round(Math.min(0, hx - x + 22)) + 'px)';
+    var tx = Math.round(Math.min(0, hx - x + 22));
+    svg.style.transform = 'translateX(' + tx + 'px)';
+    /* show only the sections in view (and one either side) */
+    var c0 = Math.max(0, Math.floor(-tx / 1200) - 1);
+    if (c0 !== shownFrom) {
+      shownFrom = c0;
+      var c1 = Math.floor((w - tx) / 1200) + 1;
+      chunks.forEach(function (el, c) { el.style.display = c >= c0 && c <= c1 ? '' : 'none'; });
+    }
   }
 
   /* ---------- playing ---------- */
@@ -284,8 +301,11 @@
     while (ni < ns.length && ns[ni].t <= pos) {
       /* a note that already ended between two frames (very fast notes, a slow phone) is skipped, not left lit */
       if (ns[ni].e <= pos) { noteEls[ni].classList.add('done'); ni++; continue; }
-      APP.board.on(ns[ni].m, 'n' + ni);
+      /* a note under a quarter of a second just lights up: no string wobble, rings or glow (Trix: fast pieces lagged) */
+      var quick = (ns[ni].e - ns[ni].t) / speed < 0.25;
+      APP.board.on(ns[ni].m, 'n' + ni, !quick);
       noteEls[ni].classList.add('on');
+      noteEls[ni].classList.toggle('quick', quick);
       active.push(ni); ni++;
     }
     /* the board keeps one note per string; drop the ones it replaced */
@@ -384,9 +404,9 @@
     try { localStorage.setItem('violin-midi-loop', loop ? 'on' : 'off'); } catch (e) {}
     ui();
   });
-  function setSpeed(d) { speed = Math.max(0.5, Math.min(1.5, Math.round((speed + d) * 10) / 10)); ui(); }
-  $('mpSlower').addEventListener('click', function () { setSpeed(-0.1); });
-  $('mpFaster').addEventListener('click', function () { setSpeed(0.1); });
+  function setSpeed(d) { speed = Math.max(0.5, Math.min(1.5, Math.round((speed + d) * 20) / 20)); ui(); }   /* 5 % steps (Trix) */
+  $('mpSlower').addEventListener('click', function () { setSpeed(-0.05); });
+  $('mpFaster').addEventListener('click', function () { setSpeed(0.05); });
   seek.addEventListener('input', function () { if (song) seekTo(seek.value / 1000 * song.end); });
   document.addEventListener('visibilitychange', function () { if (document.hidden && (playing || counting)) pause(); });
   window.addEventListener('resize', scroll);

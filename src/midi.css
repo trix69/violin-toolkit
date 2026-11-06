@@ -13,7 +13,9 @@
 .mp-msg[hidden] { display: none; }
 /* the score strip: dark like the board, the playhead a third of the way in */
 .mp-score { position: relative; margin-top: 10px; height: 116px; overflow: hidden; border-radius: 14px; background: var(--board, #46524C); color: #E9E2D2; }
-.mp-score svg { position: absolute; left: 0; top: 4px; will-change: transform; }
+.mp-score .mp-strip { position: absolute; left: 0; top: 4px; will-change: transform; }
+.mp-strip .mp-chunk { position: absolute; top: 0; }
+.mp-score .mp-key { position: absolute; top: 4px; }
 /* the clef and key at the left: the board colour, fading out over the notes passing underneath */
 .mp-score .mp-key { left: 0; z-index: 1; background: linear-gradient(90deg, var(--board, #46524C) calc(100% - 14px), color-mix(in srgb, var(--board, #46524C) 0%, transparent)); }
 .mp-head { position: absolute; z-index: 2; top: 10px; bottom: 10px; left: 33%; width: 2px; margin-left: -1px; border-radius: 1px; background: color-mix(in srgb, #E9E2D2 35%, transparent); pointer-events: none; }
@@ -32,7 +34,8 @@
 .mp-n .fing { fill: var(--hue); font: 700 13px var(--font-note); text-anchor: middle; }   /* fingering: 0 open, 1-4 fingers, in the string colour */
 .mp-n.done { opacity: .5; }
 /* the note sounding: in its string colour and glowing, like the board */
-.mp-n.on { color: var(--hue); opacity: 1; filter: drop-shadow(0 0 3px var(--hue)) drop-shadow(0 0 7px var(--hue)); }
+.mp-n.on { color: var(--hue); opacity: 1; filter: drop-shadow(0 0 4px var(--hue)); }
+.mp-n.on.quick { filter: none; }   /* short notes: colour only */
 @media (prefers-reduced-motion: reduce) { .mp-n { transition: none; } .mp-n.on { filter: none; } }
 /* the count-in number over the score */
 .mp-count { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: color-mix(in srgb, var(--board, #46524C) 55%, transparent); color: #E9E2D2; font: 700 64px/1 var(--font-display); text-shadow: 0 0 14px var(--accent); pointer-events: none; }
