@@ -445,7 +445,12 @@
   }
 
   /* ---------- tunes ---------- */
-  function say(text) { msg.textContent = text || ''; msg.hidden = !text; }
+  /* notes about a tune in small grey text; an import that failed as a red alert (Trix: make errors obvious) */
+  function say(text, err) {
+    msg.textContent = text || ''; msg.hidden = !text;
+    msg.classList.toggle('err', !!err);
+    msg.setAttribute('role', err ? 'alert' : 'status');
+  }
   function load(i) {
     pause();
     song = songs[i].song;
@@ -507,10 +512,10 @@
         kept.push({ id: id, name: name, b64: toB64(rd.result) });
         var ok = saveKept();
         songSel.value = i; load(i);
-        if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.'); }
-      } catch (e) { say(e.mine ? e.message : 'This MIDI file could not be read.'); }
+        if (!ok) { kept.pop(); say('This file plays now, but there is no room to keep it for next time.', true); }
+      } catch (e) { say(e.mine ? e.message : 'This MIDI file could not be read.', true); }
     };
-    rd.onerror = function () { say('This MIDI file could not be read.'); };
+    rd.onerror = function () { say('This MIDI file could not be read.', true); };
     rd.readAsArrayBuffer(f);
   });
 

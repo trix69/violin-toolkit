@@ -15,6 +15,15 @@
 .mp-song select:focus-visible, .mp-import:focus-visible, .mp-btn:focus-visible, .mp-play:focus-visible, #mpSeek:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .mp-msg { margin: 8px 2px 0; font: 400 13px/1.4 var(--font-note); color: var(--muted); }
 .mp-msg[hidden] { display: none; }
+.mp-msg.err {
+  display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; padding: 12px 14px; border-radius: 12px;
+  background: color-mix(in srgb, var(--t-bad) 12%, var(--panel)); border: 1.5px solid var(--t-bad);
+  color: var(--fg); font: 500 15px/1.45 var(--font-note);
+}
+.mp-msg.err::before {   /* a warning sign */
+  content: '!'; flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--t-bad); color: var(--panel); font: 800 15px/1 var(--font-note); margin-top: 1px;
+}
 /* the score strip: dark like the board, the playhead a third of the way in */
 .mp-score { position: relative; margin-top: 10px; height: 128px; overflow: hidden; border-radius: 14px; background: var(--board, #46524C); color: #E9E2D2; }
 .mp-score .mp-strip { position: absolute; left: 0; top: 4px; will-change: transform; }
