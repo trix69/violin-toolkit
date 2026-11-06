@@ -388,10 +388,14 @@ launch_css = '''
 .launch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 10px; }   /* five tools: 2 x 2, the last across */
 .launch-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 @media (min-width: 640px) { .launch-grid { gap: 16px; } }
-@media (min-width: 900px) { .launch-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .launch-grid > :last-child:nth-child(odd) { grid-column: auto; } }
+@media (min-width: 900px) {   /* five in a row: a wider card so each name fits on one line (Trix) */
+  .launch-card { width: min(100%, 900px); }
+  .launch-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .launch-grid > :last-child:nth-child(odd) { grid-column: auto; }
+  .launch-btn b { white-space: nowrap; }
+}
 @media (max-width: 480px) { .launch-btn { padding: 16px 10px; min-height: 0; gap: 6px; } .launch-btn b { font-size: 18px; } .launch-btn span { font-size: 13px; } }
 .launch-btn {
-  display: grid; justify-items: center; gap: 8px; align-content: center;
+  display: grid; justify-items: center; gap: 8px; align-content: start;   /* icons and titles line up across tiles */
   padding: 22px 16px; min-height: 150px; width: 100%; box-sizing: border-box; min-width: 0;
   border: 1px solid var(--line); border-radius: 18px;
   background: var(--panel); color: var(--fg); cursor: pointer;
