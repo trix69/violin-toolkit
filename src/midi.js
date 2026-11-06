@@ -250,8 +250,8 @@
     if (document.activeElement !== seek) seek.value = end ? Math.round(pos / end * 1000) : 0;
     speedEl.textContent = Math.round(speed * 100) + '%';
     bpmEl.textContent = song ? '♩ = ' + Math.round(song.bpm * speed) : '';
-    playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
-    playBtn.classList.toggle('on', playing);
+    playBtn.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play');
+    playBtn.classList.toggle('on', playing || counting);
     loopBtn.setAttribute('aria-pressed', loop ? 'true' : 'false');
     $('mpSlower').disabled = speed <= 0.5 + 1e-9;
     $('mpFaster').disabled = speed >= 1.5 - 1e-9;
@@ -291,19 +291,39 @@
     scroll(); ui();
     if (pos >= song.end && !active.length) {
       if (!loop) { pause(); seekTo(song.end); return; }
-      seekTo(0); last = performance.now();   /* round again, still playing */
+      seekTo(0); playing = false; countIn(go); return;   /* round again, after the count-in */
     }
     raf = requestAnimationFrame(frame);
   }
-  function play() {
-    if (!song || playing) return;
-    if (!APP.board.prime()) return;   /* the sound engine starts inside the tap (iPhone) */
-    if (pos >= song.end - 0.01) seekTo(0);
+  /* count-in (Trix): one bar of the time signature counted down (3 2 1 in 3/4, 4 3 2 1 in 4/4) with a click
+     on each beat, at the tune's tempo and the chosen speed; before every start, and before each round of Loop */
+  var counting = false, countT = 0, countEl = $('mpCount');
+  function countIn(then) {
+    var n = song.sig.num, k = n, step = 60 / song.bpm * 4 / song.sig.den / speed * 1000;
+    counting = true; ui();
+    (function beat() {
+      if (!counting) return;
+      if (k === 0) { counting = false; countEl.hidden = true; then(); return; }
+      APP.board.click(k === n);
+      countEl.textContent = k; countEl.hidden = false;
+      countEl.classList.remove('beat'); void countEl.offsetWidth; countEl.classList.add('beat');
+      k--; countT = setTimeout(beat, step);
+    })();
+  }
+  function stopCount() { counting = false; clearTimeout(countT); countEl.hidden = true; }
+  function go() {
     playing = true; last = performance.now();
     raf = requestAnimationFrame(frame);
     ui();
   }
+  function play() {
+    if (!song || playing || counting) return;
+    if (!APP.board.prime()) return;   /* the sound engine starts inside the tap (iPhone) */
+    if (pos >= song.end - 0.01) seekTo(0);
+    countIn(go);
+  }
   function pause() {
+    stopCount();
     playing = false;
     cancelAnimationFrame(raf);
     allOff();
@@ -354,7 +374,7 @@
     rd.readAsArrayBuffer(f);
   });
 
-  playBtn.addEventListener('click', function () { if (playing) pause(); else play(); });
+  playBtn.addEventListener('click', function () { if (playing || counting) pause(); else play(); });
   $('mpStart').addEventListener('click', function () { seekTo(0); });
   loopBtn.addEventListener('click', function () {
     loop = !loop;
@@ -365,9 +385,9 @@
   $('mpSlower').addEventListener('click', function () { setSpeed(-0.1); });
   $('mpFaster').addEventListener('click', function () { setSpeed(0.1); });
   seek.addEventListener('input', function () { if (song) seekTo(seek.value / 1000 * song.end); });
-  document.addEventListener('visibilitychange', function () { if (document.hidden && playing) pause(); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden && (playing || counting)) pause(); });
   window.addEventListener('resize', scroll);
-  if (APP.busy) APP.busy.push(function () { return playing; });   /* playing along counts as practice time */
+  if (APP.busy) APP.busy.push(function () { return playing || counting; });   /* playing along counts as practice time */
 
   /* the board fits below the app bar, the score and the controls */
   function topH() { var a = document.querySelector('.appbar'); return (a ? a.offsetHeight + 10 : 0) + top.offsetHeight + 20 + Math.max(0, bar.offsetHeight - 64); }   /* + the board's own margin and padding */

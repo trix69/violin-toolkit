@@ -1318,6 +1318,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     /* on: player mode; top(): height of the player's own part above the board, so the board fits below it */
     player: function (on, top, n) { pAllOff(); stopAll(); playerOn = on; playerTop = top || null; playerN = Math.max(4, Math.min(MAXN, n || MAXN)); paint(); layout(); },
     on: pOn, off: pOff, allOff: pAllOff, has: function (id) { return pvoices.has(id); },
+    click: function (strong) {   /* the MIDI player's count-in: a metronome-like tick, the first one stronger */
+      if (!ensureCtx()) return;
+      var t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = strong ? 1760 : 1320;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(strong ? 0.8 : 0.5, t + 0.002);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.09);
+    },
     prime: function () { if (window.APP && APP.playThroughSilent) APP.playThroughSilent(); return !!ensureCtx(); },
     where: function (midi) { return pick(midi) >= 0; },
     name: function (midi) { return noteName(midi, true); }
