@@ -471,14 +471,18 @@
     return songs.length - 1;
   }
   function options() {
+    var v = songSel.value;
     songSel.textContent = '';
+    var tag = window.I18N && I18N.lang === 'zh' ? ' [已导入]' : ' [imported]';   /* imported files marked in the list (Trix) */
     songs.forEach(function (s, i) {
       var o = document.createElement('option');
-      o.value = i; o.textContent = s.title;
-      if (s.kept) o.setAttribute('translate', 'no');   /* a file name stays as it is in 中文 */
+      o.value = i; o.textContent = s.kept ? s.title + tag : s.title;
+      if (s.kept) o.setAttribute('translate', 'no');   /* a file name stays as it is in 中文; the tag is set here */
       songSel.appendChild(o);
     });
+    if (v !== '') songSel.value = v;
   }
+  document.addEventListener('i18n', options);   /* language switched: relabel [imported] */
   function fromB64(b64) { var bin = atob(b64), u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8.buffer; }
   function toB64(buf) { var u8 = new Uint8Array(buf), s = ''; for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); return btoa(s); }
   DEMOS.forEach(function (d) { addSong(d.title, fromB64(d.b64), null); });

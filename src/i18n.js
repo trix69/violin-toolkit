@@ -439,6 +439,7 @@
   function apply() {
     document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
     document.title = lang === 'zh' ? '小提琴工具箱' : 'Violin Toolkit';
+    try { document.dispatchEvent(new Event('i18n')); } catch (e) {}   /* text built in code (the MIDI list's [imported]) rebuilds first, then gets translated */
     busy = true; process(document.body); busy = false; obs.takeRecords();
   }
   window.I18N = {
