@@ -15,7 +15,7 @@
   -webkit-appearance: none; appearance: none; -webkit-user-select: text; user-select: text;
 }
 #symbols .symsearch input::placeholder { color: var(--muted); }
-#symbols .symsearch input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+#symbols .symsearch input:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }   /* drawn inside: outside it was cut off at the page edges (Trix) */
 #symbols .symnone { margin: 14px 0 4px; text-align: center; color: var(--muted); font: 400 14px var(--font-note); }
 #symbols .sym-grid[hidden], #symbols .sym-grid li[hidden], #symbols h3[hidden], #symbols .symnone[hidden] { display: none; }
 #symbols .sym-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(var(--c), minmax(0, 1fr)); gap: 8px; }
