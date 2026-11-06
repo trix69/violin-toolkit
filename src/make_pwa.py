@@ -19,21 +19,21 @@ head_add = '''<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="%(name)s">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta name="description" content="Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and 中文.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Violin Toolkit">
-<meta property="og:description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta property="og:description" content="Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and 中文.">
 <meta property="og:url" content="https://trix69.github.io/violin-toolkit/">
 <meta property="og:image" content="https://trix69.github.io/violin-toolkit/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Violin Toolkit">
-<meta name="twitter:description" content="Free violin tuner, fingerboard chart and metronome. Works offline, in English and 中文.">
+<meta name="twitter:description" content="Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and 中文.">
 <meta name="twitter:image" content="https://trix69.github.io/violin-toolkit/og-image.png">
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Violin Toolkit",
- "description": "Free violin tuner, fingerboard chart and metronome. Works offline, in English and Chinese.",
+ "description": "Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and Chinese.",
  "url": "https://trix69.github.io/violin-toolkit/", "applicationCategory": "MusicApplication", "operatingSystem": "Any",
  "inLanguage": ["en", "zh-CN"], "isAccessibleForFree": true,
  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
@@ -105,7 +105,7 @@ open(OUT + 'index.html', 'w', encoding='utf-8').write(out)
 # read by the Settings version button to see whether a newer release is online
 json.dump({'version': app_version, 'build': ver}, open(OUT + 'version.json', 'w'))
 json.dump({
-  "name": NAME, "short_name": "VT Test" if TEST else "Violin Toolkit", "description": "Violin tuner, fingerboard chart and metronome.",
+  "name": NAME, "short_name": "VT Test" if TEST else "Violin Toolkit", "description": "Violin tuner, fingerboard chart, metronome, MIDI player and music symbols.",
   "id": "/violin-toolkit-test/" if TEST else "/violin-toolkit/", "lang": "en", "dir": "ltr", "categories": ["music", "education", "utilities"],
   "start_url": "./", "scope": "./", "display": "standalone", "orientation": "portrait",
   "background_color": "#16201b", "theme_color": "#2f7679",
