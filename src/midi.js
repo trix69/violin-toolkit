@@ -94,7 +94,12 @@
     var VALS = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25];
     notes.forEach(function (n, i) {
       var j = i + 1; while (j < notes.length && notes[j].b <= n.b + 1e-6) j++;
-      var len = j < notes.length && notes[j].b - n.b <= n.own + 0.5 ? notes[j].b - n.b : n.own;
+      var gap = j < notes.length ? notes[j].b - n.b : Infinity, len;
+      if (gap <= n.own + 0.5) len = gap;   /* runs on to the next note: a short breath is not a rest */
+      else {   /* a rest follows: a short (staccato) note is written to the end of its beat (Trix: show the rests) */
+        var unit = sig.den >= 8 ? 0.5 : 1, endB = n.b + n.own;
+        len = n.own < unit ? Math.min(gap, Math.ceil(endB / unit - 1e-6) * unit - n.b) : n.own;
+      }
       n.len = VALS.reduce(function (best, v) { return Math.abs(v - len) < Math.abs(best - len) ? v : best; }, 4);
     });
     /* the string each note is played on: the highest that has it within the octave; notes sounding together (double
@@ -148,6 +153,23 @@
       n.fg = k === 0 ? 0 : d <= 1 ? 1 : d <= 3 ? 2 : d <= 5 ? 3 : 4;
     });
   }
+  function restSvg(r, x) {
+    var v = r.whole ? 4 : r.v, base = v === 3 ? 2 : v === 1.5 ? 1 : v === 0.75 ? 0.5 : v, dot = base !== v, out;
+    if (r.whole || base === 4) out = '<rect x="' + (x - 5.5) + '" y="' + (Y0 + S) + '" width="11" height="' + (S / 2) + '"/>';   /* hangs from the 4th line */
+    else if (base === 2) out = '<rect x="' + (x - 5.5) + '" y="' + (Y0 + 2 * S - S / 2) + '" width="11" height="' + (S / 2) + '"/>';   /* sits on the middle line */
+    else if (base === 1) out = '<path class="q" d="M' + (x - 2.5) + ' ' + (Y0 + 4) + 'L' + (x + 3) + ' ' + (Y0 + 11) + 'L' + (x - 1.5) + ' ' + (Y0 + 17) + 'L' + (x + 3.5) + ' ' + (Y0 + 23.5) +
+      'C' + (x - 2) + ' ' + (Y0 + 20) + ' ' + (x - 4) + ' ' + (Y0 + 25) + ' ' + (x + 0.5) + ' ' + (Y0 + 30) + '"/>';
+    else {   /* quaver: one flag; semiquaver: two */
+      var n = base <= 0.25 ? 2 : 1, top = Y0 + 1.5 * S, foot = Y0 + (n === 2 ? 4 : 3.2) * S;
+      out = '<path class="f" d="M' + (x + 3.5) + ' ' + top + 'L' + (x - 0.5) + ' ' + foot + '"/>';
+      for (var k = 0; k < n; k++) {
+        var yy = top + k * S, xx = x + 3.5 - k * 1.6;
+        out += '<circle cx="' + (xx - 5) + '" cy="' + (yy + 1) + '" r="2.3"/><path class="f" d="M' + (xx - 6) + ' ' + (yy + 2.2) + 'Q' + (xx - 2) + ' ' + (yy + 3.2) + ' ' + xx + ' ' + yy + '"/>';
+      }
+    }
+    if (dot) out += '<circle cx="' + (x + 8) + '" cy="' + (Y0 + 1.5 * S) + '" r="1.6"/>';
+    return out;
+  }
   function yOf(step) { return BOT - (step - 2) * S / 2; }   /* step: letters above C4 (E4 = 2, on the bottom line) */
   /* the string and finger the fingerboard uses for a pitch: the highest string that has it within the octave;
      first position (1st finger a semitone or tone up, 2nd at 3-4, 3rd at 5-6, 4th at 7), third position above that */
@@ -177,16 +199,39 @@
        room at each bar line; xAt() maps beats to x for placing and scrolling */
     var ons = [], items = [];   /* what scrolls: [x, svg markup], drawn in sections */
     sg.notes.forEach(function (n) { if (!ons.length || n.b > ons[ons.length - 1] + 1e-6) ons.push(n.b); });
+    /* rests (Trix: shown as printed, and given room like notes so the sheet does not rush through a silence):
+       from the end of each note (or the start of its bar, before the first note) to the next onset, split at
+       bar lines into whole-bar, half, quarter, quaver and semiquaver rests (dotted in x/8), each on its grid */
+    var rests = [], comp = sg.sig.den >= 8 && sg.sig.num % 3 === 0;
+    function restRun(a, z) {
+      while (z - a >= 0.25 - 1e-6) {
+        var bs = Math.floor(a / barBeats + 1e-6) * barBeats, be = Math.min(z, bs + barBeats);
+        if (Math.abs(a - bs) < 1e-6 && Math.abs(be - (bs + barBeats)) < 1e-6) { rests.push({ b: a, v: barBeats, whole: true }); a = be; continue; }
+        var vs = comp ? [3, 1.5, 1, 0.5, 0.25] : [2, 1, 0.5, 0.25], v = 0.25;
+        for (var q = 0; q < vs.length; q++) { var w = vs[q], off = a - bs; if (a + w <= be + 1e-6 && Math.abs(off / w - Math.round(off / w)) < 1e-6) { v = w; break; } }
+        if (a + v > be + 1e-6) break;
+        rests.push({ b: a, v: v }); a += v;
+      }
+    }
+    if (sg.notes.length) restRun(Math.floor(sg.notes[0].b / barBeats + 1e-6) * barBeats, sg.notes[0].b);
+    ons.forEach(function (b, i) {
+      if (i + 1 >= ons.length) return;
+      var end = b; sg.notes.forEach(function (n) { if (Math.abs(n.b - b) < 1e-6) end = Math.max(end, n.b + n.len); });
+      restRun(Math.round(end * 4) / 4, ons[i + 1]);
+    });
+    var evs = ons.slice(); rests.forEach(function (r) { evs.push(r.b); });
+    evs.sort(function (a, b) { return a - b; });
+    evs = evs.filter(function (b, i) { return !i || b > evs[i - 1] + 1e-6; });
     /* an empty bar before the first note: the count-in scrolls through it, so the first note reaches the
        playhead as the music starts (Trix) */
     var leadW = Math.max(120, barBeats * 40), pts = [[-barBeats, X0]], cx = X0 + leadW, lastBar = 0;
     items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']);
     cx += 12;
-    ons.forEach(function (b, i) {
+    evs.forEach(function (b, i) {
       var bn = Math.floor(b / barBeats + 1e-6);
       if (bn > lastBar) { items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); cx += 12; lastBar = bn; }
       pts.push([b, cx]);
-      cx += 26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < ons.length ? ons[i + 1] : sg.beats) - b));
+      cx += 26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < evs.length ? evs[i + 1] : sg.beats) - b));
     });
     pts.push([sg.beats, cx]);
     xAt = function (b) {
@@ -195,6 +240,10 @@
       return cx + (b - sg.beats) * 50;
     };
     W = cx + 30;
+    rests.forEach(function (r) {
+      var x = r.whole ? (xAt(r.b) + xAt(r.b + r.v)) / 2 - 8 : xAt(r.b);   /* a whole-bar rest in the middle of its bar */
+      items.push([x, '<g class="mp-rest">' + restSvg(r, x) + '</g>']);
+    });
     var endX = cx - 8;
     items.push([endX - 4, '<path class="bl" d="M' + (endX - 4) + ' ' + Y0 + 'V' + BOT + '"/><path class="bl end" d="M' + endX + ' ' + Y0 + 'V' + BOT + '"/>']);
     /* first pass: where each note sits; accidentals hold to the end of the bar */
