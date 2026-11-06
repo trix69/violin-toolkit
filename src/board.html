@@ -1396,6 +1396,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
   function pAllOff() { Array.from(pvoices.keys()).forEach(pOff); }
   if (window.APP) APP.board = {
+    toTop: function () { stage.scrollTop = 0; },   /* a newly chosen tune starts at the open strings (Hermes F14) */
     /* on: player mode; top(): height of the player's own part above the board, so the board fits below it */
     player: function (on, top, n, key, flat) {
       pAllOff(); stopAll(); playerOn = on; playerTop = top || null; playerKey = on ? key || null : null; playerFlat = on ? !!flat : null;

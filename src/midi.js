@@ -472,6 +472,7 @@
     if (song.low) warn.push(song.low + (song.low > 1 ? ' notes are' : ' note is') + ' below the violin’s G string and left out.');
     if (song.high) warn.push(song.high + (song.high > 1 ? ' notes are' : ' note is') + ' above the fingerboard shown: heard, not lit.');
     say(warn.join(' '));
+    APP.board.toTop();   /* a new tune opens at the open strings, whatever the last one scrolled to (Hermes F14) */
     if (shown) fit();
   }
   function addSong(title, buf, kept) {   /* kept: an imported file, with its id in the saved list */
