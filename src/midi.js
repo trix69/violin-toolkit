@@ -302,10 +302,9 @@
     var tx = Math.round(Math.min(0, hx - x + 22));
     svg.style.transform = 'translateX(' + tx + 'px)';
     /* show only the sections in view (and one either side) */
-    var c0 = Math.max(0, Math.floor(-tx / 1200) - 1);
-    if (c0 !== shownFrom) {
-      shownFrom = c0;
-      var c1 = Math.floor((w - tx) / 1200) + 1;
+    var c0 = Math.max(0, Math.floor(-tx / 1200) - 1), c1 = Math.floor((w - tx) / 1200) + 1;
+    if (c0 + ':' + c1 !== shownFrom) {   /* both edges: the right one moves first as the score scrolls in */
+      shownFrom = c0 + ':' + c1;
       chunks.forEach(function (el, c) { el.style.display = c >= c0 && c <= c1 ? '' : 'none'; });
     }
   }
