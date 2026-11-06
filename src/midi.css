@@ -38,7 +38,6 @@
 .mp-score .bl { stroke: color-mix(in srgb, currentColor 70%, transparent); stroke-width: 1.2; }
 .mp-score .bl.end { stroke-width: 3.5; }
 .mp-rest { fill: currentColor; color: var(--sc-ink); }   /* rests, in the score ink */
-.mp-rest .q { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linejoin: miter; stroke-linecap: butt; }
 .mp-rest .f { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
 .mp-score .ledger { stroke: color-mix(in srgb, currentColor 70%, transparent); stroke-width: 1.2; }
 .mp-score .acc { fill: currentColor; font: 400 15px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }

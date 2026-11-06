@@ -157,8 +157,10 @@
     var v = r.whole ? 4 : r.v, base = v === 3 ? 2 : v === 1.5 ? 1 : v === 0.75 ? 0.5 : v, dot = base !== v, out;
     if (r.whole || base === 4) out = '<rect x="' + (x - 5.5) + '" y="' + (Y0 + S) + '" width="11" height="' + (S / 2) + '"/>';   /* hangs from the 4th line */
     else if (base === 2) out = '<rect x="' + (x - 5.5) + '" y="' + (Y0 + 2 * S - S / 2) + '" width="11" height="' + (S / 2) + '"/>';   /* sits on the middle line */
-    else if (base === 1) out = '<path class="q" d="M' + (x - 2.5) + ' ' + (Y0 + 4) + 'L' + (x + 3) + ' ' + (Y0 + 11) + 'L' + (x - 1.5) + ' ' + (Y0 + 17) + 'L' + (x + 3.5) + ' ' + (Y0 + 23.5) +
-      'C' + (x - 2) + ' ' + (Y0 + 20) + ' ' + (x - 4) + ' ' + (Y0 + 25) + ' ' + (x + 0.5) + ' ' + (Y0 + 30) + '"/>';
+    else if (base === 1) {   /* the printed crotchet rest (Trix): thin top, thick wedge, lower stroke, hook; in staff spaces */
+      var CR = 'M-0.30 0.45 L-0.16 0.40 L0.55 1.42 L0.02 1.98 L0.58 2.70 L0.50 2.80 C0.12 2.56 -0.30 2.86 0.20 3.52 L0.10 3.56 C-0.52 3.00 -0.26 2.40 0.24 2.56 L-0.36 1.96 L0.08 1.20 Z';
+      out = '<path d="' + CR.replace(/(-?[\d.]+) (-?[\d.]+)/g, function (m, u, v) { return (x + u * S).toFixed(2) + ' ' + (Y0 + v * S).toFixed(2); }) + '"/>';
+    }
     else {   /* quaver: one flag; semiquaver: two */
       var n = base <= 0.25 ? 2 : 1, top = Y0 + 1.5 * S, foot = Y0 + (n === 2 ? 4 : 3.2) * S;
       out = '<path class="f" d="M' + (x + 3.5) + ' ' + top + 'L' + (x - 0.5) + ' ' + foot + '"/>';
