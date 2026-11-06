@@ -283,7 +283,7 @@
     svg.style.width = W + 'px'; svg.style.height = H + 'px';
     svg.innerHTML = parts.map(function (p, c) {
       var lines = '';
-      for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M' + c * CH + ' ' + (Y0 + j * S) + 'H' + Math.min(W, (c + 1) * CH) + '"/>';
+      for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M' + (c ? c * CH : -2000) + ' ' + (Y0 + j * S) + 'H' + Math.min(W, (c + 1) * CH) + '"/>';   /* the first section's lines run left, under the clef */
       return '<svg class="mp-chunk" xmlns="http://www.w3.org/2000/svg" overflow="visible" style="left:' + c * CH + 'px" width="' + CH + '" height="' + H + '" viewBox="' + c * CH + ' 0 ' + CH + ' ' + H + '">' + lines + p.join('') + '</svg>';
     }).join('');
     chunks = Array.prototype.slice.call(svg.children);
@@ -305,10 +305,10 @@
     var w = scoreEl.clientWidth, x = xAt(beat), hx = Math.max(w * 0.36, X0 + 50);
     headEl.style.left = hx + 'px';
     /* half a beat early, so a note glows while it passes through the playhead rather than after it */
-    var tx = Math.round(Math.min(0, hx - x + 22));
+    var tx = Math.round(hx - x + 22);   /* may move right of the start: at rest the playhead sits at the empty bar, before the first note */
     svg.style.transform = 'translateX(' + tx + 'px)';
     /* show only the sections in view (and one either side) */
-    var c0 = Math.max(0, Math.floor(-tx / 1200) - 1), c1 = Math.floor((w - tx) / 1200) + 1;
+    var c0 = Math.max(0, Math.floor(-tx / 1200) - 1), c1 = Math.max(0, Math.floor((w - tx) / 1200) + 1);
     if (c0 + ':' + c1 !== shownFrom) {   /* both edges: the right one moves first as the score scrolls in */
       shownFrom = c0 + ':' + c1;
       chunks.forEach(function (el, c) { el.style.display = c >= c0 && c <= c1 ? '' : 'none'; });
