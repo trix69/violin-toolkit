@@ -61,7 +61,7 @@
     }
     if (!tracks.length) throw fail('This file has no notes.');
     var parts = tracks.length > 1 ? tracks.length : tracks[0].chans;
-    if (parts > 1) throw fail('This file has ' + parts + ' parts. The player plays one violin part: save just the violin part as its own MIDI file.');
+    if (parts > 1) throw fail('Multiple sound tracks detected. The MIDI player only supports MIDI files with a single violin solo track.');
     var sg = build(tracks[0].notes, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0);
     sg.minor = minor;
     return sg;
