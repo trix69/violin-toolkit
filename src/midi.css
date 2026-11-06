@@ -61,6 +61,9 @@
 .mp-ctl { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 4px; }
 .mp-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); font: 500 24px/1 var(--font-note); cursor: pointer; }
 .mp-btn:disabled { opacity: .4; cursor: default; }
+.mp-metro svg { stroke-width: 1.6; stroke-linejoin: round; }
+.mp-metro[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+@media (max-width: 380px) { .mp-ctl { gap: 7px; } .mp-btn { width: 40px; height: 40px; } .mp-play { width: 52px; height: 52px; } .mp-speed { min-width: 44px; } }
 .mp-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; fill: none; }
 .mp-play { width: 58px; height: 58px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--accent); color: var(--on-accent); cursor: pointer; }
 .mp-play svg { width: 26px; height: 26px; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }

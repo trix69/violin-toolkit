@@ -9,7 +9,11 @@
   var playBtn = $('mpPlay'), seek = $('mpSeek'), timeEl = $('mpTime'), speedEl = $('mpSpeed'), bpmEl = $('mpBpm');
   var scoreEl = $('mpScore'), svg = $('mpSvg'), keySvg = $('mpKey'), headEl = $('mpHead'), subEl = $('ttl-midi-sub');
   var songs = [], song = null, pos = 0, speed = 1, playing = false, ni = 0, active = [], last = 0, raf = 0, shown = false;
-  var loop = false, loopBtn = $('mpLoop');   /* Loop: start again from the top at the end (Trix), remembered */
+  var loop = false, loopBtn = $('mpLoop');
+  /* Metronome (Trix): clicks with the tune, on its own beats (time signature, tempo, speed), the first of each bar
+     stronger; remembered */
+  var metro = false, metroBtn = $('mpMetro'), lastTick = -1;
+  try { metro = localStorage.getItem('violin-midi-metro') === 'on'; } catch (e) {}   /* Loop: start again from the top at the end (Trix), remembered */
   try { loop = localStorage.getItem('violin-midi-loop') === 'on'; } catch (e) {}
 
   function fail(text) { var e = new Error(text); e.mine = true; return e; }
@@ -320,6 +324,7 @@
     playBtn.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play');
     playBtn.classList.toggle('on', playing || counting);
     loopBtn.setAttribute('aria-pressed', loop ? 'true' : 'false');
+    metroBtn.setAttribute('aria-pressed', metro ? 'true' : 'false');
     $('mpSlower').disabled = speed <= 0.5 + 1e-9;
     $('mpFaster').disabled = speed >= 1.5 - 1e-9;
   }
@@ -334,11 +339,17 @@
     ni = 0;
     if (song) while (ni < song.notes.length && song.notes[ni].t < pos - 1e-6) ni++;
     noteEls.forEach(function (el, k) { el.classList.toggle('done', k < ni); });
+    /* the metronome clicks from the next beat on (on the first one when starting from the top) */
+    lastTick = !song || pos < 0.01 ? -1 : Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);
     scroll(); ui();
   }
   function frame(now) {
     if (!playing) return;
     pos += (now - last) / 1000 * speed;
+    if (metro) {
+      var k = Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);
+      if (k > lastTick) { lastTick = k; if (pos < song.end) APP.board.click(k % song.sig.num === 0); }
+    }
     last = now;
     var ns = song.notes;
     active = active.filter(function (k) {   /* notes ending first, so a repeated note sounds twice */
@@ -480,6 +491,12 @@
 
   playBtn.addEventListener('click', function () { if (playing || counting) pause(); else play(); });
   $('mpStart').addEventListener('click', function () { seekTo(0); });
+  metroBtn.addEventListener('click', function () {
+    metro = !metro;
+    if (song) lastTick = pos < 0.01 && !playing ? -1 : Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);   /* from the next beat (the first, at the top) */
+    try { localStorage.setItem('violin-midi-metro', metro ? 'on' : 'off'); } catch (e) {}
+    ui();
+  });
   loopBtn.addEventListener('click', function () {
     loop = !loop;
     try { localStorage.setItem('violin-midi-loop', loop ? 'on' : 'off'); } catch (e) {}
