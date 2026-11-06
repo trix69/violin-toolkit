@@ -1109,6 +1109,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
 
   if (window.APP && APP.busy) APP.busy.push(function () { return !!(mic && mic.stream); });   /* Pitch Check listening counts as practice time */
+  if (window.APP && APP.busy) APP.busy.push(function () { return voices.size > 0; });   /* a fingerboard note sounding (held or latched) too */
   function startMic() {
     if (mic) return;
     var token = {};

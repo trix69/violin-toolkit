@@ -717,16 +717,15 @@ nav_js = """(function () {
       ks.forEach(function (k) { o[k] = Math.round(((+o[k] || 0) + pend[k]) * 10) / 10; });
       try { localStorage.setItem(KEY, JSON.stringify(o)); pend = {}; } catch (e) {}
     }
-    function touch() { var now = Date.now(); if (last && now > last) add(last, now); last = now; }
+    /* practice time is time with a tool running (Trix, 2026-11-06, Hermes F20): the metronome playing, the
+       tuner or Pitch Check listening, the MIDI player playing, a fingerboard note held. Taps and browsing
+       add nothing, so opening the app does not make a practice day. Counted in 1 s steps while visible. */
+    function tick() { var now = Date.now(); if (!document.hidden && anyBusy()) { if (last && now > last) add(last, now); last = now; } else last = 0; }
     function end() { last = 0; save(); }
-    document.addEventListener('pointerdown', touch, true);
-    document.addEventListener('keydown', touch, true);
     document.addEventListener('visibilitychange', function () { if (document.hidden) end(); });
     window.addEventListener('pagehide', end);
     setInterval(function () { save(); if (APP.syncDays) APP.syncDays(true); }, 15000);   /* text only: the pill appearing under an open start screen would move the tiles (Hermes F15); the day count follows along as today is practised (Trix) */
-    setInterval(function () {
-      if (!document.hidden && anyBusy()) touch();
-    }, 5000);
+    setInterval(tick, 1000);
     function series(n) {   /* [{ d: Date, s: seconds }] for the n days up to today, oldest first */
       save();
       var o = load(), d = new Date(), out = [];
