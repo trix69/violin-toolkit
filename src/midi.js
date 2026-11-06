@@ -128,7 +128,7 @@
         p < 80 ? ['Piccolo', 'Flute', 'Recorder', 'Pan flute', 'Flute', 'Flute', 'Whistle', 'Ocarina'][p - 72] : 'Synth');
     }
     tracks.forEach(function (tr) { if (!tr.name && tr.notes.length) tr.name = gmName(chanProg[tr.notes[0].ch]); });
-    var DRUM = 9, VIOLIN = /violin|violín|violon(?!c)|geige|小提琴/i   /* violin, violino, violine, violín, violon (not violoncello), Geige */, GM_VIOLIN = 40, solo, acc = [];
+    var DRUM = 9, VIOLIN = /(^|[^a-z])vln([^a-z]|$)|violin|violín|violon(?!c)|geige|(^|[^t])viool|(^|[^t])fiol|skrzypce|скрипк|バイオリン|ヴァイオリン|바이올린|小提琴/i   /* Vln., violin, violino, violine, violín, violon (not violoncello), Geige, viool (not altviool), fiol / fiolin (not altfiol), skrzypce, скрипка, バイオリン, 바이올린, 小提琴 */, GM_VIOLIN = 40, solo, acc = [];
     /* also left out: a part named as drums or percussion, and channels set to General MIDI's percussive and
        sound-effect instruments (112-127: woodblock, taiko, synth drum…), which a pitched synth can't play */
     /* whole words only in Latin script (a "Violin (kit)" part is not drums: Hermes F27); Chinese has no spaces */
