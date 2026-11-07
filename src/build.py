@@ -815,7 +815,7 @@ nav_js = """(function () {
   var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-  if (standalone || location.hostname === 'appassets.androidplatform.net') { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }   /* installed, or the offline Android app */
+  if (standalone || location.hostname === 'appassets.androidplatform.net' || window.VTiOSApp) { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }   /* installed, the offline Android app, or the iPhone app (iOS/: sets window.VTiOSApp) */
   function showDev(d) {
     Array.prototype.forEach.call(segDev.children, function (b) { b.setAttribute('aria-checked', b.dataset.dev === d ? 'true' : 'false'); });
     document.getElementById('stepsIos').hidden = d !== 'ios';
@@ -903,6 +903,7 @@ nav_js = """(function () {
     /* the offline Android app (Android/wrapper: the page served from appassets.androidplatform.net) has no service
        worker, so it cannot update itself: it checks the website's version and offers the new APK instead (Trix) */
     var APK = location.hostname === 'appassets.androidplatform.net';
+    var IOSAPP = !!window.VTiOSApp;   /* the iPhone app (iOS/ WKWebView, page from the app bundle): no service worker either; it only says whether a newer version exists (Trix: it reloaded to the start screen) */
     var APK_URL = 'https://github.com/trix69/violin-toolkit/releases/latest/download/violin-toolkit-android.apk';
     function num(v) { var p = String(v).split('.'); return +p[0] * 100 + +((p[1] || '0') + '0').slice(0, 2); }
     function say(t) { msg.textContent = t; }
@@ -916,8 +917,8 @@ nav_js = """(function () {
     }
     /* the release on the site when it is newer than this copy, else null (rejects when offline) */
     function newer() {
-      return fetch(APK ? 'https://trix69.github.io/violin-toolkit/version.json' : 'version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
-        if (APK) return num(j.version) > num(btn.dataset.version) ? j : null;   /* the app: only a higher version number */
+      return fetch(APK || IOSAPP ? 'https://trix69.github.io/violin-toolkit/version.json' : 'version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+        if (APK || IOSAPP) return num(j.version) > num(btn.dataset.version) ? j : null;   /* the app: only a higher version number */
         /* a different build stamp means a new release (test builds keep the same version number) */
         return (j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version)) ? j : null;
       });
@@ -944,11 +945,12 @@ nav_js = """(function () {
     btn.addEventListener('click', function () {
       if (busy) return;
       var sw = navigator.serviceWorker;
-      if (!APK && (!sw || !sw.controller)) { location.reload(); return; }
+      if (!APK && !IOSAPP && (!sw || !sw.controller)) { location.reload(); return; }
       busy = true; say('Checking…');
       newer().then(function (j) {
         if (!j) { busy = false; say('Up to date'); return; }
         if (APK) { busy = false; say('Version ' + j.version + ' available'); ask(j, true); return; }
+        if (IOSAPP) { busy = false; say('Version ' + j.version + ' available'); return; }
         return install(j);
       }).catch(function () { busy = false; say('Can’t check while offline'); });
     });
@@ -962,7 +964,7 @@ nav_js = """(function () {
     var pending = null, offered = '', lastCheck = 0, updOpener = null;
     function autoCheck() {
       var sw = navigator.serviceWorker;
-      if (!APP.autoUpd || busy || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
+      if (!APP.autoUpd || busy || IOSAPP || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
       lastCheck = Date.now();
       newer().then(function (j) { if (j && (j.build || j.version) !== offered) ask(j); }).catch(function () { lastCheck = 0; });
     }
