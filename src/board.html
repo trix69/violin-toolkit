@@ -690,7 +690,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
           var rr0 = 19, KK0 = 1;
           for (var j0 = 0; j0 < 4; j0++) {
             KK0 = (room - 2 * rr0 - 4 - 10 - 16) / len;
-            rr0 = Math.min(cap, Math.max(6, (g0 * KK0 - 3) / 2));   /* as large as fits, 3 px apart (Trix) */
+            rr0 = Math.min(cap, Math.max(6, g0 * KK0 / 1.8));   /* as large as fits, neighbours on a string overlapping by up to 10% of a circle (Trix) */
           }
           return [KK0, rr0];
         };
