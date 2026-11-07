@@ -935,6 +935,7 @@
      phone (the browser cannot turn the screen), so it reads once the phone is upright; turned sideways again, full
      screen again. upRot: the quarter turn the page is drawn at (-90 or 90), 0 when not */
   var upRot = 0;
+  APP.vh = function () { return upRot ? innerWidth : innerHeight; };
   function setUp(a) {
     upRot = a;
     var st = shellEl.style;
@@ -943,7 +944,7 @@
       st.width = innerHeight + 'px'; st.height = innerWidth + 'px';
       st.transform = a < 0 ? 'translateY(' + innerHeight + 'px) rotate(-90deg)' : 'translateX(' + innerWidth + 'px) rotate(90deg)';
     } else st.width = st.height = st.transform = '';
-    if (shown) setTimeout(fit, 0);
+    if (shown) { fit(); setTimeout(fit, 0); }
   }
   var fsAuto = false;   /* entered by turning the phone: no lock, so turning it upright again can leave */
   /* fit now and again while the screen settles: a phone turning, or the browser going full screen, reports its new

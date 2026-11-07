@@ -144,7 +144,9 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .shell.mp-fs.mp-fs-short #view-midi { padding-top: 6px; }
 .shell.mp-fs.mp-fs-short #mpTop .mp-row { display: none; }
 .shell.mp-fs.mp-fs-short #mpTop .mp-score { margin-top: 0; height: calc(128px * 0.8); }
-.shell.mp-fs.mp-fs-short .mp-bar { display: flex; align-items: center; gap: 14px; padding: 4px max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 4px) max(16px, env(safe-area-inset-left, 0px)); }
+.shell.mp-fs.mp-fs-short .mp-bar { display: flex; align-items: center; gap: 14px; padding: 4px max(16px, env(safe-area-inset-right, 0px)) max(4px, calc(env(safe-area-inset-bottom, 0px) - 12px)) max(16px, env(safe-area-inset-left, 0px)); }   /* slim, so the board keeps its height (Trix: smaller keys sideways) */
+.shell.mp-fs.mp-fs-short .mp-btn { width: 40px; }
+.shell.mp-fs.mp-fs-short .mp-play { width: 50px; }
 .shell.mp-fs.mp-fs-short .mp-bar > .mp-prog { flex: 1; min-width: 0; margin: 0; }
 .shell.mp-fs.mp-fs-short .mp-bar > .mp-ctl { flex: none; margin: 0; }
 /* a phone still upright in full screen (iPhone: nothing can turn the screen): the page drawn a quarter turn
@@ -152,7 +154,7 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .shell.mp-fs.mp-fs-rot { position: fixed; top: 0; left: 0; width: var(--rw); height: var(--rh); box-sizing: border-box; overflow: hidden; background: var(--bg); transform-origin: 0 0; transform: translateX(var(--rh)) rotate(90deg); padding-top: 0; }
 /* drawn turned, the phone's top (status bar) is the page's left and its bottom (home bar) the page's right */
 .shell.mp-fs.mp-fs-rot #view-midi { padding-left: calc(12px + env(safe-area-inset-top, 0px)); padding-right: calc(12px + env(safe-area-inset-bottom, 0px)); }
-.shell.mp-fs.mp-fs-rot .mp-bar { padding: 4px calc(12px + env(safe-area-inset-bottom, 0px)) 6px calc(12px + env(safe-area-inset-top, 0px)); }
+.shell.mp-fs.mp-fs-rot .mp-bar { padding: 4px calc(12px + env(safe-area-inset-bottom, 0px)) 14px calc(12px + env(safe-area-inset-top, 0px)); }   /* room between the buttons and the phone's edge (Trix) */
 /* the Full screen button on the fingerboard's bottom-right corner (Trix); midi.js places it */
 .shell[data-view="midi"] #view-board .app { position: relative; }
 #mpFull { position: absolute; z-index: 4; box-shadow: 0 2px 6px rgba(0,0,0,.25); }

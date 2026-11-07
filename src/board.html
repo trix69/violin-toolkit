@@ -646,7 +646,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   /* The controls above scroll away. The board (open strings down to the third-position 4th finger) fills the
      screen height left over by the position bar. Spacing shrinks by the same scale, and discs are as large as that spacing allows. */
   function layout() {
-    var vh = window.innerHeight || 700;
+    var vh = (window.APP && APP.vh ? APP.vh() : window.innerHeight) || 700;   /* APP.vh: the MIDI player's page drawn turned measures the other way */
     var barH = posbar.offsetHeight || 64;
     var avail = vh - barH - 16 - 10;
     var gap = mm(MAXN) - mm(MAXN - 1);
