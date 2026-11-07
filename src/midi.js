@@ -984,7 +984,7 @@
       seekTo(0); flashParts(); mixUi();
       var s = songs[i];
       if (s.failed) { s.failed = false; say(s.err || 'This tune downloads the first time you play it. Connect to the internet and choose it again.', true); }
-      else { say(s.have ? '' : 'Downloading this tune…'); fetchDemo(i); }   /* choosing it again tries again; a built-in one is being read (a moment) */
+      else { say(s.have ? 'Opening the score…' : 'Downloading this tune…'); fetchDemo(i); }   /* a long score (Serenade) takes a few seconds on a phone */   /* choosing it again tries again; a built-in one is being read (a moment) */
       if (shown) fit();
       return;
     }
@@ -1029,8 +1029,7 @@
   DEMOS.forEach(function (d) {
     var s = { title: d.title, song: null, kept: null, demo: d, have: d.b64 || null };
     if (!s.have) { try { var c = JSON.parse(localStorage.getItem(DEMO_KEY + d.f) || 'null'); if (c && c.h === d.h) s.have = c.b64; } catch (e) {} }
-    songs.push(s);
-    if (s.have) prepDemo(s);
+    songs.push(s);   /* read when first chosen (Serenade's score is 3.7 MB: not on every launch) */
   });
   options();
   function prepDemo(s) {   /* its bytes are here: read it */
