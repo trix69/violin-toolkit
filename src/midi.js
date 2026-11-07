@@ -146,7 +146,7 @@
     });
     var parts = kids(root, 'part');
     if (!parts.length) throw fail('This file has no notes.');
-    var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {};
+    var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {};   /* tick -> tempo entry */
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
       var ms = kids(part, 'measure'), notes = [], tie = {}, at = 0, divStart = [], dvw = 1;
@@ -165,7 +165,7 @@
           else if (nm === 'forward') { cur += +txt(el, 'duration') || 0; len = Math.max(len, cur); }
           else if (nm === 'direction' || nm === 'sound') {
             var snd = nm === 'sound' ? el : kid(el, 'sound'), bpm = snd && +snd.getAttribute('tempo');
-            if (bpm > 0) { var t = tk(cur); if (!seenTempo[t]) { seenTempo[t] = 1; tempos.push({ tick: t, us: 60e6 / bpm }); } }
+            if (bpm > 0) { var t = tk(cur); if (seenTempo[t]) seenTempo[t].us = 60e6 / bpm; else tempos.push(seenTempo[t] = { tick: t, us: 60e6 / bpm }); }   /* two marks on one beat ("Allegro" and ♩ = 140): the later wins, as in MuseScore */
           } else if (nm === 'note') {
             if (kid(el, 'grace') || kid(el, 'cue')) return;   /* grace and cue notes are not played */
             var dur = +txt(el, 'duration') || 0, chord = !!kid(el, 'chord'), from = chord ? last : cur;
@@ -176,7 +176,9 @@
             if (ties.indexOf('stop') >= 0 && tie[mm]) { tie[mm].t1 = t1; if (ties.indexOf('start') < 0) delete tie[mm]; return; }   /* tied on: one longer note */
             var n = { m: mm, t0: t0, t1: t1, ch: ch, v: 90 }, tech = el.getElementsByTagName('technical')[0];
             if (tech) {   /* written fingering (0 = open), open-string mark, string number (1 = E) */
-              var fe = kid(tech, 'fingering'), se = kid(tech, 'string'), fm = fe && /[0-4]/.exec(fe.textContent);
+              /* the finger written plainly; one in brackets ("(3) 2": an alternative) only if it is the only one */
+              var fe = kid(tech, 'fingering'), se = kid(tech, 'string'), ft = fe ? fe.textContent : '';
+              var fm = /[0-4]/.exec(ft.replace(/[(（\[][^)）\]]*[)）\]]/g, ' ')) || /[0-4]/.exec(ft);
               if (fm) n.xfg = +fm[0];
               if (kid(tech, 'open-string')) n.xfg = 0;
               if (se && /^[1-4]$/.test(se.textContent.trim())) n.xs = +se.textContent.trim();
