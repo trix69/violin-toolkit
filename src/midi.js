@@ -39,10 +39,16 @@
     var o = c.createOscillator(), g = c.createGain(), pk = 0.44 * n.v,   /* at 100 % as loud as the violin at 100 % (Trix: far too quiet; was 0.16, ~9 dB under) */ a4 = (window.APP && APP.a4) || 442;
     o.type = 'triangle'; o.frequency.value = a4 * Math.pow(2, (n.m - 69) / 12);
     g.gain.setValueAtTime(0, t0);
+    if (n.pz) {   /* pizzicato (Trix): plucked, dying away by itself */
+      g.gain.linearRampToValueAtTime(pk * 1.2, t0 + 0.004);
+      g.gain.setTargetAtTime(0, t0 + 0.006, 0.13);
+      o.connect(g); g.connect(bus); o.start(t0); o.stop(Math.min(t1, t0 + 0.9) + 0.3);
+    } else {
     g.gain.linearRampToValueAtTime(pk, t0 + 0.012);
     g.gain.setTargetAtTime(pk * 0.55, t0 + 0.012, 0.25);   /* a piano-ish fall after the attack */
     g.gain.setTargetAtTime(0, t1, 0.04);
     o.connect(g); g.connect(bus); o.start(t0); o.stop(t1 + 0.3);
+    }
     var rec = { o: o, g: g }; accLive.push(rec);
     o.onended = function () { var i = accLive.indexOf(rec); if (i >= 0) accLive.splice(i, 1); try { g.disconnect(); } catch (e) {} };
   }
@@ -146,13 +152,14 @@
     });
     var parts = kids(root, 'part');
     if (!parts.length) throw fail('This file has no notes.');
-    var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {};   /* tick -> tempo entry */
+    var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [];   /* tick -> tempo entry */
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
-      var ms = kids(part, 'measure'), notes = [], tie = {}, at = 0, divStart = [], dvw = 1;
+      var ms = kids(part, 'measure'), notes = [], tie = {}, at = 0, divStart = [], dvw = 1, pz = false;   /* pz: pizz. until arco */
       ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); }); });
       order.forEach(function (k) {
         var m = ms[k]; if (!m) return;
+        if (pi === 0) bars.push({ tick: at, num: m.getAttribute('number') || String(k + 1) });
         var dv = divStart[k] || 1, cur = 0, len = 0, last = 0;
         function tk(d) { return at + Math.round(d * TPQ / dv); }
         kids(m).forEach(function (el) {
@@ -165,6 +172,7 @@
           else if (nm === 'forward') { cur += +txt(el, 'duration') || 0; len = Math.max(len, cur); }
           else if (nm === 'direction' || nm === 'sound') {
             var snd = nm === 'sound' ? el : kid(el, 'sound'), bpm = snd && +snd.getAttribute('tempo');
+            if (snd && snd.getAttribute('pizzicato')) pz = snd.getAttribute('pizzicato') === 'yes';
             if (bpm > 0) { var t = tk(cur); if (seenTempo[t]) seenTempo[t].us = 60e6 / bpm; else tempos.push(seenTempo[t] = { tick: t, us: 60e6 / bpm }); }   /* two marks on one beat ("Allegro" and ♩ = 140): the later wins, as in MuseScore */
           } else if (nm === 'note') {
             if (kid(el, 'grace') || kid(el, 'cue')) return;   /* grace and cue notes are not played */
@@ -174,13 +182,14 @@
             var mm = (+txt(pt, 'octave') + 1) * 12 + (STEP[txt(pt, 'step')] || 0) + Math.round(+txt(pt, 'alter') || 0);
             var t0 = tk(from), t1 = tk(from + dur), ties = kids(el, 'tie').map(function (t) { return t.getAttribute('type'); });
             if (ties.indexOf('stop') >= 0 && tie[mm]) { tie[mm].t1 = t1; if (ties.indexOf('start') < 0) delete tie[mm]; return; }   /* tied on: one longer note */
-            var n = { m: mm, t0: t0, t1: t1, ch: ch, v: 90 }, tech = el.getElementsByTagName('technical')[0];
+            var n = { m: mm, t0: t0, t1: t1, ch: ch, v: 90, pz: pz }, tech = el.getElementsByTagName('technical')[0];
             if (tech) {   /* written fingering (0 = open), open-string mark, string number (1 = E) */
               /* the finger written plainly; one in brackets ("(3) 2": an alternative) only if it is the only one */
               var fe = kid(tech, 'fingering'), se = kid(tech, 'string'), ft = fe ? fe.textContent : '';
               var fm = /[0-4]/.exec(ft.replace(/[(（\[][^)）\]]*[)）\]]/g, ' ')) || /[0-4]/.exec(ft);
               if (fm) n.xfg = +fm[0];
               if (kid(tech, 'open-string')) n.xfg = 0;
+              if (kid(tech, 'harmonic')) n.harm = true;   /* a harmonic: an o over the note, a pure tone (Trix) */
               if (se && /^[1-4]$/.test(se.textContent.trim())) n.xs = +se.textContent.trim();
             }
             notes.push(n);
@@ -196,7 +205,7 @@
       }
     });
     tempos.sort(function (a, b) { return a.tick - b.tick; });
-    return { tracks: tracks, tpq: TPQ, tempos: tempos, sig: sig, sf: sf, minor: minor };
+    return { tracks: tracks, tpq: TPQ, tempos: tempos, sig: sig, sf: sf, minor: minor, bars: bars };
   }
 
   /* ---------- reading a MIDI file ---------- */
@@ -206,7 +215,7 @@
     function u32(at) { return ((u8[at] << 24) | (u8[at + 1] << 16) | (u8[at + 2] << 8) | u8[at + 3]) >>> 0; }
     function u16(at) { return (u8[at] << 8) | u8[at + 1]; }
     function vlq() { var v = 0, b; do { b = u8[p++]; v = (v * 128) + (b & 0x7f); } while ((b & 0x80) && p < u8.length); return v; }
-    if (looksXml(u8)) { var x = readXml(new TextDecoder().decode(u8)); return assemble(x.tracks, x.tpq, x.tempos, x.sig, x.sf, x.minor); }   /* MusicXML (Trix): the same parts, notes and timing, plus written fingerings */
+    if (looksXml(u8)) { var x = readXml(new TextDecoder().decode(u8)); return assemble(x.tracks, x.tpq, x.tempos, x.sig, x.sf, x.minor, x.bars); }   /* MusicXML (Trix): the same parts, notes and timing, plus written fingerings */
     if (u8.length < 14 || str(0, 4) !== 'MThd') throw fail('This is not a MIDI or MusicXML file.');
     var ntr = u16(10), tpq = u16(12);
     if (tpq & 0x8000) throw fail('This MIDI file keeps time in a way the player can’t read.');
@@ -216,7 +225,7 @@
       var id = str(p, 4), end = Math.min(p + 8 + u32(p + 4), u8.length);
       p += 8;
       if (id !== 'MTrk') { p = end; continue; }
-      var tick = 0, rs = 0, open = {}, notes = [], chans = {}, name = '', inst = '', prog = {}, progs = {};
+      var tick = 0, rs = 0, open = {}, notes = [], chans = {}, name = '', inst = '', prog = {}, progs = {}, cur = {};   /* cur: each channel's instrument now (45 = Pizzicato Strings) */
       while (p < end) {
         tick += vlq();
         var st = u8[p];
@@ -236,21 +245,21 @@
           p += vlq();
         } else if (st >= 0x80) {
           var hi = st & 0xf0, ch = st & 15, a = u8[p++], b = (hi === 0xc0 || hi === 0xd0) ? 0 : u8[p++], k = ch + ':' + a;
-          if (hi === 0xc0) { if (!(ch in prog)) prog[ch] = a; (progs[ch] = progs[ch] || []).push(a); }   /* the channel's instrument (General MIDI program), and every one it switches to */
-          if (hi === 0x90 && b > 0) (open[k] = open[k] || []).push([tick, b]);
+          if (hi === 0xc0) { if (!(ch in prog)) prog[ch] = a; (progs[ch] = progs[ch] || []).push(a); cur[ch] = a; }   /* the channel's instrument (General MIDI program), and every one it switches to */
+          if (hi === 0x90 && b > 0) (open[k] = open[k] || []).push([tick, b, cur[ch] === 45]);
           else if (hi === 0x80 || hi === 0x90) {
-            if (open[k] && open[k].length) { var on = open[k].shift(); notes.push({ m: a, t0: on[0], t1: tick, ch: ch, v: on[1] }); chans[ch] = 1; }
+            if (open[k] && open[k].length) { var on = open[k].shift(); notes.push({ m: a, t0: on[0], t1: tick, ch: ch, v: on[1], pz: on[2] }); chans[ch] = 1; }
           }
         } else break;   /* a data byte with no status: the file is damaged, stop reading this track */
       }
-      Object.keys(open).forEach(function (k) { open[k].forEach(function (on) { notes.push({ m: +k.split(':')[1], t0: on[0], t1: tick, ch: +k.split(':')[0], v: on[1] }); }); });
+      Object.keys(open).forEach(function (k) { open[k].forEach(function (on) { notes.push({ m: +k.split(':')[1], t0: on[0], t1: tick, ch: +k.split(':')[0], v: on[1], pz: on[2] }); }); });
       if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1, name: name || inst, label: name + ' ' + inst, prog: prog, progs: progs });
       p = end;
     }
     return assemble(tracks, tpq, tempos, sig, sf, minor);
   }
   /* what both readers share: naming the parts, choosing the violin, the accompaniment */
-  function assemble(tracks, tpq, tempos, sig, sf, minor) {
+  function assemble(tracks, tpq, tempos, sig, sf, minor, bars) {   /* bars: MusicXML's bar numbers in play order [{tick, num}] */
     if (!tracks.length) throw fail('This file has no notes.');
     /* several parts (Trix): the violin is the first track named as one (track or instrument name: violin, violino,
        violín, 小提琴), else the first set to General MIDI's Violin (program 40), else the first track with notes;
@@ -316,6 +325,15 @@
     }
     var firstTick = acc.reduce(function (a, n) { return Math.min(a, n.t0); }, Infinity);
     var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick);
+    /* the bar number at a beat, for the score's corner (Trix): MusicXML's own numbers (repeats show theirs again, a
+       pickup is 0); a MIDI file's bars counted from its start */
+    var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num }; }) : null;
+    sg.barNo = function (beat) {
+      if (!bl) return String(Math.floor((Math.max(0, beat) + sg.skipB) / barQ + 1e-6) + 1);
+      var n = bl.length ? bl[0].num : '1';
+      for (var i = 0; i < bl.length && bl[i].beat <= beat + 1e-6; i++) n = bl[i].num;
+      return n;
+    };
     sg.minor = minor;
     var used = {}; solo.forEach(function (n) { used[n.ch] = 1; }); acc.forEach(function (n) { used[n.ch] = 1; });
     sg.parts = tracks.length > 1 ? tracks.length : Object.keys(used).length;   /* channels that still play: drums not counted (Hermes R20.1) */
@@ -323,7 +341,7 @@
     sg.accNames = accNames;
     sg.dropped = dropped;   /* said in the parts flash (Hermes F27) */
     /* the accompaniment in seconds from the first bar kept, by start time */
-    sg.acc = acc.map(function (n) { var t = sg.sec(n.t0); return { m: n.m, t: t, e: Math.max(t + 0.03, sg.sec(Math.max(n.t1, n.t0 + 1))), v: (n.v || 90) / 127 }; })
+    sg.acc = acc.map(function (n) { var t = sg.sec(n.t0); return { m: n.m, t: t, e: Math.max(t + 0.03, sg.sec(Math.max(n.t1, n.t0 + 1))), v: (n.v || 90) / 127, pz: n.pz }; })
       .filter(function (n) { return n.e > 0; }).sort(function (a, b) { return a.t - b.t; });
     if (sg.acc.length) sg.end = Math.max(sg.end, sg.acc[sg.acc.length - 1].e, Math.max.apply(null, sg.acc.map(function (n) { return n.e; })));
     return sg;
@@ -345,7 +363,7 @@
       if (n.m < 55) low++; else if (!APP.board.where(n.m)) high++;
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
-      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq, xfg: n.xfg, xs: n.xs };
+      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -402,6 +420,8 @@
       if (n.xs) { s0 = 4 - n.xs; if (n.m < OPEN[s0] || n.m > OPEN[s0] + 19) s0 = -1; }   /* string 1 = E ... 4 = G */
       else if (n.xfg !== undefined) s0 = strForFinger(n.m, n.xfg);
       if (s0 >= 0) n.si = s0;
+      else if (n.harm) { s0 = [3, 2, 1, 0].filter(function (q) { return n.m - OPEN[q] === 12; })[0]; if (s0 === undefined) s0 = -1; }   /* a harmonic with nothing written: the octave harmonic, half way along the string */
+      if (s0 >= 0) n.si = s0;
       if (n.xfg !== undefined) n.fg = n.xfg;
       else if (s0 >= 0) fingers([n]);
     });
@@ -415,7 +435,7 @@
         var g = segs[0]; for (var i = 1; i < segs.length && segs[i].sec <= s; i++) g = segs[i];
         return (g.tick + (s - g.sec) / g.spt) / tpq - skipB;
       },
-      low: low, high: high,
+      low: low, high: high, skipB: skipB,
       sec: function (tick) { return toSec(tick) - skipT; }   /* ticks to seconds from the first bar kept (the accompaniment) */
     };
   }
@@ -436,6 +456,7 @@
   var POS = [[1, 6], [5, 7], [8, 7], [12, 7]];
   /* the string a written finger implies: the one where that finger reaches the note in the lowest position
      (each finger about a tone above the last); 0 = the open string */
+  function toneOf(n) { return n.harm ? 'pure' : n.pz ? 'pizz' : ''; }
   function strForFinger(m, f) {
     if (f === 0) return OPEN.indexOf(m);
     var best = -1, bestBase = 99;
@@ -485,6 +506,7 @@
   function hueOf(nt) { return nt.si >= 0 ? 'var(' + HUE[nt.si] + ')' : 'var(--accent)'; }
   var CLEF = '<g transform="translate(2 ' + (Y0 - 36) + ') scale(0.9)"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></g>';
   var ACC = { '1': '#', '-1': 'b', '0': 'n' };   /* drawn by APP.accSvg */
+  var barNoEl = $('mpBarNo');
   var noteEls = [], X0 = 0, W = 0, chunks = [], shownFrom = -1;
 
   function drawScore() {
@@ -635,6 +657,12 @@
         if (chord) g.push('<text class="fing side" x="' + (hx + (up ? -15 : 9)) + '" y="' + f.fy + '">' + fg + '</text>');   /* beside each note of a chord, spaced apart */
         else g.push('<text class="fing" x="' + hx + '" y="' + Math.max(10, stem && up ? Math.max(y + 17, BOT + 13) : Math.min(y - 9, Y0 - 5)) + '">' + fg + '</text>');
       }
+      var pzPrev = k > 0 && !!inf[k - 1].nt.pz;
+      if (isHead && !!nt.pz !== pzPrev && (nt.pz || k > 0)) g.push('<text class="mp-word" x="' + (hx - 6) + '" y="9">' + (nt.pz ? 'pizz.' : 'arco') + '</text>');   /* where the playing changes (Trix) */
+      if (nt.harm) {   /* a harmonic: a small o over the note, above the fingering, or over an up stem's tip (Trix) */
+        var oy = stem && up ? (hd.beam >= 0 ? hd.tip : hd.yTop - 3.4 * S) - 7 : Math.min(y - 9, Y0 - 5) - (fg !== null && !chord ? 12 : 0);
+        g.push('<circle class="harm" cx="' + hx + '" cy="' + Math.max(5, oy) + '" r="2.7"/>');
+      }
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
       items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
     });
@@ -668,6 +696,8 @@
     var beat = counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar */
     var z = full ? (fsShort ? 0.8 : 1.4) : 1;   /* full screen: the score larger, easier to read (Trix); a phone on its side: smaller, for room; positions below are in score units */
     keySvg.style.transform = z !== 1 ? 'scale(' + z + ')' : '';
+    var bn = song.barNo ? song.barNo(Math.max(beat, 0)) : '';   /* the bar under the playhead (Trix) */
+    if (bn !== barNoEl.textContent) barNoEl.textContent = bn;
     var w = scoreEl.clientWidth / z, x = xAt(beat), hx = full ? X0 + 50 : Math.max(w * 0.36, X0 + 50);   /* full screen: the playhead at the left, just after the clef and key (Trix) */
     headEl.style.left = hx * z + 'px';
     /* half a beat early, so a note glows while it passes through the playhead rather than after it */
@@ -731,7 +761,7 @@
       if (ns[ni].e <= pos) { noteEls[ni].classList.add('done'); ni++; continue; }
       /* a note under a quarter of a second just lights up: no string wobble, rings or glow (Trix: fast pieces lagged) */
       var quick = (ns[ni].e - ns[ni].t) / speed < 0.25;
-      APP.board.on(ns[ni].m, 'n' + ni, !quick, ns[ni].si, ns[ni].b);   /* its string, and its chord (both notes of a double stop stay lit) */
+      APP.board.on(ns[ni].m, 'n' + ni, !quick, ns[ni].si, ns[ni].b, false, toneOf(ns[ni]));   /* a harmonic sounds pure, pizzicato plucked */   /* its string, and its chord (both notes of a double stop stay lit) */
       noteEls[ni].classList.add('on');
       noteEls[ni].classList.toggle('quick', quick);
       active.push(ni); ni++;
@@ -789,7 +819,7 @@
     allOff();
     held.forEach(function (k) {
       var nt = song.notes[k];
-      APP.board.on(nt.m, 'n' + k, (nt.e - nt.t) / speed >= 0.25, nt.si, nt.b);
+      APP.board.on(nt.m, 'n' + k, (nt.e - nt.t) / speed >= 0.25, nt.si, nt.b, false, toneOf(nt));
       noteEls[k].classList.add('on'); active.push(k);
     });
     playing = true; last = performance.now();

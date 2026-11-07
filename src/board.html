@@ -1137,6 +1137,23 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     }
     return { out: out, nodes: nodes, vib: vib };
   }
+  /* pizzicato (Trix): a plucked string, bright at first and dying away by itself */
+  function startPluck(freq) {
+    var t = ctx.currentTime, out = ctx.createGain(), lp = ctx.createBiquadFilter(), nodes = [];
+    out.gain.setValueAtTime(0, t);
+    out.gain.setTargetAtTime(0.5, t, 0.0015);
+    out.gain.setTargetAtTime(0, t + 0.008, 0.16);
+    lp.type = 'lowpass'; lp.Q.value = 0.8;
+    lp.frequency.setValueAtTime(Math.min(freq * 8, 7000), t);
+    lp.frequency.setTargetAtTime(Math.max(freq * 1.5, 500), t, 0.06);
+    [['sawtooth', 0.45], ['triangle', 0.55]].forEach(function (sg) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = sg[0]; o.frequency.value = freq; g.gain.value = sg[1];
+      o.connect(g); g.connect(lp); o.start(t); o.stop(t + 1.2); nodes.push(o);
+    });
+    lp.connect(out); out.connect(master);
+    return { out: out, nodes: nodes, vib: function () {} };
+  }
   function stopVoice(v, rel) {   /* rel: seconds to fade out (the MIDI player uses a shorter one) */
     var t = ctx.currentTime, r = rel || 0.09;
     var g = v.out.gain;
@@ -1412,7 +1429,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     }
     return -1;
   }
-  function pOn(midi, id, fx, si, grp, quiet) {   /* si: the string to use (a double stop's two strings); grp: its chord; fx false: no wobble or rings; quiet: shown, not sounded (paused) */
+  function pOn(midi, id, fx, si, grp, quiet, tone) {   /* tone: 'pure' a harmonic (a flute-like sine), 'pizz' plucked (Trix) */   /* si: the string to use (a double stop's two strings); grp: its chord; fx false: no wobble or rings; quiet: shown, not sounded (paused) */
     if (!quiet) {
       if (window.APP && APP.playThroughSilent) APP.playThroughSilent();
       if (!ensureCtx()) return;
@@ -1422,7 +1439,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     var nt = notes[i], el = buttons[i];
     /* a string sounds one note at a time: a new note on it replaces the one before (overlapping legato in the file) */
     if (nt) pvoices.forEach(function (r, k) { if (r.si === nt.si && k !== id && (grp === undefined || r.grp !== grp)) pOff(k); });
-    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : startVoice(nt ? noteFreq(nt) : midiFreq(midi), false, 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
+    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : tone === 'pizz' ? startPluck(nt ? noteFreq(nt) : midiFreq(midi)) : startVoice(nt ? noteFreq(nt) : midiFreq(midi), tone === 'pure', 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
     if (rec.v) { rec.v.out.disconnect(); rec.v.out.connect(soloOut()); }   /* through the mixer's violin level */
     if (!quiet) rec.timer = setTimeout(function () { applyVib(rec); }, 200);
     if (el) {

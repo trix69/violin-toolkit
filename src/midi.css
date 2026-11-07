@@ -163,3 +163,6 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 /* Exit with a phone on its side (Trix): the upright page drawn turned (size and turn set by midi.js), until the
    phone is upright */
 .shell.mp-up-rot { position: fixed; top: 0; left: 0; box-sizing: border-box; overflow: auto; -webkit-overflow-scrolling: touch; background: var(--bg); transform-origin: 0 0; padding: 8px 16px 0; }
+.mp-n .harm { fill: none; stroke: currentColor; stroke-width: 1.3; }   /* a harmonic's o */
+.mp-score .mp-word { fill: var(--sc-ink); font: italic 11px 'Times New Roman', 'Noto Serif', Georgia, serif; }   /* pizz. / arco */
+.mp-barno { position: absolute; z-index: 2; left: 9px; top: 4px; font: 600 12px/1 var(--font-mono); color: color-mix(in srgb, var(--sc-ink) 60%, transparent); pointer-events: none; font-variant-numeric: tabular-nums; }   /* the current bar number (Trix) */
