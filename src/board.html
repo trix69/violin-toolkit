@@ -691,6 +691,10 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
         boxLen = N <= 7 ? mm(7) / 0.75 : mm(N) / 0.9;
         var sv = solve(boxLen);
         K = sv[0]; r = Math.floor(sv[1]);
+        /* the rest of the board's length gets more notes, grey (Trix: a tune up to the 4th finger left it empty) */
+        var sn = N;
+        while (sn + 1 <= TOPN && mm(sn + 1) <= boxLen - (r + 2) / K) sn++;
+        if (sn !== showN) { showN = sn; paint(); }
       } else {
       if (evenly) { evenly = false; }
       var f = fit();
@@ -702,6 +706,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       if (r < 18) { r = 18; K = (2 * r + 10) / (mm(N) - mm(N - 1)); }
       }
     } else if (evenly || renderedEvenly) { evenly = false; renderedEvenly = false; render(); }
+    if (!box && showN) { showN = 0; paint(); }
     var st0 = stage.style;
     stage.classList.toggle('rot', !!box);
     if (box) {   /* laid out upright box.H wide and box.W tall, then turned anticlockwise: the nut on the left, the E string on top */
@@ -853,7 +858,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       var tint = playerOn && !!playerKey && !!playerKey[nt.midi % 12] && !(nt.n > playerKey.top);   /* ... except the tune's key, pale, up to the highest position the tune uses */
       b.classList.toggle('off', !on && !tint);
       b.classList.toggle('tint', tint);
-      b.classList.toggle('beyond', playerOn && nt.n > playerN);   /* past the tune's range: hidden (Trix: the 4th finger near the edge) */
+      b.classList.toggle('beyond', playerOn && nt.n > Math.max(playerN, showN));   /* full screen: as far as the board reaches, grey (Trix) */   /* past the tune's range: hidden (Trix: the 4th finger near the edge) */
       if (tint) { b.classList.toggle('root', nt.midi % 12 === playerKey.tonic); b.style.setProperty('--hue', 'var(' + nt.s.v + ')'); return; }
       b.classList.toggle('root', on && nt.midi % 12 === key.root);
       b.style.setProperty('--hue', on ? 'var(' + nt.s.v + ')' : 'var(--off)');
@@ -1387,7 +1392,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     else if (state.pos === 'pc' && !mic && !playerOn && board.offsetParent) startMic();
   });
   /* ---------- MIDI player (built page): this board with every note grey; the player lights and sounds the notes it plays ---------- */
-  var playerRot = null, playerOn = false, playerTop = null, playerN = MAXN, pvoices = new Map(), PTOP = 19, renderedEvenly = false, playerKey = null, playerFlat = null;   /* the player's board reaches a twelfth up each string */
+  var showN = 0, playerRot = null, playerOn = false, playerTop = null, playerN = MAXN, pvoices = new Map(), PTOP = 19, renderedEvenly = false, playerKey = null, playerFlat = null;   /* the player's board reaches a twelfth up each string */
   /* where a pitch is played: the highest string that has it within the octave, so the lowest position (A4 = open A) */
   function pick(midi) {
     for (var si = STRINGS.length - 1; si >= 0; si--) {
