@@ -151,3 +151,8 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
    clockwise, to read with the phone on its side (Trix); --rw / --rh: the screen's height and width (midi.js) */
 .shell.mp-fs.mp-fs-rot { position: fixed; top: 0; left: 0; width: var(--rw); height: var(--rh); box-sizing: border-box; overflow: hidden; background: var(--bg); transform-origin: 0 0; transform: translateX(var(--rh)) rotate(90deg); padding-top: 0; }
 .shell.mp-fs.mp-fs-rot .mp-bar { padding-bottom: 6px; }
+/* the Full screen button on the fingerboard's bottom-right corner (Trix); midi.js places it */
+.shell[data-view="midi"] #view-board .app { position: relative; }
+#mpFull { position: absolute; z-index: 4; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.shell:not([data-view="midi"]) #mpFull { display: none; }
+.shell.mp-fs #mpFull { position: fixed; z-index: 31; }

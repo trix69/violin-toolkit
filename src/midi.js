@@ -877,7 +877,17 @@
     song.notes.forEach(function (n) { if (n.si >= 0) set.top = Math.max(set.top, n.m - OPEN[n.si]); });
     return set;
   }
-  function fit() { APP.board.player(true, topH, reach(), keySet(), song && song.sf < 0, full ? fsBox : null); scroll(); }
+  function fit() { APP.board.player(true, topH, reach(), keySet(), song && song.sf < 0, full ? fsBox : null); scroll(); placeFull(); }
+  /* the Full screen button sits in the fingerboard's bottom-right corner (Trix): next to the board (not inside it,
+     which scrolls and, in full screen, is turned), placed from the board's box */
+  var stageEl = document.querySelector('#view-board .stage');
+  stageEl.parentNode.insertBefore($('mpFull'), stageEl.nextSibling);
+  function placeFull() {
+    var b = $('mpFull'), st = b.style;
+    if (full) { var x = fsBox(); st.left = (x.L + x.W - 46) + 'px'; st.top = (x.T + x.H - 46) + 'px'; return; }
+    st.left = (stageEl.offsetLeft + stageEl.offsetWidth - 46) + 'px'; st.top = (stageEl.offsetTop + stageEl.offsetHeight - 46) + 'px';
+  }
+  window.addEventListener('resize', function () { if (shown) setTimeout(placeFull, 0); });
   /* full screen (Trix): the score takes the whole width and the fingerboard turns a quarter turn anticlockwise to
      fill the room between the score and the controls, every note in view (no scrolling). The browser's own full
      screen too where there is one (not on iPhone, where the page alone rearranges). */
