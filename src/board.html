@@ -668,7 +668,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       var fit = function () {
         var rr = 19, KK = 3, g = mm(N) - mm(N - 1);
         for (var j = 0; j < 4; j++) {
-          KK = Math.min(14, (room - (rr + 4) - rr - 10 - 16) / mm(N));   /* stretched to fill the box: a short range spreads out (Trix) */
+          KK = Math.min(box ? 1e9 : 14, (room - (rr + 4) - rr - 10 - 16) / mm(N));   /* full screen: the whole width (Trix) */   /* stretched to fill the box: a short range spreads out (Trix) */
           rr = Math.min(cap, Math.max(6, (g * KK - 8) / 2));            /* at least 8 px between the closest notes */
         }
         return [KK, rr];

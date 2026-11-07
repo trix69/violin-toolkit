@@ -506,7 +506,7 @@
     if (!song) return;
     var bar = song.sig.num * 4 / song.sig.den;
     var beat = counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar */
-    var w = scoreEl.clientWidth, x = xAt(beat), hx = Math.max(w * 0.36, X0 + 50);
+    var w = scoreEl.clientWidth, x = xAt(beat), hx = full ? X0 + 50 : Math.max(w * 0.36, X0 + 50);   /* full screen: the playhead at the left, just after the clef and key (Trix) */
     headEl.style.left = hx + 'px';
     /* half a beat early, so a note glows while it passes through the playhead rather than after it */
     var tx = Math.round(hx - x + 22);   /* may move right of the start: at rest the playhead sits at the empty bar, before the first note */
@@ -898,6 +898,7 @@
       else if (!on && fsEl()) { var x = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if (x && x.catch) x.catch(function () {}); }
     } catch (e) {}
     window.scrollTo(0, 0);
+    scroll();
     if (shown) { fit(); requestAnimationFrame(function () { if (shown) fit(); }); setTimeout(function () { if (shown) fit(); }, 350); }   /* again once the browser has gone full screen */
   }
   /* only on a computer or an iPad (Trix), not on a phone: a screen at least 600 px on its short side */
