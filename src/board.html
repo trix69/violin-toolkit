@@ -664,7 +664,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       /* the whole tune's range fits the room: real spacing if the notes stay 16 px or more, else even spacing;
          the notes and their letters shrink as needed, never overlapping (Trix: no pressing in the player anyway) */
       room = box ? Math.max(120, box.W) : Math.max(120, avail - playerTop());
-      var cap = box ? Math.max(6, Math.min(34, Math.floor((box.H / 4 - 6) / 2))) : 26;   /* turned: the four strings share the box's height; Trix: smaller than 58, then 24 a little too small */
+      var cap = box ? Math.max(6, Math.floor((box.H / 4 - 3) / 2)) : 26;   /* turned: the four strings share the box's height; Trix: smaller than 58, then 24 a little too small */
       var fit = function () {
         var rr = 19, KK = 3, g = mm(N) - mm(N - 1);
         for (var j = 0; j < 4; j++) {
@@ -677,12 +677,20 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       if (box) {
         /* full screen (Trix): real spacing always */
         var was = renderedEvenly; evenly = false; renderedEvenly = false; if (was !== false) render();
-        var g0 = mm(N) - mm(N - 1);
+        /* the closest two notes shown on a string, as they sit (Just / Pythagorean move them a little), up to the
+           highest one the board's length can show (the grey extras too) */
+        var lenMax = N <= 7 ? mm(7) / 0.75 : mm(N) / 0.9, g0 = Infinity;
+        notes.forEach(function (nt, i) {
+          var pv = notes[i - 1];
+          if (!pv || pv.s !== nt.s || nt.n > TOPN || mm(nt.n) > lenMax) return;
+          g0 = Math.min(g0, mm(noteN(nt)) - mm(noteN(pv)));
+        });
+        if (!isFinite(g0)) g0 = mm(N) - mm(N - 1);
         var solve = function (len) {
           var rr0 = 19, KK0 = 1;
           for (var j0 = 0; j0 < 4; j0++) {
             KK0 = (room - 2 * rr0 - 4 - 10 - 16) / len;
-            rr0 = Math.min(cap, Math.max(6, (g0 * KK0 - 8) / 2));
+            rr0 = Math.min(cap, Math.max(6, (g0 * KK0 - 3) / 2));   /* as large as fits, 3 px apart (Trix) */
           }
           return [KK0, rr0];
         };
@@ -1251,7 +1259,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   var voices = new Map();
 
   function applyVib(rec) {
-    var want = state.vibrato && (state.pos !== 'pc' || rec.player) && !rec.open && !rec.latched && (performance.now() - rec.t0 >= 190);   /* a latched note plays steady, like a tuning fork */
+    /* the MIDI player plays without vibrato (Trix: it sounded noisy) */
+    var want = state.vibrato && !rec.player && state.pos !== 'pc' && !rec.open && !rec.latched && (performance.now() - rec.t0 >= 190);   /* a latched note plays steady, like a tuning fork */
     if (want !== rec.vibOn) {
       rec.vibOn = want;
       if (rec.v.vib) rec.v.vib(want);
@@ -1463,7 +1472,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     return soloBus;
   }
   if (window.APP) APP.board = {
-    toTop: function () { stage.scrollTop = 0; },   /* a newly chosen tune starts at the open strings (Hermes F14) */
+    toTop: function () { stage.scrollTop = 0; },
+    relayout: function () { layout(); },   /* sizes only, no redraw (full screen settling: a redraw flashed the notes) */   /* a newly chosen tune starts at the open strings (Hermes F14) */
     /* on: player mode; top(): height of the player's own part above the board, so the board fits below it */
     player: function (on, top, n, key, flat, rot) {   /* rot(): full screen, the box { L, T, W, H } the turned board fills */
       pAllOff(); stopAll(); playerOn = on; playerTop = top || null; playerRot = on && rot || null; playerKey = on ? key || null : null; playerFlat = on ? !!flat : null;

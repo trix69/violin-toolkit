@@ -952,8 +952,8 @@
   var refitT = [];
   function refitSoon() {
     refitT.forEach(clearTimeout); refitT = [];
-    fit(); requestAnimationFrame(function () { if (shown) fit(); });
-    [120, 300, 600, 1000, 1600].forEach(function (ms) { refitT.push(setTimeout(function () { if (shown) { fsCheck(); fit(); } }, ms)); });
+    fit(); requestAnimationFrame(function () { if (shown) { APP.board.relayout(); scroll(); placeFull(); } });
+    [120, 300, 600, 1000, 1600].forEach(function (ms) { refitT.push(setTimeout(function () { if (shown) { fsCheck(); APP.board.relayout(); scroll(); placeFull(); } }, ms)); });   /* sizes only: a full redraw each time flashed the key notes (Trix) */
   }
   function setFull(on, auto) {
     if (on === full) return;
