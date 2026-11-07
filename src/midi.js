@@ -172,7 +172,7 @@
       if (byFirst >= 0) byName = byFirst;
       si = byName >= 0 ? byName : byProg >= 0 ? byProg : 0;
       solo = tracks[si].notes; soloName = tracks[si].name;
-      tracks.forEach(function (tr, i) { if (i !== si) accNames.push(tr.name || 'Part ' + (i + 1)); });
+      tracks.forEach(function (tr, i) { var nm = tr.name || 'Part ' + (i + 1); if (i !== si && accNames.indexOf(nm) < 0) accNames.push(nm); });   /* a name once: a piano's two hands are two parts both called Piano (Trix's Winter) */
       tracks.forEach(function (tr, i) { if (i !== si) acc = acc.concat(tr.notes); });
     }
     var firstTick = acc.reduce(function (a, n) { return Math.min(a, n.t0); }, Infinity);
