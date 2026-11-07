@@ -662,7 +662,7 @@
     $('mpPartsA').parentNode.hidden = !a; $('mpPartsD').parentNode.hidden = !d;
     partsEl.hidden = false; void partsEl.offsetWidth; partsEl.classList.add('show');
     partsSr.textContent = lv + (zh ? '：' : ': ') + v + (zh ? '。' : '. ') + (a ? la + (zh ? '：' : ': ') + a + (zh ? '。' : '. ') : '') + (d ? ld + (zh ? '：' : ': ') + d + (zh ? '。' : '.') : '');
-    partsT = setTimeout(function () { partsEl.hidden = true; partsEl.classList.remove('show'); }, 5200);
+    partsT = setTimeout(function () { partsEl.hidden = true; partsEl.classList.remove('show'); }, 2700);
   }
   function load(i) {
     pause();
