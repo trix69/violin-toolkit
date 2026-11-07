@@ -172,3 +172,4 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .mp-score .slur, .mp-strip > svg > .art { color: var(--sc-ink); }
 .mp-score .slur { stroke-width: 1.2; }
 .mp-score .mp-dyn { fill: var(--sc-ink); font: italic 700 15px 'Times New Roman', 'Noto Serif', Georgia, serif; }
+.mp-grace .stem { stroke-width: 1; }   /* grace notes: small (Trix) */

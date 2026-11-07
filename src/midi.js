@@ -188,7 +188,7 @@
     var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [];   /* tick -> tempo entry */
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
-      var ms = kids(part, 'measure'), notes = [], tie = {}, at = 0, divStart = [], dvw = 1, pz = false, marks = [];   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
+      var ms = kids(part, 'measure'), notes = [], tie = {}, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
       ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); }); });
       order.forEach(function (k) {
         var m = ms[k]; if (!m) return;
@@ -215,18 +215,33 @@
             });
             if (bpm > 0) { var t = tk(cur); if (seenTempo[t]) seenTempo[t].us = 60e6 / bpm; else tempos.push(seenTempo[t] = { tick: t, us: 60e6 / bpm }); }   /* two marks on one beat ("Allegro" and ♩ = 140): the later wins, as in MuseScore */
           } else if (nm === 'note') {
-            if (kid(el, 'grace') || kid(el, 'cue')) return;   /* grace and cue notes are not played */
+            if (kid(el, 'cue')) return;   /* cue notes are not played */
+            var gr = kid(el, 'grace');
+            if (gr) {   /* a grace note (Trix): played and drawn small just before the note it decorates */
+              var gp = kid(el, 'pitch');
+              if (gp && !kid(el, 'chord')) graces.push({ m: (+txt(gp, 'octave') + 1) * 12 + (STEP[txt(gp, 'step')] || 0) + Math.round(+txt(gp, 'alter') || 0), slash: gr.getAttribute('slash') === 'yes' });
+              return;
+            }
             var dur = +txt(el, 'duration') || 0, chord = !!kid(el, 'chord'), from = chord ? last : cur;
             if (!chord) { last = cur; cur += dur; len = Math.max(len, cur); }
-            var pt = kid(el, 'pitch'); if (!pt) return;   /* a rest, or unpitched */
+            var pt = kid(el, 'pitch'); if (!pt) { graces = []; return; }   /* a rest, or unpitched (graces before a rest are dropped) */
             var mm = (+txt(pt, 'octave') + 1) * 12 + (STEP[txt(pt, 'step')] || 0) + Math.round(+txt(pt, 'alter') || 0);
             var t0 = tk(from), t1 = tk(from + dur), ties = kids(el, 'tie').map(function (t) { return t.getAttribute('type'); });
+            if (chord && t0 === gFrom) t0 += gShift;   /* the rest of a chord moves with its first note */
+            else if (!chord && graces.length) {
+              /* an acciaccatura (slashed) or a run of graces: quick, about a 32nd each; a lone appoggiatura: half
+                 the note. They take their time from the start of the main note (on the beat) */
+              var main = t1 - t0, cnt = graces.length, each = cnt === 1 && !graces[0].slash ? Math.round(main / 2) : Math.round(Math.min(TPQ / 8, main / (2 * cnt)));
+              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: t0 - (cnt - gi), gi: gi, gn: cnt, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
+              gFrom = t0; gShift = cnt * each; t0 += gShift; graces = [];
+            } else if (!chord) { gFrom = -1; gShift = 0; }
             var slurs = kids(kid(el, 'notations'), 'slur').map(function (sl) { return { t: sl.getAttribute('type'), n: sl.getAttribute('number') || '1' }; });
             if (ties.indexOf('stop') >= 0 && tie[mm]) {   /* tied on: one longer note; a slur ending here ends on it */
               tie[mm].t1 = t1; if (slurs.length) tie[mm].slur = (tie[mm].slur || []).concat(slurs);
               if (ties.indexOf('start') < 0) delete tie[mm]; return;
             }
-            var n = { m: mm, t0: t0, t1: t1, ch: ch, v: 90, pz: pz }, tech = el.getElementsByTagName('technical')[0];
+            var bm = kids(el, 'beam').filter(function (b) { return (b.getAttribute('number') || '1') === '1'; })[0];
+            var n = { m: mm, t0: t0, t1: t1, sb: tk(from), xb: bm ? bm.textContent.trim() : 'none', ch: ch, v: 90, pz: pz }, tech   /* sb: where it is written (a grace note may delay its sound); xb: the score's beam */ = el.getElementsByTagName('technical')[0];
             if (tech) {   /* written fingering (0 = open), open-string mark, string number (1 = E) */
               /* the finger written plainly; one in brackets ("(3) 2": an alternative) only if it is the only one */
               var fe = kid(tech, 'fingering'), se = kid(tech, 'string'), ft = fe ? fe.textContent : '';
@@ -416,7 +431,8 @@
       if (n.m < 55) low++; else if (!APP.board.where(n.m)) high++;
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
-      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, slur: n.slur, vel: n.v || 80 };
+      var sb = n.sb !== undefined ? n.sb : n.t0;
+      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, slur: n.slur, vel: n.v || 80, grace: n.grace };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -583,7 +599,11 @@
     /* spacing by note length, as printed music does (a semiquaver ~41 px, a crotchet 56, a semibreve 86), with
        room at each bar line; xAt() maps beats to x for placing and scrolling */
     var ons = [], items = [];   /* what scrolls: [x, svg markup], drawn in sections */
-    sg.notes.forEach(function (n) { if (!ons.length || n.b > ons[ons.length - 1] + 1e-6) ons.push(n.b); });
+    var gRoom = {};   /* grace notes: drawn small just before their note, in room made for them, outside the beat spacing */
+    sg.notes.forEach(function (n) {
+      if (n.grace) { var mb = (n.b + (n.gn - n.gi) / 480).toFixed(3); gRoom[mb] = Math.max(gRoom[mb] || 0, n.gn); return; }
+      if (!ons.length || n.b > ons[ons.length - 1] + 1e-6) ons.push(n.b);
+    });
     /* rests (Trix: shown as printed, and given room like notes so the sheet does not rush through a silence):
        from the end of each note (or the start of its bar, before the first note) to the next onset, split at
        bar lines into whole-bar, half, quarter, quaver and semiquaver rests (dotted in x/8), each on its grid */
@@ -615,6 +635,7 @@
     evs.forEach(function (b, i) {
       var bn = Math.floor(b / barBeats + 1e-6);
       if (bn > lastBar) { items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); cx += 12; lastBar = bn; }
+      if (gRoom[b.toFixed(3)]) cx += 12 * gRoom[b.toFixed(3)];
       pts.push([b, cx]);
       cx += 26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < evs.length ? evs[i + 1] : sg.beats) - b));
     });
@@ -638,7 +659,7 @@
       var spl = sp[nt.m % 12], L = spl[0], acc = spl[1], oct = Math.floor(nt.m / 12) - 1;
       var step = L + 7 * (oct - 4), id = L + '/' + oct, have = id in inBar ? inBar[id] : (keyAcc[L] || 0), sign = null;
       if (acc !== have) { sign = ACC[String(acc)]; inBar[id] = acc; }
-      return { nt: nt, step: step, y: yOf(step), hx: xAt(nt.b), len: nt.len, sign: sign, up: step < 6, beam: -1 };
+      return { nt: nt, step: step, y: yOf(step), hx: nt.grace ? xAt(nt.b + (nt.gn - nt.gi) / 480) - 12 * (nt.gn - nt.gi) - 2 : xAt(nt.b), len: nt.len, sign: sign, up: step < 6, beam: -1 };
     });
     /* beams: quavers and semiquavers that follow on one another within a beat (a dotted crotchet in 6/8, 9/8,
        12/8) share a beam, all stems one way: up when the group sits below the middle line */
@@ -659,9 +680,18 @@
       f.members.slice().sort(function (a, b) { return inf[a].y - inf[b].y; }).forEach(function (j) { last = Math.max(inf[j].y + 4, last + 11); inf[j].fy = last; });
     });
     var unit = sg.sig.den === 8 && sg.sig.num % 3 === 0 ? 1.5 : 1, groups = [], cur = null;
+    var xmlBeams = sg.notes.some(function (n) { return n.xb !== undefined; });   /* MusicXML: its own beams (Trix: Winter's 8 quavers under one) */
     heads.forEach(function (k, hi) {
-      var f = inf[k], prev = hi ? inf[heads[hi - 1]] : null, ok = f.len < 1;
-      var joins = ok && cur && prev && Math.floor(f.nt.b / unit + 1e-6) === Math.floor(prev.nt.b / unit + 1e-6) && Math.abs(prev.nt.b + prev.len - f.nt.b) < 0.02 && f.nt.b > prev.nt.b + 1e-6;
+      if (xmlBeams) {
+        var bt = inf[k].members.map(function (j) { return inf[j].nt.xb; }).filter(function (v) { return v && v !== 'none'; })[0];
+        if (inf[k].nt.grace) return;
+        if (bt === 'begin') { cur = [k]; groups.push(cur); }
+        else if ((bt === 'continue' || bt === 'end') && cur) { cur.push(k); if (bt === 'end') cur = null; }
+        else cur = null;
+        return;
+      }
+      var f = inf[k], prev = hi ? inf[heads[hi - 1]] : null, ok = f.len < 1 && !f.nt.grace;
+      var joins = ok && cur && prev && !prev.nt.grace && Math.floor(f.nt.b / unit + 1e-6) === Math.floor(prev.nt.b / unit + 1e-6) && Math.abs(prev.nt.b + prev.len - f.nt.b) < 0.02 && f.nt.b > prev.nt.b + 1e-6;
       if (joins) cur.push(k); else { cur = ok ? [k] : null; if (cur) groups.push(cur); }
     });
     var beams = [];
@@ -695,6 +725,18 @@
     inf.forEach(function (f, k) {
       var hd = inf[f.head], isHead = f.head === k, chord = hd.members.length > 1;
       var nt = f.nt, y = f.y, hx = f.hx, step = f.step, len = f.len, up = hd.up, g = [];
+      if (nt.grace) {   /* small, stem up, one flag; an acciaccatura's slash through it (Trix) */
+        if (f.sign) g.push('<g class="acc" transform="translate(' + hx + ' ' + y + ') scale(.7) translate(' + (-hx) + ' ' + (-y) + ')">' + APP.accSvg(f.sign, hx - 12, y, S) + '</g>');
+        for (var gl = 0; gl >= step; gl -= 2) g.push('<path class="ledger" d="M' + (hx - 6) + ' ' + yOf(gl) + 'h12"/>');
+        for (gl = 12; gl <= step; gl += 2) g.push('<path class="ledger" d="M' + (hx - 6) + ' ' + yOf(gl) + 'h12"/>');
+        var gsx = hx + 2.9, gtop = y - 2.2 * S;
+        g.push('<ellipse class="head" cx="' + hx + '" cy="' + y + '" rx="3.3" ry="2.3" transform="rotate(-20 ' + hx + ' ' + y + ')"/>');
+        g.push('<path class="stem" d="M' + gsx + ' ' + (y - 1) + 'V' + gtop + '"/>');
+        g.push('<path class="flag" d="M' + gsx + ' ' + gtop + 'c.6 3 4.6 4.2 3.5 8.8c.6-3.5-1.8-5.3-3.5-5.9z"/>');
+        if (nt.grace === 'acc') g.push('<path class="stem" d="M' + (hx - 1.5) + ' ' + (y - 0.6 * S) + 'L' + (hx + 7) + ' ' + (y - 1.8 * S) + '"/>');
+        items.push([hx, '<g class="mp-n mp-grace" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
+        return;
+      }
       if (f.sign) g.push('<g class="acc">' + APP.accSvg(f.sign, hx - 14, y, S) + '</g>');
       for (var l = 0; l >= step; l -= 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
       for (l = 12; l <= step; l += 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
