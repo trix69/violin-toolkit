@@ -1148,7 +1148,12 @@
   document.addEventListener('pointerdown', function (e) { if (!mixPop.hidden && !mixPop.contains(e.target) && !mixBtn.contains(e.target)) setMixOpen(false); }, true);
   mixPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setMixOpen(false); mixBtn.focus(); } });
   playBtn.addEventListener('click', function () { if (playing || counting) pause(); else play(); });
-  $('mpStart').addEventListener('click', function () { seekTo(0); });
+  $('mpStart').addEventListener('click', function () {
+    var was = playing || counting;
+    if (was) pause();
+    seekTo(0);
+    if (was) play();   /* playing: start again with the count-in (Trix) */
+  });
   loopBtn.addEventListener('click', function () {
     loop = !loop;
     try { localStorage.setItem('violin-midi-loop', loop ? 'on' : 'off'); } catch (e) {}
