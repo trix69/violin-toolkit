@@ -903,10 +903,20 @@
     var vw = innerWidth;
     return { left: r.top, right: r.bottom, top: vw - r.right, bottom: vw - r.left, width: r.height, height: r.width };
   }
+  /* where an element sits in the page's own frame, from offsets (not the screen): the same whether or not the page
+     is drawn turned (an iPhone put the board beside the score, not under it, with screen boxes) */
+  function lpos(el) {
+    var x = 0, y = 0, e = el;
+    while (e && e !== shellEl) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; }
+    if (e !== shellEl) { x -= window.pageXOffset || 0; y -= window.pageYOffset || 0; }   /* not turned: the page's own frame is the screen */
+    else if (fsRot) { x += shellEl.clientLeft; y += shellEl.clientTop; }
+    return { left: x, top: y };
+  }
   function fsBox() {
-    var sb = lrect(scoreEl), bb = lrect(bar), vw = fsRot ? innerHeight : (document.documentElement.clientWidth || innerWidth);
-    var L = sb.left, T = sb.bottom + 10;   /* the score's own left and right edges (Trix: the right sides lined up) */
-    return { L: L, T: T, W: Math.max(160, Math.min(sb.width, vw - L)), H: Math.max(60, bb.top - 10 - T) };
+    var sp = lpos(scoreEl), sw = scoreEl.offsetWidth, sh = scoreEl.offsetHeight;
+    var pageW = fsRot ? innerHeight : (document.documentElement.clientWidth || innerWidth), pageH = fsRot ? innerWidth : innerHeight;
+    var L = sp.left, T = sp.top + sh + 10;   /* the score's own left and right edges (Trix: the right sides lined up) */
+    return { L: L, T: T, W: Math.max(160, Math.min(sw, pageW - L)), H: Math.max(60, pageH - bar.offsetHeight - 10 - T) };
   }
   function fsEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
   function lockSide(on) {
@@ -919,6 +929,14 @@
     } catch (e) {}
   }
   var fsAuto = false;   /* entered by turning the phone: no lock, so turning it upright again can leave */
+  /* fit now and again while the screen settles: a phone turning, or the browser going full screen, reports its new
+     size late (Trix: turned into full screen on an iPhone, the board did not fill the width) */
+  var refitT = [];
+  function refitSoon() {
+    refitT.forEach(clearTimeout); refitT = [];
+    fit(); requestAnimationFrame(function () { if (shown) fit(); });
+    [120, 300, 600, 1000, 1600].forEach(function (ms) { refitT.push(setTimeout(function () { if (shown) { fsCheck(); fit(); } }, ms)); });
+  }
   function setFull(on, auto) {
     if (on === full) return;
     full = on; fsAuto = !!(on && auto);
@@ -938,7 +956,7 @@
     window.scrollTo(0, 0);
     fsCheck();
     scroll();
-    if (shown) { fit(); requestAnimationFrame(function () { if (shown) fit(); }); setTimeout(function () { if (shown) fit(); }, 350); }   /* again once the browser has gone full screen */
+    if (shown) refitSoon();
   }
   function fsCheck() {
     var rot = full && phone() && innerWidth < innerHeight;   /* still upright: draw the page turned */
@@ -959,8 +977,10 @@
     else if (!side && full) setFull(false);
   }
   fsCheck();
-  window.addEventListener('resize', function () { turned(); fsCheck(); if (full && shown) fit(); });
-  window.addEventListener('orientationchange', function () { setTimeout(function () { turned(); fsCheck(); if (full && shown) fit(); }, 250); });
+  function onResize() { turned(); fsCheck(); if (full && shown) refitSoon(); }
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', function () { setTimeout(onResize, 250); });
+  if (window.visualViewport) visualViewport.addEventListener('resize', function () { if (full && shown) refitSoon(); });
   fullBtn.addEventListener('click', function () { setFull(!full); });
   ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (ev) {
     document.addEventListener(ev, function () { if (!fsEl() && full) setFull(false); else if (shown) setTimeout(fit, 50); });   /* left with Esc or Back */
