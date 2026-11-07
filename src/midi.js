@@ -918,17 +918,18 @@
       else if (!on && so.unlock) so.unlock();
     } catch (e) {}
   }
-  function setFull(on) {
+  var fsAuto = false;   /* entered by turning the phone: no lock, so turning it upright again can leave */
+  function setFull(on, auto) {
     if (on === full) return;
-    full = on;
+    full = on; fsAuto = !!(on && auto);
     shellEl.classList.toggle('mp-fs', on); document.documentElement.classList.toggle('mp-fs-on', on);
     fullBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     fullBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen'); fullBtn.title = fullBtn.getAttribute('aria-label');
     var de = document.documentElement;
     try {
       if (on && !fsEl()) {
-        var r = (de.requestFullscreen || de.webkitRequestFullscreen || function () {}).call(de);
-        if (phone()) { if (r && r.then) r.then(function () { if (full) lockSide(true); }, function () { if (full) lockSide(true); }); else lockSide(true); }   /* Chrome locks only once full screen */
+        var r = auto ? null : (de.requestFullscreen || de.webkitRequestFullscreen || function () {}).call(de);   /* the browser's own full screen needs a tap */
+        if (auto) {} else if (phone()) { if (r && r.then) r.then(function () { if (full) lockSide(true); }, function () { if (full) lockSide(true); }); else lockSide(true); }   /* Chrome locks only once full screen */
       } else if (!on) {
         if (phone()) lockSide(false);
         if (fsEl()) { var x = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if (x && x.catch) x.catch(function () {}); }
@@ -947,15 +948,25 @@
     if (sh !== fsShort) { fsShort = sh; shellEl.classList.toggle('mp-fs-short', sh); }
     scroll();
   }
+  /* a phone in the player (Trix): turned sideways, full screen by itself; turned upright, back out */
+  var wasSide = innerWidth > innerHeight;
+  function turned() {
+    var side = innerWidth > innerHeight;
+    if (side === wasSide) return;
+    wasSide = side;
+    if (!shown || !phone()) return;
+    if (side && !full) setFull(true, true);
+    else if (!side && full) setFull(false);
+  }
   fsCheck();
-  window.addEventListener('resize', function () { fsCheck(); if (full && shown) fit(); });
-  window.addEventListener('orientationchange', function () { setTimeout(function () { fsCheck(); if (full && shown) fit(); }, 250); });
+  window.addEventListener('resize', function () { turned(); fsCheck(); if (full && shown) fit(); });
+  window.addEventListener('orientationchange', function () { setTimeout(function () { turned(); fsCheck(); if (full && shown) fit(); }, 250); });
   fullBtn.addEventListener('click', function () { setFull(!full); });
   ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (ev) {
     document.addEventListener(ev, function () { if (!fsEl() && full) setFull(false); else if (shown) setTimeout(fit, 50); });   /* left with Esc or Back */
   });
   APP.views.midi = {
-    show: function () { shown = true; fit(); },
+    show: function () { shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* opened on a phone held sideways: full screen (Trix) */
     hide: function () { setFull(false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }
   };
   load(0);
