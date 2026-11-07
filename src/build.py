@@ -1,3 +1,4 @@
+import hashlib
 import re, sys
 
 import os
@@ -432,7 +433,12 @@ midi_html = open(SP + 'midi.html').read()
 MIDI_DEMOS = [('twinkle.mid', 'Twinkle, Twinkle, Little Star'), ('ode.mid', 'Ode to Joy'), ('mountain_king.mid', 'In the Hall of the Mountain King'), ('canon.mid', 'Canon'), ('night_music.mid', 'Serenade'), ('winter.mid', 'Winter, 1st movement')]   # canon.mid, mountain_king.mid, night_music.mid, winter.mid (Vivaldi, accompaniment part): Trix's own files (2026-11-06); night_music.mid: Trix's Serenade K525 for string quartet, all four parts (2026-11-07, shown as 'Serenade' / 小夜曲); canon.mid: Trix's string quartet arrangement (2026-11-07, replaces the earlier canon.mid); mountain_king.mid: Trix's violin + piano arrangement (2026-11-07, B minor, 4-bar piano intro); ode.mid: Trix's violin + piano arrangement (2026-11-07, replaces make_demos.py's one-part version: do not regenerate it). twinkle.mid: Trix's string orchestra arrangement (2026-11-07, D major). make_demos.py no longer writes either
 midi_js = open(SP + 'midi.js').read()
 assert midi_js.count('/*DEMOS*/[]') == 1
-midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps([{'title': t, 'b64': base64.b64encode(open(SP + 'midi/' + f, 'rb').read()).decode()} for f, t in MIDI_DEMOS]))
+# each tune: title, file name, a short hash of its bytes, and the bytes last ("b64"), so the Android app's build
+# (Android/wrapper/build.sh) can drop the bytes and fetch the tune from the website the first time it is played (Trix)
+def _demo(f, t):
+    raw = open(SP + 'midi/' + f, 'rb').read()
+    return {'title': t, 'f': f, 'h': hashlib.sha1(raw).hexdigest()[:10], 'b64': base64.b64encode(raw).decode()}
+midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps([_demo(f, t) for f, t in MIDI_DEMOS]))
 i18n_js = open(SP + 'i18n.js').read()
 coach_js = open(SP + 'coach.js').read()
 coach_css = open(SP + 'coach.css').read()

@@ -681,6 +681,15 @@
     song = songs[i].song;
     delBtn.hidden = !songs[i].kept;   /* the bin only for an imported file */
     subEl.textContent = songs[i].title;
+    if (!song) {   /* a built-in tune not downloaded yet (Android app): an empty score until it arrives */
+      svg.innerHTML = ''; keySvg.innerHTML = ''; noteEls = []; chunks = [];
+      seekTo(0); flashParts(); mixUi();
+      var s = songs[i];
+      if (s.failed) { s.failed = false; say('This tune downloads the first time you play it. Connect to the internet and choose it again.', true); }
+      else { say('Downloading this tune…'); fetchDemo(i); }   /* choosing it again tries again */
+      if (shown) fit();
+      return;
+    }
     drawScore();
     seekTo(0);
     var warn = [];
@@ -713,7 +722,32 @@
   document.addEventListener('i18n', options);   /* language switched: relabel [imported] */
   function fromB64(b64) { var bin = atob(b64), u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8.buffer; }
   function toB64(buf) { var u8 = new Uint8Array(buf), s = ''; for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); return btoa(s); }
-  DEMOS.forEach(function (d) { addSong(d.title, fromB64(d.b64), null); });
+  /* built-in tunes: in the Android app (Trix) they are not packed in; each is a placeholder ({ title, f, h }) that
+     is downloaded from the website the first time it is chosen, then kept on the phone (violin-midi-demo:<file>) */
+  var DEMO_URL = 'https://trix69.github.io/violin-toolkit/src/midi/', DEMO_KEY = 'violin-midi-demo:';
+  DEMOS.forEach(function (d) {
+    if (d.b64) { addSong(d.title, fromB64(d.b64), null); return; }
+    var sg = null;
+    try { var c = JSON.parse(localStorage.getItem(DEMO_KEY + d.f) || 'null'); if (c && c.h === d.h) sg = parse(fromB64(c.b64)); } catch (e) { sg = null; }
+    songs.push({ title: d.title, song: sg, kept: null, demo: d });
+  });
+  options();
+  function fetchDemo(i) {
+    var s = songs[i], d = s.demo;
+    if (s.fetching) return;
+    s.fetching = true;
+    fetch(DEMO_URL + encodeURIComponent(d.f), { cache: 'no-cache' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.arrayBuffer();
+    }).then(function (buf) {
+      s.song = parse(buf);
+      try { localStorage.setItem(DEMO_KEY + d.f, JSON.stringify({ h: d.h, b64: toB64(buf) })); } catch (e) {}   /* no room: it downloads again next time */
+    }).catch(function (e) { console.error('MIDI tune download', d.f, e); }).then(function () {
+      s.fetching = false;
+      var k = songs.indexOf(s);
+      if (+songSel.value === k) { s.failed = !s.song; load(k); }   /* still the chosen tune: show it, or say it failed */
+    });
+  }
   /* imported files are kept on this device until deleted with the bin button (Trix): violin-midi-files,
      a list of { id, name, b64 }; MIDI files are small (a few KB), well inside the storage limit */
   var KEEP = 'violin-midi-files', kept = [];
