@@ -875,10 +875,41 @@
     song.notes.forEach(function (n) { if (n.si >= 0) set.top = Math.max(set.top, n.m - OPEN[n.si]); });
     return set;
   }
-  function fit() { APP.board.player(true, topH, reach(), keySet(), song && song.sf < 0); scroll(); }
+  function fit() { APP.board.player(true, topH, reach(), keySet(), song && song.sf < 0, full ? fsBox : null); scroll(); }
+  /* full screen (Trix): the score takes the whole width and the fingerboard turns a quarter turn anticlockwise to
+     fill the room between the score and the controls, every note in view (no scrolling). The browser's own full
+     screen too where there is one (not on iPhone, where the page alone rearranges). */
+  var full = false, fullBtn = $('mpFull'), shellEl = document.getElementById('shell') || document.body;
+  function fsBox() {
+    var sb = scoreEl.getBoundingClientRect(), bb = bar.getBoundingClientRect(), vw = document.documentElement.clientWidth || innerWidth;
+    var L = Math.max(16, sb.left), T = sb.bottom + 10;
+    return { L: L, T: T, W: Math.max(160, vw - 2 * L), H: Math.max(100, bb.top - 10 - T) };
+  }
+  function fsEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function setFull(on) {
+    if (on === full) return;
+    full = on;
+    shellEl.classList.toggle('mp-fs', on); document.documentElement.classList.toggle('mp-fs-on', on);
+    fullBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    fullBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen'); fullBtn.title = fullBtn.getAttribute('aria-label');
+    var de = document.documentElement;
+    try {
+      if (on && !fsEl()) { var r = (de.requestFullscreen || de.webkitRequestFullscreen || function () {}).call(de); if (r && r.catch) r.catch(function () {}); }
+      else if (!on && fsEl()) { var x = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if (x && x.catch) x.catch(function () {}); }
+    } catch (e) {}
+    window.scrollTo(0, 0);
+    if (shown) { fit(); requestAnimationFrame(function () { if (shown) fit(); }); setTimeout(function () { if (shown) fit(); }, 350); }   /* again once the browser has gone full screen */
+  }
+  /* only on a computer or an iPad (Trix), not on a phone: a screen at least 600 px on its short side */
+  fullBtn.hidden = Math.min(screen.width || 0, screen.height || 0) < 600;
+  fullBtn.addEventListener('click', function () { setFull(!full); });
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (ev) {
+    document.addEventListener(ev, function () { if (!fsEl() && full) setFull(false); else if (shown) setTimeout(fit, 50); });   /* left with Esc or Back */
+  });
+  window.addEventListener('resize', function () { if (full && shown) fit(); });
   APP.views.midi = {
     show: function () { shown = true; fit(); },
-    hide: function () { shown = false; pause(); setMixOpen(false); APP.board.player(false); }
+    hide: function () { setFull(false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }
   };
   load(0);
 })();

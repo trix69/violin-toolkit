@@ -124,3 +124,15 @@
 .mp-parts p + p { margin-top: 4px; }
 .mp-parts b { font: 600 13px var(--font-note); color: var(--accent); margin-right: 8px; }
 .mp-parts p[hidden] { display: none; }
+/* full screen (Trix): the score across the whole width, the fingerboard turned a quarter turn below it (board.html
+   places it, .stage.rot), the controls at the bottom; the app bar and the tune list step aside */
+.mp-full[hidden] { display: none; }
+.mp-full .i-out, .mp-full[aria-pressed="true"] .i-in { display: none; }
+.mp-full[aria-pressed="true"] .i-out { display: block; }
+.shell.mp-fs { max-width: none; padding-top: env(safe-area-inset-top, 0px); }
+.shell.mp-fs .appbar, .shell.mp-fs #mpTop .mp-row { display: none; }
+.shell.mp-fs #mpTop .mp-score { margin-top: 8px; }
+.shell.mp-fs #view-midi { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.shell.mp-fs #view-board { margin: 0; padding: 0; height: 0; }
+.shell.mp-fs .mp-bar > div { max-width: none; }
+html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }

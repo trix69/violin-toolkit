@@ -349,6 +349,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .note.tint:not(.down) { background: color-mix(in srgb, var(--hue) 15%, transparent); color: color-mix(in srgb, var(--hue) 55%, #fff); box-shadow: none; border-color: color-mix(in srgb, var(--hue) 30%, transparent); }   /* paler (Trix), so the played note stands out */   /* see-through like the grey notes, so a lit string shows under them (Trix) */
 .note.tint.root:not(.down) { box-shadow: inset 0 0 0 2px var(--nut); }   /* the key note keeps the fingerboard's white ring */
 .note.down.quiet { filter: saturate(.35) brightness(.8); opacity: .75; }   /* pressed but silent: a higher finger holds the same string (Hermes F22) */
+.stage.rot { grid-template-columns: 1fr 0; border-radius: 12px; z-index: 1; }   /* MIDI full screen: turned a quarter turn (Trix); no label column */
+.stage.rot .labels { display: none; }
+.stage.rot .note::after { transform: rotate(90deg); }   /* the letters stay upright */
 .note.beyond { display: none; }   /* MIDI player: rows past the tune's range (display none: hidden rows must not stretch the scroll box, or follow() scrolls into empty space) */
 .vib.still { animation: none; transform: translateX(-50%); }
 .vib.still::before { display: none; }
@@ -656,15 +659,17 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
        goes (up to a twelfth, for double stops). It fills the room left if it fits; otherwise notes keep their
        size and the board scrolls in its own box, following the notes played */
     var N = playerOn ? playerN : MAXN, room = 0;
+    var box = playerOn && playerTop && playerRot ? playerRot() : null;   /* full screen (Trix): the board turned a quarter turn, in this box */
     if (playerOn && playerTop) {
       /* the whole tune's range fits the room: real spacing if the notes stay 16 px or more, else even spacing;
          the notes and their letters shrink as needed, never overlapping (Trix: no pressing in the player anyway) */
-      room = Math.max(120, avail - playerTop());
+      room = box ? Math.max(120, box.W) : Math.max(120, avail - playerTop());
+      var cap = box ? Math.max(6, Math.floor((box.H / 4 - 6) / 2)) : 26;   /* turned: the four strings share the box's height */
       var fit = function () {
         var rr = 19, KK = 3, g = mm(N) - mm(N - 1);
         for (var j = 0; j < 4; j++) {
           KK = Math.min(14, (room - (rr + 4) - rr - 10 - 16) / mm(N));   /* stretched to fill the box: a short range spreads out (Trix) */
-          rr = Math.min(26, Math.max(6, (g * KK - 8) / 2));            /* at least 8 px between the closest notes */
+          rr = Math.min(cap, Math.max(6, (g * KK - 8) / 2));            /* at least 8 px between the closest notes */
         }
         return [KK, rr];
       };
@@ -676,10 +681,19 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       K = f[0]; r = Math.floor(f[1]);
       /* never smaller than 18 px with a clear gap between notes (Trix; a small Android screen: "too small"):
          the board then runs past the room and scrolls in its box, following the notes played */
-      if (r < 18) { r = 18; K = (2 * r + 10) / (mm(N) - mm(N - 1)); }
+      if (r < 18 && !box) { r = 18; K = (2 * r + 10) / (mm(N) - mm(N - 1)); }   /* turned, it always fits: no scrolling (Trix) */
     } else if (evenly || renderedEvenly) { evenly = false; renderedEvenly = false; render(); }
+    var st0 = stage.style;
+    stage.classList.toggle('rot', !!box);
+    if (box) {   /* laid out upright box.H wide and box.W tall, then turned anticlockwise: the nut on the left, the E string on top */
+      room = 0;
+      st0.position = 'fixed'; st0.left = box.L + 'px'; st0.top = (box.T + box.H) + 'px';
+      st0.width = box.H + 'px'; st0.height = box.W + 'px'; st0.boxSizing = 'border-box';
+      st0.transformOrigin = '0 0'; st0.transform = 'rotate(-90deg)';
+    } else { st0.position = st0.left = st0.top = st0.width = st0.height = st0.boxSizing = st0.transformOrigin = st0.transform = ''; }
     stage.style.maxHeight = room ? room + 'px' : '';
     stage.style.overflowY = room && (r + 4) + K * mm(N) + r + 10 + 16 > room + 2 ? 'auto' : room ? 'hidden' : '';   /* rows past the tune's range stay out of sight */
+    if (box) stage.style.overflowY = 'hidden';
     if (stage.style.overflowY !== 'auto') stage.scrollTop = 0;   /* a tune that fits starts at the open strings, even after one that scrolled (Trix) */
     var st = stage.style;
     st.setProperty('--r', r + 'px');
@@ -1354,7 +1368,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     else if (state.pos === 'pc' && !mic && !playerOn && board.offsetParent) startMic();
   });
   /* ---------- MIDI player (built page): this board with every note grey; the player lights and sounds the notes it plays ---------- */
-  var playerOn = false, playerTop = null, playerN = MAXN, pvoices = new Map(), PTOP = 19, renderedEvenly = false, playerKey = null, playerFlat = null;   /* the player's board reaches a twelfth up each string */
+  var playerRot = null, playerOn = false, playerTop = null, playerN = MAXN, pvoices = new Map(), PTOP = 19, renderedEvenly = false, playerKey = null, playerFlat = null;   /* the player's board reaches a twelfth up each string */
   /* where a pitch is played: the highest string that has it within the octave, so the lowest position (A4 = open A) */
   function pick(midi) {
     for (var si = STRINGS.length - 1; si >= 0; si--) {
@@ -1427,8 +1441,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   if (window.APP) APP.board = {
     toTop: function () { stage.scrollTop = 0; },   /* a newly chosen tune starts at the open strings (Hermes F14) */
     /* on: player mode; top(): height of the player's own part above the board, so the board fits below it */
-    player: function (on, top, n, key, flat) {
-      pAllOff(); stopAll(); playerOn = on; playerTop = top || null; playerKey = on ? key || null : null; playerFlat = on ? !!flat : null;
+    player: function (on, top, n, key, flat, rot) {   /* rot(): full screen, the box { L, T, W, H } the turned board fills */
+      pAllOff(); stopAll(); playerOn = on; playerTop = top || null; playerRot = on && rot || null; playerKey = on ? key || null : null; playerFlat = on ? !!flat : null;
       playerN = on ? Math.max(4, Math.min(PTOP, n || MAXN)) : MAXN;
       TOPN = on ? Math.max(MAXN, playerN) : MAXN;
       renderedEvenly = null; layout(); if (renderedEvenly === null) { renderedEvenly = false; render(); layout(); }
