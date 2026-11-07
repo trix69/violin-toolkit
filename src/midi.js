@@ -139,6 +139,39 @@
     }
     return out;
   }
+  /* the sound follows the score's dynamics (Trix): each note's velocity from the part's last dynamic, hairpins and
+     cresc. / dim. sliding to the next one (or one step), sf / sfz / fz an accent on its note, fp loud then soft.
+     Velocities as MuseScore plays them (mf 80 ... ff 112); a part with no dynamics stays at mf. */
+  var VEL = { pppp: 10, ppp: 16, pp: 33, p: 49, mp: 64, mf: 80, f: 96, ff: 112, fff: 126, ffff: 127 };
+  function dynamics(notes, marks) {
+    var base = [], accent = {}, ramps = [], dyn = marks.filter(function (m) { return m.kind === 'dyn'; }).sort(function (a, b) { return a.tick - b.tick; });
+    dyn.forEach(function (m) {
+      var t = m.text.toLowerCase();
+      if (VEL[t]) base.push({ tick: m.tick, v: VEL[t] });
+      else if (/^(sf|sfz|sffz|fz|rfz|rf|sfp|sfpp|fp)$/.test(t)) {
+        accent[m.tick] = t === 'fp' ? 96 : 112;
+        if (/p$/.test(t)) base.push({ tick: m.tick + 1, v: t === 'sfpp' ? 33 : 49 });   /* then soft */
+      }
+    });
+    function vAt(tick) { var v = 80; for (var i = 0; i < base.length && base[i].tick <= tick; i++) v = base[i].v; return v; }
+    function nextDyn(tick) { for (var i = 0; i < base.length; i++) if (base[i].tick >= tick) return base[i]; return null; }
+    var open = null;
+    marks.slice().sort(function (a, b) { return a.tick - b.tick; }).forEach(function (m) {
+      if (m.kind === 'wedge') {
+        if (m.text === 'stop') { if (open) { var nx = nextDyn(m.tick), to = nx && nx.tick - m.tick < 480 * 4 ? nx.v : vAt(open.tick) + (open.up ? 16 : -16); ramps.push({ a: open.tick, b: Math.max(m.tick, open.tick + 1), to: to }); open = null; } }
+        else open = { tick: m.tick, up: m.text === 'crescendo' };
+      } else if (m.kind === 'words' && /^(cresc|dim|decresc)/i.test(m.text)) {
+        var n2 = nextDyn(m.tick + 1); if (n2) ramps.push({ a: m.tick, b: n2.tick, to: n2.v });
+      }
+    });
+    notes.forEach(function (n) {
+      var v = vAt(n.t0);
+      ramps.forEach(function (r) { if (n.t0 >= r.a && n.t0 < r.b) { var from = vAt(r.a); v = from + (r.to - from) * (n.t0 - r.a) / (r.b - r.a); } });
+      if (accent[n.t0] !== undefined) v = Math.max(v, accent[n.t0]);
+      if (n.art) { if (n.art.indexOf('strong-accent') >= 0) v += 24; else if (n.art.indexOf('accent') >= 0) v += 16; }   /* an accented note louder, as MuseScore plays it */
+      n.v = Math.max(8, Math.min(127, Math.round(v)));
+    });
+  }
   function readXml(text) {
     var doc = new DOMParser().parseFromString(text, 'application/xml'), root = doc.documentElement;
     if (!root || doc.getElementsByTagName('parsererror').length) throw fail('This MusicXML file could not be read.');
@@ -217,6 +250,7 @@
         if (!len && sig) len = sig.num * 4 / sig.den * dv;   /* an empty bar still takes its time */
         at = tk(len);
       });
+      dynamics(notes, marks);
       if (notes.length) {
         var pr = {}, prs = {}; if (info.prog !== undefined) { pr[ch] = info.prog; prs[ch] = [info.prog]; }
         tracks.push({ notes: notes, chans: 1, name: info.name || info.inst, label: info.name + ' ' + info.inst, prog: pr, progs: prs, marks: marks });
@@ -382,7 +416,7 @@
       if (n.m < 55) low++; else if (!APP.board.where(n.m)) high++;
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
-      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, slur: n.slur };
+      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, slur: n.slur, vel: n.v || 80 };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -444,8 +478,10 @@
       if (n.xfg !== undefined) n.fg = n.xfg;
       else if (s0 >= 0) fingers([n]);
     });
+    var vs = notes.map(function (n) { return n.vel; }).sort(function (a, b) { return a - b; }), velMid = vs[Math.floor(vs.length / 2)] || 80;
     var lastN = notes[notes.length - 1];
     return {
+      velMid: velMid,
       notes: notes, sig: sig, sf: Math.max(-7, Math.min(7, sf)),
       bpm: Math.round(60e6 / tempos.filter(function (tp) { return tp.tick <= skipB * tpq; }).pop().us),   /* crotchets a minute, where the song starts */
       end: Math.max.apply(null, notes.map(function (n) { return n.e; })), beats: lastN.b + lastN.len,
@@ -475,6 +511,8 @@
   var POS = [[1, 6], [5, 7], [8, 7], [12, 7]];
   /* the string a written finger implies: the one where that finger reaches the note in the lowest position
      (each finger about a tone above the last); 0 = the open string */
+  /* the violin note's loudness from its velocity, around the part's usual level (so the mixer level holds) */
+  function lvlOf(n) { return song && song.velMid ? Math.max(0.3, Math.min(1.8, Math.pow((n.vel || song.velMid) / song.velMid, 1.2))) : 1; }
   function toneOf(n) { return n.harm ? 'pure' : n.pz ? 'pizz' : ''; }
   function strForFinger(m, f) {
     if (f === 0) return OPEN.indexOf(m);
@@ -829,7 +867,7 @@
       if (ns[ni].e <= pos) { noteEls[ni].classList.add('done'); ni++; continue; }
       /* a note under a quarter of a second just lights up: no string wobble, rings or glow (Trix: fast pieces lagged) */
       var quick = (ns[ni].e - ns[ni].t) / speed < 0.25;
-      APP.board.on(ns[ni].m, 'n' + ni, !quick, ns[ni].si, ns[ni].b, false, toneOf(ns[ni]));   /* a harmonic sounds pure, pizzicato plucked */   /* its string, and its chord (both notes of a double stop stay lit) */
+      APP.board.on(ns[ni].m, 'n' + ni, !quick, ns[ni].si, ns[ni].b, false, toneOf(ns[ni]), lvlOf(ns[ni]));   /* a harmonic sounds pure, pizzicato plucked */   /* its string, and its chord (both notes of a double stop stay lit) */
       noteEls[ni].classList.add('on');
       noteEls[ni].classList.toggle('quick', quick);
       active.push(ni); ni++;
@@ -887,7 +925,7 @@
     allOff();
     held.forEach(function (k) {
       var nt = song.notes[k];
-      APP.board.on(nt.m, 'n' + k, (nt.e - nt.t) / speed >= 0.25, nt.si, nt.b, false, toneOf(nt));
+      APP.board.on(nt.m, 'n' + k, (nt.e - nt.t) / speed >= 0.25, nt.si, nt.b, false, toneOf(nt), lvlOf(nt));
       noteEls[k].classList.add('on'); active.push(k);
     });
     playing = true; last = performance.now();
@@ -1309,6 +1347,7 @@
   ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (ev) {
     document.addEventListener(ev, function () { if (!fsEl() && full) setFull(false); else if (shown) setTimeout(fit, 50); });   /* left with Esc or Back */
   });
+  APP.midiSong = function () { return song; };   /* for tests: the tune on screen */
   APP.views.midi = {
     show: function () { appCall('rotate', true); shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* the phone apps turn only in the MIDI player (Trix) */   /* opened on a phone held sideways: full screen (Trix) */
     hide: function () { setFull(false); appCall('rotate', false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }

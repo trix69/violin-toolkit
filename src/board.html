@@ -1429,7 +1429,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     }
     return -1;
   }
-  function pOn(midi, id, fx, si, grp, quiet, tone) {   /* tone: 'pure' a harmonic (a flute-like sine), 'pizz' plucked (Trix) */   /* si: the string to use (a double stop's two strings); grp: its chord; fx false: no wobble or rings; quiet: shown, not sounded (paused) */
+  function pOn(midi, id, fx, si, grp, quiet, tone, lvl) {   /* tone: 'pure' a harmonic (a flute-like sine), 'pizz' plucked (Trix); lvl: loudness from the score's dynamics */   /* si: the string to use (a double stop's two strings); grp: its chord; fx false: no wobble or rings; quiet: shown, not sounded (paused) */
     if (!quiet) {
       if (window.APP && APP.playThroughSilent) APP.playThroughSilent();
       if (!ensureCtx()) return;
@@ -1440,7 +1440,11 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     /* a string sounds one note at a time: a new note on it replaces the one before (overlapping legato in the file) */
     if (nt) pvoices.forEach(function (r, k) { if (r.si === nt.si && k !== id && (grp === undefined || r.grp !== grp)) pOff(k); });
     var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : tone === 'pizz' ? startPluck(nt ? noteFreq(nt) : midiFreq(midi)) : startVoice(nt ? noteFreq(nt) : midiFreq(midi), tone === 'pure', 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
-    if (rec.v) { rec.v.out.disconnect(); rec.v.out.connect(soloOut()); }   /* through the mixer's violin level */
+    if (rec.v) {   /* through the note's dynamic level, then the mixer's violin level */
+      rec.v.out.disconnect();
+      if (lvl && lvl !== 1) { var lg = ctx.createGain(); lg.gain.value = lvl; rec.v.out.connect(lg); lg.connect(soloOut()); }
+      else rec.v.out.connect(soloOut());
+    }
     if (!quiet) rec.timer = setTimeout(function () { applyVib(rec); }, 200);
     if (el) {
       el.classList.remove('off');
