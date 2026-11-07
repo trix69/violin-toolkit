@@ -833,6 +833,28 @@
   });
   function setSpeed(d) { speed = Math.max(0.5, Math.min(1.5, Math.round((speed + d) * 20) / 20)); ui(); if (playing) { accStop(); accStart(); } }   /* notes under way take the new speed (Hermes R20.2) */   /* 5 % steps (Trix) */
   $('mpSlower').addEventListener('click', function () { setSpeed(-0.05); });
+  /* keyboard (Trix): Space plays / pauses, - and + (or =, and the number pad's) change the speed 5 %; only while
+     the player shows, not while typing or with a window open; Space never also presses the focused button */
+  var spaceKey = false;
+  function keyOk(e) {
+    if (!shown || e.ctrlKey || e.metaKey || e.altKey) return false;
+    var t = e.target, tag = t && t.tagName;
+    if (tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return false;
+    if (tag === 'INPUT' && !/^(range|button|checkbox)$/i.test(t.type)) return false;
+    var open = Array.prototype.some.call(document.querySelectorAll('[role="dialog"], .sheet, #coach'), function (d) { return !d.hidden && d.getClientRects().length > 0; });   /* fixed windows have no offsetParent */
+    return !open;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (!keyOk(e)) return;
+    if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault(); e.stopPropagation();
+      if (!e.repeat) { spaceKey = true; if (playing || counting) pause(); else play(); }
+    } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') { e.preventDefault(); setSpeed(-0.05); }
+    else if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') { e.preventDefault(); setSpeed(0.05); }
+  }, true);
+  document.addEventListener('keyup', function (e) {   /* a focused button would click on Space's keyup */
+    if (spaceKey && (e.key === ' ' || e.code === 'Space')) { spaceKey = false; e.preventDefault(); e.stopPropagation(); }
+  }, true);
   $('mpFaster').addEventListener('click', function () { setSpeed(0.05); });
   seek.addEventListener('input', function () { if (song) seekTo(seek.value / 1000 * song.end); });
   /* paused (or not started): tap a note on the score to jump there and see its fingering on the board; Play
