@@ -919,14 +919,17 @@
     return { L: L, T: T, W: Math.max(160, Math.min(sw, pageW - L)), H: Math.max(60, pageH - bar.offsetHeight - 10 - T) };
   }
   function fsEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  var sideLocked = false;   /* the screen is held sideways by us: turning the phone cannot leave, so the button stays */
   function lockSide(on) {
-    try { if (window.VTApp && VTApp.landscape) VTApp.landscape(!!on); } catch (e) {}   /* the Android app */
+    if (!on) sideLocked = false;
+    try { if (window.VTApp && VTApp.landscape) { VTApp.landscape(!!on); if (on) sideLocked = true; } } catch (e) {}   /* the Android app */
     try {
       var so = screen.orientation;
       if (!so) return;
-      if (on && so.lock) { var p = so.lock('landscape'); if (p && p.catch) p.catch(function () {}); }
+      if (on && so.lock) { var p = so.lock('landscape'); if (p && p.then) p.then(function () { if (full) { sideLocked = true; fsCheck(); } }, function () {}); }
       else if (!on && so.unlock) so.unlock();
     } catch (e) {}
+    fsCheck();
   }
   var fsAuto = false;   /* entered by turning the phone: no lock, so turning it upright again can leave */
   /* fit now and again while the screen settles: a phone turning, or the browser going full screen, reports its new
@@ -959,6 +962,7 @@
     if (shown) refitSoon();
   }
   function fsCheck() {
+    fullBtn.hidden = full && phone() && innerWidth > innerHeight && !sideLocked;   /* a phone on its side stays full screen: turn it upright to leave (Trix: Exit there gave a broken layout); kept while the screen is locked sideways (Android, from the button) */
     var rot = full && phone() && innerWidth < innerHeight;   /* still upright: draw the page turned */
     if (rot !== fsRot) { fsRot = rot; shellEl.classList.toggle('mp-fs-rot', rot); }
     if (rot) { shellEl.style.setProperty('--rw', innerHeight + 'px'); shellEl.style.setProperty('--rh', innerWidth + 'px'); }
