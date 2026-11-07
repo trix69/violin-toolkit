@@ -1884,7 +1884,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.36" data-build="20261107-142859" data-cache="violin-toolkit-"><span>Version 1.36</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.37" data-build="20261107-161139" data-cache="violin-toolkit-"><span>Version 1.37</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -2779,7 +2779,7 @@ function noteGate() {
         var was = renderedEvenly; evenly = false; renderedEvenly = false; if (was !== false) render();
         /* the closest two notes shown on a string, as they sit (Just / Pythagorean move them a little), up to the
            highest one the board's length can show (the grey extras too) */
-        var lenMax = N <= 7 ? mm(7) / 0.75 : mm(N) / 0.9, g0 = Infinity;
+        var lenMax = N <= 7 ? mm(10.75) : mm(N) / 0.9, g0 = Infinity;
         notes.forEach(function (nt, i) {
           var pv = notes[i - 1];
           if (!pv || pv.s !== nt.s || nt.n > TOPN || mm(nt.n) > lenMax) return;
@@ -2796,7 +2796,7 @@ function noteGate() {
         };
         /* the notes spread across the width, to scale (Trix): open string to the 4th finger (1st position) over
            75% of it; a tune that climbs higher, open string to its highest note over 90% */
-        boxLen = N <= 7 ? mm(7) / 0.75 : mm(N) / 0.9;
+        boxLen = N <= 7 ? mm(10.75) : mm(N) / 0.9;   /* 1st-position tune: room on the E string up to D (n 10) after the 4th finger (Trix); open to 4th finger ~72% */
         var sv = solve(boxLen);
         K = sv[0]; r = Math.floor(sv[1]);
         /* the rest of the board's length gets more notes, grey (Trix: a tune up to the 4th finger left it empty) */
@@ -3191,7 +3191,7 @@ function noteGate() {
       o.connect(out);
       o.start(t);
       nodes.push(o);
-      out.gain.linearRampToValueAtTime(0.5, t + 0.02);
+      out.gain.setTargetAtTime(0.5, t, 0.02 / 3);   /* exponential: smooth even when the audio clock has run ahead (Android: clicks) */
       out.connect(master);
     } else {
       var lp = ctx.createBiquadFilter();
@@ -3233,7 +3233,7 @@ function noteGate() {
       nodes.push(lfo);
       lp.connect(body);
       body.connect(out);
-      out.gain.linearRampToValueAtTime(0.32, t + (att || 0.07));
+      out.gain.setTargetAtTime(0.32, t, (att || 0.07) / 3);   /* exponential: smooth even when the audio clock has run ahead (Trix, Android: clicks between notes) */
       out.connect(master);
     }
     return { out: out, nodes: nodes, vib: vib };
@@ -3241,10 +3241,12 @@ function noteGate() {
   function stopVoice(v, rel) {   /* rel: seconds to fade out (the MIDI player uses a shorter one) */
     var t = ctx.currentTime, r = rel || 0.09;
     var g = v.out.gain;
-    g.cancelScheduledValues(t);
-    g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(0, t + r);
-    v.nodes.forEach(function (n) { try { n.stop(t + r + 0.03); } catch (err) {} });
+    /* from the level actually sounding, never a jump (Trix, Android: a click on every note change; the audio
+       clock there runs ahead of currentTime, so a short linear ramp could start late and step) */
+    if (g.cancelAndHoldAtTime) g.cancelAndHoldAtTime(t);
+    else { g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); }
+    g.setTargetAtTime(0, t, r / 3);
+    v.nodes.forEach(function (n) { try { n.stop(t + r * 2.5 + 0.03); } catch (err) {} });
     setTimeout(function () { try { v.out.disconnect(); } catch (err) {} }, 400);
   }
 
@@ -4878,6 +4880,28 @@ function noteGate() {
   });
   function setSpeed(d) { speed = Math.max(0.5, Math.min(1.5, Math.round((speed + d) * 20) / 20)); ui(); if (playing) { accStop(); accStart(); } }   /* notes under way take the new speed (Hermes R20.2) */   /* 5 % steps (Trix) */
   $('mpSlower').addEventListener('click', function () { setSpeed(-0.05); });
+  /* keyboard (Trix): Space plays / pauses, - and + (or =, and the number pad's) change the speed 5 %; only while
+     the player shows, not while typing or with a window open; Space never also presses the focused button */
+  var spaceKey = false;
+  function keyOk(e) {
+    if (!shown || e.ctrlKey || e.metaKey || e.altKey) return false;
+    var t = e.target, tag = t && t.tagName;
+    if (tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return false;
+    if (tag === 'INPUT' && !/^(range|button|checkbox)$/i.test(t.type)) return false;
+    var open = Array.prototype.some.call(document.querySelectorAll('[role="dialog"], .sheet, #coach'), function (d) { return !d.hidden && d.getClientRects().length > 0; });   /* fixed windows have no offsetParent */
+    return !open;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (!keyOk(e)) return;
+    if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault(); e.stopPropagation();
+      if (!e.repeat) { spaceKey = true; if (playing || counting) pause(); else play(); }
+    } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') { e.preventDefault(); setSpeed(-0.05); }
+    else if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') { e.preventDefault(); setSpeed(0.05); }
+  }, true);
+  document.addEventListener('keyup', function (e) {   /* a focused button would click on Space's keyup */
+    if (spaceKey && (e.key === ' ' || e.code === 'Space')) { spaceKey = false; e.preventDefault(); e.stopPropagation(); }
+  }, true);
   $('mpFaster').addEventListener('click', function () { setSpeed(0.05); });
   seek.addEventListener('input', function () { if (song) seekTo(seek.value / 1000 * song.end); });
   /* paused (or not started): tap a note on the score to jump there and see its fingering on the board; Play
@@ -4964,10 +4988,17 @@ function noteGate() {
     return { L: L, T: T, W: Math.max(160, Math.min(sw, pageW - L)), H: Math.max(60, pageH - bar.offsetHeight - 10 - T) };
   }
   function fsEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  /* the phone apps (Android: window.VTApp; iPhone: webkit.messageHandlers.vt): true if there was one to ask */
+  function appCall(name, val) {
+    var done = false;
+    try { if (window.VTApp && VTApp[name]) { VTApp[name](val); done = true; } } catch (e) {}
+    try { if (window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt) { var m = {}; m[name] = val; webkit.messageHandlers.vt.postMessage(m); done = true; } } catch (e) {}
+    return done;
+  }
   var sideLocked = false;   /* the screen is held sideways by us: turning the phone cannot leave, so the button stays */
   function lockSide(on) {
     if (!on) sideLocked = false;
-    try { if (window.VTApp && VTApp.landscape) { VTApp.landscape(!!on); if (on) sideLocked = true; } } catch (e) {}   /* the Android app */
+    if (appCall('landscape', !!on) && on) sideLocked = true;   /* the Android / iPhone app turns the screen itself */
     try {
       var so = screen.orientation;
       if (!so) return;
@@ -5052,8 +5083,8 @@ function noteGate() {
     document.addEventListener(ev, function () { if (!fsEl() && full) setFull(false); else if (shown) setTimeout(fit, 50); });   /* left with Esc or Back */
   });
   APP.views.midi = {
-    show: function () { shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* opened on a phone held sideways: full screen (Trix) */
-    hide: function () { setFull(false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }
+    show: function () { appCall('rotate', true); shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* the phone apps turn only in the MIDI player (Trix) */   /* opened on a phone held sideways: full screen (Trix) */
+    hide: function () { setFull(false); appCall('rotate', false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }
   };
   load(0);
 })();
@@ -5260,7 +5291,7 @@ function noteGate() {
   var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-  if (standalone || location.hostname === 'appassets.androidplatform.net') { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }   /* installed, or the offline Android app */
+  if (standalone || location.hostname === 'appassets.androidplatform.net' || window.VTiOSApp) { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }   /* installed, the offline Android app, or the iPhone app (iOS/: sets window.VTiOSApp) */
   function showDev(d) {
     Array.prototype.forEach.call(segDev.children, function (b) { b.setAttribute('aria-checked', b.dataset.dev === d ? 'true' : 'false'); });
     document.getElementById('stepsIos').hidden = d !== 'ios';
@@ -5348,6 +5379,7 @@ function noteGate() {
     /* the offline Android app (Android/wrapper: the page served from appassets.androidplatform.net) has no service
        worker, so it cannot update itself: it checks the website's version and offers the new APK instead (Trix) */
     var APK = location.hostname === 'appassets.androidplatform.net';
+    var IOSAPP = !!window.VTiOSApp;   /* the iPhone app (iOS/ WKWebView, page from the app bundle): no service worker either; it only says whether a newer version exists (Trix: it reloaded to the start screen) */
     var APK_URL = 'https://github.com/trix69/violin-toolkit/releases/latest/download/violin-toolkit-android.apk';
     function num(v) { var p = String(v).split('.'); return +p[0] * 100 + +((p[1] || '0') + '0').slice(0, 2); }
     function say(t) { msg.textContent = t; }
@@ -5361,8 +5393,8 @@ function noteGate() {
     }
     /* the release on the site when it is newer than this copy, else null (rejects when offline) */
     function newer() {
-      return fetch(APK ? 'https://trix69.github.io/violin-toolkit/version.json' : 'version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
-        if (APK) return num(j.version) > num(btn.dataset.version) ? j : null;   /* the app: only a higher version number */
+      return fetch(APK || IOSAPP ? 'https://trix69.github.io/violin-toolkit/version.json' : 'version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+        if (APK || IOSAPP) return num(j.version) > num(btn.dataset.version) ? j : null;   /* the app: only a higher version number */
         /* a different build stamp means a new release (test builds keep the same version number) */
         return (j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version)) ? j : null;
       });
@@ -5389,11 +5421,12 @@ function noteGate() {
     btn.addEventListener('click', function () {
       if (busy) return;
       var sw = navigator.serviceWorker;
-      if (!APK && (!sw || !sw.controller)) { location.reload(); return; }
+      if (!APK && !IOSAPP && (!sw || !sw.controller)) { location.reload(); return; }
       busy = true; say('Checking…');
       newer().then(function (j) {
         if (!j) { busy = false; say('Up to date'); return; }
         if (APK) { busy = false; say('Version ' + j.version + ' available'); ask(j, true); return; }
+        if (IOSAPP) { busy = false; say('Version ' + j.version + ' available'); return; }
         return install(j);
       }).catch(function () { busy = false; say('Can’t check while offline'); });
     });
@@ -5407,7 +5440,7 @@ function noteGate() {
     var pending = null, offered = '', lastCheck = 0, updOpener = null;
     function autoCheck() {
       var sw = navigator.serviceWorker;
-      if (!APP.autoUpd || busy || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
+      if (!APP.autoUpd || busy || IOSAPP || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
       lastCheck = Date.now();
       newer().then(function (j) { if (j && (j.build || j.version) !== offered) ask(j); }).catch(function () { lastCheck = 0; });
     }
@@ -5543,7 +5576,7 @@ function noteGate() {
     ],
     midi: [
       { sel: '#mpSong', title: 'Pick a tune', text: 'Choose a built-in tune from this list: Twinkle, Twinkle, Little Star, Ode to Joy, In the Hall of the Mountain King, Canon, Serenade or Winter (1st movement). They are ready to play, so you can try the player straight away.' },
-      { sel: '#mpSeek, #mpTime, #mpLoop, #mpStart, #mpSlower, #mpPlay, #mpFaster, .mp-speed', title: 'Play and follow along', text: 'Tap play: it counts in one bar (3 2 1 in 3/4, 4 3 2 1 in 4/4), then each note lights up on the fingerboard in its string colour, and the music scrolls past the line above with the finger to use. − and + slow it down or speed it up; the first button goes back to the start. The loop button by the time plays the tune over and over.' },
+      { sel: '#mpSeek, #mpTime, #mpLoop, #mpStart, #mpSlower, #mpPlay, #mpFaster, .mp-speed', title: 'Play and follow along', text: 'Tap play: it counts in one bar (3 2 1 in 3/4, 4 3 2 1 in 4/4), then each note lights up on the fingerboard in its string colour, and the music scrolls past the line above with the finger to use. − and + slow it down or speed it up; the first button goes back to the start. The loop button by the time plays the tune over and over. On a keyboard, Space plays or pauses and − / + change the speed.' },
       { sel: '#mpMix', title: 'Mixer', text: 'Tap the Mixer button for three faders: Violin, Accompaniment and Metronome. Drag one up for louder, down for quieter; your levels are remembered. The metronome starts at 0, so raise it to hear a click on every beat. Tunes with only a violin part have no accompaniment, so that fader stays at 0.' },
       { sel: '#mpFull', title: 'Full screen', text: 'Tap the corner button on the fingerboard for full screen: a bigger score across the whole width and the fingerboard laid sideways, every note in view. On a phone, just turn it sideways and the player goes full screen by itself; turn it upright again to leave.' },
       { sel: '#mpImport', title: 'Import your own', text: 'Tap Import and choose a MIDI file (.mid) from your phone or computer. It stays in the list for next time; the bin button next to the list deletes it.' },
@@ -6016,7 +6049,7 @@ function noteGate() {
     'Hold for a steady tone': '长按得到持续音', 'Hold a note for 3 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.': '按住一个音 3 秒，松手后它会继续响，平稳无揉弦，像音叉一样。点任意处即可停止。',
     'Choose a key': '选择调',
     'Pick a tune': '选择乐曲', 'Choose a built-in tune from this list: Twinkle, Twinkle, Little Star, Ode to Joy, In the Hall of the Mountain King, Canon, Serenade or Winter (1st movement). They are ready to play, so you can try the player straight away.': '从这个列表选择内置乐曲：《小星星》、《欢乐颂》、《在山魔王的宫殿里》、《卡农》、《小夜曲》或《冬》第一乐章。它们可以直接播放，马上就能试用播放器。',
-    'Play and follow along': '播放并跟着看', 'Tap play: it counts in one bar (3 2 1 in 3/4, 4 3 2 1 in 4/4), then each note lights up on the fingerboard in its string colour, and the music scrolls past the line above with the finger to use. − and + slow it down or speed it up; the first button goes back to the start. The loop button by the time plays the tune over and over.': '点播放：先数一小节（3/4 拍数 3 2 1，4/4 拍数 4 3 2 1），然后每个音会在指板上以所在弦的颜色亮起，上方的乐谱随之滚过，并标出要用的手指。− 和 + 调慢或调快；第一个按钮回到开头。时间旁边的循环按钮会让乐曲反复播放。',
+    'Play and follow along': '播放并跟着看', 'Tap play: it counts in one bar (3 2 1 in 3/4, 4 3 2 1 in 4/4), then each note lights up on the fingerboard in its string colour, and the music scrolls past the line above with the finger to use. − and + slow it down or speed it up; the first button goes back to the start. The loop button by the time plays the tune over and over. On a keyboard, Space plays or pauses and − / + change the speed.': '点播放：先数一小节（3/4 拍数 3 2 1，4/4 拍数 4 3 2 1），然后每个音会在指板上以所在弦的颜色亮起，上方的乐谱随之滚过，并标出要用的手指。− 和 + 调慢或调快；第一个按钮回到开头。时间旁边的循环按钮会让乐曲反复播放。用键盘时，空格键播放或暂停，− / + 调整速度。',
     'Import your own': '导入自己的文件', 'Tap Import and choose a MIDI file (.mid) from your phone or computer. It stays in the list for next time; the bin button next to the list deletes it.': '点导入，从手机或电脑选择一个 MIDI 文件（.mid）。它会留在列表里，下次还能用；点列表旁的垃圾桶按钮可以删除。',
     'Which files work': '哪些文件可以用', 'Install the Android app: it carries the whole toolkit and works offline from the start.': '安装安卓应用：整个工具箱都在应用里，从一开始就能离线使用。', 'If the app won’t install, add the website from Chrome instead:': '如果应用装不上，可以改用 Chrome 把网站添加到主屏幕：', 'Download the Android app (APK)': '下载安卓应用（APK）', 'Android will ask you to allow installs from your browser (Install unknown apps). Then open the downloaded file and tap Install.': '安卓会请你允许从浏览器安装应用（“安装未知应用”）。然后打开下载的文件，点“安装”。', 'Tap the Mixer button for three faders: Violin, Accompaniment and Metronome. Drag one up for louder, down for quieter; your levels are remembered. The metronome starts at 0, so raise it to hear a click on every beat. Tunes with only a violin part have no accompaniment, so that fader stays at 0.': '点“混音”按钮会出现三个推子：小提琴、伴奏和节拍器。向上拖更响，向下拖更轻；设置会被记住。节拍器默认为 0，调高后每一拍都会有提示音。只有小提琴声部的曲子没有伴奏，伴奏推子保持为 0。', 'A file can have several parts. The violin is the part named Violin (Violin I if there are two), otherwise the first part; the others (piano, strings…) play along as accompaniment, and a short note over the music says which is which. Drums are left out. Notes below the G string are left out; very high notes are heard but not lit on the board.': '文件可以有多个声部。名为 Violin 的声部是小提琴（有两个时用 Violin I），否则用第一个声部；其他声部（钢琴、弦乐等）作为伴奏一起播放，乐谱上方会短暂显示哪个是哪个。鼓声部会略去。低于 G 弦的音会略去；很高的音只播放声音，不在指板上亮起。', 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.': '点这里选择大调或小调。调内的音是彩色的，其他的是灰色。',
     'Equal is tuned like a piano. Just makes the intervals in the key pure. Pythagorean builds every note from pure fifths. The notes on the board move to match.': '平均律和钢琴的调音一样。纯律让调内的音程纯净。五度相生律用纯五度推出每个音。指板上的音会随之移动。',
