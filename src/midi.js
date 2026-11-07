@@ -506,11 +506,13 @@
     if (!song) return;
     var bar = song.sig.num * 4 / song.sig.den;
     var beat = counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar */
-    var w = scoreEl.clientWidth, x = xAt(beat), hx = full ? X0 + 50 : Math.max(w * 0.36, X0 + 50);   /* full screen: the playhead at the left, just after the clef and key (Trix) */
-    headEl.style.left = hx + 'px';
+    var z = full ? 1.4 : 1;   /* full screen: the score larger, easier to read (Trix); positions below are in score units */
+    keySvg.style.transform = z !== 1 ? 'scale(' + z + ')' : '';
+    var w = scoreEl.clientWidth / z, x = xAt(beat), hx = full ? X0 + 50 : Math.max(w * 0.36, X0 + 50);   /* full screen: the playhead at the left, just after the clef and key (Trix) */
+    headEl.style.left = hx * z + 'px';
     /* half a beat early, so a note glows while it passes through the playhead rather than after it */
     var tx = Math.round(hx - x + 22);   /* may move right of the start: at rest the playhead sits at the empty bar, before the first note */
-    svg.style.transform = 'translateX(' + tx + 'px)';
+    svg.style.transform = (z !== 1 ? 'scale(' + z + ') ' : '') + 'translateX(' + tx + 'px)';
     /* show only the sections in view (and one either side) */
     var c0 = Math.max(0, Math.floor(-tx / 1200) - 1), c1 = Math.max(0, Math.floor((w - tx) / 1200) + 1);
     if (c0 + ':' + c1 !== shownFrom) {   /* both edges: the right one moves first as the score scrolls in */

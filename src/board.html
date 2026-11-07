@@ -351,6 +351,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .note.down.quiet { filter: saturate(.35) brightness(.8); opacity: .75; }   /* pressed but silent: a higher finger holds the same string (Hermes F22) */
 .stage.rot { grid-template-columns: 1fr 0; border-radius: 12px; z-index: 1; }   /* MIDI full screen: turned a quarter turn (Trix); no label column */
 .stage.rot .labels { display: none; }
+.bridge { display: none; }
+.stage.rot .bridge { display: block; position: absolute; left: 3%; right: 3%; top: calc(var(--head) + var(--bridge) - 3px); height: 6px; border-radius: 3px; background: var(--nut); box-shadow: 0 1px 3px rgba(0,0,0,.35); }   /* the bridge, at its real place (Trix) */
 .stage.rot .note::after { transform: rotate(90deg); }   /* the letters stay upright */
 .note.beyond { display: none; }   /* MIDI player: rows past the tune's range (display none: hidden rows must not stretch the scroll box, or follow() scrolls into empty space) */
 .vib.still { animation: none; transform: translateX(-50%); }
@@ -547,7 +549,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   var WIDTHS = [3.4, 2.8, 2.2, 1.5];
   var MAXN = 12;           /* the octave: where the natural harmonic sits, half way along the string */
   var TOPN = MAXN;         /* the highest note built on each string: the octave, or higher in the MIDI player */
-  var STRING_MM = 328;     /* 4/4 violin string length */
+  var STRING_MM = 328;     /* 4/4 violin string length, nut to bridge */
+  var BEYOND = 22;         /* MIDI full screen: string shown past the bridge, toward the tailpiece (about 55 mm on a violin) */
 
   /* lo..hi is the range of semitones the hand can reach without shifting. Notes inside it show in colour. */
   /* the MIDI player and Pitch Check (no single position): 1st and 3rd position's finger lines together; 1st
@@ -664,7 +667,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       /* the whole tune's range fits the room: real spacing if the notes stay 16 px or more, else even spacing;
          the notes and their letters shrink as needed, never overlapping (Trix: no pressing in the player anyway) */
       room = box ? Math.max(120, box.W) : Math.max(120, avail - playerTop());
-      var cap = box ? Math.max(6, Math.floor((box.H / 4 - 6) / 2)) : 26;   /* turned: the four strings share the box's height */
+      var cap = box ? Math.max(6, Math.min(24, Math.floor((box.H / 4 - 6) / 2))) : 26;   /* turned: the four strings share the box's height; smaller notes (Trix) */
       var fit = function () {
         var rr = 19, KK = 3, g = mm(N) - mm(N - 1);
         for (var j = 0; j < 4; j++) {
@@ -674,6 +677,17 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
         return [KK, rr];
       };
       var want = false;
+      if (box) {
+        /* full screen (Trix): the real violin, nut to bridge (328 mm) and a little string beyond, across the
+           width; real spacing always, so the bridge sits where it does on the instrument */
+        var was = renderedEvenly; evenly = false; renderedEvenly = false; if (was !== false) render();
+        var g0 = mm(N) - mm(N - 1), rr0 = 19, KK0 = 1;
+        for (var j0 = 0; j0 < 4; j0++) {
+          KK0 = (room - 2 * rr0 - 4 - 10 - 16) / (STRING_MM + BEYOND);
+          rr0 = Math.min(cap, Math.max(6, (g0 * KK0 - 8) / 2));
+        }
+        K = KK0; r = Math.floor(rr0);
+      } else {
       if (evenly) { evenly = false; }
       var f = fit();
       if (f[1] < 18) { evenly = true; f = fit(); want = true; }
@@ -681,7 +695,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       K = f[0]; r = Math.floor(f[1]);
       /* never smaller than 18 px with a clear gap between notes (Trix; a small Android screen: "too small"):
          the board then runs past the room and scrolls in its box, following the notes played */
-      if (r < 18 && !box) { r = 18; K = (2 * r + 10) / (mm(N) - mm(N - 1)); }   /* turned, it always fits: no scrolling (Trix) */
+      if (r < 18) { r = 18; K = (2 * r + 10) / (mm(N) - mm(N - 1)); }
+      }
     } else if (evenly || renderedEvenly) { evenly = false; renderedEvenly = false; render(); }
     var st0 = stage.style;
     stage.classList.toggle('rot', !!box);
@@ -700,7 +715,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     st.setProperty('--head', (r + 4) + 'px');
     st.setProperty('--oy', (r + 4) + 'px');
     st.setProperty('--k', K.toFixed(3) + 'px');
-    st.setProperty('--span', Math.round(K * mm(N)) + 'px');
+    st.setProperty('--span', Math.round(K * (box ? STRING_MM + BEYOND : mm(N))) + 'px');   /* full screen: on past the bridge */
+    st.setProperty('--bridge', (K * STRING_MM).toFixed(1) + 'px');
     st.setProperty('--fs', Math.round(r * 0.95) + 'px');
     stage.classList.toggle('small', r < 15);   /* small notes: thinner rim */
     curK = K; curR = r;
@@ -750,7 +766,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     stopAll();
     var key = keyObj();
     notes = buildNotes(key);
-    var html = '<div class="splits" id="splits"></div><div class="nut"></div>';
+    var html = '<div class="splits" id="splits"></div><div class="bridge"></div><div class="nut"></div>';   /* the bridge: MIDI full screen only, under the strings */
     STRINGS.forEach(function (s, si) {
       html += '<div class="string" style="--x:' + (si * 25 + 12.5) + '%;--w:' + WIDTHS[si] + 'px"></div>';
     });

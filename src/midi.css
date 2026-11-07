@@ -130,7 +130,10 @@
 .mp-full .i-out, .mp-full[aria-pressed="true"] .i-in { display: none; }
 .mp-full[aria-pressed="true"] .i-out { display: block; }
 .shell.mp-fs { max-width: none; padding-top: env(safe-area-inset-top, 0px); }
-.shell.mp-fs .appbar, .shell.mp-fs #mpTop .mp-row { display: none; }
+.shell.mp-fs .appbar { display: none; }   /* the tune list and Import stay (Trix) */
+.shell.mp-fs #view-midi { padding-top: 10px; }
+.shell.mp-fs .mp-score { height: calc(128px * 1.4); }   /* the score drawn 1.4 times as large (midi.js scroll) */
+.mp-score .mp-strip, .mp-score .mp-key { transform-origin: 0 0; }
 .shell.mp-fs #mpTop .mp-score { margin-top: 8px; }
 .shell.mp-fs #view-midi { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .shell.mp-fs #view-board { margin: 0; padding: 0; height: 0; }
