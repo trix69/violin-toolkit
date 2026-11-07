@@ -690,11 +690,12 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
           }
           return [KK0, rr0];
         };
-        /* the whole string with its bridge if the notes stay readable (24 px or more across); otherwise (Trix:
-           option 1) it stops two semitones past the tune's highest note, still to scale, without the bridge */
-        boxLen = STRING_MM + BEYOND;
+        /* open string to the tune's highest note (at least the 4th finger in 1st position) fills 75% of the
+           width (Trix), to scale; the bridge shows only if the string reaches it. If the notes would still be
+           unreadable (under 24 px across), the board stops two semitones past the top note (Trix: option 1). */
+        boxLen = Math.min(STRING_MM + BEYOND, mm(Math.max(N, 7)) / 0.75);
         var sv = solve(boxLen);
-        if (sv[1] < 12) { boxLen = mm(N + 2); sv = solve(boxLen); }
+        if (sv[1] < 12 && mm(N + 2) < boxLen) { boxLen = mm(N + 2); sv = solve(boxLen); }
         K = sv[0]; r = Math.floor(sv[1]);
       } else {
       if (evenly) { evenly = false; }
@@ -725,7 +726,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     st.setProperty('--oy', (r + 4) + 'px');
     st.setProperty('--k', K.toFixed(3) + 'px');
     st.setProperty('--span', Math.round(K * (box ? boxLen : mm(N))) + 'px');   /* full screen: on past the bridge, or trimmed */
-    stage.classList.toggle('nobridge', !!box && boxLen < STRING_MM);
+    stage.classList.toggle('nobridge', !!box && boxLen < STRING_MM + 6);
     st.setProperty('--bridge', (K * STRING_MM).toFixed(1) + 'px');
     st.setProperty('--fs', Math.round(r * 0.95) + 'px');
     stage.classList.toggle('small', r < 15);   /* small notes: thinner rim */
