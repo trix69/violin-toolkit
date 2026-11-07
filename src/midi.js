@@ -919,10 +919,17 @@
     return { L: L, T: T, W: Math.max(160, Math.min(sw, pageW - L)), H: Math.max(60, pageH - bar.offsetHeight - 10 - T) };
   }
   function fsEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  /* the phone apps (Android: window.VTApp; iPhone: webkit.messageHandlers.vt): true if there was one to ask */
+  function appCall(name, val) {
+    var done = false;
+    try { if (window.VTApp && VTApp[name]) { VTApp[name](val); done = true; } } catch (e) {}
+    try { if (window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt) { var m = {}; m[name] = val; webkit.messageHandlers.vt.postMessage(m); done = true; } } catch (e) {}
+    return done;
+  }
   var sideLocked = false;   /* the screen is held sideways by us: turning the phone cannot leave, so the button stays */
   function lockSide(on) {
     if (!on) sideLocked = false;
-    try { if (window.VTApp && VTApp.landscape) { VTApp.landscape(!!on); if (on) sideLocked = true; } } catch (e) {}   /* the Android app */
+    if (appCall('landscape', !!on) && on) sideLocked = true;   /* the Android / iPhone app turns the screen itself */
     try {
       var so = screen.orientation;
       if (!so) return;
@@ -1007,8 +1014,8 @@
     document.addEventListener(ev, function () { if (!fsEl() && full) setFull(false); else if (shown) setTimeout(fit, 50); });   /* left with Esc or Back */
   });
   APP.views.midi = {
-    show: function () { shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* opened on a phone held sideways: full screen (Trix) */
-    hide: function () { setFull(false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }
+    show: function () { appCall('rotate', true); shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* the phone apps turn only in the MIDI player (Trix) */   /* opened on a phone held sideways: full screen (Trix) */
+    hide: function () { setFull(false); appCall('rotate', false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }
   };
   load(0);
 })();
