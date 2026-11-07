@@ -65,6 +65,138 @@
 
   function fail(text) { var e = new Error(text); e.mine = true; return e; }
 
+  /* ---------- reading MusicXML (Trix): .musicxml / .xml, and .mxl (zipped) ---------- */
+  function looksXml(u8) {   /* text starting with '<' (after a byte-order mark or spaces) */
+    var i = 0; if (u8[0] === 0xef && u8[1] === 0xbb && u8[2] === 0xbf) i = 3;
+    while (i < u8.length && (u8[i] === 32 || u8[i] === 9 || u8[i] === 10 || u8[i] === 13)) i++;
+    return u8[i] === 0x3c;
+  }
+  function isZip(u8) { return u8.length > 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 3 && u8[3] === 4; }
+  /* the score inside a .mxl: META-INF/container.xml names it, else the first .musicxml / .xml; resolves to its bytes */
+  function unzipScore(buf) {
+    var u8 = new Uint8Array(buf), dv = new DataView(buf), files = {}, e = -1;
+    for (var i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { e = i; break; }
+    if (e < 0) return Promise.reject(fail('This MusicXML file could not be read.'));
+    var n = dv.getUint16(e + 10, true), p = dv.getUint32(e + 16, true), dec = new TextDecoder();
+    for (var k = 0; k < n && p + 46 <= u8.length && dv.getUint32(p, true) === 0x02014b50; k++) {
+      var nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+      files[dec.decode(u8.subarray(p + 46, p + 46 + nl))] = { method: dv.getUint16(p + 10, true), size: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true) };
+      p += 46 + nl + xl + cl;
+    }
+    function read(name) {
+      var f = files[name], at = f.off + 30 + dv.getUint16(f.off + 26, true) + dv.getUint16(f.off + 28, true), data = u8.subarray(at, at + f.size);
+      if (f.method === 0) return Promise.resolve(data.slice().buffer);
+      if (f.method !== 8 || typeof DecompressionStream === 'undefined') return Promise.reject(fail('This browser can’t open compressed MusicXML (.mxl). Export the score as uncompressed MusicXML (.musicxml) instead.'));
+      return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+    }
+    var c = files['META-INF/container.xml'];
+    return (c ? read('META-INF/container.xml').then(function (b) { return dec.decode(b); }) : Promise.resolve('')).then(function (cx) {
+      var m = /full-path="([^"]+)"/.exec(cx), root = m && files[m[1]] ? m[1] : Object.keys(files).filter(function (k) { return !/^META-INF\//.test(k) && /\.(musicxml|xml)$/i.test(k); })[0];
+      if (!root) throw fail('This file has no score in it.');
+      return read(root);
+    });
+  }
+  function kids(el, name) { var out = []; for (var c = el && el.firstElementChild; c; c = c.nextElementSibling) if (!name || c.nodeName === name) out.push(c); return out; }
+  function kid(el, name) { for (var c = el && el.firstElementChild; c; c = c.nextElementSibling) if (c.nodeName === name) return c; return null; }
+  function txt(el, name) { var k = kid(el, name); return k ? k.textContent.trim() : ''; }
+  /* the order bars are played in: repeat barlines (times="n"), 1st / 2nd endings */
+  function playOrder(ms) {
+    var info = ms.map(function (m) {
+      var r = { fwd: false, back: 0, endStart: null, endStop: false, fin: false };
+      kids(m, 'barline').forEach(function (b) {
+        var rp = kid(b, 'repeat'), en = kid(b, 'ending');
+        if (rp && rp.getAttribute('direction') === 'forward') r.fwd = true;
+        if (rp && rp.getAttribute('direction') === 'backward') r.back = +rp.getAttribute('times') || 2;
+        if (en && en.getAttribute('type') === 'start') r.endStart = (en.getAttribute('number') || '1').split(/[^0-9]+/).filter(Boolean).map(Number);
+        if (en && /stop|discontinue/.test(en.getAttribute('type'))) r.endStop = true;
+        if (txt(b, 'bar-style') === 'light-heavy') r.fin = true;   /* a final bar: the next movement's repeats start after it */
+      });
+      return r;
+    });
+    var open = null; info.forEach(function (r) { if (r.endStart) open = r.endStart; r.end = open; if (r.endStop) open = null; });
+    /* a backward repeat goes to the last forward repeat (else the bar after the last finished repeat); a repeat
+       inside an ending is taken whenever that ending plays, so endings like 1, 3 / 2, 4 with a later repeat back to
+       the same start work (MuseScore's Serenade Rondo); a plain one plays its times (default twice) */
+    var out = [], i = 0, start = 0, pass = 1, done = {}, guard = 0;
+    while (i < ms.length && guard++ < 100000) {
+      var r = info[i];
+      if (r.fwd && i !== start) { start = i; pass = 1; }
+      if (r.end && r.end.indexOf(pass) < 0) { i++; continue; }   /* an ending for another time through */
+      out.push(i);
+      if (r.back) {
+        if (r.end) { pass++; i = start; continue; }
+        var c = done[i] || 1;
+        if (c < r.back) { done[i] = c + 1; pass++; i = start; continue; }
+        delete done[i]; start = i + 1; pass = 1;
+      } else if (r.fin && !r.end) { start = i + 1; pass = 1; }
+      i++;
+    }
+    return out;
+  }
+  function readXml(text) {
+    var doc = new DOMParser().parseFromString(text, 'application/xml'), root = doc.documentElement;
+    if (!root || doc.getElementsByTagName('parsererror').length) throw fail('This MusicXML file could not be read.');
+    if (root.nodeName === 'score-timewise') throw fail('This MusicXML file is in the timewise layout, which the player can’t read. Export it again as MusicXML from your notation app.');
+    if (root.nodeName !== 'score-partwise') throw fail('This is not a MIDI or MusicXML file.');
+    var TPQ = 480, STEP = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }, meta = {};
+    kids(kid(root, 'part-list'), 'score-part').forEach(function (sp, i) {
+      var inst = sp.getElementsByTagName('instrument-name')[0], mi = sp.getElementsByTagName('midi-instrument')[0];
+      meta[sp.getAttribute('id')] = { name: txt(sp, 'part-name'), inst: inst ? inst.textContent.trim() : '',
+        prog: mi && txt(mi, 'midi-program') ? +txt(mi, 'midi-program') - 1 : undefined, ch: mi && txt(mi, 'midi-channel') ? (+txt(mi, 'midi-channel') - 1) % 16 : i % 16 };
+    });
+    var parts = kids(root, 'part');
+    if (!parts.length) throw fail('This file has no notes.');
+    var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {};
+    parts.forEach(function (part, pi) {
+      var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
+      var ms = kids(part, 'measure'), notes = [], tie = {}, at = 0, divStart = [], dvw = 1;
+      ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); }); });
+      order.forEach(function (k) {
+        var m = ms[k]; if (!m) return;
+        var dv = divStart[k] || 1, cur = 0, len = 0, last = 0;
+        function tk(d) { return at + Math.round(d * TPQ / dv); }
+        kids(m).forEach(function (el) {
+          var nm = el.nodeName;
+          if (nm === 'attributes') {
+            if (txt(el, 'divisions')) dv = +txt(el, 'divisions');
+            var key = kid(el, 'key'); if (key && sf === null && txt(key, 'fifths') !== '') { sf = +txt(key, 'fifths'); minor = txt(key, 'mode') === 'minor'; }
+            var tm = kid(el, 'time'); if (tm && !sig && txt(tm, 'beats')) sig = { num: parseInt(txt(tm, 'beats'), 10) || 4, den: +txt(tm, 'beat-type') || 4 };
+          } else if (nm === 'backup') cur -= +txt(el, 'duration') || 0;
+          else if (nm === 'forward') { cur += +txt(el, 'duration') || 0; len = Math.max(len, cur); }
+          else if (nm === 'direction' || nm === 'sound') {
+            var snd = nm === 'sound' ? el : kid(el, 'sound'), bpm = snd && +snd.getAttribute('tempo');
+            if (bpm > 0) { var t = tk(cur); if (!seenTempo[t]) { seenTempo[t] = 1; tempos.push({ tick: t, us: 60e6 / bpm }); } }
+          } else if (nm === 'note') {
+            if (kid(el, 'grace') || kid(el, 'cue')) return;   /* grace and cue notes are not played */
+            var dur = +txt(el, 'duration') || 0, chord = !!kid(el, 'chord'), from = chord ? last : cur;
+            if (!chord) { last = cur; cur += dur; len = Math.max(len, cur); }
+            var pt = kid(el, 'pitch'); if (!pt) return;   /* a rest, or unpitched */
+            var mm = (+txt(pt, 'octave') + 1) * 12 + (STEP[txt(pt, 'step')] || 0) + Math.round(+txt(pt, 'alter') || 0);
+            var t0 = tk(from), t1 = tk(from + dur), ties = kids(el, 'tie').map(function (t) { return t.getAttribute('type'); });
+            if (ties.indexOf('stop') >= 0 && tie[mm]) { tie[mm].t1 = t1; if (ties.indexOf('start') < 0) delete tie[mm]; return; }   /* tied on: one longer note */
+            var n = { m: mm, t0: t0, t1: t1, ch: ch, v: 90 }, tech = el.getElementsByTagName('technical')[0];
+            if (tech) {   /* written fingering (0 = open), open-string mark, string number (1 = E) */
+              var fe = kid(tech, 'fingering'), se = kid(tech, 'string'), fm = fe && /[0-4]/.exec(fe.textContent);
+              if (fm) n.xfg = +fm[0];
+              if (kid(tech, 'open-string')) n.xfg = 0;
+              if (se && /^[1-4]$/.test(se.textContent.trim())) n.xs = +se.textContent.trim();
+            }
+            notes.push(n);
+            if (ties.indexOf('start') >= 0) tie[mm] = n;
+          }
+        });
+        if (!len && sig) len = sig.num * 4 / sig.den * dv;   /* an empty bar still takes its time */
+        at = tk(len);
+      });
+      if (notes.length) {
+        var pr = {}, prs = {}; if (info.prog !== undefined) { pr[ch] = info.prog; prs[ch] = [info.prog]; }
+        tracks.push({ notes: notes, chans: 1, name: info.name || info.inst, label: info.name + ' ' + info.inst, prog: pr, progs: prs });
+      }
+    });
+    tempos.sort(function (a, b) { return a.tick - b.tick; });
+    return { tracks: tracks, tpq: TPQ, tempos: tempos, sig: sig, sf: sf, minor: minor };
+  }
+
   /* ---------- reading a MIDI file ---------- */
   function parse(buf) {
     var u8 = new Uint8Array(buf), p = 0;
@@ -72,7 +204,8 @@
     function u32(at) { return ((u8[at] << 24) | (u8[at + 1] << 16) | (u8[at + 2] << 8) | u8[at + 3]) >>> 0; }
     function u16(at) { return (u8[at] << 8) | u8[at + 1]; }
     function vlq() { var v = 0, b; do { b = u8[p++]; v = (v * 128) + (b & 0x7f); } while ((b & 0x80) && p < u8.length); return v; }
-    if (u8.length < 14 || str(0, 4) !== 'MThd') throw fail('This is not a MIDI file.');
+    if (looksXml(u8)) { var x = readXml(new TextDecoder().decode(u8)); return assemble(x.tracks, x.tpq, x.tempos, x.sig, x.sf, x.minor); }   /* MusicXML (Trix): the same parts, notes and timing, plus written fingerings */
+    if (u8.length < 14 || str(0, 4) !== 'MThd') throw fail('This is not a MIDI or MusicXML file.');
     var ntr = u16(10), tpq = u16(12);
     if (tpq & 0x8000) throw fail('This MIDI file keeps time in a way the player can’t read.');
     p = 8 + u32(4);
@@ -112,6 +245,10 @@
       if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1, name: name || inst, label: name + ' ' + inst, prog: prog, progs: progs });
       p = end;
     }
+    return assemble(tracks, tpq, tempos, sig, sf, minor);
+  }
+  /* what both readers share: naming the parts, choosing the violin, the accompaniment */
+  function assemble(tracks, tpq, tempos, sig, sf, minor) {
     if (!tracks.length) throw fail('This file has no notes.');
     /* several parts (Trix): the violin is the first track named as one (track or instrument name: violin, violino,
        violín, 小提琴), else the first set to General MIDI's Violin (program 40), else the first track with notes;
@@ -206,7 +343,7 @@
       if (n.m < 55) low++; else if (!APP.board.where(n.m)) high++;
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
-      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq };
+      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq, xfg: n.xfg, xs: n.xs };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -257,6 +394,15 @@
       if (long || nextM === null || nextM < one.m) for (var z = q; z < r; z++) { single(z).si = k4 - 1; single(z).fg = 4; }
       q = r;
     }
+    /* fingerings and string numbers written in the score (MusicXML) win over the automatic choice (Trix) */
+    notes.forEach(function (n) {
+      var s0 = -1;
+      if (n.xs) { s0 = 4 - n.xs; if (n.m < OPEN[s0] || n.m > OPEN[s0] + 19) s0 = -1; }   /* string 1 = E ... 4 = G */
+      else if (n.xfg !== undefined) s0 = strForFinger(n.m, n.xfg);
+      if (s0 >= 0) n.si = s0;
+      if (n.xfg !== undefined) n.fg = n.xfg;
+      else if (s0 >= 0) fingers([n]);
+    });
     var lastN = notes[notes.length - 1];
     return {
       notes: notes, sig: sig, sf: Math.max(-7, Math.min(7, sf)),
@@ -286,6 +432,18 @@
      (1st finger at 1, 5, 8, 12 semitones up; each finger about a tone further; 1st position only to the 4th
      finger at 7). 0 = open string. */
   var POS = [[1, 6], [5, 7], [8, 7], [12, 7]];
+  /* the string a written finger implies: the one where that finger reaches the note in the lowest position
+     (each finger about a tone above the last); 0 = the open string */
+  function strForFinger(m, f) {
+    if (f === 0) return OPEN.indexOf(m);
+    var best = -1, bestBase = 99;
+    for (var si = 0; si < 4; si++) {
+      var k = m - OPEN[si], base = k - 2 * (f - 1);
+      if (k < 1 || k > 19 || base < 0 || base > 13) continue;
+      if (base < bestBase) { bestBase = base; best = si; }
+    }
+    return best;
+  }
   function fingers(unit) {
     var ns = unit.filter(function (n) { return n.si >= 0 && n.m > OPEN[n.si]; }).map(function (n) { return n.m - OPEN[n.si]; });
     var p = POS.filter(function (q) { return ns.every(function (n) { return n >= q[0] && n <= q[0] + q[1]; }); })[0] || POS[3];
@@ -754,7 +912,12 @@
      a list of { id, name, b64 }; MIDI files are small (a few KB), well inside the storage limit */
   var KEEP = 'violin-midi-files', kept = [];
   try { kept = JSON.parse(localStorage.getItem(KEEP) || '[]'); if (!Array.isArray(kept)) kept = []; } catch (e) { kept = []; }
-  kept = kept.filter(function (f) { try { addSong(f.name, fromB64(f.b64), f.id); return true; } catch (e) { return false; } });
+  /* MusicXML is kept gzip-compressed (z: 'gz'; a 3.6 MB score is ~0.2 MB), so it fits in the browser's storage */
+  function zip(buf, back) { return new Response(new Blob([buf]).stream().pipeThrough(back ? new DecompressionStream('gzip') : new CompressionStream('gzip'))).arrayBuffer(); }
+  kept = kept.filter(function (f) {
+    if (f.z === 'gz') { if (typeof DecompressionStream === 'undefined') return true; zip(fromB64(f.b64), true).then(function (b) { addSong(f.name, b, f.id); }).catch(function (e) { console.error('MIDI player: kept file', e); }); return true; }
+    try { addSong(f.name, fromB64(f.b64), f.id); return true; } catch (e) { return false; }
+  });
   function saveKept() { try { localStorage.setItem(KEEP, JSON.stringify(kept)); return true; } catch (e) { return false; } }
   var delBtn = $('mpDel');
   delBtn.addEventListener('click', function () {
@@ -774,29 +937,40 @@
     if (!f) return;
     var rd = new FileReader();
     rd.onload = function () {
-      var name = f.name.replace(/\.(mid|midi|smf)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6), i;
-      try { i = addSong(name, rd.result, id); }   /* reading the file: only a failure here means it could not be read */
-      catch (e) { if (!e.mine) console.error('MIDI import', e); say(e.mine ? e.message : 'This MIDI file could not be read.', true); return; }
-      var ok = false, prevI = +songSel.value;
-      try { kept.push({ id: id, name: name, b64: toB64(rd.result) }); ok = saveKept(); }   /* keeping it for next time; a failure here only means not kept (Hermes F17) */
-      catch (e) { console.error('MIDI import: keep', e); if (kept.length && kept[kept.length - 1].id === id) kept.pop(); }
-      /* showing it: Trix saw "could not be read" for a file that then played fine after choosing another tune and
-         back, so a slip here gets one more try, the same as choosing it again, and is logged for a fix. The list
-         moves to the new tune only once it is shown; if both tries fail it goes back to the tune still on screen,
-         so choosing the new one is a real change (Hermes F18) */
-      try { load(i); songSel.value = i; }
-      catch (e) {
-        console.error('MIDI import: first load', e);
+      var name = f.name.replace(/\.(mid|midi|smf|musicxml|xml|mxl)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6), raw = rd.result;
+      /* a .mxl is a zip: its score first (MusicXML, Trix) */
+      (isZip(new Uint8Array(raw)) ? unzipScore(raw) : Promise.resolve(raw)).then(function (buf) {
+        var i;
+        try { i = addSong(name, buf, id); }   /* reading the file: only a failure here means it could not be read */
+        catch (e) { if (!e.mine) console.error('MIDI import', e); say(e.mine ? e.message : 'This file could not be read.', true); return; }
+        var prevI = +songSel.value;
+        /* showing it: Trix saw "could not be read" for a file that then played fine after choosing another tune and
+           back, so a slip here gets one more try, the same as choosing it again, and is logged for a fix. The list
+           moves to the new tune only once it is shown; if both tries fail it goes back to the tune still on screen,
+           so choosing the new one is a real change (Hermes F18) */
         try { load(i); songSel.value = i; }
-        catch (e2) {
-          console.error('MIDI import: second load', e2);
-          songSel.value = prevI; try { load(prevI); } catch (e3) {}
-          say('The tune was added, but it could not be shown. Choose it again from the list.', true); return;
+        catch (e) {
+          console.error('MIDI import: first load', e);
+          try { load(i); songSel.value = i; }
+          catch (e2) {
+            console.error('MIDI import: second load', e2);
+            songSel.value = prevI; try { load(prevI); } catch (e3) {}
+            say('The tune was added, but it could not be shown. Choose it again from the list.', true); return;
+          }
         }
-      }
-      if (!ok) { kept = kept.filter(function (k) { return k.id !== id; }); say('This file plays now, but there is no room to keep it for next time.', true); }
+        /* keeping it for next time; a failure here only means not kept (Hermes F17). MusicXML is kept compressed */
+        var xml = looksXml(new Uint8Array(buf)) && typeof CompressionStream !== 'undefined';
+        (xml ? zip(buf).then(function (z) { return { b64: toB64(z), z: 'gz' }; }) : Promise.resolve({ b64: toB64(buf) })).then(function (rec) {
+          kept.push({ id: id, name: name, b64: rec.b64, z: rec.z });
+          if (!saveKept()) throw new Error('no room');
+        }).catch(function (e) {
+          console.error('MIDI import: keep', e);
+          kept = kept.filter(function (k) { return k.id !== id; });
+          say('This file plays now, but there is no room to keep it for next time.', true);
+        });
+      }).catch(function (e) { if (!e.mine) console.error('MIDI import: unzip', e); say(e.mine ? e.message : 'This file could not be read.', true); });
     };
-    rd.onerror = function () { console.error('MIDI import: read', rd.error); say('This MIDI file could not be read.', true); };   /* the reason, for the console (Hermes F16) */
+    rd.onerror = function () { console.error('MIDI import: read', rd.error); say('This file could not be read.', true); };   /* the reason, for the console (Hermes F16) */
     rd.readAsArrayBuffer(f);
   });
 

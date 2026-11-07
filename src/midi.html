@@ -4,7 +4,7 @@
       <label class="mp-song"><span class="mp-vh">Tune</span><select id="mpSong"></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></label>
       <button type="button" class="mp-del" id="mpDel" aria-label="Delete this file" title="Delete this file" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/><path d="M10 11v5M14 11v5"/></svg></button>
       <button type="button" class="mp-import" id="mpImport"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4"/></svg>Import</button>
-      <input type="file" id="mpFile" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+      <input type="file" id="mpFile" accept=".mid,.midi,audio/midi,audio/x-midi,.musicxml,.xml,.mxl,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/xml,text/xml" hidden>
     </div>
     <p class="mp-msg" id="mpMsg" role="status" hidden></p>
     <div class="mp-score" id="mpScore" aria-hidden="true" translate="no"><div class="mp-strip" id="mpSvg"></div><svg class="mp-key" id="mpKey" xmlns="http://www.w3.org/2000/svg"></svg><div class="mp-head" id="mpHead"></div><div class="mp-count" id="mpCount" aria-hidden="true" hidden></div><div class="mp-parts" id="mpParts" hidden><p><b id="mpPartsLV">Violin</b><span id="mpPartsV"></span></p><p><b id="mpPartsLA">Accompaniment</b><span id="mpPartsA"></span></p><p><b id="mpPartsLD">Left out</b><span id="mpPartsD"></span></p></div></div>
