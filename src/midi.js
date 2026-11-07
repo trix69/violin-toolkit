@@ -983,8 +983,8 @@
       svg.innerHTML = ''; keySvg.innerHTML = ''; noteEls = []; chunks = [];
       seekTo(0); flashParts(); mixUi();
       var s = songs[i];
-      if (s.failed) { s.failed = false; say('This tune downloads the first time you play it. Connect to the internet and choose it again.', true); }
-      else { say('Downloading this tune…'); fetchDemo(i); }   /* choosing it again tries again */
+      if (s.failed) { s.failed = false; say(s.err || 'This tune downloads the first time you play it. Connect to the internet and choose it again.', true); }
+      else { say(s.have ? '' : 'Downloading this tune…'); fetchDemo(i); }   /* choosing it again tries again; a built-in one is being read (a moment) */
       if (shown) fit();
       return;
     }
@@ -1023,24 +1023,36 @@
   /* built-in tunes: in the Android app (Trix) they are not packed in; each is a placeholder ({ title, f, h }) that
      is downloaded from the website the first time it is chosen, then kept on the phone (violin-midi-demo:<file>) */
   var DEMO_URL = 'https://trix69.github.io/violin-toolkit/src/midi/', DEMO_KEY = 'violin-midi-demo:';
+  /* a tune may be MIDI or MusicXML (.mxl, unzipped in the background: Trix's built-ins since 1.38); built in (b64),
+     kept on the phone (violin-midi-demo:<file>, the phone apps) or downloaded the first time it is chosen */
+  function scoreBytes(buf) { return isZip(new Uint8Array(buf)) ? unzipScore(buf) : Promise.resolve(buf); }
   DEMOS.forEach(function (d) {
-    if (d.b64) { addSong(d.title, fromB64(d.b64), null); return; }
-    var sg = null;
-    try { var c = JSON.parse(localStorage.getItem(DEMO_KEY + d.f) || 'null'); if (c && c.h === d.h) sg = parse(fromB64(c.b64)); } catch (e) { sg = null; }
-    songs.push({ title: d.title, song: sg, kept: null, demo: d });
+    var s = { title: d.title, song: null, kept: null, demo: d, have: d.b64 || null };
+    if (!s.have) { try { var c = JSON.parse(localStorage.getItem(DEMO_KEY + d.f) || 'null'); if (c && c.h === d.h) s.have = c.b64; } catch (e) {} }
+    songs.push(s);
+    if (s.have) prepDemo(s);
   });
   options();
+  function prepDemo(s) {   /* its bytes are here: read it */
+    s.fetching = true;
+    scoreBytes(fromB64(s.have)).then(function (b) { s.song = parse(b); })
+      .catch(function (e) { s.err = e && e.mine ? e.message : null; console.error('MIDI player: built-in tune', s.demo.f, e); })
+      .then(function () { s.fetching = false; var k = songs.indexOf(s); if (+songSel.value === k) { s.failed = !s.song; load(k); } });
+  }
   function fetchDemo(i) {
     var s = songs[i], d = s.demo;
     if (s.fetching) return;
+    if (s.have) { prepDemo(s); return; }
     s.fetching = true;
     fetch(DEMO_URL + encodeURIComponent(d.f), { cache: 'no-cache' }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.arrayBuffer();
     }).then(function (buf) {
-      s.song = parse(buf);
-      try { localStorage.setItem(DEMO_KEY + d.f, JSON.stringify({ h: d.h, b64: toB64(buf) })); } catch (e) {}   /* no room: it downloads again next time */
-    }).catch(function (e) { console.error('MIDI tune download', d.f, e); }).then(function () {
+      return scoreBytes(buf).then(function (b) {
+        s.song = parse(b);
+        try { localStorage.setItem(DEMO_KEY + d.f, JSON.stringify({ h: d.h, b64: toB64(buf) })); } catch (e) {}   /* no room: it downloads again next time */
+      });
+    }).catch(function (e) { s.err = e && e.mine ? e.message : null; console.error('MIDI tune download', d.f, e); }).then(function () {
       s.fetching = false;
       var k = songs.indexOf(s);
       if (+songSel.value === k) { s.failed = !s.song; load(k); }   /* still the chosen tune: show it, or say it failed */
