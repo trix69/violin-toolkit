@@ -420,6 +420,28 @@ launch_css = '''
 @media (prefers-reduced-motion: reduce) { .launch { animation: none; } .launch-btn { transition: none; } }
 '''
 met_css += '\n/* tuner gauge: wider on large screens */\n#view-tuner .panel > .actions { margin: 0 0 8px; }\n@media (min-width: 640px) { #view-tuner #gauge { width: 84%; max-width: none; } }\n'
+# a phone on its side (Trix: like other tuner apps): the gauge on the left, the mode switch and the pegbox on the right,
+# all on one screen; the tips and the wave strip step aside
+met_css += '''
+@media (orientation: landscape) and (max-height: 600px) {
+  .shell[data-view="tuner"] { max-width: none; }
+  #view-tuner .wrap { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: 18px; row-gap: 8px; align-items: start; max-width: none; }
+  #view-tuner .wrap > .controls { grid-column: 2; grid-row: 1; margin: 0; }
+  #view-tuner .wrap > .panel { grid-column: 1; grid-row: 1 / span 2; margin: 0; padding: 10px 14px; }
+  #view-tuner .wrap > section:nth-child(3) { grid-column: 2; grid-row: 2; margin: 0; }
+  #view-tuner .wrap > :nth-child(n+4), #view-tuner #wave, #view-tuner .wrap > section:nth-child(3) .sub { display: none; }
+  #view-tuner .wrap > section:nth-child(3) h2 { margin: 0 0 2px; }
+  /* in the panel: Start on top, the gauge with the readout beside it, the hint below */
+  #view-tuner .wrap > .panel { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "act act" "gauge read" "hint hint"; column-gap: 12px; align-items: center; }
+  #view-tuner .panel > .actions { grid-area: act; margin: 0 0 4px; }
+  #view-tuner #gauge { grid-area: gauge; display: block; width: 100%; max-width: 100%; height: auto; max-height: calc(100vh - 190px); max-height: calc(100dvh - 190px); min-height: 120px; margin: 0 auto; }
+  #view-tuner .readout { grid-area: read; margin: 0; min-width: 150px; }
+  #view-tuner .readout .note { font-size: 64px; }
+  #view-tuner .readout .stats div { padding: 4px 0; }
+  #view-tuner .hint { grid-area: hint; margin: 4px 0 0; }
+  #view-tuner #strings { width: min(100%, calc((100vh - 175px) * 440 / 360)); width: min(100%, calc((100dvh - 175px) * 440 / 360)); margin: 0 auto; }
+}
+'''
 met_html = open(SP + 'met.html').read()
 met_js = open(SP + 'met.js').read()
 # Symbols page (its own tool since 2026-11-06; was a window on the metronome)
@@ -487,9 +509,14 @@ u0 = t_js.index('  /* ---------- recording upload ---------- */')
 u1 = t_js.index("  window.addEventListener('pagehide'")
 t_js = t_js[:u0] + t_js[u1:]
 t_js = must(t_js, "  fit();\n  startMic(true);\n})();", """  fit();
+  /* the phone apps may turn sideways in the tuner too (Trix): the Android app's VTApp, the iPhone app's vt handler */
+  function appTurn(on) {
+    try { if (window.VTApp && VTApp.rotate) VTApp.rotate(on); } catch (e) {}
+    try { if (window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt) webkit.messageHandlers.vt.postMessage({ rotate: on }); } catch (e) {}
+  }
   APP.views.tuner = {
-    show: function () { fit(); startMic(true); },
-    hide: function () { stopTone(); if (running) stopMic(); setStatus(''); setIdle(); }
+    show: function () { appTurn(true); fit(); startMic(true); },
+    hide: function () { appTurn(false); stopTone(); if (running) stopMic(); setStatus(''); setIdle(); }
   };
 })();""")
 
