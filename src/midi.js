@@ -884,8 +884,8 @@
   var full = false, fullBtn = $('mpFull'), shellEl = document.getElementById('shell') || document.body;
   function fsBox() {
     var sb = scoreEl.getBoundingClientRect(), bb = bar.getBoundingClientRect(), vw = document.documentElement.clientWidth || innerWidth;
-    var L = Math.max(16, sb.left), T = sb.bottom + 10;
-    return { L: L, T: T, W: Math.max(160, vw - 2 * L), H: Math.max(100, bb.top - 10 - T) };
+    var L = sb.left, T = sb.bottom + 10;   /* the score's own left and right edges (Trix: the right sides lined up) */
+    return { L: L, T: T, W: Math.max(160, Math.min(sb.width, vw - L)), H: Math.max(100, bb.top - 10 - T) };
   }
   function fsEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
   function setFull(on) {
