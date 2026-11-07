@@ -81,7 +81,7 @@
       var id = str(p, 4), end = Math.min(p + 8 + u32(p + 4), u8.length);
       p += 8;
       if (id !== 'MTrk') { p = end; continue; }
-      var tick = 0, rs = 0, open = {}, notes = [], chans = {}, name = '', inst = '', prog = {};
+      var tick = 0, rs = 0, open = {}, notes = [], chans = {}, name = '', inst = '', prog = {}, progs = {};
       while (p < end) {
         tick += vlq();
         var st = u8[p];
@@ -101,7 +101,7 @@
           p += vlq();
         } else if (st >= 0x80) {
           var hi = st & 0xf0, ch = st & 15, a = u8[p++], b = (hi === 0xc0 || hi === 0xd0) ? 0 : u8[p++], k = ch + ':' + a;
-          if (hi === 0xc0 && !(ch in prog)) prog[ch] = a;   /* the channel's instrument (General MIDI program) */
+          if (hi === 0xc0) { if (!(ch in prog)) prog[ch] = a; (progs[ch] = progs[ch] || []).push(a); }   /* the channel's instrument (General MIDI program), and every one it switches to */
           if (hi === 0x90 && b > 0) (open[k] = open[k] || []).push([tick, b]);
           else if (hi === 0x80 || hi === 0x90) {
             if (open[k] && open[k].length) { var on = open[k].shift(); notes.push({ m: a, t0: on[0], t1: tick, ch: ch, v: on[1] }); chans[ch] = 1; }
@@ -109,7 +109,7 @@
         } else break;   /* a data byte with no status: the file is damaged, stop reading this track */
       }
       Object.keys(open).forEach(function (k) { open[k].forEach(function (on) { notes.push({ m: +k.split(':')[1], t0: on[0], t1: tick, ch: +k.split(':')[0], v: on[1] }); }); });
-      if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1, name: name || inst, label: name + ' ' + inst, prog: prog });
+      if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1, name: name || inst, label: name + ' ' + inst, prog: prog, progs: progs });
       p = end;
     }
     if (!tracks.length) throw fail('This file has no notes.');
@@ -120,14 +120,26 @@
        plays pitched notes only. */
     /* unnamed parts are called by their General MIDI instrument (Trix's Ode to Joy names none): the channel's
        first program anywhere in the file */
-    var chanProg = {}; tracks.forEach(function (tr) { Object.keys(tr.prog).forEach(function (c) { if (!(c in chanProg)) chanProg[c] = tr.prog[c]; }); });
+    /* the channel's instrument for naming: a bowed string it uses anywhere (Violin, Viola, Cello, Double bass: a part
+       that also switches to tremolo or pizzicato strings), else its first program */
+    var chanProg = {};
+    tracks.forEach(function (tr) {
+      var all = [].concat.apply([], Object.keys(tr.progs).map(function (c) { return tr.progs[c]; }));
+      var bowed = all.filter(function (p) { return p >= 40 && p <= 43; });
+      tr.bowed = bowed.length ? Math.min.apply(null, bowed) : undefined;   /* any channel of the part: MuseScore sets Viola on one channel and plays pizzicato on the next */
+      Object.keys(tr.progs).forEach(function (c) { if (!(c in chanProg)) chanProg[c] = tr.progs[c][0]; });
+    });
     function gmName(p) {
       return p === undefined ? '' : p < 8 ? 'Piano' : p < 16 ? 'Bells' : p < 24 ? 'Organ' : p < 32 ? 'Guitar' : p < 40 ? 'Bass' :
         ['Violin', 'Viola', 'Cello', 'Double bass', 'Strings', 'Strings', 'Harp', 'Timpani'][p - 40] ||
         (p < 56 ? 'Strings' : p < 64 ? 'Brass' : p < 72 ? ['Saxophone', 'Saxophone', 'Saxophone', 'Saxophone', 'Oboe', 'Cor anglais', 'Bassoon', 'Clarinet'][p - 64] :
         p < 80 ? ['Piccolo', 'Flute', 'Recorder', 'Pan flute', 'Flute', 'Flute', 'Whistle', 'Ocarina'][p - 72] : 'Synth');
     }
-    tracks.forEach(function (tr) { if (!tr.name && tr.notes.length) tr.name = gmName(chanProg[tr.notes[0].ch]); });
+    tracks.forEach(function (tr) { if (!tr.name && tr.notes.length) { tr.name = gmName(tr.bowed !== undefined ? tr.bowed : chanProg[tr.notes[0].ch]); tr.gm = true; } });
+    /* two unnamed parts on the same instrument read Violin 1, Violin 2 (the label used to choose the solo is unchanged) */
+    var gmCount = {}, gmSeen = {};
+    tracks.forEach(function (tr) { if (tr.gm && tr.name) gmCount[tr.name] = (gmCount[tr.name] || 0) + 1; });
+    tracks.forEach(function (tr) { if (tr.gm && gmCount[tr.name] > 1) { gmSeen[tr.name] = (gmSeen[tr.name] || 0) + 1; tr.name += ' ' + gmSeen[tr.name]; } });
     var DRUM = 9, VIOLIN = /(^|[^a-z])vln([^a-z]|$)|violin|violín|violon(?!c)|geige|(^|[^t])viool|(^|[^t])fiol|skrzypce|скрипк|バイオリン|ヴァイオリン|바이올린|小提琴|[一二]提/i   /* Vln., violin, violino, violine, violín, violon (not violoncello), Geige, viool (not altviool), fiol / fiolin (not altfiol), skrzypce, скрипка, バイオリン, 바이올린, 小提琴, 一提 / 二提 (orchestra shorthand; not 中提琴 / 大提琴) */, GM_VIOLIN = 40, solo, acc = [];
     /* also left out: a part named as drums or percussion, and channels set to General MIDI's percussive and
        sound-effect instruments (112-127: woodblock, taiko, synth drum…), which a pitched synth can't play */
