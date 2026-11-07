@@ -664,7 +664,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       /* the whole tune's range fits the room: real spacing if the notes stay 16 px or more, else even spacing;
          the notes and their letters shrink as needed, never overlapping (Trix: no pressing in the player anyway) */
       room = box ? Math.max(120, box.W) : Math.max(120, avail - playerTop());
-      var cap = box ? Math.max(6, Math.min(24, Math.floor((box.H / 4 - 6) / 2))) : 26;   /* turned: the four strings share the box's height; smaller notes (Trix) */
+      var cap = box ? Math.max(6, Math.min(34, Math.floor((box.H / 4 - 6) / 2))) : 26;   /* turned: the four strings share the box's height; Trix: smaller than 58, then 24 a little too small */
       var fit = function () {
         var rr = 19, KK = 3, g = mm(N) - mm(N - 1);
         for (var j = 0; j < 4; j++) {
