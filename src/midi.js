@@ -155,7 +155,7 @@
     var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [];   /* tick -> tempo entry */
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
-      var ms = kids(part, 'measure'), notes = [], tie = {}, at = 0, divStart = [], dvw = 1, pz = false;   /* pz: pizz. until arco */
+      var ms = kids(part, 'measure'), notes = [], tie = {}, at = 0, divStart = [], dvw = 1, pz = false, marks = [];   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
       ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); }); });
       order.forEach(function (k) {
         var m = ms[k]; if (!m) return;
@@ -173,6 +173,13 @@
           else if (nm === 'direction' || nm === 'sound') {
             var snd = nm === 'sound' ? el : kid(el, 'sound'), bpm = snd && +snd.getAttribute('tempo');
             if (snd && snd.getAttribute('pizzicato')) pz = snd.getAttribute('pizzicato') === 'yes';
+            if (nm === 'direction') kids(el, 'direction-type').forEach(function (dt) {   /* dynamics, hairpins and words, shown under the staff (Trix) */
+              kids(dt).forEach(function (d) {
+                if (d.nodeName === 'dynamics') { var dn = kids(d).map(function (x) { return x.nodeName === 'other-dynamics' ? x.textContent.trim() : x.nodeName; }).join(''); if (dn) marks.push({ tick: tk(cur), kind: 'dyn', text: dn }); }
+                else if (d.nodeName === 'wedge' && /crescendo|diminuendo|stop/.test(d.getAttribute('type'))) marks.push({ tick: tk(cur), kind: 'wedge', text: d.getAttribute('type') });
+                else if (d.nodeName === 'words' && d.textContent.trim() && !(snd && snd.getAttribute('tempo'))) marks.push({ tick: tk(cur), kind: 'words', text: d.textContent.trim() });
+              });
+            });
             if (bpm > 0) { var t = tk(cur); if (seenTempo[t]) seenTempo[t].us = 60e6 / bpm; else tempos.push(seenTempo[t] = { tick: t, us: 60e6 / bpm }); }   /* two marks on one beat ("Allegro" and ♩ = 140): the later wins, as in MuseScore */
           } else if (nm === 'note') {
             if (kid(el, 'grace') || kid(el, 'cue')) return;   /* grace and cue notes are not played */
@@ -181,7 +188,11 @@
             var pt = kid(el, 'pitch'); if (!pt) return;   /* a rest, or unpitched */
             var mm = (+txt(pt, 'octave') + 1) * 12 + (STEP[txt(pt, 'step')] || 0) + Math.round(+txt(pt, 'alter') || 0);
             var t0 = tk(from), t1 = tk(from + dur), ties = kids(el, 'tie').map(function (t) { return t.getAttribute('type'); });
-            if (ties.indexOf('stop') >= 0 && tie[mm]) { tie[mm].t1 = t1; if (ties.indexOf('start') < 0) delete tie[mm]; return; }   /* tied on: one longer note */
+            var slurs = kids(kid(el, 'notations'), 'slur').map(function (sl) { return { t: sl.getAttribute('type'), n: sl.getAttribute('number') || '1' }; });
+            if (ties.indexOf('stop') >= 0 && tie[mm]) {   /* tied on: one longer note; a slur ending here ends on it */
+              tie[mm].t1 = t1; if (slurs.length) tie[mm].slur = (tie[mm].slur || []).concat(slurs);
+              if (ties.indexOf('start') < 0) delete tie[mm]; return;
+            }
             var n = { m: mm, t0: t0, t1: t1, ch: ch, v: 90, pz: pz }, tech = el.getElementsByTagName('technical')[0];
             if (tech) {   /* written fingering (0 = open), open-string mark, string number (1 = E) */
               /* the finger written plainly; one in brackets ("(3) 2": an alternative) only if it is the only one */
@@ -192,6 +203,13 @@
               if (kid(tech, 'harmonic')) n.harm = true;   /* a harmonic: an o over the note, a pure tone (Trix) */
               if (se && /^[1-4]$/.test(se.textContent.trim())) n.xs = +se.textContent.trim();
             }
+            /* articulations, bowings and fermata, drawn at the note (Trix) */
+            var art = [], nots = kid(el, 'notations');
+            kids(kid(nots, 'articulations')).forEach(function (a) { art.push(a.nodeName); });
+            kids(tech).forEach(function (a) { if (/^(up-bow|down-bow|stopped)$/.test(a.nodeName)) art.push(a.nodeName); });
+            if (kid(nots, 'fermata')) art.push('fermata');
+            if (art.length) n.art = art;
+            if (slurs.length) n.slur = slurs;
             notes.push(n);
             if (ties.indexOf('start') >= 0) tie[mm] = n;
           }
@@ -201,7 +219,7 @@
       });
       if (notes.length) {
         var pr = {}, prs = {}; if (info.prog !== undefined) { pr[ch] = info.prog; prs[ch] = [info.prog]; }
-        tracks.push({ notes: notes, chans: 1, name: info.name || info.inst, label: info.name + ' ' + info.inst, prog: pr, progs: prs });
+        tracks.push({ notes: notes, chans: 1, name: info.name || info.inst, label: info.name + ' ' + info.inst, prog: pr, progs: prs, marks: marks });
       }
     });
     tempos.sort(function (a, b) { return a.tick - b.tick; });
@@ -297,7 +315,7 @@
       .map(function (tr) { tr.notes = tr.notes.filter(function (n) { return n.ch !== DRUM && !(tr.prog[n.ch] >= 112); }); return tr; })
       .filter(function (tr) { if (tr.notes.length) return true; dropped.push(tr.name || 'Drums'); return false; });
     if (!tracks.length) throw fail('This file has only percussion.');   /* it has notes, all of them drums (Hermes F28) */
-    var soloName = '', accNames = [];
+    var soloName = '', accNames = [], soloMarks = null;
     function gmViolin(tr) { return Object.keys(tr.prog).some(function (c) { return tr.prog[c] === GM_VIOLIN && tr.notes.some(function (n) { return n.ch === +c; }); }); }
     if (tracks.length === 1 && tracks[0].chans > 1) {
       var pr = tracks[0].prog, vc = Object.keys(pr).filter(function (c) { return pr[c] === GM_VIOLIN; }).map(Number)
@@ -319,7 +337,7 @@
       });
       if (byFirst >= 0) byName = byFirst;
       si = byName >= 0 ? byName : byProg >= 0 ? byProg : 0;
-      solo = tracks[si].notes; soloName = tracks[si].name;
+      solo = tracks[si].notes; soloName = tracks[si].name; soloMarks = tracks[si].marks || null;
       tracks.forEach(function (tr, i) { var nm = tr.name || 'Part ' + (i + 1); if (i !== si && accNames.indexOf(nm) < 0) accNames.push(nm); });   /* a name once: a piano's two hands are two parts both called Piano (Trix's Winter) */
       tracks.forEach(function (tr, i) { if (i !== si) acc = acc.concat(tr.notes); });
     }
@@ -328,6 +346,7 @@
     /* the bar number at a beat, for the score's corner (Trix): MusicXML's own numbers (repeats show theirs again, a
        pickup is 0); a MIDI file's bars counted from its start */
     var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num }; }) : null;
+    sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text }; }).filter(function (m) { return m.beat > -1e-6; });
     sg.barNo = function (beat) {
       if (!bl) return String(Math.floor((Math.max(0, beat) + sg.skipB) / barQ + 1e-6) + 1);
       var n = bl.length ? bl[0].num : '1';
@@ -363,7 +382,7 @@
       if (n.m < 55) low++; else if (!APP.board.where(n.m)) high++;
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
-      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz };
+      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: n.t0 / tpq, own: (n.t1 - n.t0) / tpq, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, slur: n.slur };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -634,6 +653,7 @@
       beams.push([x0, '<g class="mp-beams">' + b.join('') + '</g>']);
     });
     /* second pass: draw (a chord's stem, flags and beam belong to its first note) */
+    var slurOpen = {}, slurItems = [];
     inf.forEach(function (f, k) {
       var hd = inf[f.head], isHead = f.head === k, chord = hd.members.length > 1;
       var nt = f.nt, y = f.y, hx = f.hx, step = f.step, len = f.len, up = hd.up, g = [];
@@ -651,12 +671,47 @@
           g.push('<path class="flag" d="M' + sx + ' ' + fy + 'c1 ' + (5 * d) + ' 8 ' + (7 * d) + ' 6 ' + (15 * d) + 'c1 ' + (-6 * d) + ' -3 ' + (-9 * d) + ' -6 ' + (-10 * d) + 'z"/>');
         }
       }
-      /* fingering, in the string colour, on the side of the note away from the stem (Trix) */
-      var fg = fingerOf(nt);
+      /* articulations (MusicXML, Trix): staccato, tenuto, accents at the head away from the stem; bowings, +, fermata
+         above everything */
+      var arts = isHead ? (nt.art || []) : [], above = !(stem && up), ay = (above ? (chord ? hd.yTop : y) - 10 : (chord ? hd.yBot : y) + 10), nearN = 0;
+      arts.forEach(function (a) {
+        var d = null, yy = ay;
+        if (a === 'staccato' || a === 'spiccato') d = '<circle class="artd" cx="' + hx + '" cy="' + yy + '" r="1.7"/>';
+        else if (a === 'staccatissimo') d = '<path class="artd" d="M' + (hx - 2.2) + ' ' + (yy - 3) + 'H' + (hx + 2.2) + 'L' + hx + ' ' + (yy + 3) + 'Z"/>';
+        else if (a === 'tenuto') d = '<path class="art" d="M' + (hx - 5) + ' ' + yy + 'h10"/>';
+        else if (a === 'accent') d = '<path class="art" d="M' + (hx - 5) + ' ' + (yy - 3.2) + 'L' + (hx + 5) + ' ' + yy + 'L' + (hx - 5) + ' ' + (yy + 3.2) + '"/>';
+        else if (a === 'strong-accent') d = '<path class="art" d="M' + (hx - 4) + ' ' + (yy + 3) + 'L' + hx + ' ' + (yy - 4) + 'L' + (hx + 4) + ' ' + (yy + 3) + '"/>';
+        if (d) { g.push(d); ay += above ? -7 : 7; nearN++; }
+      });
+      /* fingering, in the string colour, on the side of the note away from the stem (Trix); past any articulation */
+      var fg = fingerOf(nt), topY = Math.min(y - 9, Y0 - 5);
+      if (above && nearN) topY = Math.min(topY, ay - 1);
       if (fg !== null) {
         if (chord) g.push('<text class="fing side" x="' + (hx + (up ? -15 : 9)) + '" y="' + f.fy + '">' + fg + '</text>');   /* beside each note of a chord, spaced apart */
-        else g.push('<text class="fing" x="' + hx + '" y="' + Math.max(10, stem && up ? Math.max(y + 17, BOT + 13) : Math.min(y - 9, Y0 - 5)) + '">' + fg + '</text>');
+        else g.push('<text class="fing" x="' + hx + '" y="' + Math.max(10, stem && up ? Math.max(y + 17, BOT + 13, nearN ? ay + 9 : 0) : topY) + '">' + fg + '</text>');
       }
+      var upY = Math.min(stem && up ? (hd.beam >= 0 ? hd.tip : hd.yTop - 3.4 * S) : topY - (fg !== null && !chord ? 12 : 0), Y0) - 7;
+      arts.forEach(function (a) {   /* above the note and its fingering */
+        var by = Math.max(8, upY), d = null;
+        if (a === 'down-bow') d = '<path class="art bow" d="M' + (hx - 5) + ' ' + (by + 4) + 'V' + (by - 3) + 'H' + (hx + 5) + 'V' + (by + 4) + '"/>';
+        else if (a === 'up-bow') d = '<path class="art" d="M' + (hx - 4) + ' ' + (by - 4) + 'L' + hx + ' ' + (by + 4) + 'L' + (hx + 4) + ' ' + (by - 4) + '"/>';
+        else if (a === 'stopped') d = '<path class="art" d="M' + (hx - 4) + ' ' + by + 'h8M' + hx + ' ' + (by - 4) + 'v8"/>';
+        else if (a === 'fermata') d = '<path class="art" d="M' + (hx - 7) + ' ' + (by + 3) + 'A7 6 0 0 1 ' + (hx + 7) + ' ' + (by + 3) + '"/><circle class="artd" cx="' + hx + '" cy="' + (by + 1.5) + '" r="1.5"/>';
+        else if (a === 'breath-mark') d = '<path class="art" d="M' + (hx + 13) + ' ' + (Y0 - 7) + 'q2 3 -1 6"/>';
+        if (d) { g.push(d); if (a !== 'breath-mark') upY -= 10; }
+      });
+      /* slurs: an arc from the note it starts on to the one it ends on, on the heads' side away from the stems */
+      (isHead ? nt.slur || [] : []).forEach(function (sl) {
+        if (sl.t === 'start') slurOpen[sl.n] = { x: hx, top: chord ? hd.yTop : y, bot: chord ? hd.yBot : y, above: !up };
+        else if (sl.t === 'stop' && slurOpen[sl.n]) {
+          var o = slurOpen[sl.n]; delete slurOpen[sl.n];
+          var x0 = o.x + 3, x1 = hx - 3, ab = o.above;
+          if (x1 - x0 < 6) return;
+          var y0 = ab ? o.top - 8 : o.bot + 8, y1 = ab ? (chord ? hd.yTop : y) - 8 : (chord ? hd.yBot : y) + 8;
+          var cy = (ab ? Math.min(y0, y1) : Math.max(y0, y1)) + Math.min(14, 4 + (x1 - x0) / 10) * (ab ? -1 : 1);
+          slurItems.push([o.x, '<path class="slur" d="M' + x0 + ' ' + y0 + 'C' + (x0 + (x1 - x0) * 0.25) + ' ' + cy + ' ' + (x0 + (x1 - x0) * 0.75) + ' ' + cy + ' ' + x1 + ' ' + y1 + '"/>']);
+        }
+      });
       var pzPrev = k > 0 && !!inf[k - 1].nt.pz;
       if (isHead && !!nt.pz !== pzPrev && (nt.pz || k > 0)) g.push('<text class="mp-word" x="' + (hx - 6) + '" y="9">' + (nt.pz ? 'pizz.' : 'arco') + '</text>');   /* where the playing changes (Trix) */
       if (nt.harm) {   /* a harmonic: a small o over the note, above the fingering, or over an up stem's tip (Trix) */
@@ -666,7 +721,20 @@
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
       items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
     });
-    items = items.concat(beams);
+    items = items.concat(beams, slurItems);
+    /* dynamics, hairpins and words under the staff (MusicXML, Trix) */
+    var DY = BOT + 41, wedge = null, lastDynX = -99;   /* below any fingering under the notes */
+    (sg.marks || []).forEach(function (m) {
+      var x = xAt(m.beat);
+      if (m.kind === 'dyn') { items.push([x, '<text class="mp-dyn" x="' + (x - 4) + '" y="' + DY + '">' + m.text + '</text>']); lastDynX = x; }
+      else if (m.kind === 'words') items.push([x, '<text class="mp-word" x="' + (Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4) + '" y="' + (DY - 1) + '">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);
+      else if (m.text === 'stop') {
+        if (!wedge) return;
+        var x0 = wedge.x + (Math.abs(wedge.x - lastDynX) < 1 ? 18 : 0), x1 = Math.max(x0 + 16, x - 4), yc = DY - 5, op = wedge.cresc;
+        items.push([x0, '<path class="art" d="M' + (op ? x1 : x0) + ' ' + (yc - 4.5) + 'L' + (op ? x0 : x1) + ' ' + yc + 'L' + (op ? x1 : x0) + ' ' + (yc + 4.5) + '"/>']);
+        wedge = null;
+      } else wedge = { x: x, cresc: m.text === 'crescendo' };
+    });
     /* the score in sections ~1200 px wide, each its own svg, only those near the playhead shown: one svg as
        wide as a long piece (Winter: 47 000 px, 9 800 shapes) was redrawn on every frame and stalled phones */
     var CH = 1200, H = BOT + 46, nC = Math.ceil(W / CH), parts = [];
