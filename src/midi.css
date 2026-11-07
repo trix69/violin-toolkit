@@ -135,7 +135,7 @@
 .shell.mp-fs .mp-score { height: calc(128px * 1.4); }   /* the score drawn 1.4 times as large (midi.js scroll) */
 .mp-score .mp-strip, .mp-score .mp-key { transform-origin: 0 0; }
 .shell.mp-fs #mpTop .mp-score { margin-top: 8px; }
-.shell.mp-fs #view-midi { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.shell.mp-fs:not(.mp-fs-rot) #view-midi { padding-left: 0; padding-right: 0; }   /* the page's own margin (body: 16 px, or the notch side's safe area) is enough: twice it left a phone on its side ~120 px short each side (Trix) */
 .shell.mp-fs #view-board { margin: 0; padding: 0; height: 0; }
 .shell.mp-fs .mp-bar > div { max-width: none; }
 html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
@@ -160,4 +160,4 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .shell.mp-fs #mpFull { position: fixed; z-index: 31; }
 /* Exit with a phone on its side (Trix): the upright page drawn turned (size and turn set by midi.js), until the
    phone is upright */
-.shell.mp-up-rot { position: fixed; top: 0; left: 0; box-sizing: border-box; overflow: auto; -webkit-overflow-scrolling: touch; background: var(--bg); transform-origin: 0 0; padding-top: 8px; }
+.shell.mp-up-rot { position: fixed; top: 0; left: 0; box-sizing: border-box; overflow: auto; -webkit-overflow-scrolling: touch; background: var(--bg); transform-origin: 0 0; padding: 8px 16px 0; }
