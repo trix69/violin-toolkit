@@ -1221,6 +1221,7 @@
       if (!e.repeat) { spaceKey = true; if (playing || counting) pause(); else play(); }
     } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') { e.preventDefault(); setSpeed(-0.05); }
     else if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') { e.preventDefault(); setSpeed(0.05); }
+    else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !(e.target && e.target.type === 'range')) { e.preventDefault(); setSpeed(e.key === 'ArrowLeft' ? -0.05 : 0.05); }   /* Trix; a slider with focus keeps its arrows */
   }, true);
   document.addEventListener('keyup', function (e) {   /* a focused button would click on Space's keyup */
     if (spaceKey && (e.key === ' ' || e.code === 'Space')) { spaceKey = false; e.preventDefault(); e.stopPropagation(); }
