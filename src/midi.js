@@ -506,7 +506,7 @@
     if (!song) return;
     var bar = song.sig.num * 4 / song.sig.den;
     var beat = counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar */
-    var z = full ? 1.4 : 1;   /* full screen: the score larger, easier to read (Trix); positions below are in score units */
+    var z = full ? (fsShort ? 0.8 : 1.4) : 1;   /* full screen: the score larger, easier to read (Trix); a phone on its side: smaller, for room; positions below are in score units */
     keySvg.style.transform = z !== 1 ? 'scale(' + z + ')' : '';
     var w = scoreEl.clientWidth / z, x = xAt(beat), hx = full ? X0 + 50 : Math.max(w * 0.36, X0 + 50);   /* full screen: the playhead at the left, just after the clef and key (Trix) */
     headEl.style.left = hx * z + 'px';
@@ -842,8 +842,8 @@
     var best = -1, bd = 28;
     noteEls.forEach(function (el, k) {
       if (!el) return;
-      var r = el.getBoundingClientRect(); if (!r.width) return;   /* in a hidden section */
-      var d = Math.abs(r.left + r.width / 2 - e.clientX); if (d < bd) { bd = d; best = k; }
+      var r = lrect(el); if (!r.width) return;   /* in a hidden section */
+      var d = Math.abs(r.left + r.width / 2 - (fsRot ? e.clientY : e.clientX)); if (d < bd) { bd = d; best = k; }   /* the page drawn turned: across is down the screen */
     });
     if (best < 0) return;
     var t = song.notes[best].t;
@@ -881,13 +881,33 @@
   /* full screen (Trix): the score takes the whole width and the fingerboard turns a quarter turn anticlockwise to
      fill the room between the score and the controls, every note in view (no scrolling). The browser's own full
      screen too where there is one (not on iPhone, where the page alone rearranges). */
-  var full = false, fullBtn = $('mpFull'), shellEl = document.getElementById('shell') || document.body;
+  var full = false, fsShort = false, fsRot = false, fullBtn = $('mpFull'), shellEl = document.getElementById('shell') || document.body;
+  /* a phone (Trix): full screen is sideways. Android turns the screen (Chrome: an orientation lock; the Android app:
+     its VTApp bridge); where nothing can turn it (iPhone) the page itself is drawn a quarter turn clockwise while
+     the phone is upright, to be read with the phone on its side. Leaving full screen goes back upright. */
+  function phone() { return Math.min(screen.width || 0, screen.height || 0) < 600; }
+  /* a box in the shell's own (unturned) coordinates: what fixed elements inside the turned shell are placed by */
+  function lrect(el) {
+    var r = el.getBoundingClientRect();
+    if (!fsRot) return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+    var vw = innerWidth;
+    return { left: r.top, right: r.bottom, top: vw - r.right, bottom: vw - r.left, width: r.height, height: r.width };
+  }
   function fsBox() {
-    var sb = scoreEl.getBoundingClientRect(), bb = bar.getBoundingClientRect(), vw = document.documentElement.clientWidth || innerWidth;
+    var sb = lrect(scoreEl), bb = lrect(bar), vw = fsRot ? innerHeight : (document.documentElement.clientWidth || innerWidth);
     var L = sb.left, T = sb.bottom + 10;   /* the score's own left and right edges (Trix: the right sides lined up) */
-    return { L: L, T: T, W: Math.max(160, Math.min(sb.width, vw - L)), H: Math.max(100, bb.top - 10 - T) };
+    return { L: L, T: T, W: Math.max(160, Math.min(sb.width, vw - L)), H: Math.max(60, bb.top - 10 - T) };
   }
   function fsEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function lockSide(on) {
+    try { if (window.VTApp && VTApp.landscape) VTApp.landscape(!!on); } catch (e) {}   /* the Android app */
+    try {
+      var so = screen.orientation;
+      if (!so) return;
+      if (on && so.lock) { var p = so.lock('landscape'); if (p && p.catch) p.catch(function () {}); }
+      else if (!on && so.unlock) so.unlock();
+    } catch (e) {}
+  }
   function setFull(on) {
     if (on === full) return;
     full = on;
@@ -896,20 +916,34 @@
     fullBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen'); fullBtn.title = fullBtn.getAttribute('aria-label');
     var de = document.documentElement;
     try {
-      if (on && !fsEl()) { var r = (de.requestFullscreen || de.webkitRequestFullscreen || function () {}).call(de); if (r && r.catch) r.catch(function () {}); }
-      else if (!on && fsEl()) { var x = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if (x && x.catch) x.catch(function () {}); }
+      if (on && !fsEl()) {
+        var r = (de.requestFullscreen || de.webkitRequestFullscreen || function () {}).call(de);
+        if (phone()) { if (r && r.then) r.then(function () { if (full) lockSide(true); }, function () { if (full) lockSide(true); }); else lockSide(true); }   /* Chrome locks only once full screen */
+      } else if (!on) {
+        if (phone()) lockSide(false);
+        if (fsEl()) { var x = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if (x && x.catch) x.catch(function () {}); }
+      }
     } catch (e) {}
     window.scrollTo(0, 0);
+    fsCheck();
     scroll();
     if (shown) { fit(); requestAnimationFrame(function () { if (shown) fit(); }); setTimeout(function () { if (shown) fit(); }, 350); }   /* again once the browser has gone full screen */
   }
-  /* only on a computer or an iPad (Trix), not on a phone: a screen at least 600 px on its short side */
-  fullBtn.hidden = Math.min(screen.width || 0, screen.height || 0) < 600;
+  function fsCheck() {
+    var rot = full && phone() && innerWidth < innerHeight;   /* still upright: draw the page turned */
+    if (rot !== fsRot) { fsRot = rot; shellEl.classList.toggle('mp-fs-rot', rot); }
+    if (rot) { shellEl.style.setProperty('--rw', innerHeight + 'px'); shellEl.style.setProperty('--rh', innerWidth + 'px'); }
+    var sh = full && (rot ? innerWidth : innerHeight) < 560;   /* a phone on its side: the compact layout */
+    if (sh !== fsShort) { fsShort = sh; shellEl.classList.toggle('mp-fs-short', sh); }
+    scroll();
+  }
+  fsCheck();
+  window.addEventListener('resize', function () { fsCheck(); if (full && shown) fit(); });
+  window.addEventListener('orientationchange', function () { setTimeout(function () { fsCheck(); if (full && shown) fit(); }, 250); });
   fullBtn.addEventListener('click', function () { setFull(!full); });
   ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (ev) {
     document.addEventListener(ev, function () { if (!fsEl() && full) setFull(false); else if (shown) setTimeout(fit, 50); });   /* left with Esc or Back */
   });
-  window.addEventListener('resize', function () { if (full && shown) fit(); });
   APP.views.midi = {
     show: function () { shown = true; fit(); },
     hide: function () { setFull(false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }
