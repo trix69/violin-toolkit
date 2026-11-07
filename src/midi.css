@@ -158,3 +158,6 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 #mpFull { position: absolute; z-index: 4; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
 .shell:not([data-view="midi"]) #mpFull { display: none; }
 .shell.mp-fs #mpFull { position: fixed; z-index: 31; }
+/* Exit with a phone on its side (Trix): the upright page drawn turned (size and turn set by midi.js), until the
+   phone is upright */
+.shell.mp-up-rot { position: fixed; top: 0; left: 0; box-sizing: border-box; overflow: auto; -webkit-overflow-scrolling: touch; background: var(--bg); transform-origin: 0 0; padding-top: 8px; }

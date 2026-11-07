@@ -931,6 +931,20 @@
     } catch (e) {}
     fsCheck();
   }
+  /* Exit with a phone still on its side (Trix): the page goes back to its upright layout, drawn turned to match the
+     phone (the browser cannot turn the screen), so it reads once the phone is upright; turned sideways again, full
+     screen again. upRot: the quarter turn the page is drawn at (-90 or 90), 0 when not */
+  var upRot = 0;
+  function setUp(a) {
+    upRot = a;
+    var st = shellEl.style;
+    shellEl.classList.toggle('mp-up-rot', !!a); document.documentElement.classList.toggle('mp-fs-on', !!a || full);
+    if (a) {
+      st.width = innerHeight + 'px'; st.height = innerWidth + 'px';
+      st.transform = a < 0 ? 'translateY(' + innerHeight + 'px) rotate(-90deg)' : 'translateX(' + innerWidth + 'px) rotate(90deg)';
+    } else st.width = st.height = st.transform = '';
+    if (shown) setTimeout(fit, 0);
+  }
   var fsAuto = false;   /* entered by turning the phone: no lock, so turning it upright again can leave */
   /* fit now and again while the screen settles: a phone turning, or the browser going full screen, reports its new
      size late (Trix: turned into full screen on an iPhone, the board did not fill the width) */
@@ -957,12 +971,14 @@
       }
     } catch (e) {}
     window.scrollTo(0, 0);
+    if (!on && phone() && innerWidth > innerHeight) setUp(window.orientation === -90 ? 90 : -90);   /* phone turned counter-clockwise (90): its top is on the left */
+    if (on && upRot) setUp(0);
     fsCheck();
     scroll();
     if (shown) refitSoon();
   }
   function fsCheck() {
-    fullBtn.hidden = full && phone() && innerWidth > innerHeight && !sideLocked;   /* a phone on its side stays full screen: turn it upright to leave (Trix: Exit there gave a broken layout); kept while the screen is locked sideways (Android, from the button) */
+    if (upRot && (innerWidth <= innerHeight || full)) setUp(0);   /* turned upright (or full screen again): the real upright page */
     var rot = full && phone() && innerWidth < innerHeight;   /* still upright: draw the page turned */
     if (rot !== fsRot) { fsRot = rot; shellEl.classList.toggle('mp-fs-rot', rot); }
     if (rot) { shellEl.style.setProperty('--rw', innerHeight + 'px'); shellEl.style.setProperty('--rh', innerWidth + 'px'); }
