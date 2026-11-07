@@ -1211,6 +1211,8 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-lang="en">English</button>
       <button type="button" role="radio" aria-checked="false" data-lang="zh">中文</button>
     </div>
+    <h3 id="lblOff">Offline</h3>
+    <button type="button" class="howto-btn" id="openHowto" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 8v6m0 0l-2.5-2.5M12 14l2.5-2.5"/><path d="M11 18.5h2"/></svg><span>Use offline on your phone</span></button>
     <h3 id="lblNames">Note names</h3>
     <div class="segc two" role="radiogroup" aria-labelledby="lblNames" id="segNames">
       <button type="button" role="radio" aria-checked="false" data-names="letter">Pitch names</button>
@@ -1254,8 +1256,6 @@ markup = f"""
     <button type="button" class="howto-btn" id="openUsage" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
-    <h3 id="lblOff">Offline</h3>
-    <button type="button" class="howto-btn" id="openHowto" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 8v6m0 0l-2.5-2.5M12 14l2.5-2.5"/><path d="M11 18.5h2"/></svg><span>Use offline on your phone</span></button>
     <div class="pair">
       <div>
       <h3 id="lblStar">Like this app?</h3>
