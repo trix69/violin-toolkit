@@ -679,7 +679,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
         var was = renderedEvenly; evenly = false; renderedEvenly = false; if (was !== false) render();
         /* the closest two notes shown on a string, as they sit (Just / Pythagorean move them a little), up to the
            highest one the board's length can show (the grey extras too) */
-        var lenMax = N <= 7 ? mm(7) / 0.75 : mm(N) / 0.9, g0 = Infinity;
+        var lenMax = N <= 7 ? mm(10.75) : mm(N) / 0.9, g0 = Infinity;
         notes.forEach(function (nt, i) {
           var pv = notes[i - 1];
           if (!pv || pv.s !== nt.s || nt.n > TOPN || mm(nt.n) > lenMax) return;
@@ -696,7 +696,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
         };
         /* the notes spread across the width, to scale (Trix): open string to the 4th finger (1st position) over
            75% of it; a tune that climbs higher, open string to its highest note over 90% */
-        boxLen = N <= 7 ? mm(7) / 0.75 : mm(N) / 0.9;
+        boxLen = N <= 7 ? mm(10.75) : mm(N) / 0.9;   /* 1st-position tune: room on the E string up to D (n 10) after the 4th finger (Trix); open to 4th finger ~72% */
         var sv = solve(boxLen);
         K = sv[0]; r = Math.floor(sv[1]);
         /* the rest of the board's length gets more notes, grey (Trix: a tune up to the 4th finger left it empty) */
