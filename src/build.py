@@ -317,6 +317,7 @@ html[lang="zh-CN"] {
 .usage dd { margin: 4px 0 0; font: 600 19px/1.2 var(--font-note); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .support { display: flex; align-items: center; gap: 14px; }
 /* "Like this app?" and "Support" side by side on phones; stacked on desktop where the QR code shows */
+.pair[hidden] { display: none; }
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pair .howto-btn, .pair .support-btn { gap: 6px; padding: 0 6px; font-size: 14px; white-space: nowrap; }
 .support-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border: 1px solid var(--line); border-radius: 12px; color: var(--fg); text-decoration: none; font: 500 15px var(--font-note); }
@@ -843,6 +844,9 @@ nav_js = """(function () {
   var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  /* the store apps (Google Play, iPhone): no outbound GitHub / support links (store review: minimum functionality,
+     payments); the website and the downloaded APK keep them (Trix, via Hermes) */
+  if (window.VTPlay || window.VTiOSApp) document.getElementById('linkPair').hidden = true;
   if (window.VTPlay) { document.getElementById('lblUpd').hidden = true; document.getElementById('segUpd').hidden = true; }   /* Google Play updates the Play install itself */
   if (standalone || location.hostname === 'appassets.androidplatform.net' || window.VTiOSApp) { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }   /* installed, the offline Android app, or the iPhone app (iOS/: sets window.VTiOSApp) */
   function showDev(d) {
@@ -1291,7 +1295,7 @@ markup = f"""
     <button type="button" class="howto-btn" id="openUsage" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
-    <div class="pair">
+    <div class="pair" id="linkPair">
       <div>
       <h3 id="lblStar">Like this app?</h3>
       <a class="howto-btn" href="https://github.com/trix69/violin-toolkit" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg><span>Star on GitHub</span></a>
