@@ -481,25 +481,14 @@
       fingers(unit);
       i = j;
     }
-    /* open string or 4th finger for the open D, A and E (Trix, the usual rule): going up next, the open string;
-       going down, staying on the same note, or at the end, the 4th finger on the string below; and a long note
-       (a minim or longer, where vibrato is wanted) always the 4th finger. Single notes only; chords keep theirs. */
-    /* onsets as units: [first index, end index] */
-    var units = [];
-    for (var u0 = 0; u0 < notes.length; ) { var u1 = u0; while (u1 < notes.length && Math.abs(notes[u1].b - notes[u0].b) < 1e-6) u1++; units.push([u0, u1]); u0 = u1; }
-    function single(q) { var un = units[q]; return un && un[1] - un[0] === 1 ? notes[un[0]] : null; }
-    function topM(q) { var un = units[q], m = -1; for (var z = un[0]; z < un[1]; z++) m = Math.max(m, notes[z].m); return m; }
-    for (var q = 0; q < units.length; ) {
-      var one = single(q), k4 = one ? OPEN.indexOf(one.m) : -1;
-      if (!one || k4 <= 0 || one.si !== k4) { q++; continue; }
-      /* a run of the same note repeated stays on one string, decided by the note after the run */
-      var r = q, long = false; while (single(r) && single(r).m === one.m && single(r).si === k4) { if (single(r).len >= 2) long = true; r++; }
-      var nextM = r < units.length ? topM(r) : null;
-      if (long || nextM === null || nextM < one.m) for (var z = q; z < r; z++) { single(z).si = k4 - 1; single(z).fg = 4; }
-      q = r;
-    }
+    /* string, position and finger for single notes (Trix, 2026-11-08): the cheapest way through each phrase,
+       as teachers finger and as fingering programs do it. Every possible (string, position, finger) gets a small
+       cost, every move from one note to the next another (shifts, string crossings), and the path with the
+       least total wins (Viterbi). Chords keep the choice above; fingerings written in the score are fixed. */
+    planFingers(notes, tpq);
     /* fingerings and string numbers written in the score (MusicXML) win over the automatic choice (Trix) */
     notes.forEach(function (n) {
+      n.asi = n.si; n.afg = n.fg;   /* the automatic choice, kept for checking it against written fingerings */
       var s0 = -1;
       if (n.xs) { s0 = 4 - n.xs; if (n.m < OPEN[s0] || n.m > OPEN[s0] + 19) s0 = -1; }   /* string 1 = E ... 4 = G */
       else if (n.xfg !== undefined) s0 = strForFinger(n.m, n.xfg);
@@ -564,6 +553,115 @@
       var k = n.m - OPEN[n.si], d = k - p[0];
       n.fg = k === 0 ? 0 : d <= 1 ? 1 : d <= 3 ? 2 : d <= 5 ? 3 : 4;
     });
+  }
+  /* positions by the 1st finger's usual note, in semitones above the open string (A string: 1st B, 2nd C♯,
+     3rd D, 4th E, 5th F♯, 6th G, 7th A, 8th B, 9th C) */
+  var POS_S = [2, 4, 5, 7, 9, 10, 12, 14, 15];
+  var FG_COST = {
+    four: 0.6,        /* the 4th finger: the weakest */
+    high4: 1.6,       /* a 4th finger a semitone higher than usual (high 4, a stretch) */
+    ext: 3.5,         /* the 4th finger stretched a tone further */
+    pos: [0, 1.5, 0.6, 0.9, 1.2, 1.4, 1.6, 1.8, 2],   /* per note, by position: 1st free, 3rd before 2nd (Trix's rule) */
+    lowHigh: 6,       /* G or D string above 3rd position */
+    openLong: 0.3,    /* an open string on a long note (no vibrato): small; teachers write 0 on long beginner notes */
+    cross: 1, skip: 2.5,          /* string crossing; per extra string skipped */
+    slurCross: 0.6,               /* extra for a crossing inside a slur */
+    shift: 2.2, shiftStep: 0.5,   /* a shift, plus per position moved */
+    shiftHard: 2,                 /* x: on fast notes or inside a slur */
+    shiftEasy: 0.3,               /* x: after or on an open string, after a rest or a long note */
+    drone: 2                      /* an open-string note that comes back every other note (a drone, bariolage: Bagpipes) */
+  };
+  /* the fingered ways to play pitch m: [{si, p (position index), fg, c (cost)}], plus the open string */
+  function waysFor(n) {
+    var out = [];
+    for (var si = 0; si < 4; si++) {
+      var k = n.m - OPEN[si];
+      if (k < 0 || k > 22) continue;
+      var blind = window.VT_FG_BLIND;   /* test: ignore what is written, to compare the plan with it */
+      if (n.xs && !blind && 4 - n.xs !== si) continue;   /* a written string number */
+      if (k === 0) { if (blind || n.xfg === undefined || n.xfg === 0) out.push({ si: si, p: -1, fg: 0, c: 0 }); continue; }
+      for (var p = 0; p < POS_S.length; p++) {
+        var d = k - POS_S[p];
+        if (d < -1 || d > 7) continue;
+        var fg = d <= 0 ? 1 : d <= 2 ? 2 : d <= 4 ? 3 : 4;
+        if (!blind && n.xfg !== undefined && n.xfg !== fg) continue;   /* a written finger */
+        var c = FG_COST.pos[p] + (fg === 4 ? FG_COST.four : 0) + (d === 6 ? FG_COST.high4 : 0) + (d === 7 ? FG_COST.ext : 0);
+        if (si <= 1 && p > 2) c += FG_COST.lowHigh;
+        out.push({ si: si, p: p, fg: fg, c: c });
+      }
+    }
+    return out;
+  }
+  function planFingers(notes, tpq) {
+    /* onsets as units; only single notes are planned, a chord is a fixed point (its top note's string/position) */
+    var units = [];
+    for (var u0 = 0; u0 < notes.length; ) { var u1 = u0; while (u1 < notes.length && Math.abs(notes[u1].b - notes[u0].b) < 1e-6) u1++; units.push(notes.slice(u0, u1)); u0 = u1; }
+    var slurDepth = 0, inSlur = [];   /* inSlur[q]: units q and q+1 are joined by a slur */
+    units.forEach(function (un, q) {
+      un.forEach(function (n) { (n.slur || []).forEach(function (sl) { slurDepth += sl.t === 'start' ? 1 : sl.t === 'stop' ? -1 : 0; }); });
+      slurDepth = Math.max(0, slurDepth); inSlur[q] = slurDepth > 0;
+    });
+    var NP = POS_S.length;
+    /* states per unit: {si, p, fg, c, n}; an open string keeps the hand where it is (one state per position) */
+    var states = units.map(function (un, q) {
+      var top = un.reduce(function (a, b) { return b.m > a.m ? b : a; });
+      if (un.length > 1 || top.harm) {   /* chord or harmonic: as chosen already */
+        /* the lowest position that reaches every stopped note of the chord */
+        var ks = un.filter(function (n) { return n.si >= 0 && n.m > OPEN[n.si]; }).map(function (n) { return n.m - OPEN[n.si]; }), pp = -1;
+        for (var z = 0; z < NP && pp < 0; z++) if (ks.every(function (k) { return k >= POS_S[z] - 1 && k <= POS_S[z] + 7; })) pp = z;
+        if (pp < 0) pp = ks.length ? NP - 1 : 0;
+        var k = ks.length ? 1 : 0;
+        return [{ si: top.si, p: k === 0 || top.harm ? -1 : pp, fg: top.fg, c: 0, fixed: true }];
+      }
+      var w = waysFor(top);
+      if (!w.length) return [{ si: top.si, p: -1, fg: top.fg, c: 0, fixed: true }];   /* out of reach: as before */
+      var next = units[q + 1], dur = top.e - top.t, last = !next;
+      var res = [];
+      w.forEach(function (s) {
+        if (s.fg === 0) {
+          var oc = (dur >= 0.8 ? FG_COST.openLong : 0) + (last ? FG_COST.openLong : 0);
+          /* a drone: the same open-string note two notes before or after, with another open string between */
+          var sm = function (z) { var u = units[z]; return u && u.length === 1 ? u[0].m : -1; };
+          var otherOpen = function (z) { var m = sm(z); return m !== top.m && OPEN.indexOf(m) >= 0; };
+          if ((sm(q - 2) === top.m && otherOpen(q - 1)) || (sm(q + 2) === top.m && otherOpen(q + 1))) oc -= FG_COST.drone;
+          for (var hp = 0; hp < NP; hp++) res.push({ si: s.si, p: hp, open: true, fg: 0, c: oc + (hp ? 0.05 * hp : 0) });
+        } else res.push(s);
+      });
+      return res;
+    });
+    /* transition cost between unit q (state a) and q+1 (state b) */
+    function move(q, a, b) {
+      var c = 0, A = units[q][0], B = units[q + 1][0];
+      if (a.si >= 0 && b.si >= 0 && a.si !== b.si) {
+        var ds = Math.abs(a.si - b.si);
+        c += FG_COST.cross + (ds - 1) * FG_COST.skip + (inSlur[q] ? FG_COST.slurCross : 0);
+      }
+      var pa = a.p, pb = b.p;
+      if (pa >= 0 && pb >= 0 && pa !== pb) {
+        var gap = B.t - A.e, ioi = B.t - A.t, sh = FG_COST.shift + FG_COST.shiftStep * Math.abs(pa - pb);
+        if (a.open || b.open || gap > 0.15 || A.e - A.t >= 0.6) sh *= FG_COST.shiftEasy;
+        else if (ioi < 0.25 || inSlur[q]) sh *= FG_COST.shiftHard;
+        c += sh;
+      }
+      return c;
+    }
+    /* Viterbi */
+    var cost = states[0].map(function (s) { return s.c; }), back = [null];
+    for (var q = 1; q < units.length; q++) {
+      var cur = states[q], prev = states[q - 1], nc = [], bk = [];
+      cur.forEach(function (b, j) {
+        var best = Infinity, bi = 0;
+        prev.forEach(function (a, i) { var v = cost[i] + move(q - 1, a, b); if (v < best) { best = v; bi = i; } });
+        nc[j] = best + b.c; bk[j] = bi;
+      });
+      cost = nc; back.push(bk);
+    }
+    var j = 0; for (var i = 1; i < cost.length; i++) if (cost[i] < cost[j]) j = i;
+    for (q = units.length - 1; q >= 0; q--) {
+      var st = states[q][j];
+      if (!st.fixed) { var n = units[q][0]; n.si = st.si; n.fg = st.fg; }
+      if (q > 0) j = back[q][j];
+    }
   }
   function restSvg(r, x) {
     var v = r.whole ? 4 : r.v, base = v === 3 ? 2 : v === 1.5 ? 1 : v === 0.75 ? 0.5 : v, dot = base !== v, out;
