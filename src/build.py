@@ -276,6 +276,7 @@ html[lang="zh-CN"] {
 .sheet-card h2 { margin: 0 0 14px; font: 700 24px/1.1 var(--font-display); letter-spacing: -0.02em; }
 .sheet-card h3 { margin: 14px 0 8px; font: 500 12px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .sheet-card h3 .nc { text-transform: none; }   /* a note name keeps its own case: La4, not LA4 */
+.segc[hidden] { display: none; }
 .segc { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .segc button { height: 42px; border: 0; background: transparent; color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
 .segc button + button { border-left: 1px solid var(--line); }
@@ -842,6 +843,7 @@ nav_js = """(function () {
   var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  if (window.VTPlay) { document.getElementById('lblUpd').hidden = true; document.getElementById('segUpd').hidden = true; }   /* Google Play updates the Play install itself */
   if (standalone || location.hostname === 'appassets.androidplatform.net' || window.VTiOSApp) { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }   /* installed, the offline Android app, or the iPhone app (iOS/: sets window.VTiOSApp) */
   function showDev(d) {
     Array.prototype.forEach.call(segDev.children, function (b) { b.setAttribute('aria-checked', b.dataset.dev === d ? 'true' : 'false'); });
@@ -932,6 +934,9 @@ nav_js = """(function () {
     var APK = location.hostname === 'appassets.androidplatform.net';
     var IOSAPP = !!window.VTiOSApp;   /* the iPhone app (iOS/ WKWebView, page from the app bundle): no service worker either; it only says whether a newer version exists (Trix: it reloaded to the start screen) */
     var APK_URL = 'https://trix69.github.io/violin-toolkit/apk/violin-toolkit-android.apk';
+    /* the Google Play install (Android/wrapper/build.sh marks the .aab page): Play updates it, so no popup and no APK
+       download (Play policy); Check for updates opens the app's Play page (Trix) */
+    var PLAY = APK && !!window.VTPlay, PLAY_URL = 'https://play.google.com/store/apps/details?id=io.github.trix69.violintoolkit';
     function num(v) { var p = String(v).split('.'); return +p[0] * 100 + +((p[1] || '0') + '0').slice(0, 2); }
     function say(t) { msg.textContent = t; }
     function swapIn(reg) {
@@ -972,6 +977,7 @@ nav_js = """(function () {
     btn.addEventListener('click', function () {
       if (busy) return;
       var sw = navigator.serviceWorker;
+      if (PLAY) { say('Updates come from Google Play'); location.href = PLAY_URL; return; }
       if (!APK && !IOSAPP && (!sw || !sw.controller)) { location.reload(); return; }
       busy = true; say('Checking…');
       newer().then(function (j) {
@@ -991,7 +997,7 @@ nav_js = """(function () {
     var pending = null, offered = '', lastCheck = 0, updOpener = null;
     function autoCheck() {
       var sw = navigator.serviceWorker;
-      if (!APP.autoUpd || busy || IOSAPP || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
+      if (!APP.autoUpd || busy || IOSAPP || PLAY || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
       lastCheck = Date.now();
       newer().then(function (j) { if (j && (j.build || j.version) !== offered) ask(j); }).catch(function () { lastCheck = 0; });
     }
