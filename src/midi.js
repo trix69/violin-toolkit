@@ -1146,16 +1146,30 @@
     songSel.focus();
   });
   songSel.addEventListener('change', function () { load(+songSel.value); });
-  /* iPhone / iPad (Safari and the app): the file picker greys out types iOS does not know (.mxl, .musicxml), so
-     there any file can be chosen; the reader says when it is not MIDI or MusicXML (Trix) */
-  if (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || window.VTiOSApp) fileIn.removeAttribute('accept');
-  $('mpImport').addEventListener('click', function () { fileIn.value = ''; fileIn.click(); });
+  /* only MIDI and MusicXML files (Trix). iPhone / iPad Safari greys out types iOS does not know (.mxl), so there the
+     picker shows every file and a wrong one is turned away here; the iPhone app has its own picker with just these */
+  var OK_EXT = /\.(mid|midi|musicxml|xml|mxl)$/i;
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) fileIn.removeAttribute('accept');
+  $('mpImport').addEventListener('click', function () {
+    if (window.VTiOSApp && window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt) { webkit.messageHandlers.vt.postMessage({ pick: true }); return; }
+    fileIn.value = ''; fileIn.click();
+  });
+  /* the iPhone app hands the chosen file over as base64 */
+  window.VTImport = function (fname, b64) {
+    try { var bin = atob(b64), u = new Uint8Array(bin.length); for (var k = 0; k < bin.length; k++) u[k] = bin.charCodeAt(k); importBytes(fname, u.buffer); }
+    catch (e) { console.error('MIDI import: app', e); say('This file could not be read.', true); }
+  };
   fileIn.addEventListener('change', function () {
     var f = fileIn.files && fileIn.files[0];
     if (!f) return;
     var rd = new FileReader();
-    rd.onload = function () {
-      var name = f.name.replace(/\.(mid|midi|smf|musicxml|xml|mxl)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6), raw = rd.result;
+    rd.onload = function () { importBytes(f.name, rd.result); };
+    rd.onerror = function () { console.error('MIDI import: read', rd.error); say('This file could not be read.', true); };   /* the reason, for the console (Hermes F16) */
+    rd.readAsArrayBuffer(f);
+  });
+  function importBytes(fname, raw) {
+      if (!OK_EXT.test(fname)) { say('Choose a MIDI or MusicXML file (.mid, .midi, .musicxml, .xml or .mxl).', true); return; }
+      var name = fname.replace(/\.(mid|midi|smf|musicxml|xml|mxl)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       /* a .mxl is a zip: its score first (MusicXML, Trix) */
       (isZip(new Uint8Array(raw)) ? unzipScore(raw) : Promise.resolve(raw)).then(function (buf) {
         var i;
@@ -1187,10 +1201,7 @@
           say('This file plays now, but there is no room to keep it for next time.', true);
         });
       }).catch(function (e) { if (!e.mine) console.error('MIDI import: unzip', e); say(e.mine ? e.message : 'This file could not be read.', true); });
-    };
-    rd.onerror = function () { console.error('MIDI import: read', rd.error); say('This file could not be read.', true); };   /* the reason, for the console (Hermes F16) */
-    rd.readAsArrayBuffer(f);
-  });
+  }
 
   /* the mixer: a small panel above the controls with Violin and Accompaniment sliders */
   var mixBtn = $('mpMix'), mixPop = $('mpMixPop'), volV = $('mpVolV'), volA = $('mpVolA'), volM = $('mpVolM');
