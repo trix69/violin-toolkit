@@ -931,7 +931,7 @@ nav_js = """(function () {
        worker, so it cannot update itself: it checks the website's version and offers the new APK instead (Trix) */
     var APK = location.hostname === 'appassets.androidplatform.net';
     var IOSAPP = !!window.VTiOSApp;   /* the iPhone app (iOS/ WKWebView, page from the app bundle): no service worker either; it only says whether a newer version exists (Trix: it reloaded to the start screen) */
-    var APK_URL = 'https://github.com/trix69/violin-toolkit/releases/latest/download/violin-toolkit-android.apk';
+    var APK_URL = 'https://trix69.github.io/violin-toolkit/apk/violin-toolkit-android.apk';
     function num(v) { var p = String(v).split('.'); return +p[0] * 100 + +((p[1] || '0') + '0').slice(0, 2); }
     function say(t) { msg.textContent = t; }
     function swapIn(reg) {
@@ -1313,7 +1313,7 @@ markup = f"""
     </div>
     <div id="howtoApk" hidden>   <!-- Android: the app first (Trix), Chrome as the fallback below -->
       <p class="howto-note">Install the Android app: it carries the whole toolkit and works offline from the start.</p>
-      <a class="howto-btn apk-btn" id="apkLink" href="https://github.com/trix69/violin-toolkit/releases/latest/download/violin-toolkit-android.apk" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4"/></svg>Download the Android app (APK)</a>
+      <a class="howto-btn apk-btn" id="apkLink" href="https://trix69.github.io/violin-toolkit/apk/violin-toolkit-android.apk" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4"/></svg>Download the Android app (APK)</a>
       <p class="howto-sub">Android will ask you to allow installs from your browser (Install unknown apps). Then open the downloaded file and tap Install.</p>
     </div>
     <p class="howto-alt" id="howtoAlt" hidden>If the app won’t install, add the website from Chrome instead:</p>
