@@ -1204,6 +1204,7 @@ html[lang="zh-CN"] {
 .sheet-card h2 { margin: 0 0 14px; font: 700 24px/1.1 var(--font-display); letter-spacing: -0.02em; }
 .sheet-card h3 { margin: 14px 0 8px; font: 500 12px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .sheet-card h3 .nc { text-transform: none; }   /* a note name keeps its own case: La4, not LA4 */
+.segc[hidden] { display: none; }
 .segc { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .segc button { height: 42px; border: 0; background: transparent; color: var(--fg); font: 500 15px var(--font-note); cursor: pointer; }
 .segc button + button { border-left: 1px solid var(--line); }
@@ -1942,7 +1943,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.39" data-build="20261108-202501" data-cache="violin-toolkit-"><span>Version 1.39</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.40" data-build="20261108-210107" data-cache="violin-toolkit-"><span>Version 1.40</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -1957,7 +1958,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     </div>
     <div id="howtoApk" hidden>   <!-- Android: the app first (Trix), Chrome as the fallback below -->
       <p class="howto-note">Install the Android app: it carries the whole toolkit and works offline from the start.</p>
-      <a class="howto-btn apk-btn" id="apkLink" href="https://github.com/trix69/violin-toolkit/releases/latest/download/violin-toolkit-android.apk" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4"/></svg>Download the Android app (APK)</a>
+      <a class="howto-btn apk-btn" id="apkLink" href="https://trix69.github.io/violin-toolkit/apk/violin-toolkit-android.apk" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4"/></svg>Download the Android app (APK)</a>
       <p class="howto-sub">Android will ask you to allow installs from your browser (Install unknown apps). Then open the downloaded file and tap Install.</p>
     </div>
     <p class="howto-alt" id="howtoAlt" hidden>If the app won’t install, add the website from Chrome instead:</p>
@@ -5979,6 +5980,7 @@ function noteGate() {
   var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  if (window.VTPlay) { document.getElementById('lblUpd').hidden = true; document.getElementById('segUpd').hidden = true; }   /* Google Play updates the Play install itself */
   if (standalone || location.hostname === 'appassets.androidplatform.net' || window.VTiOSApp) { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }   /* installed, the offline Android app, or the iPhone app (iOS/: sets window.VTiOSApp) */
   function showDev(d) {
     Array.prototype.forEach.call(segDev.children, function (b) { b.setAttribute('aria-checked', b.dataset.dev === d ? 'true' : 'false'); });
@@ -6068,7 +6070,10 @@ function noteGate() {
        worker, so it cannot update itself: it checks the website's version and offers the new APK instead (Trix) */
     var APK = location.hostname === 'appassets.androidplatform.net';
     var IOSAPP = !!window.VTiOSApp;   /* the iPhone app (iOS/ WKWebView, page from the app bundle): no service worker either; it only says whether a newer version exists (Trix: it reloaded to the start screen) */
-    var APK_URL = 'https://github.com/trix69/violin-toolkit/releases/latest/download/violin-toolkit-android.apk';
+    var APK_URL = 'https://trix69.github.io/violin-toolkit/apk/violin-toolkit-android.apk';
+    /* the Google Play install (Android/wrapper/build.sh marks the .aab page): Play updates it, so no popup and no APK
+       download (Play policy); Check for updates opens the app's Play page (Trix) */
+    var PLAY = APK && !!window.VTPlay, PLAY_URL = 'https://play.google.com/store/apps/details?id=io.github.trix69.violintoolkit';
     function num(v) { var p = String(v).split('.'); return +p[0] * 100 + +((p[1] || '0') + '0').slice(0, 2); }
     function say(t) { msg.textContent = t; }
     function swapIn(reg) {
@@ -6109,6 +6114,7 @@ function noteGate() {
     btn.addEventListener('click', function () {
       if (busy) return;
       var sw = navigator.serviceWorker;
+      if (PLAY) { say('Updates come from Google Play'); location.href = PLAY_URL; return; }
       if (!APK && !IOSAPP && (!sw || !sw.controller)) { location.reload(); return; }
       busy = true; say('Checking…');
       newer().then(function (j) {
@@ -6128,7 +6134,7 @@ function noteGate() {
     var pending = null, offered = '', lastCheck = 0, updOpener = null;
     function autoCheck() {
       var sw = navigator.serviceWorker;
-      if (!APP.autoUpd || busy || IOSAPP || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
+      if (!APP.autoUpd || busy || IOSAPP || PLAY || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
       lastCheck = Date.now();
       newer().then(function (j) { if (j && (j.build || j.version) !== offered) ask(j); }).catch(function () { lastCheck = 0; });
     }
@@ -6502,7 +6508,7 @@ function noteGate() {
     'in tune': '音准正确', 'off the board': '超出指板',
     'no sharps or flats': '无升降号', 'no ♯ or ♭': '无升降号',
     /* metronome */
-    'Symbols': '符号', 'MIDI Player': 'MIDI 播放器', 'Play': '播放', 'Pause': '暂停', 'MIDI player': 'MIDI 播放器', 'Play a tune and watch it on the fingerboard': '播放乐曲，在指板上看指法', 'Import': '导入', 'Delete this file': '删除这个文件', 'This file plays now, but there is no room to keep it for next time.': '这个文件现在可以播放，但没有空间留到下次。', 'Tune': '曲目', 'Back to start': '回到开头', 'Loop': '循环', 'Mixer': '混音', 'Violin': '小提琴', 'Accompaniment': '伴奏', 'Violin volume': '小提琴音量', 'Accompaniment volume': '伴奏音量', 'Metronome volume': '节拍器音量', 'This tune has no accompaniment.': '这首曲子没有伴奏。', 'Full screen': '全屏', 'Exit full screen': '退出全屏', 'Tap the corner button on the fingerboard for full screen: a bigger score across the whole width and the fingerboard laid sideways, every note in view. On a phone, just turn it sideways and the player goes full screen by itself; turn it upright again to leave.': '点按指板角上的按钮进入全屏：乐谱更大、横跨整个宽度，指板横放，所有音符一览无余。在手机上，只要把手机横过来，播放器就会自动全屏；竖回来即可退出。', 'This is not a MIDI or MusicXML file.': '这不是 MIDI 或 MusicXML 文件。', 'This MusicXML file could not be read.': '无法读取这个 MusicXML 文件。', 'This browser can’t open compressed MusicXML (.mxl). Export the score as uncompressed MusicXML (.musicxml) instead.': '这个浏览器无法打开压缩的 MusicXML（.mxl）。请把乐谱导出为未压缩的 MusicXML（.musicxml）。', 'This file has no score in it.': '这个文件里没有乐谱。', 'This MusicXML file is in the timewise layout, which the player can’t read. Export it again as MusicXML from your notation app.': '这个 MusicXML 文件是按时间排列的格式，播放器无法读取。请在打谱软件中重新导出为 MusicXML。', 'This file could not be read.': '无法读取这个文件。', 'Repeat a passage (A–B)': '反复播放一段（A–B）', 'Repeat bars': '反复小节', 'From bar (A)': '从第几小节（A）', 'To bar (B)': '到第几小节（B）', 'Repeat': '反复', 'Cancel': '取消', 'Choose a MIDI or MusicXML file (.mid, .midi, .musicxml, .xml or .mxl).': '请选择 MIDI 或 MusicXML 文件（.mid、.midi、.musicxml、.xml 或 .mxl）。', 'Vibrato on long notes': '长音揉弦', 'Opening the score…': '正在打开乐谱…', 'Downloading this tune…': '正在下载这首曲子…', 'This tune downloads the first time you play it. Connect to the internet and choose it again.': '这首曲子第一次播放时需要下载。请连接网络后再选择一次。', 'Playback position': '播放进度', 'Twinkle, Twinkle, Little Star': '小星星', 'Ode to Joy': '欢乐颂', 'Canon': '卡农', 'In the Hall of the Mountain King': '在山魔王的宫殿里', 'Serenade': '小夜曲', 'Serenade, 1st movement': '小夜曲 · 第一乐章', 'Winter, 1st movement': '冬 · 第一乐章', 'This is not a MIDI file.': '这不是 MIDI 文件。', 'This MIDI file keeps time in a way the player can’t read.': '播放器无法读取这个 MIDI 文件的计时方式。', 'This file has no notes.': '这个文件里没有音符。', 'This file has only percussion.': '这个文件只有打击乐。', 'Multiple sound tracks detected. The MIDI player only supports MIDI files with a single violin solo track.': '检测到多个音轨。MIDI 播放器只支持仅含一个小提琴独奏音轨的 MIDI 文件。', 'Every note in this file is below the violin’s G string.': '这个文件的所有音符都低于小提琴的 G 弦。', 'This MIDI file could not be read.': '无法读取这个 MIDI 文件。', 'The tune was added, but it could not be shown. Choose it again from the list.': '乐曲已添加，但无法显示。请在列表中重新选择它。', 'Music symbols': '乐谱符号', 'Tap for the meaning': '点按查看含义', 'Look up music signs and what they mean': '查找乐谱符号及其含义', 'Search': '搜索', 'Search symbols': '搜索符号', 'No symbols match.': '没有匹配的符号。', 'Notes': '音符', 'Bowing': '弓法', 'Accidentals': '变音记号',
+    'Symbols': '符号', 'MIDI Player': 'MIDI 播放器', 'Play': '播放', 'Pause': '暂停', 'MIDI player': 'MIDI 播放器', 'Play a tune and watch it on the fingerboard': '播放乐曲，在指板上看指法', 'Import': '导入', 'Delete this file': '删除这个文件', 'This file plays now, but there is no room to keep it for next time.': '这个文件现在可以播放，但没有空间留到下次。', 'Tune': '曲目', 'Back to start': '回到开头', 'Loop': '循环', 'Mixer': '混音', 'Violin': '小提琴', 'Accompaniment': '伴奏', 'Violin volume': '小提琴音量', 'Accompaniment volume': '伴奏音量', 'Metronome volume': '节拍器音量', 'This tune has no accompaniment.': '这首曲子没有伴奏。', 'Full screen': '全屏', 'Exit full screen': '退出全屏', 'Tap the corner button on the fingerboard for full screen: a bigger score across the whole width and the fingerboard laid sideways, every note in view. On a phone, just turn it sideways and the player goes full screen by itself; turn it upright again to leave.': '点按指板角上的按钮进入全屏：乐谱更大、横跨整个宽度，指板横放，所有音符一览无余。在手机上，只要把手机横过来，播放器就会自动全屏；竖回来即可退出。', 'This is not a MIDI or MusicXML file.': '这不是 MIDI 或 MusicXML 文件。', 'This MusicXML file could not be read.': '无法读取这个 MusicXML 文件。', 'This browser can’t open compressed MusicXML (.mxl). Export the score as uncompressed MusicXML (.musicxml) instead.': '这个浏览器无法打开压缩的 MusicXML（.mxl）。请把乐谱导出为未压缩的 MusicXML（.musicxml）。', 'This file has no score in it.': '这个文件里没有乐谱。', 'This MusicXML file is in the timewise layout, which the player can’t read. Export it again as MusicXML from your notation app.': '这个 MusicXML 文件是按时间排列的格式，播放器无法读取。请在打谱软件中重新导出为 MusicXML。', 'This file could not be read.': '无法读取这个文件。', 'Repeat a passage (A–B)': '反复播放一段（A–B）', 'Repeat bars': '反复小节', 'From bar (A)': '从第几小节（A）', 'To bar (B)': '到第几小节（B）', 'Repeat': '反复', 'Cancel': '取消', 'Choose a MIDI or MusicXML file (.mid, .midi, .musicxml, .xml or .mxl).': '请选择 MIDI 或 MusicXML 文件（.mid、.midi、.musicxml、.xml 或 .mxl）。', 'Vibrato on long notes': '长音揉弦', 'Updates come from Google Play': '更新通过 Google Play 进行', 'Opening the score…': '正在打开乐谱…', 'Downloading this tune…': '正在下载这首曲子…', 'This tune downloads the first time you play it. Connect to the internet and choose it again.': '这首曲子第一次播放时需要下载。请连接网络后再选择一次。', 'Playback position': '播放进度', 'Twinkle, Twinkle, Little Star': '小星星', 'Ode to Joy': '欢乐颂', 'Canon': '卡农', 'In the Hall of the Mountain King': '在山魔王的宫殿里', 'Serenade': '小夜曲', 'Serenade, 1st movement': '小夜曲 · 第一乐章', 'Winter, 1st movement': '冬 · 第一乐章', 'This is not a MIDI file.': '这不是 MIDI 文件。', 'This MIDI file keeps time in a way the player can’t read.': '播放器无法读取这个 MIDI 文件的计时方式。', 'This file has no notes.': '这个文件里没有音符。', 'This file has only percussion.': '这个文件只有打击乐。', 'Multiple sound tracks detected. The MIDI player only supports MIDI files with a single violin solo track.': '检测到多个音轨。MIDI 播放器只支持仅含一个小提琴独奏音轨的 MIDI 文件。', 'Every note in this file is below the violin’s G string.': '这个文件的所有音符都低于小提琴的 G 弦。', 'This MIDI file could not be read.': '无法读取这个 MIDI 文件。', 'The tune was added, but it could not be shown. Choose it again from the list.': '乐曲已添加，但无法显示。请在列表中重新选择它。', 'Music symbols': '乐谱符号', 'Tap for the meaning': '点按查看含义', 'Look up music signs and what they mean': '查找乐谱符号及其含义', 'Search': '搜索', 'Search symbols': '搜索符号', 'No symbols match.': '没有匹配的符号。', 'Notes': '音符', 'Bowing': '弓法', 'Accidentals': '变音记号',
     'Quaver (eighth note)': '八分音符', 'Crotchet (quarter note)': '四分音符', 'Minim (half note)': '二分音符', 'Semibreve (whole note)': '全音符',
     '½ beat in 4/4': '4/4 拍中占半拍', '1 beat in 4/4': '4/4 拍中占 1 拍', '2 beats in 4/4': '4/4 拍中占 2 拍', '4 beats in 4/4': '4/4 拍中占 4 拍',
     'Up bow': '上弓', 'Push, tip to frog': '推弓：弓尖到弓根', 'Down bow': '下弓', 'Pull, frog to tip': '拉弓：弓根到弓尖',
