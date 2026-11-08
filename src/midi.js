@@ -985,7 +985,7 @@
   function ui() {
     var end = song ? song.end : 0;
     timeEl.textContent = fmt(pos / speed) + ' / ' + fmt(end / speed);
-    if (document.activeElement !== seek) seek.value = end ? Math.round(pos / end * 1000) : 0;
+    if (!seekDrag) seek.value = end ? Math.round(pos / end * 1000) : 0;   /* not while a finger or the mouse holds it (Trix: after a drag it kept focus and stopped moving) */
     speedEl.textContent = Math.round(speed * 100) + '%';
     bpmEl.textContent = song ? '♩ = ' + Math.round(song.bpm * speed) : '';
     playBtn.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play');
@@ -1327,6 +1327,12 @@
     mixPop.hidden = !open; mixBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) volV.focus();
   }
+  /* vibrato on the player's long notes (Trix): off by default; a note gets it once it has sounded ~0.3 s */
+  var vibBtn2 = $('mpVib'), pvib = false;
+  try { pvib = localStorage.getItem('violin-midi-vib') === 'on'; } catch (e) {}
+  function vibUi() { vibBtn2.setAttribute('aria-checked', pvib ? 'true' : 'false'); $('mpVibTxt').textContent = pvib ? 'On' : 'Off'; if (APP.board.playerVib) APP.board.playerVib(pvib); }
+  vibBtn2.addEventListener('click', function () { pvib = !pvib; try { localStorage.setItem('violin-midi-vib', pvib ? 'on' : 'off'); } catch (e) {} vibUi(); });
+  vibUi();
   function saveMix() { try { localStorage.setItem('violin-midi-mix', JSON.stringify(mix)); } catch (e) {} }
   mixBtn.addEventListener('click', function (e) { e.stopPropagation(); setMixOpen(mixPop.hidden); });
   volV.addEventListener('input', function () { mix.v = volV.value / 100; mixUi(); saveMix(); });
@@ -1443,6 +1449,9 @@
   }, true);
   $('mpFaster').addEventListener('click', function () { setSpeed(0.05); });
   seek.addEventListener('input', function () { if (song) seekTo(seek.value / 1000 * song.end); });
+  var seekDrag = false;
+  seek.addEventListener('pointerdown', function () { seekDrag = true; });
+  ['pointerup', 'pointercancel', 'blur'].forEach(function (ev) { (ev === 'blur' ? seek : window).addEventListener(ev, function () { seekDrag = false; }, true); });
   /* paused (or not started): tap a note on the score to jump there and see its fingering on the board; Play
      carries on from that note (Trix). The nearest note to the tap, within 28 px sideways. */
   scoreEl.addEventListener('click', function (e) {

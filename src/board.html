@@ -1276,9 +1276,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 
   /* ---------- Press and hold ---------- */
   var voices = new Map();
+  var playerVibOn = false;   /* the MIDI player's vibrato switch */
 
   function applyVib(rec) {
     /* the MIDI player plays without vibrato (Trix: it sounded noisy) */
+    if (rec.player) {   /* the MIDI player: its own switch (Trix), off by default; long notes only */
+      var pw = playerVibOn && !rec.open && rec.tone !== 'pure' && rec.tone !== 'pizz' && (performance.now() - rec.t0 >= 290);
+      if (pw !== rec.vibOn) { rec.vibOn = pw; if (rec.v && rec.v.vib) rec.v.vib(pw); }
+      return;
+    }
     var want = state.vibrato && !rec.player && state.pos !== 'pc' && !rec.open && !rec.latched && (performance.now() - rec.t0 >= 190);   /* a latched note plays steady, like a tuning fork */
     if (want !== rec.vibOn) {
       rec.vibOn = want;
@@ -1445,7 +1451,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       if (lvl && lvl !== 1) { var lg = ctx.createGain(); lg.gain.value = lvl; rec.v.out.connect(lg); lg.connect(soloOut()); }
       else rec.v.out.connect(soloOut());
     }
-    if (!quiet) rec.timer = setTimeout(function () { applyVib(rec); }, 200);
+    rec.tone = tone;
+    if (!quiet) rec.timer = setTimeout(function () { applyVib(rec); }, 300);
     if (el) {
       el.classList.remove('off');
       el.style.setProperty('--hue', 'var(' + nt.s.v + ')');
@@ -1515,6 +1522,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.09);
     },
     prime: function () { if (window.APP && APP.playThroughSilent) APP.playThroughSilent(); return !!ensureCtx(); },
+    playerVib: function (on) { playerVibOn = !!on; pvoices.forEach(function (r) { if (!r.v) return; applyVib(r); }); },
     soloVolume: function (v) { soloVol = v; if (soloBus) soloBus.gain.setTargetAtTime(v, soloBus.context.currentTime, 0.03); },
     audio: function () { return ensureCtx() ? { ctx: ctx, out: master } : null; },   /* for the accompaniment */
     where: function (midi) { return midi >= STRINGS[0].midi && midi <= STRINGS[3].midi + PTOP; },
