@@ -403,6 +403,11 @@
     var seenBar = {}; blist.forEach(function (b) { b.time = seenBar[b.num] = (seenBar[b.num] || 0) + 1; });
     blist.forEach(function (b) { b.rep = seenBar[b.num] > 1; });
     sg.bars = blist;
+    sg.barAt = function (beat) {   /* the bar under a beat, in playing order (a repeated bar knows which time round it is) */
+      var r = blist[0] || null;
+      for (var i = 0; i < blist.length && blist[i].beat <= beat + 1e-6; i++) r = blist[i];
+      return r;
+    };
     sg.barNo = function (beat) {
       if (!bl) return String(Math.floor((Math.max(0, beat) + sg.skipB) / barQ + 1e-6) + 1);
       var n = bl.length ? bl[0].num : '1';
@@ -853,7 +858,7 @@
     var beat = counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar */
     var z = full ? (fsShort ? 0.8 : 1.4) : 1;   /* full screen: the score larger, easier to read (Trix); a phone on its side: smaller, for room; positions below are in score units */
     keySvg.style.transform = z !== 1 ? 'scale(' + z + ')' : '';
-    var bn = song.barNo ? song.barNo(counting ? countBase : Math.max(beat, 0)) : '';   /* counting in: the bar it leads into */   /* the bar under the playhead (Trix) */
+    var bo = song.barAt ? song.barAt(counting ? countBase : Math.max(beat, 0)) : null, bn = bo ? cornerBar(bo) : '';   /* counting in: the bar it leads into */   /* the bar under the playhead (Trix) */
     if (bn !== barNoEl.textContent) barNoEl.textContent = bn;
     var w = scoreEl.clientWidth / z, x = xAt(beat), hx = full ? X0 + 50 : Math.max(w * 0.36, X0 + 50);   /* full screen: the playhead at the left, just after the clef and key (Trix) */
     headEl.style.left = hx * z + 'px';
@@ -1217,6 +1222,12 @@
     var bars = song.bars, aB = ab.a >= 0 && bars[ab.a] ? bars[ab.a].beat : 0, nx = ab.b >= 0 ? bars[ab.b + 1] : null;
     return { aB: aB, aT: song.beatSec(aB), eB: nx ? nx.beat : song.beats, eT: nx ? song.beatSec(nx.beat) : song.end };
   }
+  /* the corner: the bar number, and from the second time round a repeated bar which time it is (Trix: "1 (2nd time)") */
+  function cornerBar(b) {
+    if (!b.rep || b.time < 2) return b.num;
+    return window.I18N && I18N.lang === 'zh' ? b.num + '（第 ' + b.time + ' 遍）' : b.num + ' (' + b.time + (['', 'st', 'nd', 'rd'][b.time] || 'th') + ' time)';
+  }
+  document.addEventListener('i18n', function () { if (song && typeof scroll === 'function') scroll(); });
   function barLabel(b) {
     var zh = window.I18N && I18N.lang === 'zh';
     if (!b.rep) return b.num;
