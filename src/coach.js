@@ -31,12 +31,11 @@
       { sel: '#mTap', title: 'Tap tempo', text: 'Tap in time a few times to set the tempo from your own beat.' }
     ],
     midi: [
-      { sel: '#mpSong', title: 'Pick a tune', text: 'Choose a built-in tune from this list: Twinkle, Twinkle, Little Star, Ode to Joy, In the Hall of the Mountain King, Canon, Serenade or Winter (1st movement). They are ready to play, so you can try the player straight away.' },
-      { sel: '#mpSeek, #mpTime, #mpLoop, #mpStart, #mpSlower, #mpPlay, #mpFaster, .mp-speed', title: 'Play and follow along', text: 'Tap play: it counts in one bar (3 2 1 in 3/4, 4 3 2 1 in 4/4), then each note lights up on the fingerboard in its string colour, and the music scrolls past the line above with the finger to use. − and + slow it down or speed it up; the first button goes back to the start. The loop button by the time plays the tune over and over. On a keyboard, Space plays or pauses; − / + or ← / → change the speed. A–B, beside the loop button, repeats a passage you choose by bar, counting in each time.' },
-      { sel: '#mpMix', title: 'Mixer', text: 'Tap the Mixer button for three faders: Violin, Accompaniment and Metronome. Drag one up for louder, down for quieter; your levels are remembered. The metronome starts at 0, so raise it to hear a click on every beat. Tunes with only a violin part have no accompaniment, so that fader stays at 0. Below the faders, Vibrato on long notes adds vibrato to the violin’s held notes.' },
-      { sel: '#mpFull', title: 'Full screen', text: 'Tap the corner button on the fingerboard for full screen: a bigger score across the whole width and the fingerboard laid sideways, every note in view. On a phone, just turn it sideways and the player goes full screen by itself; turn it upright again to leave.' },
-      { sel: '#mpImport', title: 'Import your own', text: 'Tap Import and choose a MIDI file (.mid) or a MusicXML score (.musicxml, .mxl) from your phone or computer. It stays in the list for next time; the bin button next to the list deletes it.' },
-      { sel: '#mpImport', title: 'Which files work', text: 'A file can have several parts. The violin is the part named Violin (Violin I if there are two), otherwise the first part; the others (piano, strings…) play along as accompaniment, and a short note over the music says which is which. Drums are left out. Notes below the G string are left out; very high notes are heard but not lit on the board. A MusicXML score keeps its fingerings and string numbers: the player shows them as written, and uses its own choice only where none are marked.' }
+      { sel: '#mpSong', title: 'Pick a tune', text: 'Choose a built-in tune or one you imported.' },
+      { sel: '#mpSeek, #mpTime, #mpLoop, #mpAB, #mpStart, #mpSlower, #mpPlay, #mpFaster, .mp-speed', title: 'Play and follow along', text: 'Play counts in, then each note lights up on the fingerboard as the score scrolls by with its fingering. − and + change the speed; Loop and A–B repeat the tune or a passage.' },
+      { sel: '#mpMix', title: 'Mixer', text: 'Levels for the violin, accompaniment and metronome, and vibrato on long notes.' },
+      { sel: '#mpFull', title: 'Full screen', text: 'A bigger score and the whole fingerboard. On a phone, just turn it sideways.' },
+      { sel: '#mpImport', title: 'Import your own', text: 'Add a MIDI or MusicXML file. The violin part lights up and the other parts play along.' }
     ]
   };
   /* a small picture of the board for the Pitch Check tip: F on the E string in C major (low 1st finger),
