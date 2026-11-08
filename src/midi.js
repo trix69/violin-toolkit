@@ -396,6 +396,13 @@
        pickup is 0); a MIDI file's bars counted from its start */
     var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num }; }) : null;
     sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text }; }).filter(function (m) { return m.beat > -1e-6; });
+    /* the bars in playing order, for A–B (Trix): the score's numbers (a bar played twice is listed twice) or counted */
+    var blist = [];
+    if (bl) bl.forEach(function (b) { if (b.beat > -1e-6 && b.beat < sg.beats - 1e-6) blist.push({ beat: b.beat, num: b.num }); });
+    else for (var bb = 0; bb < sg.beats - 1e-6; bb += barQ) blist.push({ beat: bb, num: String(Math.floor((bb + sg.skipB) / barQ + 1e-6) + 1) });
+    var seenBar = {}; blist.forEach(function (b) { b.time = seenBar[b.num] = (seenBar[b.num] || 0) + 1; });
+    blist.forEach(function (b) { b.rep = seenBar[b.num] > 1; });
+    sg.bars = blist;
     sg.barNo = function (beat) {
       if (!bl) return String(Math.floor((Math.max(0, beat) + sg.skipB) / barQ + 1e-6) + 1);
       var n = bl.length ? bl[0].num : '1';
@@ -507,6 +514,7 @@
         return (g.tick + (s - g.sec) / g.spt) / tpq - skipB;
       },
       low: low, high: high, skipB: skipB,
+      beatSec: function (b) { return toSec((b + skipB) * tpq) - skipT; },   /* beats (from the first bar kept) to seconds: A–B */
       sec: function (tick) { return toSec(tick) - skipT; }   /* ticks to seconds from the first bar kept (the accompaniment) */
     };
   }
@@ -834,6 +842,7 @@
     keySvg.setAttribute('width', kw + 14); keySvg.setAttribute('height', BOT + 46);
     keySvg.setAttribute('viewBox', '0 0 ' + (kw + 14) + ' ' + (BOT + 46));
     keySvg.innerHTML = kl + CLEF + out.slice(0, head).join('');
+    if (typeof placeAB === 'function') setTimeout(placeAB, 0);
     noteEls = [];
     Array.prototype.forEach.call(svg.querySelectorAll('.mp-n'), function (el) { noteEls[+el.getAttribute('data-k')] = el; });
   }
@@ -844,7 +853,7 @@
     var beat = counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar */
     var z = full ? (fsShort ? 0.8 : 1.4) : 1;   /* full screen: the score larger, easier to read (Trix); a phone on its side: smaller, for room; positions below are in score units */
     keySvg.style.transform = z !== 1 ? 'scale(' + z + ')' : '';
-    var bn = song.barNo ? song.barNo(Math.max(beat, 0)) : '';   /* the bar under the playhead (Trix) */
+    var bn = song.barNo ? song.barNo(counting ? countBase : Math.max(beat, 0)) : '';   /* counting in: the bar it leads into */   /* the bar under the playhead (Trix) */
     if (bn !== barNoEl.textContent) barNoEl.textContent = bn;
     var w = scoreEl.clientWidth / z, x = xAt(beat), hx = full ? X0 + 50 : Math.max(w * 0.36, X0 + 50);   /* full screen: the playhead at the left, just after the clef and key (Trix) */
     headEl.style.left = hx * z + 'px';
@@ -917,6 +926,8 @@
     /* the board keeps one note per string; drop the ones it replaced */
     active = active.filter(function (k) { if (APP.board.has('n' + k)) return true; noteEls[k].classList.remove('on'); noteEls[k].classList.add('done'); return false; });
     scroll(); ui();
+    var rr = abRange();
+    if (rr && pos >= rr.eT - 0.005) { seekTo(rr.aT); playing = false; countIn(go, rr.aB); return; }   /* A–B: round again from A, after the count-in (Trix) */
     if (pos >= song.end && !active.length) {
       if (!loop) { pause(); seekTo(song.end); return; }
       seekTo(0); playing = false; countIn(go); return;   /* round again, after the count-in */
@@ -926,14 +937,15 @@
   /* count-in (Trix): one bar of the time signature counted down (3 2 1 in 3/4, 4 3 2 1 in 4/4) with a click
      on each beat, at the tune's tempo and the chosen speed; when starting from the beginning, and before each
      round of Loop; resuming after a pause plays straight on */
-  var counting = false, countT = 0, countEl = $('mpCount'), countBeat = 0;
-  function countIn(then) {
+  var counting = false, countT = 0, countEl = $('mpCount'), countBeat = 0, countBase = 0;
+  function countIn(then, base) {   /* base: the beat it leads into (A–B: bar A), else the start */
+    base = base || 0; countBase = base;
     var n = song.sig.num, k = n, step = 60 / song.bpm * 4 / song.sig.den / speed * 1000;
     var bar = n * 4 / song.sig.den, t0 = performance.now();
-    counting = true; countBeat = -bar; ui();
+    counting = true; countBeat = base - bar; ui();
     (function slide() {   /* the score moves through the empty bar in time with the count */
       if (!counting) return;
-      countBeat = -bar * Math.max(0, 1 - (performance.now() - t0) / (n * step));
+      countBeat = base - bar * Math.max(0, 1 - (performance.now() - t0) / (n * step));
       scroll();
       requestAnimationFrame(slide);
     })();
@@ -978,6 +990,12 @@
   function play() {
     if (!song || playing || counting) return;
     if (!APP.board.prime()) return;   /* the sound engine starts inside the tap (iPhone) */
+    var r = abRange();
+    if (r) {   /* A–B: from bar A (outside the passage: back to A), counting in at A */
+      if (pos < r.aT - 0.01 || pos >= r.eT - 0.01) seekTo(r.aT);
+      if (Math.abs(pos - r.aT) < 0.01) countIn(go, r.aB); else go();
+      return;
+    }
     if (pos >= song.end - 0.01) seekTo(0);
     if (pos < 0.01) countIn(go); else go();   /* the count-in only at the beginning, not on resume (Trix) */
   }
@@ -1031,6 +1049,7 @@
       return;
     }
     drawScore();
+    ab = null; abUi(); setABOpen(false);
     seekTo(0);
     var warn = [];
     if (song.low) warn.push(song.low + (song.low > 1 ? ' notes are' : ' note is') + ' below the violin’s G string and left out.');
@@ -1189,11 +1208,75 @@
   volM.addEventListener('input', function () { mix.m = volM.value / 100; mixUi(); saveMix(); });
   document.addEventListener('pointerdown', function (e) { if (!mixPop.hidden && !mixPop.contains(e.target) && !mixBtn.contains(e.target)) setMixOpen(false); }, true);
   mixPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setMixOpen(false); mixBtn.focus(); } });
+  /* A–B (Trix): repeat a passage, from bar A to the end of bar B, counting in each time round. Off until it is set
+     in its panel; bars picked from lists (a scrolling wheel on phones); A empty = the beginning, B empty = the end;
+     B at least one bar after A */
+  var ab = null, abBtn = $('mpAB'), abPop = $('mpABPop'), selA = $('mpA'), selB = $('mpB');
+  function abRange() {
+    if (!ab || !song || !song.bars) return null;
+    var bars = song.bars, aB = ab.a >= 0 && bars[ab.a] ? bars[ab.a].beat : 0, nx = ab.b >= 0 ? bars[ab.b + 1] : null;
+    return { aB: aB, aT: song.beatSec(aB), eB: nx ? nx.beat : song.beats, eT: nx ? song.beatSec(nx.beat) : song.end };
+  }
+  function barLabel(b) {
+    var zh = window.I18N && I18N.lang === 'zh';
+    if (!b.rep) return b.num;
+    return zh ? b.num + '（第 ' + b.time + ' 遍）' : b.num + ' (' + b.time + (['', 'st', 'nd', 'rd'][b.time] || 'th') + ' time)';
+  }
+  function fillAB() {
+    var zh = window.I18N && I18N.lang === 'zh', bars = song ? song.bars : [];
+    [selA, selB].forEach(function (sel, w) {
+      sel.textContent = '';
+      var o = document.createElement('option'); o.value = '-1'; o.textContent = w ? (zh ? '结尾' : 'End') : (zh ? '开头' : 'Beginning'); sel.appendChild(o);
+      bars.forEach(function (b, i) { var q = document.createElement('option'); q.value = i; q.textContent = barLabel(b); sel.appendChild(q); });
+    });
+  }
+  function limitB() {   /* B at least one bar after A */
+    var a = +selA.value, last = song.bars.length - 1;
+    Array.prototype.forEach.call(selB.options, function (o) { var v = +o.value; o.disabled = v >= 0 && v < a + 1; });
+    if (+selB.value >= 0 && +selB.value < a + 1) selB.value = a + 1 <= last ? String(a + 1) : '-1';
+  }
+  function abUi() {
+    abBtn.setAttribute('aria-pressed', ab ? 'true' : 'false');
+    $('mpABOff').hidden = !ab;
+    placeAB();
+  }
+  function placeAB() {   /* A and B marked on the score */
+    Array.prototype.forEach.call(svg.querySelectorAll('.mp-abm'), function (el) { el.remove(); });
+    var r = abRange();
+    if (!r || !xAt) return;
+    [[r.aB, 'A'], [r.eB, 'B']].forEach(function (m) {
+      var d = document.createElement('div'); d.className = 'mp-abm'; d.style.left = (xAt(m[0]) - 14) + 'px'; d.textContent = m[1]; svg.appendChild(d);
+    });
+  }
+  function setABOpen(open) {
+    if (open && !song) return;
+    abPop.hidden = !open; abBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (!open) return;
+    setMixOpen(false);
+    fillAB();
+    selA.value = ab ? String(ab.a) : (song.bars.length ? '0' : '-1');   /* first and last bar (Trix) */
+    selB.value = ab ? String(ab.b) : String(song.bars.length - 1);
+    limitB();
+    selA.focus();
+  }
+  abBtn.addEventListener('click', function (e) { e.stopPropagation(); setABOpen(abPop.hidden); });
+  selA.addEventListener('change', limitB);
+  $('mpABCancel').addEventListener('click', function () { setABOpen(false); abBtn.focus(); });   /* nothing set: stays as it was (off) */
+  /* a change of A–B pauses and moves to bar A (or the start when off); Play then counts in (Trix) */
+  $('mpABOff').addEventListener('click', function () { ab = null; abUi(); setABOpen(false); pause(); seekTo(0); abBtn.focus(); });
+  $('mpABSet').addEventListener('click', function () {
+    ab = { a: +selA.value, b: +selB.value };
+    abUi(); setABOpen(false); abBtn.focus();
+    pause(); seekTo(abRange().aT);
+  });
+  document.addEventListener('pointerdown', function (e) { if (!abPop.hidden && !abPop.contains(e.target) && !abBtn.contains(e.target)) setABOpen(false); }, true);
+  abPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setABOpen(false); abBtn.focus(); } });
+  document.addEventListener('i18n', function () { if (!abPop.hidden) { var a = selA.value, b = selB.value; fillAB(); selA.value = a; selB.value = b; limitB(); } });
   playBtn.addEventListener('click', function () { if (playing || counting) pause(); else play(); });
   $('mpStart').addEventListener('click', function () {
-    var was = playing || counting;
+    var was = playing || counting, r = abRange();
     if (was) pause();
-    seekTo(0);
+    seekTo(r ? r.aT : 0);   /* A–B on: back to bar A */
     if (was) play();   /* playing: start again with the count-in (Trix) */
   });
   loopBtn.addEventListener('click', function () {

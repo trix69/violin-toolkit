@@ -173,3 +173,17 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .mp-score .slur { stroke-width: 1.2; }
 .mp-score .mp-dyn { fill: var(--sc-ink); font: italic 700 15px 'Times New Roman', 'Noto Serif', Georgia, serif; }
 .mp-grace .stem { stroke-width: 1; }   /* grace notes: small (Trix) */
+/* A–B (Trix): a passage repeated; its button beside Loop, its panel above the controls, A and B marked on the score */
+.mp-ab { font: 700 12px var(--font-note); letter-spacing: -0.02em; width: auto; min-width: 36px; padding: 0 6px; }
+.mp-ab[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.mp-abpop { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); width: min(340px, calc(100vw - 32px)); box-sizing: border-box; padding: 14px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--fg); box-shadow: 0 10px 30px rgba(0,0,0,.18); z-index: 20; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.mp-abpop[hidden] { display: none; }
+.mp-abtitle { grid-column: 1 / -1; margin: 0; font: 600 15px var(--font-note); }
+.mp-absel { display: grid; gap: 4px; font: 500 13px var(--font-note); color: var(--muted, inherit); }
+.mp-absel select { height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); font: 600 16px var(--font-note); }
+.mp-abbtns { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+.mp-abbtns button { height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--fg); font: 600 15px var(--font-note); cursor: pointer; }
+.mp-abbtns button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.mp-abbtns button[hidden] { display: none; }
+#mpABOff { margin-right: auto; }
+.mp-abm { position: absolute; top: 4px; height: 112px; width: 0; border-left: 2px solid var(--accent); pointer-events: none; font: 700 11px var(--font-note); color: var(--accent); padding-left: 3px; z-index: 1; }
