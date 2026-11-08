@@ -187,3 +187,4 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .mp-abbtns button[hidden] { display: none; }
 #mpABOff { margin-right: auto; }
 .mp-abm { position: absolute; top: 4px; height: 112px; width: 0; border-left: 2px solid var(--accent); pointer-events: none; font: 700 11px var(--font-note); color: var(--accent); padding-left: 3px; z-index: 1; }
+#mpSvg .breath, .mp-score .breath { stroke-width: 1.7; stroke-linecap: round; }

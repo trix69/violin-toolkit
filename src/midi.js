@@ -224,6 +224,9 @@
             }
             var dur = +txt(el, 'duration') || 0, chord = !!kid(el, 'chord'), from = chord ? last : cur;
             if (!chord) { last = cur; cur += dur; len = Math.max(len, cur); }
+            /* a breath mark (or caesura), on a note or a rest (MuseScore puts one after a rest on the rest): a mark at
+               the end of it, drawn just before what follows (Trix) */
+            if (!chord) kids(kid(kid(el, 'notations'), 'articulations')).forEach(function (a) { if (a.nodeName === 'breath-mark' || a.nodeName === 'caesura') marks.push({ tick: tk(from + dur), kind: 'breath', text: a.nodeName }); });
             var pt = kid(el, 'pitch'); if (!pt) { graces = []; return; }   /* a rest, or unpitched (graces before a rest are dropped) */
             var mm = (+txt(pt, 'octave') + 1) * 12 + (STEP[txt(pt, 'step')] || 0) + Math.round(+txt(pt, 'alter') || 0);
             var t0 = tk(from), t1 = tk(from + dur), ties = kids(el, 'tie').map(function (t) { return t.getAttribute('type'); });
@@ -253,7 +256,7 @@
             }
             /* articulations, bowings and fermata, drawn at the note (Trix) */
             var art = [], nots = kid(el, 'notations');
-            kids(kid(nots, 'articulations')).forEach(function (a) { art.push(a.nodeName); });
+            kids(kid(nots, 'articulations')).forEach(function (a) { if (a.nodeName !== 'breath-mark' && a.nodeName !== 'caesura') art.push(a.nodeName); });   /* breaths are marks (above) */
             kids(tech).forEach(function (a) { if (/^(up-bow|down-bow|stopped)$/.test(a.nodeName)) art.push(a.nodeName); });
             if (kid(nots, 'fermata')) art.push('fermata');
             if (art.length) n.art = art;
@@ -790,8 +793,7 @@
         else if (a === 'up-bow') d = '<path class="art" d="M' + (hx - 4) + ' ' + (by - 4) + 'L' + hx + ' ' + (by + 4) + 'L' + (hx + 4) + ' ' + (by - 4) + '"/>';
         else if (a === 'stopped') d = '<path class="art" d="M' + (hx - 4) + ' ' + by + 'h8M' + hx + ' ' + (by - 4) + 'v8"/>';
         else if (a === 'fermata') d = '<path class="art" d="M' + (hx - 7) + ' ' + (by + 3) + 'A7 6 0 0 1 ' + (hx + 7) + ' ' + (by + 3) + '"/><circle class="artd" cx="' + hx + '" cy="' + (by + 1.5) + '" r="1.5"/>';
-        else if (a === 'breath-mark') d = '<path class="art" d="M' + (hx + 13) + ' ' + (Y0 - 7) + 'q2 3 -1 6"/>';
-        if (d) { g.push(d); if (a !== 'breath-mark') upY -= 10; }
+        if (d) { g.push(d); upY -= 10; }
       });
       /* slurs: an arc from the note it starts on to the one it ends on, on the heads' side away from the stems */
       (isHead ? nt.slur || [] : []).forEach(function (sl) {
@@ -819,6 +821,13 @@
     var DY = BOT + 41, wedge = null, lastDynX = -99;   /* below any fingering under the notes */
     (sg.marks || []).forEach(function (m) {
       var x = xAt(m.beat);
+      if (m.kind === 'breath') {   /* a comma above the top line just before the next note; a caesura: two slanted strokes on it */
+        var bx = x - 13, byy = Y0 - 10;
+        items.push([bx, m.text === 'caesura'
+          ? '<path class="art breath" d="M' + (bx - 4) + ' ' + (Y0 + 4) + 'l5 -12M' + (bx + 1) + ' ' + (Y0 + 4) + 'l5 -12"/>'
+          : '<circle class="artd" cx="' + bx + '" cy="' + byy + '" r="2.6"/><path class="art breath" d="M' + (bx + 2.3) + ' ' + (byy + 0.4) + 'q0.4 3.8 -3.4 6.4"/>']);
+        return;
+      }
       if (m.kind === 'dyn') { items.push([x, '<text class="mp-dyn" x="' + (x - 4) + '" y="' + DY + '">' + m.text + '</text>']); lastDynX = x; }
       else if (m.kind === 'words') items.push([x, '<text class="mp-word" x="' + (Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4) + '" y="' + (DY - 1) + '">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);
       else if (m.text === 'stop') {
