@@ -13,14 +13,14 @@
       { sel: '#view-tuner .seg', title: 'Violin or Chromatic', text: 'Violin finds the nearest open string. Chromatic shows any note you play.' }
     ],
     board: [
-      { sel: '#board .note:not(.off)', one: true, title: 'Press and hold a note', text: 'Touch any coloured note to hear its pitch for as long as you hold it.' },
-      { sel: '#board .note:not(.off)', one: true, title: 'Hold for a steady tone', text: 'Hold a note for 3 seconds and it keeps sounding after you let go, steady with no vibrato, like a tuning fork. Tap anywhere to stop it.' },
-      { sel: '#keyrows, #keyFold', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row to see more. Notes in the key are coloured, the others are greyed out.',
-        fold: 'Tap here to pick a major or minor key. Notes in the key are coloured, the others are greyed out.' },
+      { sel: '#board .note:not(.off)', one: true, title: 'Press and hold a note', text: 'Touch a coloured note to hear it.' },
+      { sel: '#board .note:not(.off)', one: true, title: 'Hold for a steady tone', text: 'Hold for 3 seconds and it keeps sounding, like a tuning fork. Tap anywhere to stop.' },
+      { sel: '#keyrows, #keyFold', title: 'Choose a key', text: 'Pick a major or minor key; swipe a row for more. Notes outside the key are grey.',
+        fold: 'Tap here to pick a major or minor key. Notes outside the key are grey.' },
       { sel: '.tempsel', title: 'Intonation', when: function () { return !APP.keysAll; },   /* the menu shows only with Key list > Folded */
-        text: 'Equal is tuned like a piano. Just makes the intervals in the key pure. Pythagorean builds every note from pure fifths. The notes on the board move to match.' },
-      { sel: '#posbar button:not([data-id="pc"])', title: 'Positions', text: '1st position: the hand sits near the scroll, and the 1st finger plays the note just above each open string. In 2nd position the hand moves up, so the 1st finger goes where the 2nd finger was; in 3rd, where the 3rd finger was. The board shows each note and the finger that plays it.' },
-      { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap Pitch Check and play. A disc shows where your note lands: round the note when in tune, below it when sharp, above it when flat. Green means close.',
+        text: 'Equal, Just or Pythagorean tuning. The notes on the board move to match.' },
+      { sel: '#posbar button:not([data-id="pc"])', title: 'Positions', text: 'Switch the hand between 1st, 2nd and 3rd position. Each note shows the finger that plays it.' },
+      { sel: '#posbar [data-id="pc"]', title: 'Pitch Check', text: 'Tap it and play a note: a disc shows where it lands. On the note is in tune, below is sharp, above is flat.',
         pic: '<div class="coach-pic" aria-hidden="true"><p class="cp-cap">Example: F on the E string, in C major</p><div class="cp-row">' +
         ex('in', 50, 'In tune', '') + ex('sharp', 61, 'Too sharp', '+25¢') + ex('flat', 39, 'Too flat', '−25¢') + '</div></div>' }
     ],
