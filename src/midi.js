@@ -365,8 +365,8 @@
     var NOISE = /(^|[^a-z])(drums?|drum ?kit|perc|percussion|kits?)([^a-z]|$)|鼓|打击/i, dropped = [];
     tracks = tracks.filter(function (tr) { if (NOISE.test(tr.label) && !VIOLIN.test(tr.label)) {   /* a part named as a violin is never drums */ dropped.push(tr.name || tr.label.trim() || 'Drums'); return false; } return true; })
       .map(function (tr) { tr.notes = tr.notes.filter(function (n) { return n.ch !== DRUM && !(tr.prog[n.ch] >= 112); }); return tr; })
-      .filter(function (tr) { if (tr.notes.length) return true; dropped.push(tr.name || 'Drums'); return false; });
-    if (!tracks.length) throw fail('This file has only percussion.');   /* it has notes, all of them drums (Hermes F28) */
+      .filter(function (tr, i) { if (tr.notes.length) return true; dropped.push(tr.name || tr.label.trim() || 'Part ' + (i + 1)); return false; });   /* emptied by drums or sound effects: not always drums (Hermes F30) */
+    if (!tracks.length) throw fail('This file has only drums or sound effects.');   /* it has notes, all of them drums (Hermes F28) */
     var soloName = '', accNames = [], soloMarks = null;
     function gmViolin(tr) { return Object.keys(tr.prog).some(function (c) { return tr.prog[c] === GM_VIOLIN && tr.notes.some(function (n) { return n.ch === +c; }); }); }
     if (tracks.length === 1 && tracks[0].chans > 1) {
@@ -418,8 +418,6 @@
       return n;
     };
     sg.minor = minor;
-    var used = {}; solo.forEach(function (n) { used[n.ch] = 1; }); acc.forEach(function (n) { used[n.ch] = 1; });
-    sg.parts = tracks.length > 1 ? tracks.length : Object.keys(used).length;   /* channels that still play: drums not counted (Hermes R20.1) */
     sg.soloName = soloName || '';
     sg.accNames = accNames;
     sg.dropped = dropped;   /* said in the parts flash (Hermes F27) */
@@ -1102,6 +1100,7 @@
   function play() {
     if (!song || playing || counting) return;
     if (!APP.board.prime()) return;   /* the sound engine starts inside the tap (iPhone) */
+    clearTimeout(partsT); partsEl.hidden = true; partsEl.classList.remove('show');   /* the parts note never covers the count-in; the screen-reader copy keeps it (Hermes F29) */
     var r = abRange();
     if (r) {   /* A–B: from bar A (outside the passage: back to A), counting in at A */
       if (pos < r.aT - 0.01 || pos >= r.eT - 0.01) seekTo(r.aT);
