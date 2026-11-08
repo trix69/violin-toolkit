@@ -1146,6 +1146,9 @@
     songSel.focus();
   });
   songSel.addEventListener('change', function () { load(+songSel.value); });
+  /* iPhone / iPad (Safari and the app): the file picker greys out types iOS does not know (.mxl, .musicxml), so
+     there any file can be chosen; the reader says when it is not MIDI or MusicXML (Trix) */
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || window.VTiOSApp) fileIn.removeAttribute('accept');
   $('mpImport').addEventListener('click', function () { fileIn.value = ''; fileIn.click(); });
   fileIn.addEventListener('change', function () {
     var f = fileIn.files && fileIn.files[0];
