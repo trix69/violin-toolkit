@@ -658,6 +658,7 @@
     for (q = units.length - 1; q >= 0; q--) {
       var st = states[q][j];
       if (!st.fixed) { var n = units[q][0]; n.si = st.si; n.fg = st.fg; }
+      units[q].forEach(function (u) { u.hand = st.p; });   /* the hand position (0 = 1st ... 8 = 9th; -1 unknown): position marks on the score */
       if (q > 0) j = back[q][j];
     }
   }
@@ -694,6 +695,70 @@
   var barNoEl = $('mpBarNo');
   var noteEls = [], X0 = 0, W = 0, chunks = [], shownFrom = -1;
 
+  /* position marks (Trix): an italic Roman numeral over the first note where the hand moves to another position
+     for at least about 2 beats, with a dashed line to the last note it holds; nothing while the tune stays in 1st.
+     Open strings keep the hand where it is (the planner carries it). A score that writes its own position words
+     ("III", "3rd pos.") is followed instead, and the planner's marks are not drawn. */
+  var ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];   /* to read the score's own words */
+  var ROMAN_U = ['\u2160', '\u2161', '\u2162', '\u2163', '\u2164', '\u2165', '\u2166', '\u2167', '\u2168', '\u2169'];   /* drawn: the single Roman numeral characters (Trix: U+2162 for III) */
+  var ROMAN_W = [0.45, 0.75, 1.0, 1.0, 0.75, 1.0, 1.25, 1.5, 1.0, 0.75];   /* their width in em, for where the dashes start */
+  function posWord(t) {   /* the position a words direction names, or 0 */
+    t = String(t).trim();
+    var u = ROMAN_U.indexOf(t.replace(/\s*pos(?:ition)?\.?$/i, '').replace(/^pos(?:ition)?\.?\s*/i, ''));
+    if (u >= 0) return u + 1;
+    var m = /^(?:pos(?:ition)?\.?\s*)?(I{1,3}|IV|VI{0,3}|IX|X)(?:\s*pos(?:ition)?\.?)?$/.exec(t);
+    if (m) return ROMAN.indexOf(m[1]) + 1;
+    m = /^([1-9])(?:st|nd|rd|th)\.?\s*pos(?:ition|\.)?$/i.exec(t);
+    return m ? +m[1] : 0;
+  }
+  function posMarks(sg, inf) {
+    var out = [], CHW = 1200, ns = sg.notes;
+    function mark(x, y, h) { out.push([x, '<text class="mp-pos" x="' + (x - 4) + '" y="' + y + '">' + ROMAN_U[h] + '</text>']); }
+    function dash(x0, x1, y) {   /* in pieces no longer than a score section, so each shows with its section */
+      for (var a = x0; a < x1; ) { var b = Math.min(x1, (Math.floor(a / CHW) + 1) * CHW); out.push([a, '<path class="mp-posd" d="M' + a + ' ' + y + 'H' + b + '"/>']); a = b; }
+    }
+    function topOver(k0, k1) { var t = Y0 - 7; for (var k = k0; k <= k1; k++) if (inf[k] && inf[k].top !== undefined) t = Math.min(t, inf[k].top); return Math.max(14, t); }
+    var own = (sg.marks || []).filter(function (m) { return m.kind === 'words' && posWord(m.text); });
+    if (own.length) {   /* the score's own marks, over the note at that beat */
+      own.forEach(function (m) {
+        var k = 0; while (k < ns.length - 1 && ns[k].b < m.beat - 1e-6) k++;
+        mark(inf[k] ? inf[k].hx : xAt(m.beat), topOver(k, k), posWord(m.text) - 1);
+      });
+      return out;
+    }
+    /* runs of notes in one hand position (an unknown position keeps the one before) */
+    var runs = [], h = 0;
+    ns.forEach(function (n, k) {
+      if (n.hand >= 0) h = n.hand;
+      var r = runs[runs.length - 1], end = n.b + (n.own || n.len || 0);
+      if (r && r.h === h) { r.k1 = k; r.b1 = Math.max(r.b1, end); }
+      else runs.push({ h: h, k0: k, k1: k, b0: n.b, b1: end });
+    });
+    var shown = 0, open = null;
+    function close(kEnd) {
+      if (!open) return;
+      /* the numeral clears its own note; the line runs at the same height through the passage, broken around any
+         note whose fingering or bowing reaches up to it (the strip has no more room above: Winter's high runs) */
+      var x0 = inf[open.k0].hx, x1 = inf[kEnd].hx + 6, y = topOver(open.k0, open.k0), ly = y - 5, a = x0 + 2 + 18 * ROMAN_W[open.h];
+      mark(x0, y, open.h);
+      if (open.h > 0) {   /* "I" (back to 1st) needs no line */
+        for (var k = open.k0 + 1; k <= kEnd; k++) {
+          var f = inf[k]; if (!f || f.top === undefined || ly <= f.top + 2) continue;   /* its marks end below the line */
+          if (f.hx - 9 > a + 6) dash(a, f.hx - 9, ly);
+          a = Math.max(a, f.hx + 9);
+        }
+        if (x1 > a + 6) dash(a, x1, ly);
+      }
+      open = null;
+    }
+    runs.forEach(function (r, i) {
+      if (r.b1 - r.b0 < 2 - 1e-6 || r.h === shown) { if (open && r.h === open.h) open.kEnd = r.k1; return; }   /* short excursions are not marked */
+      if (open) close(open.kEnd);
+      open = { h: r.h, k0: r.k0, kEnd: r.k1 }; shown = r.h;
+    });
+    if (open) close(open.kEnd);
+    return out;
+  }
   function drawScore() {
     var sg = song, sharps = sg.sf >= 0, sp = sharps ? SP_S : SP_F, n = Math.abs(sg.sf), keyAcc = {};
     for (var i = 0; i < n; i++) keyAcc[(sharps ? SHARP_K : FLAT_K)[i]] = sharps ? 1 : -1;
@@ -891,6 +956,7 @@
         else if (a === 'fermata') d = '<path class="art" d="M' + (hx - 7) + ' ' + (by + 3) + 'A7 6 0 0 1 ' + (hx + 7) + ' ' + (by + 3) + '"/><circle class="artd" cx="' + hx + '" cy="' + (by + 1.5) + '" r="1.5"/>';
         if (d) { g.push(d); upY -= 10; }
       });
+      inf[k].top = upY + 4;   /* the lowest baseline a mark above this note can use: over its stem, fingering and bowings */
       /* slurs: an arc from the note it starts on to the one it ends on, on the heads' side away from the stems */
       (isHead ? nt.slur || [] : []).forEach(function (sl) {
         if (sl.t === 'start') slurOpen[sl.n] = { x: hx, top: chord ? hd.yTop : y, bot: chord ? hd.yBot : y, above: !up };
@@ -908,11 +974,12 @@
       if (nt.harm) {   /* a harmonic: a small o over the note, above the fingering, or over an up stem's tip (Trix) */
         var oy = stem && up ? (hd.beam >= 0 ? hd.tip : hd.yTop - 3.4 * S) - 7 : Math.min(y - 9, Y0 - 5) - (fg !== null && !chord ? 12 : 0);
         g.push('<circle class="harm" cx="' + hx + '" cy="' + Math.max(5, oy) + '" r="2.7"/>');
+        inf[k].top = Math.min(inf[k].top, Math.max(5, oy) - 4);
       }
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
       items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
     });
-    items = items.concat(beams, slurItems);
+    items = items.concat(beams, slurItems, posMarks(sg, inf));
     /* dynamics, hairpins and words under the staff (MusicXML, Trix) */
     var DY = BOT + 41, wedge = null, lastDynX = -99;   /* below any fingering under the notes */
     (sg.marks || []).forEach(function (m) {
@@ -925,6 +992,7 @@
         return;
       }
       if (m.kind === 'dyn') { items.push([x, '<text class="mp-dyn" x="' + (x - 4) + '" y="' + DY + '">' + m.text + '</text>']); lastDynX = x; }
+      else if (m.kind === 'words' && posWord(m.text)) return;   /* drawn as a position mark (posMarks) */
       else if (m.kind === 'words') items.push([x, '<text class="mp-word" x="' + (Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4) + '" y="' + (DY - 1) + '">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);
       else if (m.text === 'stop') {
         if (!wedge) return;
