@@ -1837,7 +1837,9 @@
       var o = ['<svg class="fg-page" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + PG_W + ' ' + PG_H + '" width="' + PG_W + '" height="' + PG_H + '"><rect class="fg-paper" width="' + PG_W + '" height="' + PG_H + '"/>'];
       if (pi === 0) {
         o.push('<text class="fg-title" x="' + PG_W / 2 + '" y="' + (PG_M + 22) + '">' + esc(title) + '</text>');   /* centred (Trix) */
-        o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + 46) + '">' + esc([part, fgKey(sg, zh)].concat(sg.composer ? [sg.composer] : []).join(' · ')) + '</text>');   /* instrument, key and composer on one line (Trix) */
+        /* line 2 the composer (when the score names one), line 3 instrument and key (Trix) */
+        if (sg.composer) o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + 44) + '">' + esc(sg.composer) + '</text>');
+        o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + (sg.composer ? 63 : 44)) + '">' + esc(part + ' · ' + fgKey(sg, zh)) + '</text>');
         if (QR) {   /* 16 mm with a 2 mm quiet zone, inside the margins, over no staff */
           var qx = PG_W - PG_M - QZ - QS, qy = PG_M + QZ, u = QS / QR.n;
           o.push('<rect class="fg-paper" x="' + (qx - QZ).toFixed(2) + '" y="' + PG_M + '" width="' + (QS + 2 * QZ).toFixed(2) + '" height="' + (QS + 2 * QZ).toFixed(2) + '"/>');
