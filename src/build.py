@@ -487,7 +487,7 @@ import importlib.util as _ilu
 _qs = _ilu.spec_from_file_location('vt_qr', SP + 'qr.py'); _qr = _ilu.module_from_spec(_qs); _qs.loader.exec_module(_qr)
 _qn, _qd = _qr.qr_svg_path('https://trix69.github.io/violin-toolkit/', 'Q')   # level Q (25 %): room for the app icon in the middle (Trix)
 _icon = open(SP + 'icons/icon.svg').read()
-_icon = _icon[_icon.index('>', _icon.index('<svg')) + 1:_icon.rindex('</svg>')].replace('id="ink"', 'id="vtqr-ink"').replace('#ink"', '#vtqr-ink"')
+_icon = _icon[_icon.index('>', _icon.index('<svg')) + 1:_icon.rindex('</svg>')].replace('id="ink"', 'id="vtqr-ink"').replace('#ink"', '#vtqr-ink"').replace('#16201B', '#FFFFFF').replace('#E9EFEA', '#777777')   # light: grey ink on white, like the QR (Trix)
 assert 'id="ink"' not in _icon and midi_js.count('/*QR*/null') == 1
 midi_js = midi_js.replace('/*QR*/null', json.dumps({'n': _qn, 'd': _qd, 'icon': _icon}))
 i18n_js = open(SP + 'i18n.js').read()

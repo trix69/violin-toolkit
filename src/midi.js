@@ -767,11 +767,17 @@
          next few notes (within 2 beats) that has room; else in the gap just before the passage. Never pressed down
          onto a note, its fingering or a grace note (Trix: the Ⅲ sat on a grace note and a 3) */
       var kAt = -1, raw = function (k) { var t = Y0 - 7; inf[k].members.forEach(function (j) { if (inf[j].top !== undefined) t = Math.min(t, inf[j].top); }); return t; };
+      var gw = 18 * ROMAN_W[open.h];
+      function roomAt(k) {   /* the numeral's baseline over note k: clear of every note it spans, not only k (tight spacing) */
+        var t = raw(k), x = inf[k].hx;
+        for (var j = Math.max(0, k - 6); j < ns.length && j <= k + 8; j++) if (j !== k && inf[j] && inf[j].members !== undefined && inf[j].hx > x - 14 && inf[j].hx < x + gw + 6) t = Math.min(t, raw(j));
+        return t;
+      }
       for (var kk = open.k0; kk <= kEnd && ns[kk].b < ns[open.k0].b + 2 + 1e-6; kk++) {
         if (!inf[kk] || ns[kk].grace || inf[kk].members === undefined) continue;   /* chord heads only; graces are not anchors */
-        if (raw(kk) >= 14) { kAt = kk; break; }
+        if (roomAt(kk) >= 14) { kAt = kk; break; }
       }
-      var gw = 18 * ROMAN_W[open.h], x0 = kAt >= 0 ? inf[kAt].hx : inf[open.k0].hx, y = kAt >= 0 ? raw(kAt) : 14;
+      var x0 = kAt >= 0 ? inf[kAt].hx : inf[open.k0].hx, y = kAt >= 0 ? roomAt(kAt) : 14;
       if (kAt < 0) {   /* no room over any of them: before the passage, clear of its first note and of any grace notes before it */
         var left = inf[open.k0].hx;
         for (var g = open.k0 - 1; g >= 0 && ns[g].grace; g--) left = Math.min(left, inf[g].hx);
@@ -1785,6 +1791,7 @@
     var B = bars.length - 1, best = [0], from = [];
     function lineCost(a, b) {
       var w = bars[b].x - bars[a].x, fixed = 12 * (b - a) + 4, g = (avail(a === 0 ? 0 : 1) - fixed) / Math.max(1, w - fixed);
+      if (g < 0.75 && b > a + 1) return Infinity;   /* several bars squeezed below 75 %: fingerings crowd (Trix: Winter bar 14) */
       if (g < 0.55) return b === a + 1 ? 1e6 : Infinity;
       if (b === B && g >= 1) return 0;
       if (g > 2.5) return 400 + (g - 2.5) * 100;
