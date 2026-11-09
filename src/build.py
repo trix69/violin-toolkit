@@ -293,6 +293,23 @@ html[lang="zh-CN"] {
 .howto-btn svg { flex: none; }
 /* practice time overlay: last 7 days as bars, today in the accent colour */
 #usage { z-index: 130; }
+#a4pop { z-index: 130; }
+.segc.six { grid-template-columns: repeat(6, 1fr); }
+.segc.six button { padding: 0 2px; font-variant-numeric: tabular-nums; }
+.segc .a4more[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+@media (max-width: 360px) { .segc.six button { font-size: 14px; } }
+.a4name { margin: 6px 2px 0; font: 400 13px var(--font-body); color: var(--muted); }
+.a4step { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 4px 0 14px; }
+.a4step button { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--fg); font: 500 24px/1 var(--font-note); cursor: pointer; }
+.a4step button:disabled { opacity: .35; cursor: default; }
+.a4step output { min-width: 96px; text-align: center; font: 600 22px var(--font-mono); font-variant-numeric: tabular-nums; }
+.a4list { display: grid; gap: 6px; }
+.a4list button { display: flex; align-items: baseline; gap: 12px; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--fg); text-align: left; cursor: pointer; }
+.a4list button b { flex: none; min-width: 64px; font: 600 15px var(--font-mono); font-variant-numeric: tabular-nums; }
+.a4list button span { font: 400 14px var(--font-body); color: var(--muted); }
+.a4list button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.a4list button[aria-checked="true"] span { color: var(--on-accent); opacity: .85; }
+.a4list button:focus-visible, .a4step button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 /* "new version" popup: Later and Update side by side */
 #upd { z-index: 140; }
 .upd-msg { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
@@ -599,7 +616,7 @@ APP.renew = function (ctx) {
 })();
 try {
   var savedA4 = +localStorage.getItem('violin-a4');
-  if (savedA4 === 440 || savedA4 === 442) APP.a4 = savedA4;
+  if (savedA4 >= 380 && savedA4 <= 470 && savedA4 === Math.round(savedA4)) APP.a4 = savedA4;   /* any whole Hz in range: presets and custom values (Trix) */
 } catch (e) {}
 APP.setA4 = function (v) {
   APP.a4 = v;
@@ -694,7 +711,8 @@ nav_js = """(function () {
   function syncSheet() {
     Array.prototype.forEach.call(segNames.children, function (b) { b.setAttribute('aria-checked', b.dataset.names === I18N.names ? 'true' : 'false'); });
     Array.prototype.forEach.call(segLang.children, function (b) { b.setAttribute('aria-checked', b.dataset.lang === I18N.lang ? 'true' : 'false'); });
-    Array.prototype.forEach.call(segA4.children, function (b) { b.setAttribute('aria-checked', +b.dataset.a4 === APP.a4 ? 'true' : 'false'); });
+    Array.prototype.forEach.call(segA4.children, function (b) { if (b.dataset.a4) b.setAttribute('aria-checked', +b.dataset.a4 === APP.a4 ? 'true' : 'false'); });
+    APP.a4Ui();
     Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', b.dataset.temper === (APP.temper ? APP.temper.id : 'equal') ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
@@ -817,6 +835,65 @@ nav_js = """(function () {
     if (e.key === 'Escape') { e.stopPropagation(); closeUsage(); }
     else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); document.getElementById('usageDone').focus(); }
   }
+  /* Tuning pitch (A4), Trix: five common values as buttons, the rest in a window with every historical and
+     orchestral pitch and a 1 Hz stepper (380-470) for anything else; violin-a4 stays a plain number */
+  var A4P = [[392, 'French Baroque', '法国巴洛克'], [415, 'Baroque', '巴洛克'], [425, 'Mozart era', '莫扎特时期'], [430, 'Classical', '古典'],
+    [432, 'Alternative (not a standard)', '另类（非标准）'], [435, 'French standard (1859)', '法国标准（1859）'], [440, 'International standard (ISO 16)', '国际标准（ISO 16）'],
+    [441, 'Some orchestras', '部分乐团'], [442, 'European orchestras', '欧洲乐团'], [443, 'Berlin Philharmonic, high-pitch orchestras', '柏林爱乐等高音高乐团'],
+    [444, 'High pitch', '高音高'], [445, 'High pitch', '高音高']];
+  var A4MIN = 380, A4MAX = 470, CHIPS = [415, 430, 440, 442, 443];
+  function a4Name(v) {
+    var zh = window.I18N && I18N.lang === 'zh', p = A4P.filter(function (x) { return x[0] === v; })[0];
+    return p ? p[zh ? 2 : 1] : (zh ? '自定义' : 'Custom');
+  }
+  var a4pop = document.getElementById('a4pop'), a4More = document.getElementById('a4More'), a4Opener = null;
+  APP.a4Ui = function () {
+    var v = APP.a4, off = CHIPS.indexOf(v) < 0, zh = window.I18N && I18N.lang === 'zh';
+    a4More.textContent = off ? v + '…' : (zh ? '更多' : 'More');
+    a4More.setAttribute('aria-pressed', off ? 'true' : 'false');
+    a4More.setAttribute('aria-label', (zh ? '更多音高' : 'More pitches') + (off ? (zh ? '，当前 ' : ', now ') + v + ' Hz' : ''));
+    document.getElementById('a4Name').textContent = v + ' Hz · ' + a4Name(v);
+    if (a4pop.hidden) return;
+    document.getElementById('a4Val').textContent = v + ' Hz';
+    document.getElementById('a4Down').disabled = v <= A4MIN;
+    document.getElementById('a4Up').disabled = v >= A4MAX;
+    Array.prototype.forEach.call(document.querySelectorAll('#a4List button'), function (b) { b.setAttribute('aria-checked', +b.dataset.a4 === v ? 'true' : 'false'); });
+  };
+  function a4Set(v) { v = Math.max(A4MIN, Math.min(A4MAX, Math.round(v))); if (v !== APP.a4) APP.setA4(v); APP.a4Ui(); syncSheet(); }
+  function openA4() {
+    a4Opener = a4More;
+    document.getElementById('a4List').innerHTML = A4P.map(function (p) {
+      return '<button type="button" role="radio" aria-checked="false" data-a4="' + p[0] + '"><b>' + p[0] + ' Hz</b><span>' + a4Name(p[0]) + '</span></button>';
+    }).join('');
+    a4pop.hidden = false; APP.a4Ui();
+    window.addEventListener('keydown', onA4Key, true);
+    var cur = document.querySelector('#a4List button[aria-checked="true"]');
+    if (cur) cur.scrollIntoView({ block: 'nearest' });
+    document.getElementById('a4Card').focus();
+  }
+  function closeA4() {
+    a4pop.hidden = true;
+    window.removeEventListener('keydown', onA4Key, true);
+    try { a4Opener.focus(); } catch (e) {}
+  }
+  function onA4Key(e) {   /* capture on window, like Practice time: Settings underneath stays quiet */
+    if (e.key === 'Escape') { e.stopPropagation(); closeA4(); return; }
+    if (e.key !== 'Tab') return;
+    e.stopPropagation();
+    var f = Array.prototype.filter.call(a4pop.querySelectorAll('button'), function (b) { return !b.disabled; });
+    var i = f.indexOf(document.activeElement), n = e.shiftKey ? i - 1 : i + 1;
+    e.preventDefault(); f[(n + f.length) % f.length].focus();
+  }
+  a4More.addEventListener('click', openA4);
+  document.getElementById('a4Done').addEventListener('click', closeA4);
+  document.getElementById('a4Down').addEventListener('click', function () { a4Set(APP.a4 - 1); });
+  document.getElementById('a4Up').addEventListener('click', function () { a4Set(APP.a4 + 1); });
+  document.getElementById('a4List').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) a4Set(+b.dataset.a4); });
+  a4pop.addEventListener('click', function (e) { if (e.target === a4pop) closeA4(); });
+  document.addEventListener('i18n', function () {   /* names in the current language */
+    APP.a4Ui();
+    Array.prototype.forEach.call(document.querySelectorAll('#a4List button'), function (b) { b.querySelector('span').textContent = a4Name(+b.dataset.a4); });
+  });
   document.getElementById('openUsage').addEventListener('click', openUsage);
   document.getElementById('launchDays').addEventListener('click', openUsage);
   document.getElementById('usageDone').addEventListener('click', closeUsage);
@@ -922,7 +999,7 @@ nav_js = """(function () {
     syncSheet();
   });
   segA4.addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b) return;
+    var b = e.target.closest('button'); if (!b || !b.dataset.a4) return;
     APP.setA4(+b.dataset.a4); syncSheet();
   });
   segTemper.addEventListener('click', function (e) {
@@ -1258,10 +1335,15 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-names="solfege">Solfège</button>
     </div>
     <h3 id="lblA4">Tuning pitch <span class="nc">(A4)</span></h3>
-    <div class="segc two" role="radiogroup" aria-labelledby="lblA4" id="segA4">
-      <button type="button" role="radio" aria-checked="false" data-a4="442">442 Hz</button>
-      <button type="button" role="radio" aria-checked="false" data-a4="440">440 Hz</button>
+    <div class="segc six" role="radiogroup" aria-labelledby="lblA4" id="segA4">
+      <button type="button" role="radio" aria-checked="false" data-a4="415" translate="no">415</button>
+      <button type="button" role="radio" aria-checked="false" data-a4="430" translate="no">430</button>
+      <button type="button" role="radio" aria-checked="false" data-a4="440" translate="no">440</button>
+      <button type="button" role="radio" aria-checked="false" data-a4="442" translate="no">442</button>
+      <button type="button" role="radio" aria-checked="false" data-a4="443" translate="no">443</button>
+      <button type="button" class="a4more" id="a4More" aria-haspopup="dialog" aria-pressed="false" translate="no">More</button>
     </div>
+    <p class="a4name" id="a4Name" translate="no" aria-live="polite"></p>
     <h3 id="lblTemper">Intonation</h3>
     <div class="segc" role="radiogroup" aria-labelledby="lblTemper" id="segTemper">
       <button type="button" role="radio" aria-checked="false" data-temper="equal">Equal</button>
@@ -1363,6 +1445,14 @@ markup = f"""
       <div><dt>Total time</dt><dd id="useTotal">0 min</dd></div>
     </dl>
     <button type="button" class="sheet-done" id="usageDone">Done</button>
+  </div>
+</div>
+<div class="sheet" id="a4pop" role="dialog" aria-modal="true" aria-labelledby="a4Title" hidden>
+  <div class="sheet-card" id="a4Card" tabindex="-1">
+    <h2 id="a4Title">Tuning pitch <span class="nc">(A4)</span></h2>
+    <div class="a4step"><button type="button" id="a4Down" aria-label="1 Hz lower">−</button><output id="a4Val" translate="no" aria-live="polite">442 Hz</output><button type="button" id="a4Up" aria-label="1 Hz higher">+</button></div>
+    <div class="a4list" id="a4List" role="radiogroup" aria-labelledby="a4Title" translate="no"></div>
+    <button type="button" class="sheet-done" id="a4Done">Done</button>
   </div>
 </div>
 <div class="sheet" id="upd" role="dialog" aria-modal="true" aria-labelledby="updTitle" aria-describedby="updMsg" hidden>
