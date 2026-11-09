@@ -1764,7 +1764,7 @@
      into systems, each system justified by widening its note spacing (a second drawing pass, so nothing is
      stretched), systems stacked on pages. The preview is the PDF: printing shows these same pages. */
   var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '';
-  var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.64, SYS_H = BOT + 46, FG_IND = 60;   /* FG_IND: the first system's indent, in score units (~10 mm) */   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
+  var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.62, SYS_H = BOT + 46, FG_IND = 60;   /* FG_IND: the first system's indent, in score units (~10 mm) */   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
   function fgOptions() { if (!fgSel) return; fgSel.innerHTML = songSel.innerHTML; fgSel.value = songSel.value; }
   function fgSync() { fgOptions(); fgDirty = true; if (fgShown) fgRender(); }
   var fgT = 0;
@@ -1777,15 +1777,36 @@
   function fgLayout(sg) {
     var r1 = scoreItems(sg, { barsOnly: true }), hw = r1.X0 - 12, full = (PG_W - 2 * PG_M) / PG_K - hw - 4, bars = r1.bars, sys = [], a = 0;
     function avail(i) { return full - (i === 0 ? FG_IND : 0); }   /* the first system is indented (首行缩进, Trix) */
-    while (a < bars.length - 1) {   /* as many whole bars as fit; at least one */
-      var b = a + 1;
-      while (b + 1 < bars.length && bars[b + 1].x - bars[a].x <= avail(sys.length)) b++;
-      sys.push([a, b]); a = b;
+    /* line breaks chosen together (as engraving programs do), not line by line: the set of breaks whose lines need
+       the least stretching or squeezing, so a short bar is not stranded alone before a very wide one (Trix:
+       Winter's bars 11 and 16). A line's cost grows with how far its spacing is from natural; squeezing below 55 %
+       is allowed only for a single bar wider than a line; the last line may stay short; each line costs a little,
+       so fewer lines (and pages) win a tie */
+    var B = bars.length - 1, best = [0], from = [];
+    function lineCost(a, b) {
+      var w = bars[b].x - bars[a].x, fixed = 12 * (b - a) + 4, g = (avail(a === 0 ? 0 : 1) - fixed) / Math.max(1, w - fixed);
+      if (g < 0.55) return b === a + 1 ? 1e6 : Infinity;
+      if (b === B && g >= 1) return 0;
+      if (g > 2.5) return 400 + (g - 2.5) * 100;
+      return (g - 1) * (g - 1) * (g < 1 ? 300 : 100);   /* squeezing costs three times stretching: crowded fingerings read worse than air */
     }
+    for (var e = 1; e <= B; e++) {
+      best[e] = Infinity;
+      for (var st = e - 1; st >= 0; st--) {
+        var c = lineCost(st, e);
+        if (c === Infinity) break;   /* more bars only make it tighter */
+        if (best[st] + c + 8 < best[e]) { best[e] = best[st] + c + 8; from[e] = st; }
+      }
+    }
+    for (var e2 = B; e2 > 0; e2 = from[e2]) sys.unshift([from[e2], e2]);
     var gains = sys.map(function (q, i) {
       var w = bars[q[1]].x - bars[q[0]].x, fixed = 12 * (q[1] - q[0]) + 4;
       if (i === sys.length - 1 && w < avail(i) * 0.75) return 1;   /* a short last system stays at its natural width */
-      return Math.max(1, (avail(i) - fixed) / Math.max(1, w - fixed));
+      /* justified: widened to fill the line, or tightened (to 55 %) when one dense bar is wider than the line on its
+         own (Trix: Winter's semiquaver bars ran off the page); a line that would need more than 2.5 x keeps its
+         natural width rather than spreading a few notes across the page */
+      var g = (avail(i) - fixed) / Math.max(1, w - fixed);
+      return g > 2.5 ? 1 : Math.max(0.55, g);
     });
     var r = scoreItems(sg, { gain: function (b) { for (var i = 0; i < sys.length; i++) if (b < bars[sys[i][1]].beat - 1e-6) return gains[i]; return gains[gains.length - 1]; } });
     r.sys = sys; r.hw = hw; r.items.sort(function (p, q) { return p[0] - q[0]; });
@@ -1854,8 +1875,10 @@
         }
       } else {
         o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_M + 8) + '">Violin Toolkit</text>');
-        o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 8) + '">' + esc(title) + ' · ' + (pi + 1) + '/' + pages.length + '</text>');
+        o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 8) + '">' + esc(title) + '</text>');
       }
+      /* page N of M at the bottom right of every page (Trix), in the margin below the music */
+      o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_H - PG_M + 22) + '">' + (zh ? '第 ' + (pi + 1) + ' 页，共 ' + pages.length + ' 页' : 'Page ' + (pi + 1) + ' of ' + pages.length) + '</text>');
       pg.forEach(function (e) { o.push('<g transform="translate(' + (PG_M + (e[0] === 0 ? FG_IND * PG_K : 0)).toFixed(2) + ' ' + e[1].toFixed(1) + ') scale(' + PG_K + ')">' + fgSystem(sg, r, e[0], e[2], 'fgc' + pi + '_' + e[0]) + '</g>'); });
       o.push('</svg>');
       return o.join('');
