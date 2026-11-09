@@ -185,6 +185,7 @@
     });
     var parts = kids(root, 'part');
     if (!parts.length) throw fail('This file has no notes.');
+    var modeKnown = false;   /* the score says major or minor (else the Fingerings pages name no key: Trix) */
     var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [];   /* tick -> tempo entry */
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
@@ -199,7 +200,7 @@
           var nm = el.nodeName;
           if (nm === 'attributes') {
             if (txt(el, 'divisions')) dv = +txt(el, 'divisions');
-            var key = kid(el, 'key'); if (key && sf === null && txt(key, 'fifths') !== '') { sf = +txt(key, 'fifths'); minor = txt(key, 'mode') === 'minor'; }
+            var key = kid(el, 'key'); if (key && sf === null && txt(key, 'fifths') !== '') { sf = +txt(key, 'fifths'); minor = txt(key, 'mode') === 'minor'; modeKnown = /^(major|minor)$/.test(txt(key, 'mode')); }
             var tm = kid(el, 'time'); if (tm && !sig && txt(tm, 'beats')) sig = { num: parseInt(txt(tm, 'beats'), 10) || 4, den: +txt(tm, 'beat-type') || 4 };
           } else if (nm === 'backup') cur -= +txt(el, 'duration') || 0;
           else if (nm === 'forward') { cur += +txt(el, 'duration') || 0; len = Math.max(len, cur); }
@@ -287,7 +288,7 @@
       var w = c.textContent.trim().split(/\s*\n\s*/).join(', ');
       if (!composer && c.getAttribute('type') === 'composer' && w && !BLANK.test(w)) composer = w;
     });
-    return { tracks: tracks, tpq: TPQ, tempos: tempos, sig: sig, sf: sf, minor: minor, bars: bars, composer: composer };
+    return { tracks: tracks, tpq: TPQ, tempos: tempos, sig: sig, sf: sf, minor: minor, bars: bars, composer: composer, modeKnown: modeKnown };
   }
 
   /* ---------- reading a MIDI file ---------- */
@@ -297,12 +298,12 @@
     function u32(at) { return ((u8[at] << 24) | (u8[at + 1] << 16) | (u8[at + 2] << 8) | u8[at + 3]) >>> 0; }
     function u16(at) { return (u8[at] << 8) | u8[at + 1]; }
     function vlq() { var v = 0, b; do { b = u8[p++]; v = (v * 128) + (b & 0x7f); } while ((b & 0x80) && p < u8.length); return v; }
-    if (looksXml(u8)) { var x = readXml(new TextDecoder().decode(u8)), xs = assemble(x.tracks, x.tpq, x.tempos, x.sig, x.sf, x.minor, x.bars); xs.composer = x.composer; return xs; }   /* MusicXML (Trix): the same parts, notes and timing, plus written fingerings */
+    if (looksXml(u8)) { var x = readXml(new TextDecoder().decode(u8)), xs = assemble(x.tracks, x.tpq, x.tempos, x.sig, x.sf, x.minor, x.bars); xs.composer = x.composer; xs.modeKnown = x.modeKnown; return xs; }   /* MusicXML (Trix): the same parts, notes and timing, plus written fingerings */
     if (u8.length < 14 || str(0, 4) !== 'MThd') throw fail('This is not a MIDI or MusicXML file.');
     var ntr = u16(10), tpq = u16(12);
     if (tpq & 0x8000) throw fail('This MIDI file keeps time in a way the player can’t read.');
     p = 8 + u32(4);
-    var tempos = [], sig = null, sf = null, minor = false, tracks = [], midiComposer = '';   /* midiComposer: from a text event that says so (MIDI has no composer field) */
+    var tempos = [], sig = null, sf = null, minor = false, tracks = [], midiComposer = '', modeKnown = false;   /* midiComposer: from a text event that says so (MIDI has no composer field) */
     for (var t = 0; t < ntr && p + 8 <= u8.length; t++) {
       var id = str(p, 4), end = Math.min(p + 8 + u32(p + 4), u8.length);
       p += 8;
@@ -316,7 +317,7 @@
           var ty = u8[p++], l = vlq();
           if (ty === 0x51 && l >= 3) tempos.push({ tick: tick, us: (u8[p] << 16) | (u8[p + 1] << 8) | u8[p + 2] });
           else if (ty === 0x58 && l >= 2 && !sig) sig = { num: u8[p], den: Math.pow(2, u8[p + 1]) };
-          else if (ty === 0x59 && l >= 1 && sf === null) { sf = (u8[p] << 24) >> 24; minor = l >= 2 && u8[p + 1] === 1; }
+          else if (ty === 0x59 && l >= 1 && sf === null) { sf = (u8[p] << 24) >> 24; minor = l >= 2 && u8[p + 1] === 1; modeKnown = l >= 2 && u8[p + 1] <= 1; }
           else if ((ty === 0x01 || ty === 0x02) && !midiComposer) {   /* text / copyright: only a line naming the composer */
             var ct = ''; try { ct = new TextDecoder().decode(u8.subarray(p, p + Math.min(l, 120))); } catch (e) { ct = str(p, Math.min(l, 120)); }
             var cm = /^\s*(?:composer|composed by|music by|作曲(?:家|者)?)\s*[:：]?\s*(.+?)\s*$/i.exec(ct.replace(/[\u0000-\u001f\ufffd]/g, ' '));
@@ -343,7 +344,7 @@
       if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1, name: name || inst, label: name + ' ' + inst, prog: prog, progs: progs });
       p = end;
     }
-    var ms = assemble(tracks, tpq, tempos, sig, sf, minor); ms.composer = midiComposer; return ms;
+    var ms = assemble(tracks, tpq, tempos, sig, sf, minor); ms.composer = midiComposer; ms.modeKnown = modeKnown; return ms;
   }
   /* what both readers share: naming the parts, choosing the violin, the accompaniment */
   function assemble(tracks, tpq, tempos, sig, sf, minor, bars) {   /* bars: MusicXML's bar numbers in play order [{tick, num}] */
@@ -1839,7 +1840,7 @@
         o.push('<text class="fg-title" x="' + PG_W / 2 + '" y="' + (PG_M + 22) + '">' + esc(title) + '</text>');   /* centred (Trix) */
         /* line 2 the composer (when the score names one), line 3 instrument and key (Trix) */
         if (sg.composer) o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + 44) + '">' + esc(sg.composer) + '</text>');
-        o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + (sg.composer ? 63 : 44)) + '">' + esc(part + ' · ' + fgKey(sg, zh)) + '</text>');
+        o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + (sg.composer ? 63 : 44)) + '">' + esc(sg.modeKnown ? part + ' · ' + fgKey(sg, zh) : part) + '</text>');
         if (QR) {   /* 16 mm with a 2 mm quiet zone, inside the margins, over no staff */
           var qx = PG_W - PG_M - QZ - QS, qy = PG_M + QZ, u = QS / QR.n;
           o.push('<rect class="fg-paper" x="' + (qx - QZ).toFixed(2) + '" y="' + PG_M + '" width="' + (QS + 2 * QZ).toFixed(2) + '" height="' + (QS + 2 * QZ).toFixed(2) + '"/>');
