@@ -1060,7 +1060,8 @@
         wedge = null;
       } else wedge = { x: x, cresc: m.text === 'crescendo' };
     });
-    return { items: items, head: out.slice(0, head), X0: X0, W: W, xAt: xAt, bars: bars, passages: passages };
+    return { items: items, head: out.slice(0, head), X0: X0, W: W, xAt: xAt, bars: bars, passages: passages,
+      tops: inf.map(function (f) { return [f.hx, f.top === undefined ? Y0 - 7 : f.top]; }) };   /* the free space over each note (the pages' tempo mark) */
   }
   function drawScore() {
     var r = scoreItems(song), items = r.items, i;
@@ -1824,7 +1825,12 @@
     for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M0 ' + (Y0 + j * S) + 'H' + wide + '"/>';
     var bo = sg.barAt ? sg.barAt(r.bars[q[0]].beat + 1e-3) : null;
     out.push(lines, CLEF, r.head.join(''));
-    if (si === 0) out.push('<text class="fg-tempo" x="' + (hw + ((r.bars[q[0] + 1] ? r.bars[q[0] + 1].x : xb) - xa) / 2).toFixed(1) + '" y="' + (Y0 - 24) + '">♩ = ' + sg.bpm + '</text>');   /* the tempo over the middle of the first bar (Trix) */
+    if (si === 0) {   /* the tempo over the middle of the first bar (Trix), above anything there: fingerings, bowings, a position numeral */
+      var bEnd = r.bars[q[0] + 1] ? r.bars[q[0] + 1].x : xb, ty = Y0 - 24;
+      r.tops.forEach(function (t) { if (t[0] > xa && t[0] < bEnd) ty = Math.min(ty, t[1] - 6); });
+      r.passages.forEach(function (p) { if (p.x0 > xa - 30 && p.x0 < bEnd) ty = Math.min(ty, p.y - 22); });
+      out.push('<text class="fg-tempo" x="' + (hw + (bEnd - xa) / 2).toFixed(1) + '" y="' + Math.max(-22, ty) + '">♩ = ' + sg.bpm + '</text>');
+    }
     else if (bo) out.push('<text class="fg-bn" x="2" y="' + (Y0 - 24) + '">' + esc(bo.num) + '</text>');
     /* a position held over a page turn: its numeral again at the top of the new page (Trix) */
     if (firstOnPage && si > 0) r.passages.forEach(function (p) {
