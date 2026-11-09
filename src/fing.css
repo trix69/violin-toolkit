@@ -2,6 +2,9 @@
 #view-fingering .fg-bar { display: flex; align-items: center; gap: 12px; margin: 10px 0 12px; }
 #view-fingering .fg-note { flex: 1; margin: 0; font: 400 13px var(--font-body); color: var(--muted); }
 #view-fingering .fg-pdf { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-note); cursor: pointer; }
+#view-fingering .fg-play { flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); cursor: pointer; }
+#view-fingering .fg-play svg { width: 20px; height: 20px; fill: currentColor; margin-left: 3px; }
+#view-fingering .fg-play:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 #view-fingering .fg-pdf svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #view-fingering .fg-pdf:disabled { opacity: .4; cursor: default; }
 #view-fingering .fg-pdf:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -9,10 +12,14 @@
 #view-fingering .fg-pages.mp-score { --sc-bg: #FFFFFF; --sc-ink: #1A1A1A; --sc-fing: 8%; height: auto; overflow: visible; margin: 0; border-radius: 0; background: none; box-shadow: none; color: var(--sc-ink); }
 #view-fingering .fg-page { display: block; width: 100%; height: auto; margin: 0 0 16px; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 6px 20px rgba(0,0,0,.08); }
 .fg-page .fg-paper { fill: #fff; }
-.fg-page .fg-title { fill: #1A1A1A; font: 600 20px 'Times New Roman', 'Noto Serif', 'Songti SC', serif; text-anchor: middle; }
-.fg-page .fg-foot { fill: #666; font: 400 9px var(--font-body); }
+.fg-page .fg-title { fill: #1A1A1A; font: 700 22px 'Times New Roman', 'Noto Serif', 'Songti SC', serif; text-anchor: middle; }
+.fg-page .fg-sub { fill: #333; font: 400 13px 'Times New Roman', 'Noto Serif', 'Songti SC', serif; text-anchor: middle; }
+.fg-page .fg-tempo { fill: #1A1A1A; font: 700 15px 'Times New Roman', 'Noto Serif', serif; }   /* in score units (x 0.64 on the page) */
+.fg-page .fg-qr { fill: #000; }
+.fg-page .fg-cap { fill: #555; font: 400 10.67px var(--font-body); text-anchor: end; }   /* 8 pt */
+.fg-page .fg-run { fill: #777; font: 400 10.67px var(--font-body); }   /* the running header, 8 pt, muted */
 .fg-page .fg-bn { fill: #555; font: italic 11px 'Times New Roman', 'Noto Serif', serif; }
-.mp-score .fg-pg-n { text-anchor: end; }
+.fg-page .fg-pg-n { text-anchor: end; }
 .mp-fg { position: absolute; z-index: 4; top: 6px; right: 6px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 1px solid color-mix(in srgb, var(--sc-ink) 18%, transparent); border-radius: 9px; background: color-mix(in srgb, var(--sc-bg) 88%, transparent); color: var(--sc-ink); cursor: pointer; }
 .mp-fg svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .mp-fg:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -25,3 +32,8 @@
   html.fg-printing .fg-page { width: 210mm !important; height: 297mm !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; break-after: page; page-break-after: always; }
   html.fg-printing .fg-page:last-child { break-after: auto; page-break-after: auto; }
 }
+/* the iPhone app's PDF: only the pages, each exactly A4 in points, stacked from the top (the app captures each) */
+html.fg-shot, html.fg-shot body { margin: 0 !important; padding: 0 !important; background: #fff !important; width: 595.28px !important; min-width: 0 !important; overflow: visible !important; }
+html.fg-shot body > :not(#shell), html.fg-shot #shell > :not(#main), html.fg-shot #main > :not(#view-fingering), html.fg-shot #view-fingering > * > :not(.fg-pages) { display: none !important; }
+html.fg-shot #shell, html.fg-shot #main, html.fg-shot #view-fingering, html.fg-shot #fg, html.fg-shot .fg-pages { display: block !important; margin: 0 !important; padding: 0 !important; max-width: none !important; width: 595.28px !important; border: 0 !important; box-shadow: none !important; }
+html.fg-shot .fg-page { width: 595.28px !important; height: 841.89px !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }

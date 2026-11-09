@@ -275,7 +275,19 @@
       }
     });
     tempos.sort(function (a, b) { return a.tick - b.tick; });
-    return { tracks: tracks, tpq: TPQ, tempos: tempos, sig: sig, sf: sf, minor: minor, bars: bars };
+    /* the composer (Trix: on the Fingerings pages): the credit printed on the score first, else the identification's
+       creator; MuseScore's empty-template words ("Composer / arranger") are not a name */
+    var composer = '', BLANK = /^(composer(\s*\/\s*arranger)?|arranger|subtitle|title)$/i;
+    Array.prototype.forEach.call(doc.getElementsByTagName('credit'), function (c) {
+      if (composer || !Array.prototype.some.call(c.getElementsByTagName('credit-type'), function (t) { return t.textContent.trim() === 'composer'; })) return;
+      var w = Array.prototype.map.call(c.getElementsByTagName('credit-words'), function (x) { return x.textContent.trim(); }).join(' ').split(/\s*\n\s*/).filter(Boolean).join(', ');
+      if (w && !BLANK.test(w)) composer = w;
+    });
+    if (!composer) Array.prototype.forEach.call(doc.getElementsByTagName('creator'), function (c) {
+      var w = c.textContent.trim().split(/\s*\n\s*/).join(', ');
+      if (!composer && c.getAttribute('type') === 'composer' && w && !BLANK.test(w)) composer = w;
+    });
+    return { tracks: tracks, tpq: TPQ, tempos: tempos, sig: sig, sf: sf, minor: minor, bars: bars, composer: composer };
   }
 
   /* ---------- reading a MIDI file ---------- */
@@ -285,12 +297,12 @@
     function u32(at) { return ((u8[at] << 24) | (u8[at + 1] << 16) | (u8[at + 2] << 8) | u8[at + 3]) >>> 0; }
     function u16(at) { return (u8[at] << 8) | u8[at + 1]; }
     function vlq() { var v = 0, b; do { b = u8[p++]; v = (v * 128) + (b & 0x7f); } while ((b & 0x80) && p < u8.length); return v; }
-    if (looksXml(u8)) { var x = readXml(new TextDecoder().decode(u8)); return assemble(x.tracks, x.tpq, x.tempos, x.sig, x.sf, x.minor, x.bars); }   /* MusicXML (Trix): the same parts, notes and timing, plus written fingerings */
+    if (looksXml(u8)) { var x = readXml(new TextDecoder().decode(u8)), xs = assemble(x.tracks, x.tpq, x.tempos, x.sig, x.sf, x.minor, x.bars); xs.composer = x.composer; return xs; }   /* MusicXML (Trix): the same parts, notes and timing, plus written fingerings */
     if (u8.length < 14 || str(0, 4) !== 'MThd') throw fail('This is not a MIDI or MusicXML file.');
     var ntr = u16(10), tpq = u16(12);
     if (tpq & 0x8000) throw fail('This MIDI file keeps time in a way the player can’t read.');
     p = 8 + u32(4);
-    var tempos = [], sig = null, sf = null, minor = false, tracks = [];
+    var tempos = [], sig = null, sf = null, minor = false, tracks = [], midiComposer = '';   /* midiComposer: from a text event that says so (MIDI has no composer field) */
     for (var t = 0; t < ntr && p + 8 <= u8.length; t++) {
       var id = str(p, 4), end = Math.min(p + 8 + u32(p + 4), u8.length);
       p += 8;
@@ -305,6 +317,11 @@
           if (ty === 0x51 && l >= 3) tempos.push({ tick: tick, us: (u8[p] << 16) | (u8[p + 1] << 8) | u8[p + 2] });
           else if (ty === 0x58 && l >= 2 && !sig) sig = { num: u8[p], den: Math.pow(2, u8[p + 1]) };
           else if (ty === 0x59 && l >= 1 && sf === null) { sf = (u8[p] << 24) >> 24; minor = l >= 2 && u8[p + 1] === 1; }
+          else if ((ty === 0x01 || ty === 0x02) && !midiComposer) {   /* text / copyright: only a line naming the composer */
+            var ct = ''; try { ct = new TextDecoder().decode(u8.subarray(p, p + Math.min(l, 120))); } catch (e) { ct = str(p, Math.min(l, 120)); }
+            var cm = /^\s*(?:composer|composed by|music by|作曲(?:家|者)?)\s*[:：]?\s*(.+?)\s*$/i.exec(ct.replace(/[\u0000-\u001f\ufffd]/g, ' '));
+            if (cm) midiComposer = cm[1];
+          }
           else if ((ty === 0x03 && !name) || (ty === 0x04 && !inst)) {   /* track name, instrument name (UTF-8, e.g. 小提琴) */
             var txt = ''; try { txt = new TextDecoder().decode(u8.subarray(p, p + Math.min(l, 60))); } catch (e) { txt = str(p, Math.min(l, 60)); }
             txt = txt.replace(/[\u0000-\u001f\ufffd]/g, '').trim();
@@ -326,7 +343,7 @@
       if (notes.length) tracks.push({ notes: notes, chans: Object.keys(chans).length || 1, name: name || inst, label: name + ' ' + inst, prog: prog, progs: progs });
       p = end;
     }
-    return assemble(tracks, tpq, tempos, sig, sf, minor);
+    var ms = assemble(tracks, tpq, tempos, sig, sf, minor); ms.composer = midiComposer; return ms;
   }
   /* what both readers share: naming the parts, choosing the violin, the accompaniment */
   function assemble(tracks, tpq, tempos, sig, sf, minor, bars) {   /* bars: MusicXML's bar numbers in play order [{tick, num}] */
@@ -745,16 +762,35 @@
       if (!open) return;
       /* the numeral clears its own note; the line runs at the same height through the passage, broken around any
          note whose fingering or bowing reaches up to it (the strip has no more room above: Winter's high runs) */
-      var x0 = inf[open.k0].hx, x1 = inf[kEnd].hx + 6, y = topOver(open.k0, open.k0), ly = y - 5, a = x0 + 2 + 18 * ROMAN_W[open.h];
+      /* where the numeral goes: over the passage's first note if there is room above it; else over the first of the
+         next few notes (within 2 beats) that has room; else in the gap just before the passage. Never pressed down
+         onto a note, its fingering or a grace note (Trix: the Ⅲ sat on a grace note and a 3) */
+      var kAt = -1, raw = function (k) { var t = Y0 - 7; inf[k].members.forEach(function (j) { if (inf[j].top !== undefined) t = Math.min(t, inf[j].top); }); return t; };
+      for (var kk = open.k0; kk <= kEnd && ns[kk].b < ns[open.k0].b + 2 + 1e-6; kk++) {
+        if (!inf[kk] || ns[kk].grace || inf[kk].members === undefined) continue;   /* chord heads only; graces are not anchors */
+        if (raw(kk) >= 14) { kAt = kk; break; }
+      }
+      var gw = 18 * ROMAN_W[open.h], x0 = kAt >= 0 ? inf[kAt].hx : inf[open.k0].hx, y = kAt >= 0 ? raw(kAt) : 14;
+      if (kAt < 0) {   /* no room over any of them: before the passage, clear of its first note and of any grace notes before it */
+        var left = inf[open.k0].hx;
+        for (var g = open.k0 - 1; g >= 0 && ns[g].grace; g--) left = Math.min(left, inf[g].hx);
+        x0 = left - 12 - gw + 4;
+      }
+      var x1 = inf[kEnd].hx + 6, ly = y - 5, a = x0 + 2 + gw;
       mark(x0, y, open.h);
       passages.push({ h: open.h, x0: x0, x1: x1, y: y });
       if (open.h > 0) {   /* "I" (back to 1st) needs no line */
+        /* a run of notes whose fingering reaches the line's height (high notes, their numbers pinned at the top
+           of the strip): the line pauses over the whole run, not just round each note, and picks up again at the
+           next clear note (Trix: dashes between the 4s read as crossing them) */
+        var gap = false;
         for (var k = open.k0 + 1; k <= kEnd; k++) {
-          var f = inf[k]; if (!f || f.top === undefined || ly <= f.top + 2) continue;   /* its marks end below the line */
-          if (f.hx - 9 > a + 6) dash(a, f.hx - 9, ly);
-          a = Math.max(a, f.hx + 9);
+          var f = inf[k]; if (!f || f.top === undefined || ns[k].grace) continue;
+          if (ly <= f.top + 2) { if (gap) { a = f.hx - 9; gap = false; } continue; }   /* clear of the line */
+          if (!gap && f.hx - 9 > a + 6) dash(a, f.hx - 9, ly);
+          gap = true; a = f.hx + 9;
         }
-        if (x1 > a + 6) dash(a, x1, ly);
+        if (!gap && x1 > a + 6) dash(a, x1, ly);
       }
       open = null;
     }
@@ -1727,7 +1763,7 @@
      into systems, each system justified by widening its note spacing (a second drawing pass, so nothing is
      stretched), systems stacked on pages. The preview is the PDF: printing shows these same pages. */
   var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '';
-  var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.64, SYS_H = BOT + 46;   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
+  var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.64, SYS_H = BOT + 46, FG_IND = 60;   /* FG_IND: the first system's indent, in score units (~10 mm) */   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
   function fgOptions() { if (!fgSel) return; fgSel.innerHTML = songSel.innerHTML; fgSel.value = songSel.value; }
   function fgSync() { fgOptions(); fgDirty = true; if (fgShown) fgRender(); }
   var fgT = 0;
@@ -1738,16 +1774,17 @@
   }
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   function fgLayout(sg) {
-    var r1 = scoreItems(sg, { barsOnly: true }), hw = r1.X0 - 12, avail = (PG_W - 2 * PG_M) / PG_K - hw - 4, bars = r1.bars, sys = [], a = 0;
+    var r1 = scoreItems(sg, { barsOnly: true }), hw = r1.X0 - 12, full = (PG_W - 2 * PG_M) / PG_K - hw - 4, bars = r1.bars, sys = [], a = 0;
+    function avail(i) { return full - (i === 0 ? FG_IND : 0); }   /* the first system is indented (首行缩进, Trix) */
     while (a < bars.length - 1) {   /* as many whole bars as fit; at least one */
       var b = a + 1;
-      while (b + 1 < bars.length && bars[b + 1].x - bars[a].x <= avail) b++;
+      while (b + 1 < bars.length && bars[b + 1].x - bars[a].x <= avail(sys.length)) b++;
       sys.push([a, b]); a = b;
     }
     var gains = sys.map(function (q, i) {
       var w = bars[q[1]].x - bars[q[0]].x, fixed = 12 * (q[1] - q[0]) + 4;
-      if (i === sys.length - 1 && w < avail * 0.75) return 1;   /* a short last system stays at its natural width */
-      return Math.max(1, (avail - fixed) / Math.max(1, w - fixed));
+      if (i === sys.length - 1 && w < avail(i) * 0.75) return 1;   /* a short last system stays at its natural width */
+      return Math.max(1, (avail(i) - fixed) / Math.max(1, w - fixed));
     });
     var r = scoreItems(sg, { gain: function (b) { for (var i = 0; i < sys.length; i++) if (b < bars[sys[i][1]].beat - 1e-6) return gains[i]; return gains[gains.length - 1]; } });
     r.sys = sys; r.hw = hw; r.items.sort(function (p, q) { return p[0] - q[0]; });
@@ -1758,7 +1795,8 @@
     for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M0 ' + (Y0 + j * S) + 'H' + wide + '"/>';
     var bo = sg.barAt ? sg.barAt(r.bars[q[0]].beat + 1e-3) : null;
     out.push(lines, CLEF, r.head.join(''));
-    if (bo) out.push('<text class="fg-bn" x="2" y="' + (Y0 - 24) + '">' + esc(bo.num) + '</text>');
+    if (si === 0) out.push('<text class="fg-tempo" x="2" y="' + (Y0 - 24) + '">♩ = ' + sg.bpm + '</text>');   /* the tempo above the first bar (Trix) */
+    else if (bo) out.push('<text class="fg-bn" x="2" y="' + (Y0 - 24) + '">' + esc(bo.num) + '</text>');
     /* a position held over a page turn: its numeral again at the top of the new page (Trix) */
     if (firstOnPage && si > 0) r.passages.forEach(function (p) {
       if (p.h > 0 && p.x0 < xa - 1 && p.x1 > xa + 14) out.push('<text class="mp-pos" x="' + (hw + 4) + '" y="' + p.y + '">' + ROMAN_U[p.h] + '</text>');
@@ -1770,24 +1808,52 @@
     out.push('<g clip-path="url(#' + id + ')"><g transform="translate(' + tx.toFixed(2) + ' 0)">' + body.join('') + '</g></g>');
     return out.join('');
   }
+  /* the QR on page 1 (Trix): the app's address, drawn from src/qr.py at build time as vector squares */
+  var QR = /*QR*/null;
+  var KEY_MAJ = ['C♭', 'G♭', 'D♭', 'A♭', 'E♭', 'B♭', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'C♯'];
+  var KEY_MIN = ['a♭', 'e♭', 'b♭', 'f', 'c', 'g', 'd', 'a', 'e', 'b', 'f♯', 'c♯', 'g♯', 'd♯', 'a♯'];
+  function fgKey(sg, zh) {
+    var i = Math.max(-7, Math.min(7, sg.sf)) + 7, k = sg.minor ? KEY_MIN[i] : KEY_MAJ[i];
+    return zh ? k + (sg.minor ? ' 小调' : ' 大调') : k + (sg.minor ? ' minor' : ' major');
+  }
   function fgRender() {
     if (!fgPages) return;
     fgDirty = false;
     if (!song) { fgPages.innerHTML = ''; fgPdf.disabled = true; fgMsg.hidden = false; fgMsg.textContent = msg.hidden ? 'Opening the score…' : msg.textContent; return; }
     fgMsg.hidden = true; fgPdf.disabled = false;
     var sg = song, r = fgLayout(sg), zh = window.I18N && I18N.lang === 'zh';
-    var pages = [], cur = null, y = 0, sysH = SYS_H * PG_K + 2, bottom = PG_H - PG_M - 16;
+    /* page 1 opens with the title block (title, part, key and tempo; the QR on the right); later pages with a
+       running header; no footer on any page, no watermark (Trix) */
+    var MM = PG_W / 210, QS = 16 * MM, QZ = 2 * MM, TOP1 = PG_M + QZ + QS + QZ + 18, TOPN = PG_M + 22;
+    var pages = [], cur = null, y = 0, sysH = SYS_H * PG_K + 2, bottom = PG_H - PG_M;
     r.sys.forEach(function (q, si) {
-      if (!cur || y + sysH > bottom) { cur = []; pages.push(cur); y = PG_M + (pages.length === 1 ? 44 : 0); cur.first = true; }
+      if (!cur || y + sysH > bottom) { cur = []; pages.push(cur); y = pages.length === 1 ? TOP1 : TOPN; }
       cur.push([si, y, cur.length === 0]); y += sysH;
     });
-    var btn = document.getElementById('verBtn'), ver = btn ? btn.dataset.version : '', build = btn ? btn.dataset.build : '';
+    var o0 = songSel.options[songSel.selectedIndex], s0 = songs[+songSel.value];
+    var title = s0 ? (s0.kept ? s0.title : (o0 ? o0.textContent : s0.title)) : '';
+    var part = zh ? '小提琴' : 'Violin';
     var html = pages.map(function (pg, pi) {
       var o = ['<svg class="fg-page" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + PG_W + ' ' + PG_H + '" width="' + PG_W + '" height="' + PG_H + '"><rect class="fg-paper" width="' + PG_W + '" height="' + PG_H + '"/>'];
-      if (pi === 0) o.push('<text class="fg-title" x="' + PG_W / 2 + '" y="' + (PG_M + 14) + '">' + esc(fgTitle()) + '</text>');
-      pg.forEach(function (e) { o.push('<g transform="translate(' + PG_M + ' ' + e[1].toFixed(1) + ') scale(' + PG_K + ')">' + fgSystem(sg, r, e[0], e[2], 'fgc' + pi + '_' + e[0]) + '</g>'); });
-      o.push('<text class="fg-foot" x="' + PG_M + '" y="' + (PG_H - PG_M + 10) + '">Violin Toolkit ' + esc(ver) + (build ? ' · ' + esc(build) : '') + '</text>');
-      o.push('<text class="fg-foot fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_H - PG_M + 10) + '">' + (zh ? '第 ' + (pi + 1) + ' 页，共 ' + pages.length + ' 页' : 'Page ' + (pi + 1) + ' of ' + pages.length) + '</text>');
+      if (pi === 0) {
+        o.push('<text class="fg-title" x="' + PG_W / 2 + '" y="' + (PG_M + 22) + '">' + esc(title) + '</text>');   /* centred (Trix) */
+        o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + 46) + '">' + esc([part, fgKey(sg, zh)].concat(sg.composer ? [sg.composer] : []).join(' · ')) + '</text>');   /* instrument, key and composer on one line (Trix) */
+        if (QR) {   /* 16 mm with a 2 mm quiet zone, inside the margins, over no staff */
+          var qx = PG_W - PG_M - QZ - QS, qy = PG_M + QZ, u = QS / QR.n;
+          o.push('<rect class="fg-paper" x="' + (qx - QZ).toFixed(2) + '" y="' + PG_M + '" width="' + (QS + 2 * QZ).toFixed(2) + '" height="' + (QS + 2 * QZ).toFixed(2) + '"/>');
+          o.push('<path class="fg-qr" transform="translate(' + qx.toFixed(2) + ' ' + qy.toFixed(2) + ') scale(' + u.toFixed(4) + ')" d="' + QR.d + '"/>');
+          if (QR.icon) {   /* the app icon in the middle (Trix): 7 modules on a white square 9 modules across; level Q corrects the cover */
+            var im = 7 * u, ib = 9 * u, cx = qx + QS / 2, cy = qy + QS / 2;
+            o.push('<rect class="fg-paper" x="' + (cx - ib / 2).toFixed(2) + '" y="' + (cy - ib / 2).toFixed(2) + '" width="' + ib.toFixed(2) + '" height="' + ib.toFixed(2) + '"/>');
+            o.push('<svg x="' + (cx - im / 2).toFixed(2) + '" y="' + (cy - im / 2).toFixed(2) + '" width="' + im.toFixed(2) + '" height="' + im.toFixed(2) + '" viewBox="0 0 512 512">' + QR.icon + '</svg>');
+          }
+          o.push('<text class="fg-cap" x="' + (PG_W - PG_M) + '" y="' + (PG_M + QZ + QS + QZ + 9) + '">' + (zh ? '由 Violin Toolkit 生成' : 'Generated by Violin Toolkit') + '</text>');
+        }
+      } else {
+        o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_M + 8) + '">Violin Toolkit</text>');
+        o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 8) + '">' + esc(title) + ' · ' + (pi + 1) + '/' + pages.length + '</text>');
+      }
+      pg.forEach(function (e) { o.push('<g transform="translate(' + (PG_M + (e[0] === 0 ? FG_IND * PG_K : 0)).toFixed(2) + ' ' + e[1].toFixed(1) + ') scale(' + PG_K + ')">' + fgSystem(sg, r, e[0], e[2], 'fgc' + pi + '_' + e[0]) + '</g>'); });
       o.push('</svg>');
       return o.join('');
     }).join('');
@@ -1796,19 +1862,24 @@
   if (fgSel) {
     fgSel.addEventListener('change', function () { songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
     $('fgImport').addEventListener('click', function () { $('mpImport').click(); });   /* the same import, the same list */
+    $('fgPlay').addEventListener('click', function () { APP.show('midi'); window.scrollTo(0, 0); });   /* back to the player, the same tune (Trix) */
     $('mpFg').addEventListener('click', function (e) { e.stopPropagation(); APP.show('fingering'); window.scrollTo(0, 0); });
     $('mpFg').addEventListener('pointerdown', function (e) { e.stopPropagation(); });
     document.addEventListener('i18n', function () { fgOptions(); if (fgShown) fgRender(); else fgDirty = true; });
     fgPdf.addEventListener('click', function () {
       if (!song) return;
       var ios = window.VTiOSApp && window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt;
+      if (ios) {   /* the iPhone app: only the A4 pages on screen (html.fg-shot), captured page by page into a PDF for the share sheet */
+        document.documentElement.classList.add('fg-shot');
+        webkit.messageHandlers.vt.postMessage({ print: fgTitle(), pages: fgPages.querySelectorAll('.fg-page').length });
+        return;
+      }
       document.documentElement.classList.add('fg-printing');
-      if (ios) { webkit.messageHandlers.vt.postMessage({ print: fgTitle() }); return; }   /* the iPhone app makes the PDF and offers the share sheet */
       if (window.VTApp && VTApp.print) { VTApp.print(fgTitle()); return; }   /* the Android app: the system print screen (Save as PDF) */
       window.print();
     });
     window.addEventListener('afterprint', function () { document.documentElement.classList.remove('fg-printing'); });
-    APP.fgPrinted = function () { document.documentElement.classList.remove('fg-printing'); };   /* the apps call this when their print screen closes */
+    APP.fgPrinted = function () { document.documentElement.classList.remove('fg-printing'); document.documentElement.classList.remove('fg-shot'); };   /* the apps call this when their print screen closes */
     APP.views.fingering = {
       show: function () { fgShown = true; fgOptions(); if (fgDirty) fgRender(); },
       hide: function () { fgShown = false; }

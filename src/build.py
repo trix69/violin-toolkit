@@ -482,6 +482,14 @@ def _demo(f, t):
     raw = open(SP + 'midi/' + f, 'rb').read()
     return {'title': t, 'f': f, 'h': hashlib.sha1(raw).hexdigest()[:10], 'b64': base64.b64encode(raw).decode()}
 midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps([_demo(f, t) for f, t in MIDI_DEMOS]))
+# the Fingerings page's QR (Trix): the app's address, encoded here by src/qr.py (no library), drawn as vector squares
+import importlib.util as _ilu
+_qs = _ilu.spec_from_file_location('vt_qr', SP + 'qr.py'); _qr = _ilu.module_from_spec(_qs); _qs.loader.exec_module(_qr)
+_qn, _qd = _qr.qr_svg_path('https://trix69.github.io/violin-toolkit/', 'Q')   # level Q (25 %): room for the app icon in the middle (Trix)
+_icon = open(SP + 'icons/icon.svg').read()
+_icon = _icon[_icon.index('>', _icon.index('<svg')) + 1:_icon.rindex('</svg>')].replace('id="ink"', 'id="vtqr-ink"').replace('#ink"', '#vtqr-ink"')
+assert 'id="ink"' not in _icon and midi_js.count('/*QR*/null') == 1
+midi_js = midi_js.replace('/*QR*/null', json.dumps({'n': _qn, 'd': _qd, 'icon': _icon}))
 i18n_js = open(SP + 'i18n.js').read()
 coach_js = open(SP + 'coach.js').read()
 coach_css = open(SP + 'coach.css').read()
