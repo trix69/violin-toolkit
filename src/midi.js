@@ -264,7 +264,7 @@
                accidental written over the ornament beside it */
             kids(kid(nots, 'ornaments')).forEach(function (o) {
               var nm = o.nodeName;
-              if (/^(trill-mark|turn|inverted-turn|delayed-turn|mordent|inverted-mordent)$/.test(nm)) art.push(nm);
+              if (/^(trill-mark|turn|inverted-turn|delayed-turn|mordent|inverted-mordent)$/.test(nm)) art.push(nm + (/mordent$/.test(nm) && o.getAttribute('long') === 'yes' ? '-long' : ''));   /* a long mordent: one more zigzag */
               else if (nm === 'tremolo' && (o.getAttribute('type') || 'single') === 'single') n.trem = Math.max(1, Math.min(4, +o.textContent.trim() || 3));
               else if (nm === 'accidental-mark') n.oacc = o.textContent.trim();
             });
@@ -807,9 +807,9 @@
         var gap = false;
         for (var k = open.k0 + 1; k <= kEnd; k++) {
           var f = inf[k]; if (!f || f.top === undefined || ns[k].grace) continue;
-          if (ly <= f.top + 2) { if (gap) { a = f.hx - 9; gap = false; } continue; }   /* clear of the line */
-          if (!gap && f.hx - 9 > a + 6) dash(a, f.hx - 9, ly);
-          gap = true; a = f.hx + 9;
+          if (ly <= f.top + 2) { if (gap) { a = f.hx - 14; gap = false; } continue; }   /* clear of the line */
+          if (!gap && f.hx - 14 > a + 6) dash(a, f.hx - 14, ly);   /* clear of a wide mark over the note (a long mordent) */
+          gap = true; a = f.hx + 14;
         }
         if (!gap && x1 > a + 6) dash(a, x1, ly);
       }
@@ -1035,10 +1035,17 @@
           var oa = { sharp: '#', flat: 'b', natural: 'n' }[nt.oacc];
           if (oa) d += '<g class="acc" transform="translate(' + (hx + 12) + ' ' + (by - 3) + ') scale(.6) translate(' + (-(hx + 12)) + ' ' + (-(by - 3)) + ')">' + APP.accSvg(oa, hx + 12, by - 3, S) + '</g>';
         }
-        else if (a === 'mordent' || a === 'inverted-mordent') d = '<path class="art orn" d="M' + (hx - 7) + ' ' + (by + 2) + 'l3.5 -4l3.5 4l3.5 -4l3.5 4' + (a === 'mordent' ? 'M' + hx + ' ' + (by - 5) + 'V' + (by + 5) : '') + '"/>';
-        else if (/turn$/.test(a)) d = '<path class="art orn" d="M' + (hx - 7) + ' ' + (by + 1) + 'c0 -5 6 -5 7 0s7 5 7 0' + (a === 'inverted-turn' ? 'M' + hx + ' ' + (by - 5) + 'V' + (by + 6) : '') + '"/>';
+        else if (/mordent/.test(a)) {   /* as the Symbols page draws it: a bold sharp zigzag (two peaks, three when long); the lower mordent has a thin line through */
+          var pk = /-long$/.test(a) ? 3 : 2, mw = pk * 8, mx = hx - mw / 2, zz = 'M' + mx + ' ' + (by + 2);
+          for (var zi = 0; zi < pk; zi++) zz += 'l4 -6l4 6';
+          d = '<path class="orn-z" d="' + zz + '"/>' + (/^mordent/.test(a) ? '<path class="orn-l" d="M' + hx + ' ' + (by - 8) + 'V' + (by + 6) + '"/>' : '');
+        }
+        else if (/turn$/.test(a)) {   /* the Symbols page's turn, scaled to the score; the inverted turn has a line through */
+          var tsx = hx - 8, tsy = by - 1, T = function (x, y) { return (tsx + x * 0.8).toFixed(1) + ' ' + (tsy + y * 0.8).toFixed(1); };
+          d = '<path class="orn-t" d="M' + T(6, -1.5) + 'C' + T(4, -5) + ' ' + T(0.5, -1) + ' ' + T(3.5, 2) + 'C' + T(6.5, 4.5) + ' ' + T(13.5, -4.5) + ' ' + T(16.5, -2) + 'C' + T(19.5, 1) + ' ' + T(16, 5) + ' ' + T(14, 1.5) + '"/>' + (a === 'inverted-turn' ? '<path class="orn-l" d="M' + hx + ' ' + (by - 7) + 'V' + (by + 6) + '"/>' : '');
+        }
         else if (a === 'fermata') d = '<path class="art" d="M' + (hx - 7) + ' ' + (by + 3) + 'A7 6 0 0 1 ' + (hx + 7) + ' ' + (by + 3) + '"/><circle class="artd" cx="' + hx + '" cy="' + (by + 1.5) + '" r="1.5"/>';
-        if (d) { g.push(d); upY -= 10; }
+        if (d) { g.push(d); upY -= /mordent|turn/.test(a) ? 16 : 10; }   /* a mordent's line and a turn reach higher */
       });
       inf[k].top = upY + 4;   /* the lowest baseline a mark above this note can use: over its stem, fingering and bowings */
       /* slurs: an arc from the note it starts on to the one it ends on, on the heads' side away from the stems */

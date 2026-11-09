@@ -200,5 +200,7 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .mp-score .mp-posd { fill: none; stroke: var(--sc-ink); stroke-width: 1; stroke-dasharray: 4 3; opacity: .8; }
 /* ornaments (Trix): tr, turns, mordents above the note; tremolo slashes on the stem */
 .mp-score .mp-tr { fill: var(--sc-ink); font: italic 700 14px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
-.mp-score .orn { stroke-width: 1.5; }
+.mp-score .orn-z { fill: none; stroke: var(--sc-ink); stroke-width: 2.2; stroke-linejoin: miter; }   /* as in Symbols */
+.mp-score .orn-l { fill: none; stroke: var(--sc-ink); stroke-width: 1.3; }
+.mp-score .orn-t { fill: none; stroke: var(--sc-ink); stroke-width: 2; stroke-linecap: round; }
 .mp-n .trem { stroke: currentColor; stroke-width: 2.2; }
