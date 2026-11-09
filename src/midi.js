@@ -1809,7 +1809,7 @@
   var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '';
   var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.62, SYS_H = BOT + 46, FG_IND = 60;   /* FG_IND: the first system's indent, in score units (~10 mm) */   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
   function fgOptions() { if (!fgSel) return; fgSel.innerHTML = songSel.innerHTML; fgSel.value = songSel.value; }
-  function fgSync() { fgOptions(); fgDirty = true; if (fgShown) fgRender(); }
+  function fgSync() { fgOptions(); fgDirty = true; if (APP.fgReset) APP.fgReset(); if (fgShown) fgRender(); }
   var fgT = 0;
   APP.fgSync = function () { clearTimeout(fgT); fgT = setTimeout(fgSync, 0); };   /* after the caller has set the list's value (an import selects its tune after loading it) */
   function fgTitle() {
@@ -1944,8 +1944,99 @@
     $('mpFg').addEventListener('click', function (e) { e.stopPropagation(); APP.show('fingering'); window.scrollTo(0, 0); });
     $('mpFg').addEventListener('pointerdown', function (e) { e.stopPropagation(); });
     document.addEventListener('i18n', function () { fgOptions(); if (fgShown) fgRender(); else fgDirty = true; });
+    /* the iPhone Home Screen web app (Trix): window.print() does nothing there, so the page makes the PDF itself.
+       Each A4 page is drawn at 300 dpi (its SVG with the styles and fonts written in, onto a canvas), the JPEGs
+       go into a small PDF written here, and the share sheet offers it (Save to Files, AirDrop, Print). Sharing needs
+       a fresh tap, so the button turns into "Share PDF" once the file is ready */
+    var fgReady = null;
+    APP.fgReset = function () { if (fgReady) { fgReady = null; fgButton(false); fgSay(''); } };   /* another tune: the old file is gone */
+    function homeScreenIos() {
+      var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      return window.VT_FORCE_RASTER || (ios && !window.VTiOSApp && (navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches)));
+    }
+    function fgSay(t) { fgMsg.hidden = !t; fgMsg.textContent = t || ''; }
+    function fgButton(ready) {
+      var zh = window.I18N && I18N.lang === 'zh', t = fgPdf.lastChild;
+      if (t && t.nodeType === 3) t.textContent = ready ? (zh ? '分享 PDF' : 'Share PDF') : (zh ? '导出' : 'Export');
+    }
+    var STYLE_PROPS = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin', 'stroke-opacity', 'opacity', 'font-family', 'font-size', 'font-weight', 'font-style', 'text-anchor', 'letter-spacing'];
+    function pageSvgText(svgEl, fontCss) {
+      var clone = svgEl.cloneNode(true), src = svgEl.querySelectorAll('*'), dst = clone.querySelectorAll('*');
+      for (var i = 0; i < src.length; i++) {
+        var cs = getComputedStyle(src[i]), st = [];
+        STYLE_PROPS.forEach(function (pr) { var v = cs.getPropertyValue(pr); if (v) st.push(pr + ':' + v); });
+        if (src[i].classList.contains('mp-pos')) st.push('transform:skewX(-14deg)', 'transform-box:fill-box', 'transform-origin:50% 100%');
+        dst[i].setAttribute('style', st.join(';'));
+        dst[i].removeAttribute('class');
+      }
+      clone.setAttribute('width', '2480'); clone.setAttribute('height', '3508');
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      var style = document.createElementNS('http://www.w3.org/2000/svg', 'style'); style.textContent = fontCss;
+      clone.insertBefore(style, clone.firstChild);
+      return new XMLSerializer().serializeToString(clone);
+    }
+    function fontFaces() {   /* the app's own fonts (inlined as data URLs in the page), so fingerings look the same */
+      var out = [];
+      Array.prototype.forEach.call(document.styleSheets, function (sh) { try { Array.prototype.forEach.call(sh.cssRules, function (r) { if (r.type === 5) out.push(r.cssText); }); } catch (e) {} });
+      return out.join('\n');
+    }
+    function pageJpeg(svgText) {
+      return new Promise(function (ok, bad) {
+        var img = new Image();
+        img.onload = function () {
+          var c = document.createElement('canvas'); c.width = 2480; c.height = 3508;
+          var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+          c.toBlob(function (b) { if (!b) { bad(new Error('jpeg')); return; } b.arrayBuffer().then(function (ab) { c.width = c.height = 1; ok(new Uint8Array(ab)); }, bad); }, 'image/jpeg', 0.9);
+        };
+        img.onerror = function () { bad(new Error('page image')); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+      });
+    }
+    function pdfFromJpegs(jpegs, title) {   /* PDF 1.4: one A4 page per image (DCTDecode), no library */
+      var enc = new TextEncoder(), parts = [], pos = 0, offs = [];
+      function add(x) { var b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); pos += b.length; }
+      function obj(n, body) { offs[n] = pos; add(n + ' 0 obj\n'); body(); add('\nendobj\n'); }
+      var n = jpegs.length, W = 595.28, H = 841.89, kids = [];
+      for (var i = 0; i < n; i++) kids.push((3 + 3 * i) + ' 0 R');
+      add('%PDF-1.4\n'); add(new Uint8Array([37, 226, 227, 207, 211, 10]));
+      obj(1, function () { add('<< /Type /Catalog /Pages 2 0 R >>'); });
+      obj(2, function () { add('<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + n + ' >>'); });
+      jpegs.forEach(function (jp, i) {
+        var pg = 3 + 3 * i, ct = 'q ' + W + ' 0 0 ' + H + ' 0 0 cm /Im0 Do Q';
+        obj(pg, function () { add('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + W + ' ' + H + '] /Resources << /XObject << /Im0 ' + (pg + 2) + ' 0 R >> >> /Contents ' + (pg + 1) + ' 0 R >>'); });
+        obj(pg + 1, function () { add('<< /Length ' + ct.length + ' >>\nstream\n' + ct + '\nendstream'); });
+        obj(pg + 2, function () { add('<< /Type /XObject /Subtype /Image /Width 2480 /Height 3508 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jp.length + ' >>\nstream\n'); add(jp); add('\nendstream'); });
+      });
+      var info = 3 + 3 * n, hex = 'FEFF';
+      for (var c = 0; c < title.length; c++) hex += ('000' + title.charCodeAt(c).toString(16)).slice(-4).toUpperCase();
+      obj(info, function () { add('<< /Title <' + hex + '> /Creator (Violin Toolkit) >>'); });
+      var xref = pos, rows = ['0000000000 65535 f '];
+      for (var k = 1; k <= info; k++) rows.push(('000000000' + offs[k]).slice(-10) + ' 00000 n ');
+      add('xref\n0 ' + (info + 1) + '\n' + rows.join('\n') + '\ntrailer\n<< /Size ' + (info + 1) + ' /Root 1 0 R /Info ' + info + ' 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+      var out = new Uint8Array(pos), o = 0; parts.forEach(function (b) { out.set(b, o); o += b.length; });
+      return out;
+    }
+    function rasterPdf() {
+      var zh = window.I18N && I18N.lang === 'zh', pages = Array.prototype.slice.call(fgPages.querySelectorAll('.fg-page')), fonts = fontFaces(), jpegs = [], title = fgTitle();
+      fgPdf.disabled = true; fgSay(zh ? '正在生成 PDF…' : 'Making the PDF…');
+      var chain = Promise.resolve();
+      pages.forEach(function (pg, i) { chain = chain.then(function () { fgSay((zh ? '正在生成 PDF… ' : 'Making the PDF… ') + (i + 1) + '/' + pages.length); return pageJpeg(pageSvgText(pg, fonts)); }).then(function (j) { jpegs.push(j); }); });
+      chain.then(function () {
+        var bytes = pdfFromJpegs(jpegs, title);
+        window.__fgPdfBytes = bytes;   /* tests read it */
+        fgReady = new File([bytes], title.replace(/[\/:]/g, '-') + '.pdf', { type: 'application/pdf' });
+        fgPdf.disabled = false; fgButton(true); fgSay(zh ? 'PDF 已就绪，点“分享 PDF”保存或发送。' : 'The PDF is ready: tap Share PDF to save or send it.');
+      }).catch(function (e) { console.error('Fingerings PDF', e); fgPdf.disabled = false; fgSay(zh ? '无法生成 PDF。' : 'The PDF could not be made.'); });
+    }
+    function sharePdf() {
+      var f = fgReady; fgReady = null; fgButton(false); fgSay('');
+      if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: f.name }).catch(function () {}); return; }
+      var u = URL.createObjectURL(f); window.open(u, '_blank') || (location.href = u);   /* no share sheet: open it (Safari's own share / print) */
+    }
     fgPdf.addEventListener('click', function () {
       if (!song) return;
+      if (fgReady) { sharePdf(); return; }
+      if (!window.VTiOSApp && homeScreenIos()) { rasterPdf(); return; }
       var ios = window.VTiOSApp && window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt;
       if (ios) {   /* the iPhone app: only the A4 pages on screen (html.fg-shot), captured page by page into a PDF for the share sheet */
         document.documentElement.classList.add('fg-shot');
