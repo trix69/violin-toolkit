@@ -1796,7 +1796,7 @@
     for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M0 ' + (Y0 + j * S) + 'H' + wide + '"/>';
     var bo = sg.barAt ? sg.barAt(r.bars[q[0]].beat + 1e-3) : null;
     out.push(lines, CLEF, r.head.join(''));
-    if (si === 0) out.push('<text class="fg-tempo" x="2" y="' + (Y0 - 24) + '">♩ = ' + sg.bpm + '</text>');   /* the tempo above the first bar (Trix) */
+    if (si === 0) out.push('<text class="fg-tempo" x="' + (hw + ((r.bars[q[0] + 1] ? r.bars[q[0] + 1].x : xb) - xa) / 2).toFixed(1) + '" y="' + (Y0 - 24) + '">♩ = ' + sg.bpm + '</text>');   /* the tempo over the middle of the first bar (Trix) */
     else if (bo) out.push('<text class="fg-bn" x="2" y="' + (Y0 - 24) + '">' + esc(bo.num) + '</text>');
     /* a position held over a page turn: its numeral again at the top of the new page (Trix) */
     if (firstOnPage && si > 0) r.passages.forEach(function (p) {

@@ -14,7 +14,7 @@
 .fg-page .fg-paper { fill: #fff; }
 .fg-page .fg-title { fill: #1A1A1A; font: 700 22px 'Times New Roman', 'Noto Serif', 'Songti SC', serif; text-anchor: middle; }
 .fg-page .fg-sub { fill: #333; font: 400 13px 'Times New Roman', 'Noto Serif', 'Songti SC', serif; text-anchor: middle; }
-.fg-page .fg-tempo { fill: #1A1A1A; font: 700 15px 'Times New Roman', 'Noto Serif', serif; }   /* in score units (x 0.64 on the page) */
+.fg-page .fg-tempo { fill: #1A1A1A; font: 700 15px 'Times New Roman', 'Noto Serif', serif; text-anchor: middle; }   /* in score units (x 0.64 on the page) */
 .fg-page .fg-qr { fill: #000; }
 .fg-page .fg-cap { fill: #555; font: 400 10.67px var(--font-body); text-anchor: end; }   /* 8 pt */
 .fg-page .fg-run { fill: #777; font: 400 10.67px var(--font-body); }   /* the running header, 8 pt, muted */
