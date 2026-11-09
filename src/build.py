@@ -924,7 +924,6 @@ nav_js = """(function () {
   /* the store apps (Google Play, iPhone): no outbound GitHub / support links (store review: minimum functionality,
      payments); the website and the downloaded APK keep them (Trix, via Hermes) */
   if (window.VTPlay || window.VTiOSApp) document.getElementById('linkPair').hidden = true;
-  if (window.VTPlay) { document.getElementById('lblUpd').hidden = true; document.getElementById('segUpd').hidden = true; }   /* Google Play updates the Play install itself */
   if (standalone || location.hostname === 'appassets.androidplatform.net' || window.VTiOSApp) { document.getElementById('lblOff').hidden = true; openHowto.hidden = true; }   /* installed, the offline Android app, or the iPhone app (iOS/: sets window.VTiOSApp) */
   function showDev(d) {
     Array.prototype.forEach.call(segDev.children, function (b) { b.setAttribute('aria-checked', b.dataset.dev === d ? 'true' : 'false'); });
@@ -1012,12 +1011,23 @@ nav_js = """(function () {
     var btn = document.getElementById('verBtn'), msg = document.getElementById('verMsg'), busy = false;
     /* the offline Android app (Android/wrapper: the page served from appassets.androidplatform.net) has no service
        worker, so it cannot update itself: it checks the website's version and offers the new APK instead (Trix) */
-    var APK = location.hostname === 'appassets.androidplatform.net';
+    var APK = location.hostname === 'appassets.androidplatform.net' && !window.VTiOSApp;   /* the iPhone mark wins (its page is a file, but be sure) */
     var IOSAPP = !!window.VTiOSApp;   /* the iPhone app (iOS/ WKWebView, page from the app bundle): no service worker either; it only says whether a newer version exists (Trix: it reloaded to the start screen) */
     var APK_URL = 'https://trix69.github.io/violin-toolkit/apk/violin-toolkit-android.apk';
     /* the Google Play install (Android/wrapper/build.sh marks the .aab page): Play updates it, so no popup and no APK
        download (Play policy); Check for updates opens the app's Play page (Trix) */
     var PLAY = APK && !!window.VTPlay, PLAY_URL = 'https://play.google.com/store/apps/details?id=io.github.trix69.violintoolkit';
+    /* the store apps (Trix): they ask the website whether a newer version exists and send the user to the store
+       page; they never update themselves. APP_STORE_ID stays empty until the App Store listing exists, and the
+       iPhone app does no automatic check until then (no prompt with a dead button) */
+    var APP_STORE_ID = '';
+    var STORE = PLAY || (IOSAPP && !!APP_STORE_ID);
+    function openStore() {
+      if (PLAY) {   /* the Play app; if nothing opens it (no Play on the phone) the web listing after 1.5 s */
+        location.href = 'market://details?id=io.github.trix69.violintoolkit';
+        setTimeout(function () { if (!document.hidden) location.href = PLAY_URL; }, 1500);
+      } else location.href = 'itms-apps://apps.apple.com/app/id' + APP_STORE_ID;
+    }
     function num(v) { var p = String(v).split('.'); return +p[0] * 100 + +((p[1] || '0') + '0').slice(0, 2); }
     function say(t) { msg.textContent = t; }
     function swapIn(reg) {
@@ -1058,12 +1068,11 @@ nav_js = """(function () {
     btn.addEventListener('click', function () {
       if (busy) return;
       var sw = navigator.serviceWorker;
-      if (PLAY) { say('Updates come from Google Play'); location.href = PLAY_URL; return; }
       if (!APK && !IOSAPP && (!sw || !sw.controller)) { location.reload(); return; }
       busy = true; say('Checking…');
       newer().then(function (j) {
         if (!j) { busy = false; say('Up to date'); return; }
-        if (APK) { busy = false; say('Version ' + j.version + ' available'); ask(j, true); return; }
+        if (APK || STORE) { busy = false; say('Version ' + j.version + ' available'); ask(j, true); return; }   /* the website APK: download; a store app: its store page */
         if (IOSAPP) { busy = false; say('Version ' + j.version + ' available'); return; }
         return install(j);
       }).catch(function () { busy = false; say('Can’t check while offline'); });
@@ -1078,7 +1087,7 @@ nav_js = """(function () {
     var pending = null, offered = '', lastCheck = 0, updOpener = null;
     function autoCheck() {
       var sw = navigator.serviceWorker;
-      if (!APP.autoUpd || busy || IOSAPP || PLAY || document.hidden || (!APK && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
+      if (!APP.autoUpd || busy || (IOSAPP && !STORE) || document.hidden || (!APK && !STORE && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
       lastCheck = Date.now();
       newer().then(function (j) { if (j && (j.build || j.version) !== offered) ask(j); }).catch(function () { lastCheck = 0; });
     }
@@ -1087,8 +1096,9 @@ nav_js = """(function () {
       var tips = document.getElementById('coach');   /* a first-use tour makes the rest of the page inert: wait for it */
       if (anyBusy() || document.hidden || (tips && !tips.hidden)) { setTimeout(function () { ask(j); }, tips && !tips.hidden ? 1000 : 5000); return; }
       pending = j; offered = j.build || j.version;
-      document.getElementById('updMsg').textContent = APK ? 'Version ' + j.version + ' is available. Download the new Android app from the website to update.' : 'Version ' + j.version + ' is ready. Update now?';
-      if (APK) { updNow.textContent = 'Download'; document.getElementById('updNote').textContent = 'Install it over this app: your settings and practice time are kept.'; }
+      document.getElementById('updMsg').textContent = STORE ? 'Version ' + j.version + ' is available.' : APK ? 'Version ' + j.version + ' is available. Download the new Android app from the website to update.' : 'Version ' + j.version + ' is ready. Update now?';
+      if (STORE) { updNow.textContent = PLAY ? 'Update in Google Play' : 'Update on the App Store'; }
+      else if (APK) { updNow.textContent = 'Download'; document.getElementById('updNote').textContent = 'Install it over this app: your settings and practice time are kept.'; }
       updOpener = document.activeElement;
       upd.hidden = false;
       window.addEventListener('keydown', onUpdKey, true);
@@ -1107,6 +1117,7 @@ nav_js = """(function () {
     upd.addEventListener('click', function (e) { if (e.target === upd) closeUpd(); });
     updNow.addEventListener('click', function () {
       closeUpd();
+      if (STORE) { openStore(); return; }   /* the store updates the app; no download, no reload */
       if (APK) { location.href = APK_URL; return; }   /* the app opens it in the browser, which downloads the APK */
       if (pending && !busy) install(pending).catch(function () { location.reload(); });
     });
