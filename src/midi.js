@@ -711,11 +711,17 @@
     m = /^([1-9])(?:st|nd|rd|th)\.?\s*pos(?:ition|\.)?$/i.exec(t);
     return m ? +m[1] : 0;
   }
-  function posMarks(sg, inf) {
+  function posMarks(sg, inf, xAt, bars, passages) {
     var out = [], CHW = 1200, ns = sg.notes;
     function mark(x, y, h) { out.push([x, '<text class="mp-pos" x="' + (x - 4) + '" y="' + y + '">' + ROMAN_U[h] + '</text>']); }
     function dash(x0, x1, y) {   /* in pieces no longer than a score section, so each shows with its section */
-      for (var a = x0; a < x1; ) { var b = Math.min(x1, (Math.floor(a / CHW) + 1) * CHW); out.push([a, '<path class="mp-posd" d="M' + a + ' ' + y + 'H' + b + '"/>']); a = b; }
+      /* in pieces that end at bar lines and score sections: each shows with its section, and a page system ends its own */
+      var cuts = bars.map(function (q) { return q.x; });
+      for (var a = x0; a < x1; ) {
+        var b = Math.min(x1, (Math.floor(a / CHW) + 1) * CHW);
+        for (var c = 0; c < cuts.length; c++) if (cuts[c] > a + 0.5 && cuts[c] < b) { b = cuts[c]; break; }
+        out.push([a, '<path class="mp-posd" d="M' + a + ' ' + y + 'H' + b + '"/>']); a = b;
+      }
     }
     function topOver(k0, k1) { var t = Y0 - 7; for (var k = k0; k <= k1; k++) if (inf[k] && inf[k].top !== undefined) t = Math.min(t, inf[k].top); return Math.max(14, t); }
     var own = (sg.marks || []).filter(function (m) { return m.kind === 'words' && posWord(m.text); });
@@ -741,6 +747,7 @@
          note whose fingering or bowing reaches up to it (the strip has no more room above: Winter's high runs) */
       var x0 = inf[open.k0].hx, x1 = inf[kEnd].hx + 6, y = topOver(open.k0, open.k0), ly = y - 5, a = x0 + 2 + 18 * ROMAN_W[open.h];
       mark(x0, y, open.h);
+      passages.push({ h: open.h, x0: x0, x1: x1, y: y });
       if (open.h > 0) {   /* "I" (back to 1st) needs no line */
         for (var k = open.k0 + 1; k <= kEnd; k++) {
           var f = inf[k]; if (!f || f.top === undefined || ly <= f.top + 2) continue;   /* its marks end below the line */
@@ -759,8 +766,13 @@
     if (open) close(open.kEnd);
     return out;
   }
-  function drawScore() {
-    var sg = song, sharps = sg.sf >= 0, sp = sharps ? SP_S : SP_F, n = Math.abs(sg.sf), keyAcc = {};
+  /* the score drawing, shared by the player's scrolling strip and the Fingerings pages (one renderer, two
+     layouts): every shape as [x, svg markup] on one long line, plus where each bar starts. opts.gain(beat) widens
+     the spacing after a beat (the pages justify each system with it) */
+  function scoreItems(sg, opts) {
+    opts = opts || {};
+    var X0, W, xAt, bars = [];
+    var sharps = sg.sf >= 0, sp = sharps ? SP_S : SP_F, n = Math.abs(sg.sf), keyAcc = {};
     for (var i = 0; i < n; i++) keyAcc[(sharps ? SHARP_K : FLAT_K)[i]] = sharps ? 1 : -1;
     var out = [], x = 40;
     /* key signature as printed: each sign on its own line or space, about a space apart (Trix) */
@@ -808,13 +820,14 @@
        playhead as the music starts (Trix) */
     var leadW = Math.max(120, barBeats * 40), pts = [[-barBeats, X0]], cx = X0 + leadW, lastBar = 0;
     items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']);
+    bars.push({ beat: 0, x: cx - 6 });
     cx += 12;
     evs.forEach(function (b, i) {
       var bn = Math.floor(b / barBeats + 1e-6);
-      if (bn > lastBar) { items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); cx += 12; lastBar = bn; }
+      if (bn > lastBar) { items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); bars.push({ beat: bn * barBeats, x: cx - 6 }); cx += 12; lastBar = bn; }
       if (gRoom[b.toFixed(3)]) cx += 12 * gRoom[b.toFixed(3)];
       pts.push([b, cx]);
-      cx += 26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < evs.length ? evs[i + 1] : sg.beats) - b));
+      cx += (26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < evs.length ? evs[i + 1] : sg.beats) - b))) * (opts.gain ? opts.gain(b) : 1);
     });
     pts.push([sg.beats, cx]);
     xAt = function (b) {
@@ -829,6 +842,8 @@
     });
     var endX = cx - 8;
     items.push([endX - 4, '<path class="bl" d="M' + (endX - 4) + ' ' + Y0 + 'V' + BOT + '"/><path class="bl end" d="M' + endX + ' ' + Y0 + 'V' + BOT + '"/>']);
+    bars.push({ beat: sg.beats, x: endX - 4, end: true });
+    if (opts.barsOnly) return { X0: X0, bars: bars };   /* the pages' first pass: where the bars fall is all it needs */
     /* first pass: where each note sits; accidentals hold to the end of the bar */
     var barNo = -1, inBar = {}, inf = sg.notes.map(function (nt) {
       var bn = Math.floor(nt.b / barBeats + 1e-6);
@@ -979,7 +994,8 @@
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
       items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
     });
-    items = items.concat(beams, slurItems, posMarks(sg, inf));
+    var passages = [];
+    items = items.concat(beams, slurItems, posMarks(sg, inf, xAt, bars, passages));
     /* dynamics, hairpins and words under the staff (MusicXML, Trix) */
     var DY = BOT + 41, wedge = null, lastDynX = -99;   /* below any fingering under the notes */
     (sg.marks || []).forEach(function (m) {
@@ -1001,6 +1017,11 @@
         wedge = null;
       } else wedge = { x: x, cresc: m.text === 'crescendo' };
     });
+    return { items: items, head: out.slice(0, head), X0: X0, W: W, xAt: xAt, bars: bars, passages: passages };
+  }
+  function drawScore() {
+    var r = scoreItems(song), items = r.items, i;
+    X0 = r.X0; W = r.W; xAt = r.xAt;
     /* the score in sections ~1200 px wide, each its own svg, only those near the playhead shown: one svg as
        wide as a long piece (Winter: 47 000 px, 9 800 shapes) was redrawn on every frame and stalled phones */
     var CH = 1200, H = BOT + 46, nC = Math.ceil(W / CH), parts = [];
@@ -1019,7 +1040,7 @@
     for (i = 0; i < 5; i++) kl += '<path class="sl" d="M0 ' + (Y0 + i * S) + 'H' + kw + '"/>';
     keySvg.setAttribute('width', kw + 14); keySvg.setAttribute('height', BOT + 46);
     keySvg.setAttribute('viewBox', '0 0 ' + (kw + 14) + ' ' + (BOT + 46));
-    keySvg.innerHTML = kl + CLEF + out.slice(0, head).join('');
+    keySvg.innerHTML = kl + CLEF + r.head.join('');
     if (typeof placeAB === 'function') setTimeout(placeAB, 0);
     noteEls = [];
     Array.prototype.forEach.call(svg.querySelectorAll('.mp-n'), function (el) { noteEls[+el.getAttribute('data-k')] = el; });
@@ -1225,6 +1246,7 @@
       if (s.failed) { s.failed = false; say(s.err || 'This tune downloads the first time you play it. Connect to the internet and choose it again.', true); }
       else { say(s.have ? 'Opening the score…' : 'Downloading this tune…'); fetchDemo(i); }   /* a long score (Serenade) takes a few seconds on a phone */   /* choosing it again tries again; a built-in one is being read (a moment) */
       if (shown) fit();
+      if (APP.fgSync) APP.fgSync();
       return;
     }
     drawScore();
@@ -1238,6 +1260,7 @@
     mixUi();
     APP.board.toTop();   /* a new tune opens at the open strings, whatever the last one scrolled to (Hermes F14) */
     if (shown) fit();
+    if (APP.fgSync) APP.fgSync();   /* the Fingerings pages follow the current tune */
   }
   function addSong(title, buf, kept) {   /* kept: an imported file, with its id in the saved list */
     var sg = parse(buf);
@@ -1256,6 +1279,7 @@
       songSel.appendChild(o);
     });
     if (v !== '') songSel.value = v;
+    if (APP.fgSync) APP.fgSync();   /* the Fingerings list is the same list */
   }
   document.addEventListener('i18n', options);   /* language switched: relabel [imported] */
   function fromB64(b64) { var bin = atob(b64), u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8.buffer; }
@@ -1698,6 +1722,98 @@
     document.addEventListener(ev, function () { if (!fsEl() && full) setFull(false); else if (shown) setTimeout(fit, 50); });   /* left with Esc or Back */
   });
   APP.midiSong = function () { return song; };   /* for tests: the tune on screen */
+  /* ---------- Fingerings (指法谱, Trix): the violin part with the app's fingerings, on A4 pages and as a PDF.
+     Same tune list, reader, planner and drawing as the player (scoreItems): the long line is cut at bar lines
+     into systems, each system justified by widening its note spacing (a second drawing pass, so nothing is
+     stretched), systems stacked on pages. The preview is the PDF: printing shows these same pages. */
+  var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '';
+  var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.64, SYS_H = BOT + 46;   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
+  function fgOptions() { if (!fgSel) return; fgSel.innerHTML = songSel.innerHTML; fgSel.value = songSel.value; }
+  function fgSync() { fgOptions(); fgDirty = true; if (fgShown) fgRender(); }
+  var fgT = 0;
+  APP.fgSync = function () { clearTimeout(fgT); fgT = setTimeout(fgSync, 0); };   /* after the caller has set the list's value (an import selects its tune after loading it) */
+  function fgTitle() {
+    var i = +songSel.value, s = songs[i], o = songSel.options[songSel.selectedIndex], zh = window.I18N && I18N.lang === 'zh';
+    return (s ? (s.kept ? s.title : (o ? o.textContent : s.title)) : '') + ' · ' + (zh ? '小提琴' : 'Violin');
+  }
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function fgLayout(sg) {
+    var r1 = scoreItems(sg, { barsOnly: true }), hw = r1.X0 - 12, avail = (PG_W - 2 * PG_M) / PG_K - hw - 4, bars = r1.bars, sys = [], a = 0;
+    while (a < bars.length - 1) {   /* as many whole bars as fit; at least one */
+      var b = a + 1;
+      while (b + 1 < bars.length && bars[b + 1].x - bars[a].x <= avail) b++;
+      sys.push([a, b]); a = b;
+    }
+    var gains = sys.map(function (q, i) {
+      var w = bars[q[1]].x - bars[q[0]].x, fixed = 12 * (q[1] - q[0]) + 4;
+      if (i === sys.length - 1 && w < avail * 0.75) return 1;   /* a short last system stays at its natural width */
+      return Math.max(1, (avail - fixed) / Math.max(1, w - fixed));
+    });
+    var r = scoreItems(sg, { gain: function (b) { for (var i = 0; i < sys.length; i++) if (b < bars[sys[i][1]].beat - 1e-6) return gains[i]; return gains[gains.length - 1]; } });
+    r.sys = sys; r.hw = hw; r.items.sort(function (p, q) { return p[0] - q[0]; });
+    return r;
+  }
+  function fgSystem(sg, r, si, firstOnPage, id) {
+    var q = r.sys[si], xa = r.bars[q[0]].x, xb = r.bars[q[1]].x, hw = r.hw, tx = hw - xa, wide = hw + xb - xa, out = [], lines = '';
+    for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M0 ' + (Y0 + j * S) + 'H' + wide + '"/>';
+    var bo = sg.barAt ? sg.barAt(r.bars[q[0]].beat + 1e-3) : null;
+    out.push(lines, CLEF, r.head.join(''));
+    if (bo) out.push('<text class="fg-bn" x="2" y="' + (Y0 - 24) + '">' + esc(bo.num) + '</text>');
+    /* a position held over a page turn: its numeral again at the top of the new page (Trix) */
+    if (firstOnPage && si > 0) r.passages.forEach(function (p) {
+      if (p.h > 0 && p.x0 < xa - 1 && p.x1 > xa + 14) out.push('<text class="mp-pos" x="' + (hw + 4) + '" y="' + p.y + '">' + ROMAN_U[p.h] + '</text>');
+    });
+    var body = [];
+    for (var lo = 0, hi = r.items.length; lo < hi; ) { var mid = (lo + hi) >> 1; if (r.items[mid][0] <= xa + 0.5) lo = mid + 1; else hi = mid; }
+    for (var k = lo; k < r.items.length && r.items[k][0] <= xb + 0.5; k++) body.push(r.items[k][1]);
+    out.push('<clipPath id="' + id + '"><rect x="' + (hw - 2) + '" y="-12" width="' + (xb - xa + 8) + '" height="' + (SYS_H + 24) + '"/></clipPath>');
+    out.push('<g clip-path="url(#' + id + ')"><g transform="translate(' + tx.toFixed(2) + ' 0)">' + body.join('') + '</g></g>');
+    return out.join('');
+  }
+  function fgRender() {
+    if (!fgPages) return;
+    fgDirty = false;
+    if (!song) { fgPages.innerHTML = ''; fgPdf.disabled = true; fgMsg.hidden = false; fgMsg.textContent = msg.hidden ? 'Opening the score…' : msg.textContent; return; }
+    fgMsg.hidden = true; fgPdf.disabled = false;
+    var sg = song, r = fgLayout(sg), zh = window.I18N && I18N.lang === 'zh';
+    var pages = [], cur = null, y = 0, sysH = SYS_H * PG_K + 2, bottom = PG_H - PG_M - 16;
+    r.sys.forEach(function (q, si) {
+      if (!cur || y + sysH > bottom) { cur = []; pages.push(cur); y = PG_M + (pages.length === 1 ? 44 : 0); cur.first = true; }
+      cur.push([si, y, cur.length === 0]); y += sysH;
+    });
+    var btn = document.getElementById('verBtn'), ver = btn ? btn.dataset.version : '', build = btn ? btn.dataset.build : '';
+    var html = pages.map(function (pg, pi) {
+      var o = ['<svg class="fg-page" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + PG_W + ' ' + PG_H + '" width="' + PG_W + '" height="' + PG_H + '"><rect class="fg-paper" width="' + PG_W + '" height="' + PG_H + '"/>'];
+      if (pi === 0) o.push('<text class="fg-title" x="' + PG_W / 2 + '" y="' + (PG_M + 14) + '">' + esc(fgTitle()) + '</text>');
+      pg.forEach(function (e) { o.push('<g transform="translate(' + PG_M + ' ' + e[1].toFixed(1) + ') scale(' + PG_K + ')">' + fgSystem(sg, r, e[0], e[2], 'fgc' + pi + '_' + e[0]) + '</g>'); });
+      o.push('<text class="fg-foot" x="' + PG_M + '" y="' + (PG_H - PG_M + 10) + '">Violin Toolkit ' + esc(ver) + (build ? ' · ' + esc(build) : '') + '</text>');
+      o.push('<text class="fg-foot fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_H - PG_M + 10) + '">' + (zh ? '第 ' + (pi + 1) + ' 页，共 ' + pages.length + ' 页' : 'Page ' + (pi + 1) + ' of ' + pages.length) + '</text>');
+      o.push('</svg>');
+      return o.join('');
+    }).join('');
+    fgHtml = html; fgPages.innerHTML = html;
+  }
+  if (fgSel) {
+    fgSel.addEventListener('change', function () { songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
+    $('fgImport').addEventListener('click', function () { $('mpImport').click(); });   /* the same import, the same list */
+    $('mpFg').addEventListener('click', function (e) { e.stopPropagation(); APP.show('fingering'); window.scrollTo(0, 0); });
+    $('mpFg').addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+    document.addEventListener('i18n', function () { fgOptions(); if (fgShown) fgRender(); else fgDirty = true; });
+    fgPdf.addEventListener('click', function () {
+      if (!song) return;
+      var ios = window.VTiOSApp && window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt;
+      document.documentElement.classList.add('fg-printing');
+      if (ios) { webkit.messageHandlers.vt.postMessage({ print: fgTitle() }); return; }   /* the iPhone app makes the PDF and offers the share sheet */
+      if (window.VTApp && VTApp.print) { VTApp.print(fgTitle()); return; }   /* the Android app: the system print screen (Save as PDF) */
+      window.print();
+    });
+    window.addEventListener('afterprint', function () { document.documentElement.classList.remove('fg-printing'); });
+    APP.fgPrinted = function () { document.documentElement.classList.remove('fg-printing'); };   /* the apps call this when their print screen closes */
+    APP.views.fingering = {
+      show: function () { fgShown = true; fgOptions(); if (fgDirty) fgRender(); },
+      hide: function () { fgShown = false; }
+    };
+  }
   APP.views.midi = {
     show: function () { appCall('rotate', true); shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* the phone apps turn only in the MIDI player (Trix) */   /* opened on a phone held sideways: full screen (Trix) */
     hide: function () { setFull(false); appCall('rotate', false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }

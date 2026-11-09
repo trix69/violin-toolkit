@@ -412,7 +412,7 @@ launch_css = '''
 @media (min-width: 640px) { .launch-grid { gap: 16px; } }
 @media (min-width: 900px) {   /* five in a row: a wider card so each name fits on one line (Trix) */
   .launch-card { width: min(100%, 900px); }
-  .launch-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .launch-grid > :last-child:nth-child(odd) { grid-column: auto; }
+  .launch-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }   /* six tools: 3 x 2 */ .launch-grid > :last-child:nth-child(odd) { grid-column: auto; }
   .launch-btn b { white-space: nowrap; }
 }
 @media (max-width: 480px) { .launch-btn { padding: 16px 10px; min-height: 0; gap: 6px; } .launch-btn b { font-size: 18px; } .launch-btn span { font-size: 13px; } }
@@ -470,6 +470,8 @@ sym_js = open(SP + 'sym.js').read()
 # MIDI player (2026-11-06): demo tunes from src/midi/ (made by src/midi/make_demos.py) embedded as base64
 import base64, json
 midi_css = open(SP + 'midi.css').read()
+fing_css = open(SP + 'fing.css').read()   # Fingerings (指法谱): pages + PDF from the MIDI player's drawing
+fing_html = open(SP + 'fing.html').read()
 midi_html = open(SP + 'midi.html').read()
 MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star'), ('ode.mxl', 'Ode to Joy'), ('mountain_king.mxl', 'In the Hall of the Mountain King'), ('canon.mxl', 'Canon'), ('serenade.mxl', 'Serenade, 1st movement'), ('winter.mxl', 'Winter, 1st movement')]   # 2026-11-07 (Trix): all six built-ins are now (Twinkle, Ode, Mountain King, Canon, Serenade, Winter) Trix's MusicXML (.mxl, MuseScore) files; the old .mid files stay in src/midi/ because the 1.37 phone apps download them by name. Earlier notes: canon.mid, mountain_king.mid, night_music.mid, winter.mid (Vivaldi, accompaniment part): Trix's own files (2026-11-06); night_music.mid: Trix's Serenade K525 for string quartet, all four parts (2026-11-07, shown as 'Serenade' / 小夜曲); canon.mid: Trix's string quartet arrangement (2026-11-07, replaces the earlier canon.mid); mountain_king.mid: Trix's violin + piano arrangement (2026-11-07, B minor, 4-bar piano intro); ode.mid: Trix's violin + piano arrangement (2026-11-07, replaces make_demos.py's one-part version: do not regenerate it). winter.mid: Trix's violin (named 'Violín') + piano arrangement (2026-11-07, replaces the earlier winter.mid; piano intro ~11 s). twinkle.mid: Trix's string orchestra arrangement (2026-11-07, D major). make_demos.py no longer writes either
 midi_js = open(SP + 'midi.js').read()
@@ -663,7 +665,7 @@ APP.setA4 = function (v) {
 nav_js = """(function () {
   /* Each tool registers APP.views[name] = { show, hide } and has a #view-name section,
      a #ttl-name heading block and a .tab button with data-view="name". */
-  var names = ['tuner', 'board', 'metronome', 'symbols', 'midi'];
+  var names = ['tuner', 'board', 'metronome', 'symbols', 'midi', 'fingering'];
   var shell = document.getElementById('shell');
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab[data-view]'));
   var cur = null;
@@ -1136,8 +1138,8 @@ nav_js = """(function () {
   sheet.addEventListener('click', function (e) { if (e.target === sheet) closeSheet(); });
 
   var h = (location.hash || '').replace('#', '').split(/[,&;]/).map(function (t) { return t.trim().toLowerCase(); })
-    .filter(function (t) { return ['fingerboard', 'board', 'tuner', 'metronome', 'symbols', 'midi'].indexOf(t) >= 0; })[0] || '';
-  var map = { fingerboard: 'board', board: 'board', tuner: 'tuner', metronome: 'metronome', symbols: 'symbols', midi: 'midi' };
+    .filter(function (t) { return ['fingerboard', 'board', 'tuner', 'metronome', 'symbols', 'midi', 'fingering', 'fingerings'].indexOf(t) >= 0; })[0] || '';
+  var map = { fingerboard: 'board', board: 'board', tuner: 'tuner', metronome: 'metronome', symbols: 'symbols', midi: 'midi', fingering: 'fingering', fingerings: 'fingering' };
   show(map[h] || 'board');
 
   /* start overlay: asked once per load unless the link already names a tool (#tuner, #metronome, #fingerboard) */
@@ -1253,6 +1255,7 @@ ICON_MET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l3.4 
 ICON_SWITCH = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></svg>'
 ICON_SET = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
 ICON_SYM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 6-1 8.5.8 2.5-1.8 5.5-2 8.5-.8v13.2c-3-1.2-6-1-8.5.8-2.5-1.8-5.5-2-8.5-.8z"/><path d="M12 6.3v13.2"/><path d="M16.2 9v5.2"/><ellipse cx="15.2" cy="14.4" rx="1.3" ry="1" fill="currentColor"/></svg>'
+ICON_FING = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8.5l3.5 3.5v13.5H6z"/><path d="M14.5 3.5V7H18"/><path d="M8.5 12.5h7M8.5 15.5h7"/><text x="9" y="10.4" font-size="5.5" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">1 3</text></svg>'
 ICON_MIDI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2" fill="currentColor"/><path d="M9 9.5l10-2"/></svg>'
 ICON_TUNER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0"/><path d="M12 17.5l3.6-7"/><circle cx="12" cy="17.5" r="1.2"/><path d="M12 5.8v1.8M5.6 9l1.3 1.2M18.4 9l-1.3 1.2"/></svg>'
 
@@ -1280,11 +1283,16 @@ markup = f"""
       <h1>MIDI Player</h1>
       <p class="appsub" id="ttl-midi-sub"></p>
     </div>
+    <div id="ttl-fingering" hidden>
+      <h1>Fingerings</h1>
+      <p class="appsub">Automatic fingerings · PDF</p>
+    </div>
     <nav class="tabs" aria-label="Tools">
       <button type="button" class="tab" data-view="tuner" aria-label="Tuner" title="Tuner">{ICON_TUNER}</button>
       <button type="button" class="tab" data-view="board" aria-current="page" aria-label="Fingerboard" title="Fingerboard">{ICON_BOARD}</button>
       <button type="button" class="tab" data-view="metronome" aria-label="Metronome" title="Metronome">{ICON_MET}</button>
       <button type="button" class="tab" data-view="midi" aria-label="MIDI Player" title="MIDI Player">{ICON_MIDI}</button>
+      <button type="button" class="tab" data-view="fingering" aria-label="Fingerings" title="Fingerings">{ICON_FING}</button>
       <button type="button" class="tab" data-view="symbols" aria-label="Symbols" title="Symbols">{ICON_SYM}</button>
       <button type="button" class="tab" id="switchTool" aria-label="Switch tool" title="Switch tool" aria-haspopup="dialog">{ICON_SWITCH}</button>
       <button type="button" class="tab tab-set" id="openSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog">{ICON_SET}</button>
@@ -1294,6 +1302,10 @@ markup = f"""
   <main id="main" tabindex="-1">
   <section id="view-midi" aria-label="MIDI player" hidden>
 {midi_html}
+  </section>
+
+  <section id="view-fingering" aria-label="Fingerings" hidden>
+{fing_html}
   </section>
 
   <section id="view-board" aria-label="Violin fingerboard">
@@ -1486,6 +1498,7 @@ markup = f"""
       <button type="button" class="launch-btn" data-view="board">{ICON_BOARD}<b>Fingerboard</b><span>Find and play notes in each position</span></button>
       <button type="button" class="launch-btn" data-view="metronome">{ICON_MET}<b>Metronome</b><span>Keep steady time at any tempo</span></button>
       <button type="button" class="launch-btn" data-view="midi">{ICON_MIDI}<b>MIDI Player</b><span>Play a tune and watch it on the fingerboard</span></button>
+      <button type="button" class="launch-btn" data-view="fingering">{ICON_FING}<b>Fingerings</b><span>Marks the violin part with fingerings, exports a PDF</span></button>
       <button type="button" class="launch-btn" data-view="symbols">{ICON_SYM}<b>Symbols</b><span>Look up music signs and what they mean</span></button>
     </div>
     <button type="button" class="launch-days" id="launchDays" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
@@ -1495,7 +1508,7 @@ markup = f"""
 """
 
 doc = (head + '<style>\n' + b_tokens.strip() + '\n\n/* Tuner tokens, prefixed --t- so they never clash with the fingerboard */\n' + t_tokens.strip() + '\n'
-       + chrome_css + '\n/* ---- fingerboard ---- */\n' + board_css + '\n/* ---- tuner ---- */\n' + tuner_css + '\n/* ---- metronome ---- */\n' + met_css + '\n/* ---- symbols ---- */\n' + sym_css + '\n/* ---- midi player ---- */\n' + midi_css + launch_css + settings_css + coach_css + accent_css + '</style>\n'
+       + chrome_css + '\n/* ---- fingerboard ---- */\n' + board_css + '\n/* ---- tuner ---- */\n' + tuner_css + '\n/* ---- metronome ---- */\n' + met_css + '\n/* ---- symbols ---- */\n' + sym_css + '\n/* ---- midi player ---- */\n' + midi_css + '\n/* ---- fingerings ---- */\n' + fing_css + launch_css + settings_css + coach_css + accent_css + '</style>\n'
        + '\n' + init_js + markup
        + '\n<script>\n' + app_js + '</script>\n<script>\n' + dsp + '</script>\n<script>' + t_js + '</script>\n<script>' + b_js + '</script>\n<script>\n' + met_js + '</script>\n<script>\n' + sym_js + '</script>\n<script>\n' + midi_js + '</script>\n<script>\n' + nav_js + '</script>\n<script>\n' + coach_js + '</script>\n<script>\n' + i18n_js + '</script>\n')
 
