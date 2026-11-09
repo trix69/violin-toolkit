@@ -1821,7 +1821,10 @@
     var B = bars.length - 1, best = [0], from = [];
     function lineCost(a, b) {
       var w = bars[b].x - bars[a].x, fixed = 12 * (b - a) + 4, g = (avail(a === 0 ? 0 : 1) - fixed) / Math.max(1, w - fixed);
-      if (g < 0.75 && b > a + 1) return Infinity;   /* several bars squeezed below 75 %: fingerings crowd (Trix: Winter bar 14) */
+      /* several bars squeezed below 75 %: fingerings crowd (Trix: Winter bar 14); but a short bar (under a third of
+         the line) may join one dense bar down to 62 %, rather than sit alone on a line (Trix: Winter bar 16) */
+      var shortPair = b === a + 2 && Math.min(bars[a + 1].x - bars[a].x, bars[b].x - bars[a + 1].x) < avail(a === 0 ? 0 : 1) / 3;
+      if (g < (shortPair ? 0.62 : 0.75) && b > a + 1) return Infinity;
       if (g < 0.55) return b === a + 1 ? 1e6 : Infinity;
       if (b === B && g >= 1) return 0;
       if (g > 2.5) return 400 + (g - 2.5) * 100;
