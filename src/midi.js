@@ -729,7 +729,7 @@
     m = /^([1-9])(?:st|nd|rd|th)\.?\s*pos(?:ition|\.)?$/i.exec(t);
     return m ? +m[1] : 0;
   }
-  function posMarks(sg, inf, xAt, bars, passages) {
+  function posMarks(sg, inf, xAt, bars, passages, paged) {   /* paged: the Fingerings pages, where a numeral may rise above the system */
     var out = [], CHW = 1200, ns = sg.notes;
     function mark(x, y, h) { out.push([x, '<text class="mp-pos" x="' + (x - 4) + '" y="' + y + '">' + ROMAN_U[h] + '</text>']); }
     function dash(x0, x1, y) {   /* in pieces no longer than a score section, so each shows with its section */
@@ -766,23 +766,29 @@
       /* where the numeral goes: over the passage's first note if there is room above it; else over the first of the
          next few notes (within 2 beats) that has room; else in the gap just before the passage. Never pressed down
          onto a note, its fingering or a grace note (Trix: the Ⅲ sat on a grace note and a 3) */
-      var kAt = -1, raw = function (k) { var t = Y0 - 7; inf[k].members.forEach(function (j) { if (inf[j].top !== undefined) t = Math.min(t, inf[j].top); }); return t; };
+      var kAt = -1, raw = function (k) { var t = Y0 - 7; (inf[k].members || [k]).forEach(function (j) { if (inf[j].top !== undefined) t = Math.min(t, inf[j].top); }); return t; };
       var gw = 18 * ROMAN_W[open.h];
       function roomAt(k) {   /* the numeral's baseline over note k: clear of every note it spans, not only k (tight spacing) */
         var t = raw(k), x = inf[k].hx;
         for (var j = Math.max(0, k - 6); j < ns.length && j <= k + 8; j++) if (j !== k && inf[j] && inf[j].members !== undefined && inf[j].hx > x - 14 && inf[j].hx < x + gw + 6) t = Math.min(t, raw(j));
         return t;
       }
+      /* spots to try: over each of the passage's first notes (within 2 beats), then the gap just before it (clear of
+         its grace notes). The first with room (a baseline at 14 or lower) wins; if none has, the one with the most
+         room, raised as far as needed (the page has space above the system; the player's strip may clip its top) */
+      var cands = [];
       for (var kk = open.k0; kk <= kEnd && ns[kk].b < ns[open.k0].b + 2 + 1e-6; kk++) {
         if (!inf[kk] || ns[kk].grace || inf[kk].members === undefined) continue;   /* chord heads only; graces are not anchors */
-        if (roomAt(kk) >= 14) { kAt = kk; break; }
+        cands.push([inf[kk].hx, roomAt(kk)]);
       }
-      var x0 = kAt >= 0 ? inf[kAt].hx : inf[open.k0].hx, y = kAt >= 0 ? roomAt(kAt) : 14;
-      if (kAt < 0) {   /* no room over any of them: before the passage, clear of its first note and of any grace notes before it */
-        var left = inf[open.k0].hx;
-        for (var g = open.k0 - 1; g >= 0 && ns[g].grace; g--) left = Math.min(left, inf[g].hx);
-        x0 = left - 12 - gw + 4;
-      }
+      var left = inf[open.k0].hx;
+      for (var g = open.k0 - 1; g >= 0 && ns[g].grace; g--) left = Math.min(left, inf[g].hx);
+      var gx = left - 12 - gw + 4, groom = Y0 - 7;
+      for (var j2 = Math.max(0, open.k0 - 8); j2 <= Math.min(ns.length - 1, open.k0 + 4); j2++) if (inf[j2] && inf[j2].hx > gx - 10 && inf[j2].hx < gx + gw + 6) groom = Math.min(groom, raw(j2));
+      var pick = cands.filter(function (c) { return c[1] >= 14; })[0];
+      if (!pick && paged && cands.length) pick = [cands[0][0], Math.max(-22, cands[0][1])];   /* the pages: up over the passage's first note, above everything there (the addendum's rule: up, not sideways) */
+      if (!pick) { cands.push([gx + 4, groom]); pick = cands.reduce(function (m, c) { return c[1] > m[1] ? c : m; }); pick = [pick[0], Math.max(-4, pick[1])]; }   /* the player's strip has no room above it: the best spot it has */
+      var x0 = pick[0], y = Math.min(pick[1], Y0 - 7);
       var x1 = inf[kEnd].hx + 6, ly = y - 5, a = x0 + 2 + gw;
       mark(x0, y, open.h);
       passages.push({ h: open.h, x0: x0, x1: x1, y: y });
@@ -956,7 +962,7 @@
       beams.push([x0, '<g class="mp-beams">' + b.join('') + '</g>']);
     });
     /* second pass: draw (a chord's stem, flags and beam belong to its first note) */
-    var slurOpen = {}, slurItems = [];
+    var slurOpen = {}, slurItems = [], slurArcs = [];   /* slurArcs: [x0, x1, highest y] of slurs above the notes, for the free space over them */
     inf.forEach(function (f, k) {
       var hd = inf[f.head], isHead = f.head === k, chord = hd.members.length > 1;
       var nt = f.nt, y = f.y, hx = f.hx, step = f.step, len = f.len, up = hd.up, g = [];
@@ -969,6 +975,7 @@
         g.push('<path class="stem" d="M' + gsx + ' ' + (y - 1) + 'V' + gtop + '"/>');
         g.push('<path class="flag" d="M' + gsx + ' ' + gtop + 'c.6 3 4.6 4.2 3.5 8.8c.6-3.5-1.8-5.3-3.5-5.9z"/>');
         if (nt.grace === 'acc') g.push('<path class="stem" d="M' + (hx - 1.5) + ' ' + (y - 0.6 * S) + 'L' + (hx + 7) + ' ' + (y - 1.8 * S) + '"/>');
+        inf[k].top = gtop - 4;   /* a grace note's stem and flag take the space over it (Trix: Ⅲ on a grace note) */
         items.push([hx, '<g class="mp-n mp-grace" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
         return;
       }
@@ -1025,6 +1032,7 @@
           var y0 = ab ? o.top - 8 : o.bot + 8, y1 = ab ? (chord ? hd.yTop : y) - 8 : (chord ? hd.yBot : y) + 8;
           var cy = (ab ? Math.min(y0, y1) : Math.max(y0, y1)) + Math.min(14, 4 + (x1 - x0) / 10) * (ab ? -1 : 1);
           slurItems.push([o.x, '<path class="slur" d="M' + x0 + ' ' + y0 + 'C' + (x0 + (x1 - x0) * 0.25) + ' ' + cy + ' ' + (x0 + (x1 - x0) * 0.75) + ' ' + cy + ' ' + x1 + ' ' + y1 + '"/>']);
+          if (ab) slurArcs.push([o.x, hx, Math.min(y0, y1) + 0.75 * (cy - Math.min(y0, y1))]);   /* the curve's highest point (both control points at cy) */
         }
       });
       var pzPrev = k > 0 && !!inf[k - 1].nt.pz;
@@ -1037,8 +1045,10 @@
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
       items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
     });
+    /* a slur arching above the notes takes the space over every note under it (Trix: Ⅲ and its dashes ran into slurs) */
+    slurArcs.forEach(function (a) { inf.forEach(function (f) { if (f.hx >= a[0] - 2 && f.hx <= a[1] + 2) f.top = Math.min(f.top === undefined ? Y0 - 7 : f.top, a[2] - 4); }); });
     var passages = [];
-    items = items.concat(beams, slurItems, posMarks(sg, inf, xAt, bars, passages));
+    items = items.concat(beams, slurItems, posMarks(sg, inf, xAt, bars, passages, !!opts.paged));
     /* dynamics, hairpins and words under the staff (MusicXML, Trix) */
     var DY = BOT + 41, wedge = null, lastDynX = -99;   /* below any fingering under the notes */
     (sg.marks || []).forEach(function (m) {
@@ -1816,7 +1826,7 @@
       var g = (avail(i) - fixed) / Math.max(1, w - fixed);
       return g > 2.5 ? 1 : Math.max(0.55, g);
     });
-    var r = scoreItems(sg, { gain: function (b) { for (var i = 0; i < sys.length; i++) if (b < bars[sys[i][1]].beat - 1e-6) return gains[i]; return gains[gains.length - 1]; } });
+    var r = scoreItems(sg, { paged: true, gain: function (b) { for (var i = 0; i < sys.length; i++) if (b < bars[sys[i][1]].beat - 1e-6) return gains[i]; return gains[gains.length - 1]; } });
     r.sys = sys; r.hw = hw; r.items.sort(function (p, q) { return p[0] - q[0]; });
     return r;
   }
@@ -1839,7 +1849,7 @@
     var body = [];
     for (var lo = 0, hi = r.items.length; lo < hi; ) { var mid = (lo + hi) >> 1; if (r.items[mid][0] <= xa + 0.5) lo = mid + 1; else hi = mid; }
     for (var k = lo; k < r.items.length && r.items[k][0] <= xb + 0.5; k++) body.push(r.items[k][1]);
-    out.push('<clipPath id="' + id + '"><rect x="' + (hw - 2) + '" y="-12" width="' + (xb - xa + 8) + '" height="' + (SYS_H + 24) + '"/></clipPath>');
+    out.push('<clipPath id="' + id + '"><rect x="' + (hw - 2) + '" y="-40" width="' + (xb - xa + 8) + '" height="' + (SYS_H + 52) + '"/></clipPath>');   /* room above for a raised numeral */
     out.push('<g clip-path="url(#' + id + ')"><g transform="translate(' + tx.toFixed(2) + ' 0)">' + body.join('') + '</g></g>');
     return out.join('');
   }
@@ -1860,7 +1870,7 @@
     /* page 1 opens with the title block (title, part, key and tempo; the QR on the right); later pages with a
        running header; no footer on any page, no watermark (Trix) */
     var MM = PG_W / 210, QS = 12 * MM, QZ = 2 * MM, QT = 14, TOP1 = PG_M + QT + QZ + QS + QZ + 14, TOPN = PG_M + 22;   /* QR 12 mm, 'Violin Toolkit' above it (Trix) */
-    var pages = [], cur = null, y = 0, sysH = SYS_H * PG_K + 2, bottom = PG_H - PG_M;
+    var pages = [], cur = null, y = 0, sysH = SYS_H * PG_K + 9, bottom = PG_H - PG_M;   /* room between systems for a raised position numeral and its line */
     r.sys.forEach(function (q, si) {
       if (!cur || y + sysH > bottom) { cur = []; pages.push(cur); y = pages.length === 1 ? TOP1 : TOPN; }
       cur.push([si, y, cur.length === 0]); y += sysH;
