@@ -260,6 +260,14 @@
             kids(kid(nots, 'articulations')).forEach(function (a) { if (a.nodeName !== 'breath-mark' && a.nodeName !== 'caesura') art.push(a.nodeName); });   /* breaths are marks (above) */
             kids(tech).forEach(function (a) { if (/^(up-bow|down-bow|stopped)$/.test(a.nodeName)) art.push(a.nodeName); });
             if (kid(nots, 'fermata')) art.push('fermata');
+            /* ornaments (Trix: tr was missing): trill, turns, mordents drawn above; a tremolo's slashes on the stem; an
+               accidental written over the ornament beside it */
+            kids(kid(nots, 'ornaments')).forEach(function (o) {
+              var nm = o.nodeName;
+              if (/^(trill-mark|turn|inverted-turn|delayed-turn|mordent|inverted-mordent)$/.test(nm)) art.push(nm);
+              else if (nm === 'tremolo' && (o.getAttribute('type') || 'single') === 'single') n.trem = Math.max(1, Math.min(4, +o.textContent.trim() || 3));
+              else if (nm === 'accidental-mark') n.oacc = o.textContent.trim();
+            });
             if (art.length) n.art = art;
             if (slurs.length) n.slur = slurs;
             notes.push(n);
@@ -463,7 +471,7 @@
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
       var sb = n.sb !== undefined ? n.sb : n.t0;
-      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, slur: n.slur, vel: n.v || 80, grace: n.grace };
+      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, oacc: n.oacc, slur: n.slur, vel: n.v || 80, grace: n.grace };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -988,6 +996,10 @@
       if (stem && isHead) {
         var sx = up ? hx + 4.9 : hx - 4.9, sy = hd.beam >= 0 ? hd.tip : up ? hd.yTop - 3.4 * S : hd.yBot + 3.4 * S, sy0 = up ? hd.yBot : hd.yTop;
         g.push('<path class="stem" d="M' + sx + ' ' + (sy0 + (up ? -1 : 1)) + 'V' + sy + '"/>');
+        if (nt.trem) for (var tq = 0; tq < nt.trem; tq++) {   /* tremolo: slashes across the stem, between head and tip */
+          var ty0 = sy0 + (sy - sy0) * 0.55 + (up ? 1 : -1) * tq * 4.5;
+          g.push('<path class="trem" d="M' + (sx - 4) + ' ' + (ty0 + 1.6) + 'L' + (sx + 4) + ' ' + (ty0 - 1.6) + '"/>');
+        }
         for (var q = 0; q < flags; q++) {
           var fy = sy + (up ? 1 : -1) * q * 7, d = up ? 1 : -1;
           g.push('<path class="flag" d="M' + sx + ' ' + fy + 'c1 ' + (5 * d) + ' 8 ' + (7 * d) + ' 6 ' + (15 * d) + 'c1 ' + (-6 * d) + ' -3 ' + (-9 * d) + ' -6 ' + (-10 * d) + 'z"/>');
@@ -1018,6 +1030,13 @@
         if (a === 'down-bow') d = '<path class="art bow" d="M' + (hx - 5) + ' ' + (by + 4) + 'V' + (by - 3) + 'H' + (hx + 5) + 'V' + (by + 4) + '"/>';
         else if (a === 'up-bow') d = '<path class="art" d="M' + (hx - 4) + ' ' + (by - 4) + 'L' + hx + ' ' + (by + 4) + 'L' + (hx + 4) + ' ' + (by - 4) + '"/>';
         else if (a === 'stopped') d = '<path class="art" d="M' + (hx - 4) + ' ' + by + 'h8M' + hx + ' ' + (by - 4) + 'v8"/>';
+        else if (a === 'trill-mark') {
+          d = '<text class="mp-tr" x="' + hx + '" y="' + (by + 4) + '">tr</text>';
+          var oa = { sharp: '#', flat: 'b', natural: 'n' }[nt.oacc];
+          if (oa) d += '<g class="acc" transform="translate(' + (hx + 12) + ' ' + (by - 3) + ') scale(.6) translate(' + (-(hx + 12)) + ' ' + (-(by - 3)) + ')">' + APP.accSvg(oa, hx + 12, by - 3, S) + '</g>';
+        }
+        else if (a === 'mordent' || a === 'inverted-mordent') d = '<path class="art orn" d="M' + (hx - 7) + ' ' + (by + 2) + 'l3.5 -4l3.5 4l3.5 -4l3.5 4' + (a === 'mordent' ? 'M' + hx + ' ' + (by - 5) + 'V' + (by + 5) : '') + '"/>';
+        else if (/turn$/.test(a)) d = '<path class="art orn" d="M' + (hx - 7) + ' ' + (by + 1) + 'c0 -5 6 -5 7 0s7 5 7 0' + (a === 'inverted-turn' ? 'M' + hx + ' ' + (by - 5) + 'V' + (by + 6) : '') + '"/>';
         else if (a === 'fermata') d = '<path class="art" d="M' + (hx - 7) + ' ' + (by + 3) + 'A7 6 0 0 1 ' + (hx + 7) + ' ' + (by + 3) + '"/><circle class="artd" cx="' + hx + '" cy="' + (by + 1.5) + '" r="1.5"/>';
         if (d) { g.push(d); upY -= 10; }
       });

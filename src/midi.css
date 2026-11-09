@@ -198,3 +198,7 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 /* position marks: italic Roman numerals over the staff, a dashed line while the position holds (Trix) */
 .mp-score .mp-pos { fill: var(--sc-ink); font: 18px 'Times New Roman', 'Noto Serif', Georgia, serif; transform: skewX(-14deg); transform-box: fill-box; transform-origin: 50% 100%; }   /* the Unicode numerals (Ⅲ) have no italic in most fonts: slanted by hand */
 .mp-score .mp-posd { fill: none; stroke: var(--sc-ink); stroke-width: 1; stroke-dasharray: 4 3; opacity: .8; }
+/* ornaments (Trix): tr, turns, mordents above the note; tremolo slashes on the stem */
+.mp-score .mp-tr { fill: var(--sc-ink); font: italic 700 14px 'Times New Roman', 'Noto Serif', Georgia, serif; text-anchor: middle; }
+.mp-score .orn { stroke-width: 1.5; }
+.mp-n .trem { stroke: currentColor; stroke-width: 2.2; }
