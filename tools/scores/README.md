@@ -59,3 +59,15 @@ double sharp) show the verse is in A major, the refrain (bar 17, naturals) in A 
 3. `pc_repeat.py pc-packed.mxl porunacabeza.mxl`: the repeat (bar 1 to the 1st ending, bar 32), the 2nd ending
    (bar 33), and the key change to A minor at bar 17 (back to A major at bar 1).
 Checks: every bar's length (mlen.py), the player's play order (0, 1-31, 32, 1-31, 33 = 65 bars, 1:57), the pages.
+
+## Humoresque bar 6 (2026-11-11)
+
+`hum_bar6.py humoresque.mxl out.mxl` after `hum_fix.py` and packing: bar 6's first violin note G5 (Soustružník has E5),
+as bar 2 and the phrase's returns; Trix chose it by ear.
+
+## Ode to Joy and Mountain King violin lines (2026-11-11)
+
+`ode_arr.py` / `mk_arr.py` (midi_tools.py on the path): the violin is the top *sounding* line of Mutopia #528's upper
+staff / #1888's right hand. The first version took the highest note at each onset, so inner voices moving under a
+held melody note leaked in (Ode bars 2, 6, 8, 14, 16; Mountain King bars 29, 33, 37, 41, 45). Output is MIDI, kept
+as ode.mxl / mountain_king.mxl (and the .mid copies) for the phone apps.
