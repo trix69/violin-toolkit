@@ -480,7 +480,7 @@
     if (skipB > 0) notes.forEach(function (n) { n.b -= skipB; n.t -= skipT; n.e -= skipT; });
     /* how long each note looks on the score: until the next note starts (a short breath between notes is
        not a rest), else its own length; rounded to note values a beginner part uses */
-    var VALS = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25];
+    var VALS = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25, 0.125];   /* down to demisemiquavers (Trix: Winter's 32nds were drawn as 16ths) */
     notes.forEach(function (n, i) {
       var j = i + 1; while (j < notes.length && notes[j].b <= n.b + 1e-6) j++;
       var gap = j < notes.length ? notes[j].b - n.b : Infinity, len;
@@ -960,12 +960,14 @@
         return '<path class="beam" d="M' + xa + ' ' + ya + 'L' + xb + ' ' + yb + 'L' + xb + ' ' + (yb - d * 4) + 'L' + xa + ' ' + (ya - d * 4) + 'Z"/>';
       }
       var sx = function (k) { return inf[k].hx + (up ? 4.9 : -4.9); }, b = [bar(sx(gr[0]) - (up ? 0.65 : -0.65), sx(gr[gr.length - 1]) + (up ? 0.65 : -0.65), 0)];
-      /* second beam between neighbouring semiquavers; a short stub for one on its own */
-      gr.forEach(function (k, i) {
-        if (inf[k].len > 0.25) return;
-        var nx = gr[i + 1], pv = gr[i - 1];
-        if (nx !== undefined && inf[nx].len <= 0.25) b.push(bar(sx(k), sx(nx), 7));
-        else if (!(pv !== undefined && inf[pv].len <= 0.25)) b.push(nx !== undefined ? bar(sx(k), sx(k) + 9, 7) : bar(sx(k) - 9, sx(k), 7));
+      /* second beam between neighbouring semiquavers, a third between demisemiquavers; a short stub for one on its own */
+      [[0.25, 7], [0.125, 14]].forEach(function (lv) {
+        gr.forEach(function (k, i) {
+          if (inf[k].len > lv[0] + 1e-6) return;
+          var nx = gr[i + 1], pv = gr[i - 1];
+          if (nx !== undefined && inf[nx].len <= lv[0] + 1e-6) b.push(bar(sx(k), sx(nx), lv[1]));
+          else if (!(pv !== undefined && inf[pv].len <= lv[0] + 1e-6)) b.push(nx !== undefined ? bar(sx(k), sx(k) + 9, lv[1]) : bar(sx(k) - 9, sx(k), lv[1]));
+        });
       });
       beams.push([x0, '<g class="mp-beams">' + b.join('') + '</g>']);
     });
@@ -990,8 +992,8 @@
       if (f.sign) g.push('<g class="acc">' + APP.accSvg(f.sign, hx - 14, y, S) + '</g>');
       for (var l = 0; l >= step; l -= 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
       for (l = 12; l <= step; l += 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(l) + 'h18"/>');
-      var hollow = len >= 2, stem = len < 4, dotted = len === 3 || len === 1.5 || len === 0.75;
-      var flags = hd.beam >= 0 ? 0 : hd.len <= 0.25 ? 2 : hd.len < 1 ? 1 : 0;
+      var hollow = len >= 2, stem = len < 4, dotted = len === 3 || len === 1.5 || len === 0.75 || len === 0.375;
+      var flags = hd.beam >= 0 ? 0 : hd.len <= 0.125 ? 3 : hd.len <= 0.25 ? 2 : hd.len < 1 ? 1 : 0;
       g.push('<ellipse class="' + (hollow ? 'head hollow' : 'head') + '" cx="' + hx + '" cy="' + y + '" rx="5.4" ry="3.9" transform="rotate(-20 ' + hx + ' ' + y + ')"/>');
       if (stem && isHead) {
         var sx = up ? hx + 4.9 : hx - 4.9, sy = hd.beam >= 0 ? hd.tip : up ? hd.yTop - 3.4 * S : hd.yBot + 3.4 * S, sy0 = up ? hd.yBot : hd.yTop;
