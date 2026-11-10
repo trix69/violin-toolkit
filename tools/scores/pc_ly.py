@@ -48,6 +48,13 @@ LH = [
     "a8 a,8 r4", "<a, a>8 e8 a,8 r8",
 ]
 assert len(VN) == len(RH) == len(LH) == 34
+# the violin phrased the way the tango is played instrumentally (Trix: "rhythm not the same" as the version they
+# know): wherever two quavers lead into a run of four semiquavers, the quavers are played short (staccato
+# semiquavers) with a breath before the run. One rule, applied to every such bar of Gardel's 1935 melody
+import re
+TANGO = re.compile(r"^(\S+?)8 (\S+) (\S+?)16 (\S+) (\S+) (\S+)$")
+PHRASED = [i for i, b in enumerate(VN) if TANGO.match(b)]
+VN = [TANGO.sub(r"\g<1>16-. \2-. r8 \g<3>16 \4 \5 \6", b) if TANGO.match(b) else b for b in VN]
 
 
 def part(bars):   # the key change to A minor at bar 17 is added by pc_repeat.py (python-ly writes stray backups there)
@@ -65,4 +72,4 @@ lh = { \clef bass \key a \major \time 2/4 %s }
 >> }
 """ % (part(VN), part(RH), part(LH))
 open(sys.argv[1], 'w').write(ly)
-print('ok', len(VN), 'bars')
+print('ok', len(VN), 'bars; violin phrased in bars', PHRASED)
