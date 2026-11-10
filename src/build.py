@@ -494,7 +494,7 @@ SCORE_CREDITS = [
     ('In the Hall of the Mountain King', 'Edvard Grieg', 'Mutopia Project no. 1888 (The University Society, 1918), typeset by Coyau; violin line arranged by Violin Toolkit', 'Public Domain'),
     ('Canon', 'Johann Pachelbel', 'Mutopia Project no. 2047 (Canon per 3 Violini e Basso), typeset by Michael Fischer v. Mollard', 'Creative Commons Attribution 4.0'),
     ('Spring, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw", 'Creative Commons Attribution-ShareAlike 3.0'),
-    ('Winter, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 351 (Performers' Facsimiles), typeset by smailliw", 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Winter, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 351 (Performers' Facsimiles), typeset by smailliw; tempo changed to crotchet = 80 by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Serenade, 1st movement', 'Wolfgang Amadeus Mozart', 'Mutopia Project no. 900 (Eine kleine Nachtmusik K. 525)', 'Public Domain'),
 ]
 import html as _h

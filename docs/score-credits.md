@@ -15,15 +15,15 @@ Settings › Help › Score credits (曲谱来源).
 | 6 | In the Hall of the Mountain King (在山魔王的宫殿里) | Edvard Grieg | `mountain_king.mxl`, `mountain_king.mid` (MIDI content) | Mutopia Project no. 1888, The University Society 1918, piano, typeset by Coyau — https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1888 ; violin line (the right hand's top line, bars raised by octaves into the violin's range) arranged by us, 2026 | Public Domain | 2026-11-10 |
 | 7 | Canon (卡农) | Johann Pachelbel | `canon.mxl`, `canon.mid` (MIDI content) | Mutopia Project no. 2047, *Canon per 3 Violini e Basso* (source IMSLP), typeset by Michael Fischer v. Mollard — https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=2047 | Creative Commons Attribution 4.0 | 2026-11-10 |
 | 8 | Spring, 1st movement (春 · 第一乐章) | Antonio Vivaldi | `spring.mid` | Mutopia Project no. 301, Performers' Facsimiles, violin and strings, maintainer "smailliw" — https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=301 (first-movement MIDI `spring-score.mid` from the edition's MIDI set) | Creative Commons Attribution-ShareAlike 3.0 | 2026-11-10 |
-| 9 | Winter, 1st movement (冬 · 第一乐章) | Antonio Vivaldi | `winter.mxl`, `winter.mid` (MIDI content) | Mutopia Project no. 351, Performers' Facsimiles, violin and strings, maintainer "smailliw" — https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=351 (first-movement MIDI `winter-score.mid`) | Creative Commons Attribution-ShareAlike 3.0 | 2026-11-10 |
+| 9 | Winter, 1st movement (冬 · 第一乐章) | Antonio Vivaldi | `winter.mxl`, `winter.mid` (MIDI content) | Mutopia Project no. 351, Performers' Facsimiles, violin and strings, maintainer "smailliw" — https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=351 (first-movement MIDI `winter-score.mid`); **changed by us, 2026: tempo ♩ = 140 → ♩ = 80** (the edition's MIDI plays at about twice the usual Allegro non molto; length 1:48 → 3:09); the changed file stays under CC BY-SA 3.0 | Creative Commons Attribution-ShareAlike 3.0 | 2026-11-10 |
 | 10 | Serenade, 1st movement (小夜曲 · 第一乐章) | Wolfgang Amadeus Mozart, K. 525 | `serenade.mxl`, `night_music.mid` (MIDI content) | Mutopia Project no. 900, string quartet (source IMSLP), maintainer Anonymous — https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=900 | Public Domain | 2026-11-10 |
 
 ## Notes
 
 - **Licences.** Public Domain and CC0 need nothing. CC BY 4.0 (Canon) and CC BY-SA 3.0 (Gavotte, Air,
   Spring, Winter) require credit to the edition, which the app's Score credits window gives (title,
-  composer, edition, typesetter, licence). The share-alike editions are shipped unchanged (no adaptation);
-  if one is ever edited, the edited file stays under CC BY-SA 3.0.
+  composer, edition, typesetter, licence). The share-alike editions are shipped unchanged except Winter, whose tempo we changed (noted in its row
+  and in the app's credits); the changed file stays under CC BY-SA 3.0.
 - **Our own work.** Twinkle (engraved here) and the violin lines drawn out of Ode to Joy and the
   Mountain King are ours; they may be used under CC0 1.0.
 - **File names.** The phone apps (1.38 and later) download built-in tunes from the website by file name,
