@@ -479,47 +479,51 @@ midi_css = open(SP + 'midi.css').read()
 fing_css = open(SP + 'fing.css').read()   # Fingerings (指法谱): pages + PDF from the MIDI player's drawing
 fing_html = open(SP + 'fing.html').read()
 midi_html = open(SP + 'midi.html').read()
-# the ten built-in tunes, easy to hard (Trix, 2026-11-10): every one from an edition we may redistribute, recorded
+# the eleven built-in tunes, easy to hard (Trix, 2026-11-10; Ave Maria added the same day): every one from an edition we may redistribute, recorded
 # row for row in docs/score-credits.md (Mutopia Project editions; Twinkle written by us). Existing file names stay
-# (phones on 1.38+ fetch src/midi/<f> by name; several .mxl names now hold MIDI, which the player reads by content);
+# (phones on 1.38+ fetch src/midi/<f> by name); Minuet, Gavotte, Air, Canon, Spring, Winter, Serenade are MusicXML converted
+# from the Mutopia LilyPond sources (python-ly + fixes, 2026-11-10); ode/mountain_king .mxl names hold MIDI;
 # the .mid files of the same names (and night_music.mid) hold the same new content for 1.37 apps.
 # the Score credits window (Trix, 2026-11-10; required by the CC BY / CC BY-SA editions): title, composer,
 # edition (source, typesetter), licence verbatim. Plain text: the store apps have no outside links.
 SCORE_CREDITS = [
     ('Twinkle, Twinkle, Little Star', 'Traditional', 'Engraved by Violin Toolkit, 2026', 'CC0 1.0'),
-    ('Minuet in G', 'Christian Petzold (formerly attributed to J. S. Bach)', 'Mutopia Project no. 75 (Bach-Gesellschaft), typeset by Allen Garvin', 'Public Domain'),
+    ('Minuet in G', 'Christian Petzold (formerly attributed to J. S. Bach)', 'Mutopia Project no. 75 (Bach-Gesellschaft), typeset by Allen Garvin; MusicXML by Violin Toolkit', 'Public Domain'),
     ('Ode to Joy', 'Ludwig van Beethoven', 'Mutopia Project no. 528, typeset by Peter Chubb; violin line arranged by Violin Toolkit', 'Public Domain'),
-    ('Gavotte', 'Giovanni Battista Martini', 'Mutopia Project no. 1785 (C. F. Peters, ca. 1891), typeset by Fabien Mirloup', 'Creative Commons Attribution-ShareAlike 3.0'),
-    ('Air (BWV 1068)', 'Johann Sebastian Bach', 'Mutopia Project no. 242 (Bach-Gesellschaft), typeset by Jeff Covey', 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Gavotte', 'Giovanni Battista Martini', 'Mutopia Project no. 1785 (C. F. Peters, ca. 1891), typeset by Fabien Mirloup; converted to MusicXML by Violin Toolkit', 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Air (BWV 1068)', 'Johann Sebastian Bach', 'Mutopia Project no. 242 (Bach-Gesellschaft), typeset by Jeff Covey; converted to MusicXML by Violin Toolkit, repeats written out', 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Ave Maria', 'Franz Schubert', "OpenScore Lieder (Ellens Gesang III, D. 839), transcribed by Mark Gotham from IMSLP #16400; the voice part played by the violin", 'CC0 1.0'),
     ('In the Hall of the Mountain King', 'Edvard Grieg', 'Mutopia Project no. 1888 (The University Society, 1918), typeset by Coyau; violin line arranged by Violin Toolkit', 'Public Domain'),
-    ('Canon', 'Johann Pachelbel', 'Mutopia Project no. 2047 (Canon per 3 Violini e Basso), typeset by Michael Fischer v. Mollard', 'Creative Commons Attribution 4.0'),
-    ('Spring, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw", 'Creative Commons Attribution-ShareAlike 3.0'),
-    ('Winter, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 351 (Performers' Facsimiles), typeset by smailliw; tempo changed to crotchet = 80 by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
-    ('Serenade, 1st movement', 'Wolfgang Amadeus Mozart', 'Mutopia Project no. 900 (Eine kleine Nachtmusik K. 525)', 'Public Domain'),
+    ('Canon', 'Johann Pachelbel', 'Mutopia Project no. 2047 (Canon per 3 Violini e Basso), typeset by Michael Fischer v. Mollard; converted to MusicXML by Violin Toolkit', 'Creative Commons Attribution 4.0'),
+    ('Spring, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Winter, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 351 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML and tempo changed to crotchet = 80 by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Serenade, 1st movement', 'Wolfgang Amadeus Mozart', 'Mutopia Project no. 900 (Eine kleine Nachtmusik K. 525); MusicXML by Violin Toolkit', 'Public Domain'),
 ]
 import html as _h
 CREDITS_HTML = ''.join('<li><b>%s</b><span translate="no">%s</span><span translate="no">%s</span><span class="cr-lic" translate="no">%s</span></li>' % tuple(_h.escape(x) for x in r) for r in SCORE_CREDITS)
 # the source line in the bottom-left footer of every Fingerings page (Trix): short form of the credits above
 SCORE_SOURCE = {
     'twinkle.mxl': 'Engraved by Violin Toolkit, 2026 · CC0 1.0',
-    'minuet.mid': 'Mutopia Project #75 (typeset by Allen Garvin) · Public Domain',
+    'minuet.mxl': 'Mutopia Project #75 (typeset by Allen Garvin), MusicXML by Violin Toolkit · Public Domain',
     'ode.mxl': 'Mutopia Project #528 (typeset by Peter Chubb), violin line arr. Violin Toolkit · Public Domain',
-    'gavotte.mid': 'Mutopia Project #1785 (typeset by Fabien Mirloup) · CC BY-SA 3.0',
-    'air.mid': 'Mutopia Project #242 (typeset by Jeff Covey) · CC BY-SA 3.0',
+    'gavotte.mxl': 'Mutopia Project #1785 (typeset by Fabien Mirloup), MusicXML by Violin Toolkit · CC BY-SA 3.0',
+    'air.mxl': 'Mutopia Project #242 (typeset by Jeff Covey), MusicXML by Violin Toolkit · CC BY-SA 3.0',
+    'ave_maria.mxl': 'OpenScore Lieder (transcribed by Mark Gotham), voice part as violin · CC0 1.0',
     'mountain_king.mxl': 'Mutopia Project #1888 (typeset by Coyau), violin line arr. Violin Toolkit · Public Domain',
-    'canon.mxl': 'Mutopia Project #2047 (typeset by Michael Fischer v. Mollard) · CC BY 4.0',
-    'spring.mid': 'Mutopia Project #301 (typeset by smailliw) · CC BY-SA 3.0',
-    'winter.mxl': 'Mutopia Project #351 (typeset by smailliw), tempo changed by Violin Toolkit · CC BY-SA 3.0',
-    'serenade.mxl': 'Mutopia Project #900 · Public Domain',
+    'canon.mxl': 'Mutopia Project #2047 (typeset by Michael Fischer v. Mollard), MusicXML by Violin Toolkit · CC BY 4.0',
+    'spring.mxl': 'Mutopia Project #301 (typeset by smailliw), MusicXML by Violin Toolkit · CC BY-SA 3.0',
+    'winter.mxl': 'Mutopia Project #351 (typeset by smailliw), MusicXML and tempo by Violin Toolkit · CC BY-SA 3.0',
+    'serenade.mxl': 'Mutopia Project #900, MusicXML by Violin Toolkit · Public Domain',
 }
 MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
-              ('minuet.mid', 'Minuet in G', 'Christian Petzold (formerly attributed to J. S. Bach)'),
+              ('minuet.mxl', 'Minuet in G', 'Christian Petzold (formerly attributed to J. S. Bach)'),
               ('ode.mxl', 'Ode to Joy', 'Ludwig van Beethoven'),
-              ('gavotte.mid', 'Gavotte', 'Giovanni Battista Martini'),
-              ('air.mid', 'Air (BWV 1068)', 'Johann Sebastian Bach'),
+              ('gavotte.mxl', 'Gavotte', 'Giovanni Battista Martini'),
+              ('air.mxl', 'Air (BWV 1068)', 'Johann Sebastian Bach'),
+              ('ave_maria.mxl', 'Ave Maria', 'Franz Schubert'),
               ('mountain_king.mxl', 'In the Hall of the Mountain King', 'Edvard Grieg'),
               ('canon.mxl', 'Canon', 'Johann Pachelbel'),
-              ('spring.mid', 'Spring, 1st movement', 'Antonio Vivaldi'),
+              ('spring.mxl', 'Spring, 1st movement', 'Antonio Vivaldi'),
               ('winter.mxl', 'Winter, 1st movement', 'Antonio Vivaldi'),
               ('serenade.mxl', 'Serenade, 1st movement', 'Wolfgang Amadeus Mozart')]
 midi_js = open(SP + 'midi.js').read()

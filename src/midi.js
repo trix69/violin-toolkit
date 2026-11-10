@@ -189,7 +189,7 @@
     var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [];   /* tick -> tempo entry */
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
-      var ms = kids(part, 'measure'), notes = [], tie = {}, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
+      var ms = kids(part, 'measure'), notes = [], tie = {}, chordTrem = 0, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
       ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); }); });
       order.forEach(function (k) {
         var m = ms[k]; if (!m) return;
@@ -268,6 +268,7 @@
               else if (nm === 'tremolo' && (o.getAttribute('type') || 'single') === 'single') n.trem = Math.max(1, Math.min(4, +o.textContent.trim() || 3));
               else if (nm === 'accidental-mark') n.oacc = o.textContent.trim();
             });
+            if (!chord) chordTrem = n.trem || 0; else if (!n.trem && chordTrem) n.trem = chordTrem;   /* a chord's tremolo, often written on its first note only */
             if (art.length) n.art = art;
             if (slurs.length) n.slur = slurs;
             notes.push(n);
@@ -419,6 +420,14 @@
       tracks.forEach(function (tr, i) { var nm = tr.name || 'Part ' + (i + 1); if (i !== si && accNames.indexOf(nm) < 0) accNames.push(nm); });   /* a name once: a piano's two hands are two parts both called Piano (Trix's Winter) */
       tracks.forEach(function (tr, i) { if (i !== si) acc = acc.concat(tr.notes); });
     }
+    /* a tremolo in the accompaniment sounds as the repeated notes it stands for (1 slash quavers, 2 semiquavers,
+       3 demisemiquavers): the Serenade's inner parts, which its MIDI wrote out */
+    acc = acc.reduce(function (out, n) {
+      var step = n.trem ? tpq / Math.pow(2, n.trem) : 0;
+      if (!step || n.t1 - n.t0 < step * 1.5) { out.push(n); return out; }
+      for (var t = n.t0; t < n.t1 - step / 2; t += step) { var c = {}; for (var k in n) c[k] = n[k]; c.t0 = t; c.t1 = Math.min(n.t1, t + step); delete c.trem; out.push(c); }
+      return out;
+    }, []);
     var firstTick = acc.reduce(function (a, n) { return Math.min(a, n.t0); }, Infinity);
     var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick);
     /* the bar number at a beat, for the score's corner (Trix): MusicXML's own numbers (repeats show theirs again, a
@@ -432,6 +441,9 @@
     var seenBar = {}; blist.forEach(function (b) { b.time = seenBar[b.num] = (seenBar[b.num] || 0) + 1; });
     blist.forEach(function (b) { b.rep = seenBar[b.num] > 1; });
     sg.bars = blist;
+    /* a pickup (MusicXML's short first bar, Spring's quaver, the Gavotte's half bar): the score's bar grid starts
+       that much before the first note, so its bar lines fall where the score's do (a MIDI file has none: 0) */
+    sg.pick = bl && !sg.skipB && blist.length > 1 && blist[0].beat < 1e-6 && blist[1].beat < barQ - 1e-6 ? barQ - blist[1].beat : 0;
     sg.barAt = function (beat) {   /* the bar under a beat, in playing order (a repeated bar knows which time round it is) */
       var r = blist[0] || null;
       for (var i = 0; i < blist.length && blist[i].beat <= beat + 1e-6; i++) r = blist[i];
@@ -841,7 +853,7 @@
     var head = n + 2;   /* key signature + the two time-signature numbers */
     out.push('<text class="ts" style="font-size:' + tsz.toFixed(2) + 'px" x="' + x + '" y="' + (Y0 + 2 * S) + '">' + sg.sig.num + '</text><text class="ts" style="font-size:' + tsz.toFixed(2) + 'px" x="' + x + '" y="' + (Y0 + 4 * S) + '">' + sg.sig.den + '</text>');
     X0 = x + tw / 2 + 22;
-    var barBeats = sg.sig.num * 4 / sg.sig.den;
+    var barBeats = sg.sig.num * 4 / sg.sig.den, pk = sg.pick || 0;   /* pk: the pickup, beats before bar 1 is full */
     /* spacing by note length, as printed music does (a semiquaver ~41 px, a crotchet 56, a semibreve 86), with
        room at each bar line; xAt() maps beats to x for placing and scrolling */
     var ons = [], items = [];   /* what scrolls: [x, svg markup], drawn in sections */
@@ -856,7 +868,7 @@
     var rests = [], comp = sg.sig.den >= 8 && sg.sig.num % 3 === 0;
     function restRun(a, z) {
       while (z - a >= 0.25 - 1e-6) {
-        var bs = Math.floor(a / barBeats + 1e-6) * barBeats, be = Math.min(z, bs + barBeats);
+        var bs = Math.floor((a + pk) / barBeats + 1e-6) * barBeats - pk, be = Math.min(z, bs + barBeats);
         if (Math.abs(a - bs) < 1e-6 && Math.abs(be - (bs + barBeats)) < 1e-6) { rests.push({ b: a, v: barBeats, whole: true }); a = be; continue; }
         var vs = comp ? [3, 1.5, 1, 0.5, 0.25] : [2, 1, 0.5, 0.25], v = 0.25;
         for (var q = 0; q < vs.length; q++) { var w = vs[q], off = a - bs; if (a + w <= be + 1e-6 && Math.abs(off / w - Math.round(off / w)) < 1e-6) { v = w; break; } }
@@ -880,8 +892,8 @@
     bars.push({ beat: 0, x: cx - 6 });
     cx += 12;
     evs.forEach(function (b, i) {
-      var bn = Math.floor(b / barBeats + 1e-6);
-      if (bn > lastBar) { items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); bars.push({ beat: bn * barBeats, x: cx - 6 }); cx += 12; lastBar = bn; }
+      var bn = Math.floor((b + pk) / barBeats + 1e-6);
+      if (bn > lastBar) { items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); bars.push({ beat: bn * barBeats - pk, x: cx - 6 }); cx += 12; lastBar = bn; }
       if (gRoom[b.toFixed(3)]) cx += 12 * gRoom[b.toFixed(3)];
       pts.push([b, cx]);
       cx += (26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < evs.length ? evs[i + 1] : sg.beats) - b))) * (opts.gain ? opts.gain(b) : 1);
@@ -903,7 +915,7 @@
     if (opts.barsOnly) return { X0: X0, bars: bars };   /* the pages' first pass: where the bars fall is all it needs */
     /* first pass: where each note sits; accidentals hold to the end of the bar */
     var barNo = -1, inBar = {}, inf = sg.notes.map(function (nt) {
-      var bn = Math.floor(nt.b / barBeats + 1e-6);
+      var bn = Math.floor((nt.b + pk) / barBeats + 1e-6);
       if (bn !== barNo) { barNo = bn; inBar = {}; }
       var spl = sp[nt.m % 12], L = spl[0], acc = spl[1], oct = Math.floor(nt.m / 12) - 1;
       var step = L + 7 * (oct - 4), id = L + '/' + oct, have = id in inBar ? inBar[id] : (keyAcc[L] || 0), sign = null;
@@ -1895,7 +1907,7 @@
   /* the QR on page 1 (Trix): the app's address, drawn from src/qr.py at build time as vector squares */
   var QR = /*QR*/null;
   var KEY_MAJ = ['C♭', 'G♭', 'D♭', 'A♭', 'E♭', 'B♭', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'C♯'];
-  var KEY_MIN = ['a♭', 'e♭', 'b♭', 'f', 'c', 'g', 'd', 'a', 'e', 'b', 'f♯', 'c♯', 'g♯', 'd♯', 'a♯'];
+  var KEY_MIN = ['A♭', 'E♭', 'B♭', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'C♯', 'G♯', 'D♯', 'A♯'];   /* capitals before 'minor' (Winter: 'F minor') */
   function fgKey(sg, zh) {
     var i = Math.max(-7, Math.min(7, sg.sf)) + 7, k = sg.minor ? KEY_MIN[i] : KEY_MAJ[i];
     return zh ? k + (sg.minor ? ' 小调' : ' 大调') : k + (sg.minor ? ' minor' : ' major');
