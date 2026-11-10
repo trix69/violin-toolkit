@@ -1550,16 +1550,34 @@
   });
   function saveKept() { try { localStorage.setItem(KEEP, JSON.stringify(kept)); return true; } catch (e) { return false; } }
   var delBtn = $('mpDel');
-  delBtn.addEventListener('click', function () {
+  /* delete an imported file, after asking (Trix): the player's bin and the Fingerings bin both come here */
+  var ask = $('delAsk'), askGo = $('delAskGo'), askCancel = $('delAskCancel'), askBack = null;
+  function closeAsk() { ask.hidden = true; window.removeEventListener('keydown', onAskKey, true); try { askBack.focus(); } catch (e) {} }
+  function onAskKey(e) {
+    if (e.key === 'Escape') { e.stopPropagation(); closeAsk(); }
+    else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); (document.activeElement === askGo ? askCancel : askGo).focus(); }
+  }
+  askCancel.addEventListener('click', closeAsk);
+  ask.addEventListener('click', function (e) { if (e.target === ask) closeAsk(); });
+  askGo.addEventListener('click', function () {
     var i = +songSel.value, s = songs[i];
+    closeAsk();
     if (!s || !s.kept) return;
     kept = kept.filter(function (f) { return f.id !== s.kept; });
     saveKept();
     songs.splice(i, 1);
     options();
     songSel.value = 0; load(0);
-    songSel.focus();
+    try { askBack.focus(); } catch (e) {}
   });
+  APP.askDelete = function (back) {
+    var s = songs[+songSel.value];
+    if (!s || !s.kept) return;
+    var rec = kept.filter(function (f) { return f.id === s.kept; })[0], zh = window.I18N && I18N.lang === 'zh', nm = (rec && rec.fn) || s.title;
+    $('delAskMsg').textContent = zh ? '“' + nm + '”将从这台设备上删除，删除后无法恢复。' : '“' + nm + '” will be removed from this device. This can’t be undone.';
+    askBack = back; ask.hidden = false; window.addEventListener('keydown', onAskKey, true); askCancel.focus();
+  };
+  delBtn.addEventListener('click', function () { APP.askDelete(songSel); });
   songSel.addEventListener('change', function () { load(+songSel.value); });
   /* Trix (iPhone): a board left short, cut after two rows, after choosing Winter; not reproduced. Measure the board
      again once the list's picker has closed and the tune has settled, and when the visible area changes (sizes only) */
@@ -2132,7 +2150,7 @@
   if (fgSel) {
     fgSel.addEventListener('change', function () { songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
     $('fgImport').addEventListener('click', function () { $('mpImport').click(); });   /* the same import, the same list */
-    $('fgDel').addEventListener('click', function () { delBtn.click(); fgSel.focus(); });   /* the player's bin: the same list (Trix) */
+    $('fgDel').addEventListener('click', function () { APP.askDelete(fgSel); });   /* the player's delete, after asking: the same list (Trix) */
     $('fgPlay').addEventListener('click', function () { APP.show('midi'); window.scrollTo(0, 0); if (song && !playing && !counting) play(); });   /* back to the player, the same tune, playing (Trix); inside the tap, so the sound may start (iPhone) */
     $('mpFg').addEventListener('click', function (e) { e.stopPropagation(); APP.show('fingering'); window.scrollTo(0, 0); });
     $('mpFg').addEventListener('pointerdown', function (e) { e.stopPropagation(); });

@@ -319,6 +319,7 @@ html[lang="zh-CN"] {
 /* "new version" popup: Later and Update side by side */
 #upd { z-index: 140; }
 #fgWarn { z-index: 140; }
+#delAsk { z-index: 140; }
 .upd-msg { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
 .upd-note { margin: 6px 0 0; font: 400 13px/1.5 var(--font-note); color: var(--muted); }
 .upd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1586,6 +1587,16 @@ markup = f"""
     <div class="upd-row">
       <button type="button" class="upd-later" id="updLater">Later</button>
       <button type="button" class="sheet-done" id="updNow">Update</button>
+    </div>
+  </div>
+</div>
+<div class="sheet" id="delAsk" role="dialog" aria-modal="true" aria-labelledby="delAskTitle" aria-describedby="delAskMsg" hidden>
+  <div class="sheet-card" id="delAskCard" tabindex="-1">
+    <h2 id="delAskTitle">Delete this file?</h2>
+    <p class="upd-msg" id="delAskMsg" translate="no"></p>
+    <div class="upd-row">
+      <button type="button" class="upd-later" id="delAskCancel">Cancel</button>
+      <button type="button" class="sheet-done" id="delAskGo">Delete</button>
     </div>
   </div>
 </div>
