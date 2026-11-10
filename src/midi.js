@@ -2076,7 +2076,11 @@
     var src = s0 && s0.demo && s0.demo.s ? s0.demo.s : '';
     if (s0 && s0.kept) {   /* an imported piece: its source is the user's own file, named in the footer (Trix) */
       var rec = kept.filter(function (f) { return f.id === s0.kept; })[0];
-      var fnm = (rec && rec.fn) || s0.title; if (fnm.length > 60) fnm = fnm.slice(0, 57) + '…';   /* clear of 'Page N of M' */
+      var fnm = (rec && rec.fn) || s0.title;
+      if (fnm.length > 60) {   /* clear of 'Page N of M': shortened before the extension, which stays (Trix) */
+        var ext = (/\.[A-Za-z0-9]{1,8}$/.exec(fnm) || [''])[0];
+        fnm = fnm.slice(0, 59 - ext.length) + '…' + ext;
+      }
       src = fnm + (zh ? '（导入的文件）' : ' (imported file)');
     }
     var part = zh ? '小提琴' : 'Violin';

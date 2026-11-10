@@ -322,6 +322,8 @@ html[lang="zh-CN"] {
 .upd-msg { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
 .upd-note { margin: 6px 0 0; font: 400 13px/1.5 var(--font-note); color: var(--muted); }
 .upd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.upd-row .sheet-done { position: relative; }   /* two buttons in a row (update prompt, export notice) */
+.upd-row .sheet-done::before { display: none; }   /* the Done button's cover reached over Cancel's right edge (Trix) */
 .upd-later { margin-top: 18px; height: 46px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--fg); font: 600 16px var(--font-note); cursor: pointer; }
 .upd-later:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 #updNow::before { display: none; }   /* the scroll fade behind Done would cover Later's edge; this card never scrolls */
