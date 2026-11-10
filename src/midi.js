@@ -1917,13 +1917,13 @@
   function fgSync() { fgOptions(); fgDirty = true; if (APP.fgReset) APP.fgReset(); if (fgShown) fgRender(); }
   var fgT = 0;
   APP.fgSync = function () { clearTimeout(fgT); fgT = setTimeout(fgSync, 0); };   /* after the caller has set the list's value (an import selects its tune after loading it) */
-  /* the exported PDF's name (Trix): the tune as the list shows it (never an import's file name), a dash and the part
-     ("卡农 — 小提琴", "Canon — Violin"); characters a file system refuses become spaces, at most 80 characters */
+  /* the exported PDF's name (Trix): the tune as the list shows it (never an import's file name), a hyphen and the part
+     ("卡农 - 小提琴", "Canon - Violin"); characters a file system refuses become spaces, at most 80 characters */
   function fgFileName() {
     var i = +songSel.value, s = songs[i], o = songSel.options[songSel.selectedIndex], zh = window.I18N && I18N.lang === 'zh';
     var base = ((s ? (s.kept ? s.title : (o ? o.textContent : s.title)) : '') || '').trim() || (zh ? '小提琴分谱' : 'Violin part');
     var clean = function (t) { return t.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80).trim(); };
-    return clean(base + ' — ' + (zh ? '小提琴' : 'Violin')) || (zh ? '小提琴分谱' : 'Violin part');
+    return clean(base + ' - ' + (zh ? '小提琴' : 'Violin')) || (zh ? '小提琴分谱' : 'Violin part');
   }
   APP.fgFileName = fgFileName;   /* tests */
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
