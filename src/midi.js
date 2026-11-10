@@ -502,6 +502,9 @@
         len = n.own < unit ? Math.min(gap, Math.ceil(endB / unit - 1e-6) * unit - n.b) : n.own;
       }
       n.len = VALS.reduce(function (best, v) { return Math.abs(v - len) < Math.abs(best - len) ? v : best; }, 4);
+      /* a crotchet or longer as written, to a semiquaver (Trix: The Swan's dotted semibreves and notes held over a bar
+         line): the score splits it at bar lines and into tied note values */
+      n.full = len >= 1 - 1e-6 && isFinite(len) ? Math.max(1, Math.round(len * 4) / 4) : n.len;
     });
     /* the string each note is played on: the highest that has it within the octave; notes sounding together (double
        stops) go on different strings, high note on the higher string, where the board can show it */
@@ -857,6 +860,20 @@
     /* spacing by note length, as printed music does (a semiquaver ~41 px, a crotchet 56, a semibreve 86), with
        room at each bar line; xAt() maps beats to x for placing and scrolling */
     var ons = [], items = [];   /* what scrolls: [x, svg markup], drawn in sections */
+    /* long notes (Trix): longer than a semibreve, not one note value, or held over a bar line -> tied pieces, each a
+       note value inside its bar; the first carries the fingering and marks, the rest are drawn as tied heads */
+    var PV = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25, 0.125], conts = [];
+    sg.notes.forEach(function (n) {
+      n.pcs = null; n.dl = n.len;
+      if (n.grace || !(n.full > 0) || n.full < 1) return;
+      var b = n.b, L = n.full, pcs = [];
+      while (L > 1e-6 && pcs.length < 24) {
+        var unitB = barBeats === 6 || (barBeats === 4 && sg.sig.den === 8) ? barBeats / 2 : barBeats;   /* 6/4 and 12/8: halves of the bar (two dotted minims, not a semibreve and a minim) */
+        var barEnd = Math.floor((b + pk) / unitB + 1e-6) * unitB - pk + unitB, seg = Math.min(L, barEnd - b);
+        while (seg > 1e-6) { var v = PV.filter(function (x) { return x <= seg + 1e-6; })[0] || 0.125; pcs.push({ b: b, len: v }); b += v; seg -= v; L -= v; }
+      }
+      if (pcs.length > 1) { n.pcs = pcs; n.dl = pcs[0].len; pcs.slice(1).forEach(function (pc) { conts.push(pc.b); }); }
+    });
     var gRoom = {};   /* grace notes: drawn small just before their note, in room made for them, outside the beat spacing */
     sg.notes.forEach(function (n) {
       if (n.grace) { var mb = (n.b + (n.gn - n.gi) / 480).toFixed(3); gRoom[mb] = Math.max(gRoom[mb] || 0, n.gn); return; }
@@ -879,10 +896,10 @@
     if (sg.notes.length) restRun(0, sg.notes[0].b);   /* from the first bar kept: bars where only the accompaniment plays are whole-bar rests */
     ons.forEach(function (b, i) {
       if (i + 1 >= ons.length) return;
-      var end = b; sg.notes.forEach(function (n) { if (Math.abs(n.b - b) < 1e-6) end = Math.max(end, n.b + n.len); });
+      var end = b; sg.notes.forEach(function (n) { if (Math.abs(n.b - b) < 1e-6) end = Math.max(end, n.b + (n.pcs ? n.full : n.len)); });
       restRun(Math.round(end * 4) / 4, ons[i + 1]);
     });
-    var evs = ons.slice(); rests.forEach(function (r) { evs.push(r.b); });
+    var evs = ons.concat(conts); rests.forEach(function (r) { evs.push(r.b); });
     evs.sort(function (a, b) { return a - b; });
     evs = evs.filter(function (b, i) { return !i || b > evs[i - 1] + 1e-6; });
     /* an empty bar before the first note: the count-in scrolls through it, so the first note reaches the
@@ -920,7 +937,7 @@
       var spl = sp[nt.m % 12], L = spl[0], acc = spl[1], oct = Math.floor(nt.m / 12) - 1;
       var step = L + 7 * (oct - 4), id = L + '/' + oct, have = id in inBar ? inBar[id] : (keyAcc[L] || 0), sign = null;
       if (acc !== have) { sign = ACC[String(acc)]; inBar[id] = acc; }
-      return { nt: nt, step: step, y: yOf(step), hx: nt.grace ? xAt(nt.b + (nt.gn - nt.gi) / 480) - 12 * (nt.gn - nt.gi) - 2 : xAt(nt.b), len: nt.len, sign: sign, up: step < 6, beam: -1 };
+      return { nt: nt, step: step, y: yOf(step), hx: nt.grace ? xAt(nt.b + (nt.gn - nt.gi) / 480) - 12 * (nt.gn - nt.gi) - 2 : xAt(nt.b), len: nt.dl || nt.len, sign: sign, up: step < 6, beam: -1 };
     });
     /* beams: quavers and semiquavers that follow on one another within a beat (a dotted crotchet in 6/8, 9/8,
        12/8) share a beam, all stems one way: up when the group sits below the middle line */
@@ -1084,6 +1101,28 @@
       }
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
       items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
+      /* the rest of a long note: tied heads at their beats (no fingering or marks), each tie on the side away from the stem */
+      if (nt.pcs) {
+        var px = hx;
+        nt.pcs.slice(1).forEach(function (pc) {
+          var cx2 = xAt(pc.b), cg = [], pl = pc.len, cStem = pl < 4, cUp = chord ? up : step < 6;
+          for (var l2 = 0; l2 >= step; l2 -= 2) cg.push('<path class="ledger" d="M' + (cx2 - 9) + ' ' + yOf(l2) + 'h18"/>');
+          for (l2 = 12; l2 <= step; l2 += 2) cg.push('<path class="ledger" d="M' + (cx2 - 9) + ' ' + yOf(l2) + 'h18"/>');
+          cg.push('<ellipse class="' + (pl >= 2 ? 'head hollow' : 'head') + '" cx="' + cx2 + '" cy="' + y + '" rx="5.4" ry="3.9" transform="rotate(-20 ' + cx2 + ' ' + y + ')"/>');
+          if (cStem) {
+            var csx = cUp ? cx2 + 4.9 : cx2 - 4.9, csy = cUp ? y - 3.4 * S : y + 3.4 * S;
+            cg.push('<path class="stem" d="M' + csx + ' ' + (y + (cUp ? -1 : 1)) + 'V' + csy + '"/>');
+            var cf = pl <= 0.125 ? 3 : pl <= 0.25 ? 2 : pl < 1 ? 1 : 0, cd = cUp ? 1 : -1;
+            for (var cq = 0; cq < cf; cq++) { var cfy = csy + cd * cq * 7; cg.push('<path class="flag" d="M' + csx + ' ' + cfy + 'c1 ' + (5 * cd) + ' 8 ' + (7 * cd) + ' 6 ' + (15 * cd) + 'c1 ' + (-6 * cd) + ' -3 ' + (-9 * cd) + ' -6 ' + (-10 * cd) + 'z"/>'); }
+          }
+          if (pl === 3 || pl === 1.5 || pl === 0.75 || pl === 0.375) cg.push('<circle class="dot" cx="' + (cx2 + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
+          var tUp = cStem ? !cUp : !up, ty = y + (tUp ? -6 : 6), tb = tUp ? -5 : 5;   /* the tie on the side away from the stem */
+          var tx0 = px + 7, tx1 = cx2 - 7;
+          cg.push('<path class="slur tie" d="M' + tx0 + ' ' + ty + 'C' + (tx0 + (tx1 - tx0) * 0.3) + ' ' + (ty + tb) + ' ' + (tx0 + (tx1 - tx0) * 0.7) + ' ' + (ty + tb) + ' ' + tx1 + ' ' + ty + '"/>');
+          items.push([cx2, '<g class="mp-n mp-cont" style="--hue:' + hueOf(nt) + '">' + cg.join('') + '</g>']);
+          px = cx2;
+        });
+      }
     });
     /* a slur arching above the notes takes the space over every note under it (Trix: Ⅲ and its dashes ran into slurs) */
     slurArcs.forEach(function (a) { inf.forEach(function (f) { if (f.hx >= a[0] - 2 && f.hx <= a[1] + 2) f.top = Math.min(f.top === undefined ? Y0 - 7 : f.top, a[2] - 4); }); });
@@ -1137,7 +1176,7 @@
     keySvg.innerHTML = kl + CLEF + r.head.join('');
     if (typeof placeAB === 'function') setTimeout(placeAB, 0);
     noteEls = [];
-    Array.prototype.forEach.call(svg.querySelectorAll('.mp-n'), function (el) { noteEls[+el.getAttribute('data-k')] = el; });
+    Array.prototype.forEach.call(svg.querySelectorAll('.mp-n[data-k]'), function (el) { noteEls[+el.getAttribute('data-k')] = el; });
   }
   /* the playhead sits a third of the way across; the score slides under it */
   function scroll() {
