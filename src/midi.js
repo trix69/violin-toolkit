@@ -1917,10 +1917,15 @@
   function fgSync() { fgOptions(); fgDirty = true; if (APP.fgReset) APP.fgReset(); if (fgShown) fgRender(); }
   var fgT = 0;
   APP.fgSync = function () { clearTimeout(fgT); fgT = setTimeout(fgSync, 0); };   /* after the caller has set the list's value (an import selects its tune after loading it) */
-  function fgTitle() {
+  /* the exported PDF's name (Trix): the tune as the list shows it (never an import's file name), a dash and the part
+     ("卡农 — 小提琴", "Canon — Violin"); characters a file system refuses become spaces, at most 80 characters */
+  function fgFileName() {
     var i = +songSel.value, s = songs[i], o = songSel.options[songSel.selectedIndex], zh = window.I18N && I18N.lang === 'zh';
-    return (s ? (s.kept ? s.title : (o ? o.textContent : s.title)) : '') + ' · ' + (zh ? '小提琴' : 'Violin');
+    var base = ((s ? (s.kept ? s.title : (o ? o.textContent : s.title)) : '') || '').trim() || (zh ? '小提琴分谱' : 'Violin part');
+    var clean = function (t) { return t.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80).trim(); };
+    return clean(base + ' — ' + (zh ? '小提琴' : 'Violin')) || (zh ? '小提琴分谱' : 'Violin part');
   }
+  APP.fgFileName = fgFileName;   /* tests */
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   function fgLayout(sg) {
     /* the first system has clef, key and time; later ones only clef and key (Trix: no 4/4 on every line), so
@@ -2130,14 +2135,14 @@
       return out;
     }
     function rasterPdf() {
-      var zh = window.I18N && I18N.lang === 'zh', pages = Array.prototype.slice.call(fgPages.querySelectorAll('.fg-page')), fonts = fontFaces(), jpegs = [], title = fgTitle();
+      var zh = window.I18N && I18N.lang === 'zh', pages = Array.prototype.slice.call(fgPages.querySelectorAll('.fg-page')), fonts = fontFaces(), jpegs = [], title = fgFileName();
       fgPdf.disabled = true; fgSay(zh ? '正在生成 PDF…' : 'Making the PDF…');
       var chain = Promise.resolve();
       pages.forEach(function (pg, i) { chain = chain.then(function () { fgSay((zh ? '正在生成 PDF… ' : 'Making the PDF… ') + (i + 1) + '/' + pages.length); return pageJpeg(pageSvgText(pg, fonts)); }).then(function (j) { jpegs.push(j); }); });
       chain.then(function () {
         var bytes = pdfFromJpegs(jpegs, title);
         window.__fgPdfBytes = bytes;   /* tests read it */
-        fgReady = new File([bytes], title.replace(/[\/:]/g, '-') + '.pdf', { type: 'application/pdf' });
+        fgReady = new File([bytes], title + '.pdf', { type: 'application/pdf' });
         fgPdf.disabled = false; fgButton(true); fgSay(zh ? 'PDF 已就绪，点“分享 PDF”保存或发送。' : 'The PDF is ready: tap Share PDF to save or send it.');
       }).catch(function (e) { console.error('Fingerings PDF', e); fgPdf.disabled = false; fgSay(zh ? '无法生成 PDF。' : 'The PDF could not be made.'); });
     }
@@ -2153,12 +2158,19 @@
       var ios = window.VTiOSApp && window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt;
       if (ios) {   /* the iPhone app: only the A4 pages on screen (html.fg-shot), captured page by page into a PDF for the share sheet */
         document.documentElement.classList.add('fg-shot');
-        webkit.messageHandlers.vt.postMessage({ print: fgTitle(), pages: fgPages.querySelectorAll('.fg-page').length });
+        webkit.messageHandlers.vt.postMessage({ print: fgFileName(), name: fgFileName(), pages: fgPages.querySelectorAll('.fg-page').length });
         return;
       }
       document.documentElement.classList.add('fg-printing');
-      if (window.VTApp && VTApp.print) { VTApp.print(fgTitle()); return; }   /* the Android app: the system print screen (Save as PDF) */
-      window.print();
+      if (window.VTApp && VTApp.print) { VTApp.print(fgFileName()); return; }   /* the Android app: the system print screen (Save as PDF) */
+      /* Save as PDF names the file after the page's title: the piece's name while the print screen is up, the
+         app's own again afterwards (afterprint fires on save and on cancel; a timer in case a browser skips it) */
+      var was = document.title, back = false, timer = 0;
+      var restore = function () { if (back) return; back = true; document.title = was; window.removeEventListener('afterprint', restore); clearTimeout(timer); };
+      document.title = fgFileName();
+      window.addEventListener('afterprint', restore);
+      timer = setTimeout(restore, 60000);
+      setTimeout(function () { window.print(); }, 50);   /* the next tick, so the print preview reads the new title */
     });
     window.addEventListener('afterprint', function () { document.documentElement.classList.remove('fg-printing'); });
     APP.fgPrinted = function () { document.documentElement.classList.remove('fg-printing'); document.documentElement.classList.remove('fg-shot'); };   /* the apps call this when their print screen closes */
