@@ -2216,9 +2216,26 @@
       if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: f.name }).catch(function () {}); return; }
       var u = URL.createObjectURL(f); window.open(u, '_blank') || (location.href = u);   /* no share sheet: open it (Safari's own share / print) */
     }
+    /* an imported piece (Trix): before every export, a reminder that its pages are for personal use unless the
+       original score's licence allows more; Cancel or Export, every time (no "don't show again") */
+    var warn = $('fgWarn'), warnGo = $('fgWarnGo'), warnCancel = $('fgWarnCancel'), warnOpener = null, warnThen = null;
+    function closeWarn() { warn.hidden = true; window.removeEventListener('keydown', onWarnKey, true); try { warnOpener.focus(); } catch (e) {} }
+    function onWarnKey(e) {
+      if (e.key === 'Escape') { e.stopPropagation(); closeWarn(); }
+      else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); (document.activeElement === warnGo ? warnCancel : warnGo).focus(); }
+    }
+    warnCancel.addEventListener('click', closeWarn);
+    warn.addEventListener('click', function (e) { if (e.target === warn) closeWarn(); });
+    warnGo.addEventListener('click', function () { var f = warnThen; closeWarn(); if (f) f(); });   /* still inside the tap: printing and sharing are allowed */
     fgPdf.addEventListener('click', function () {
       if (!song) return;
       if (fgReady) { sharePdf(); return; }
+      var s = songs[+songSel.value];
+      if (s && s.kept) { warnThen = exportPdf; warnOpener = fgPdf; warn.hidden = false; window.addEventListener('keydown', onWarnKey, true); warnGo.focus(); return; }
+      exportPdf();
+    });
+    function exportPdf() {
+      if (!song) return;
       if (!window.VTiOSApp && homeScreenIos()) { rasterPdf(); return; }
       var ios = window.VTiOSApp && window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt;
       if (ios) {   /* the iPhone app: only the A4 pages on screen (html.fg-shot), captured page by page into a PDF for the share sheet */
@@ -2236,7 +2253,7 @@
       window.addEventListener('afterprint', restore);
       timer = setTimeout(restore, 60000);
       setTimeout(function () { window.print(); }, 50);   /* the next tick, so the print preview reads the new title */
-    });
+    }
     window.addEventListener('afterprint', function () { document.documentElement.classList.remove('fg-printing'); });
     APP.fgPrinted = function () { document.documentElement.classList.remove('fg-printing'); document.documentElement.classList.remove('fg-shot'); };   /* the apps call this when their print screen closes */
     APP.views.fingering = {

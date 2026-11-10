@@ -318,6 +318,7 @@ html[lang="zh-CN"] {
 .a4list button:focus-visible, .a4step button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 /* "new version" popup: Later and Update side by side */
 #upd { z-index: 140; }
+#fgWarn { z-index: 140; }
 .upd-msg { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
 .upd-note { margin: 6px 0 0; font: 400 13px/1.5 var(--font-note); color: var(--muted); }
 .upd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1583,6 +1584,17 @@ markup = f"""
     <div class="upd-row">
       <button type="button" class="upd-later" id="updLater">Later</button>
       <button type="button" class="sheet-done" id="updNow">Update</button>
+    </div>
+  </div>
+</div>
+<div class="sheet" id="fgWarn" role="dialog" aria-modal="true" aria-labelledby="fgWarnTitle" aria-describedby="fgWarnMsg" hidden>
+  <div class="sheet-card" id="fgWarnCard" tabindex="-1">
+    <h2 id="fgWarnTitle">Imported piece</h2>
+    <p class="upd-msg" id="fgWarnMsg">This piece was imported from your own file. The exported pages are for your personal use. Before sharing or selling them, make sure the original score's licence or copyright allows it.</p>
+    <p class="upd-note">Only the fingerings added by Violin Toolkit are CC0.</p>
+    <div class="upd-row">
+      <button type="button" class="upd-later" id="fgWarnCancel">Cancel</button>
+      <button type="button" class="sheet-done" id="fgWarnGo">Export</button>
     </div>
   </div>
 </div>
