@@ -499,6 +499,19 @@ SCORE_CREDITS = [
 ]
 import html as _h
 CREDITS_HTML = ''.join('<li><b>%s</b><span translate="no">%s</span><span translate="no">%s</span><span class="cr-lic" translate="no">%s</span></li>' % tuple(_h.escape(x) for x in r) for r in SCORE_CREDITS)
+# the source line in the bottom-left footer of every Fingerings page (Trix): short form of the credits above
+SCORE_SOURCE = {
+    'twinkle.mxl': 'Engraved by Violin Toolkit, 2026 · CC0 1.0',
+    'minuet.mid': 'Mutopia Project #75 (typeset by Allen Garvin) · Public Domain',
+    'ode.mxl': 'Mutopia Project #528 (typeset by Peter Chubb), violin line arr. Violin Toolkit · Public Domain',
+    'gavotte.mid': 'Mutopia Project #1785 (typeset by Fabien Mirloup) · CC BY-SA 3.0',
+    'air.mid': 'Mutopia Project #242 (typeset by Jeff Covey) · CC BY-SA 3.0',
+    'mountain_king.mxl': 'Mutopia Project #1888 (typeset by Coyau), violin line arr. Violin Toolkit · Public Domain',
+    'canon.mxl': 'Mutopia Project #2047 (typeset by Michael Fischer v. Mollard) · CC BY 4.0',
+    'spring.mid': 'Mutopia Project #301 (typeset by smailliw) · CC BY-SA 3.0',
+    'winter.mxl': 'Mutopia Project #351 (typeset by smailliw), tempo changed by Violin Toolkit · CC BY-SA 3.0',
+    'serenade.mxl': 'Mutopia Project #900 · Public Domain',
+}
 MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
               ('minuet.mid', 'Minuet in G', 'Christian Petzold (formerly attributed to J. S. Bach)'),
               ('ode.mxl', 'Ode to Joy', 'Ludwig van Beethoven'),
@@ -515,7 +528,7 @@ assert midi_js.count('/*DEMOS*/[]') == 1
 # (Android/wrapper/build.sh) can drop the bytes and fetch the tune from the website the first time it is played (Trix)
 def _demo(f, t, c):
     raw = open(SP + 'midi/' + f, 'rb').read()
-    return {'title': t, 'c': c, 'f': f, 'h': hashlib.sha1(raw).hexdigest()[:10], 'b64': base64.b64encode(raw).decode()}   # c before f: the phone builds' strip pattern expects f, h, b64 in a row
+    return {'title': t, 'c': c, 's': SCORE_SOURCE[f], 'f': f, 'h': hashlib.sha1(raw).hexdigest()[:10], 'b64': base64.b64encode(raw).decode()}   # c before f: the phone builds' strip pattern expects f, h, b64 in a row
 midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps([_demo(f, t, c) for f, t, c in MIDI_DEMOS]))
 # the Fingerings page's QR (Trix): the app's address, encoded here by src/qr.py (no library), drawn as vector squares
 import importlib.util as _ilu

@@ -1912,6 +1912,7 @@
     });
     var o0 = songSel.options[songSel.selectedIndex], s0 = songs[+songSel.value];
     var title = s0 ? (s0.kept ? s0.title : (o0 ? o0.textContent : s0.title)) : '';
+    var src = s0 && s0.demo && s0.demo.s ? s0.demo.s : '';   /* built-ins only: an imported file's source is not known */
     var part = zh ? '小提琴' : 'Violin';
     var html = pages.map(function (pg, pi) {
       var o = ['<svg class="fg-page" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + PG_W + ' ' + PG_H + '" width="' + PG_W + '" height="' + PG_H + '"><rect class="fg-paper" width="' + PG_W + '" height="' + PG_H + '"/>'];
@@ -1935,6 +1936,8 @@
         o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_M + 8) + '">' + esc(title) + '</text>');   /* the piece at top left, the app at top right (Trix) */
         o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 8) + '">Violin Toolkit</text>');
       }
+      /* the edition this part comes from, bottom left of every page (Trix; the CC licences ask for credit) */
+      if (src) o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_H - PG_M + 22) + '">' + esc((zh ? '来源：' : 'Source: ') + src) + '</text>');
       /* page N of M at the bottom right of every page (Trix), in the margin below the music */
       o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_H - PG_M + 22) + '">' + (zh ? '第 ' + (pi + 1) + ' 页，共 ' + pages.length + ' 页' : 'Page ' + (pi + 1) + ' of ' + pages.length) + '</text>');
       pg.forEach(function (e) { o.push('<g transform="translate(' + (PG_M + (e[0] === 0 ? FG_IND * PG_K : 0)).toFixed(2) + ' ' + e[1].toFixed(1) + ') scale(' + PG_K + ')">' + fgSystem(sg, r, e[0], e[2], 'fgc' + pi + '_' + e[0]) + '</g>'); });
