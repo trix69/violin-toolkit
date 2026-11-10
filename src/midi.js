@@ -1871,7 +1871,10 @@
       var bEnd = r.bars[q[0] + 1] ? r.bars[q[0] + 1].x : xb, ty = Y0 - 24;
       r.tops.forEach(function (t) { if (t[0] > xa && t[0] < bEnd) ty = Math.min(ty, t[1] - 6); });
       r.passages.forEach(function (p) { if (p.x0 > xa - 30 && p.x0 < bEnd) ty = Math.min(ty, p.y - 22); });
-      out.push('<text class="fg-tempo" x="' + (hw + (bEnd - xa) / 2).toFixed(1) + '" y="' + Math.max(-22, ty) + '">♩ = ' + sg.bpm + '</text>');
+      /* over the first note of the first bar, starting at it (Trix); a bar with no notes: over its middle */
+      var firstX = null; r.tops.forEach(function (t) { if (t[0] > xa && t[0] < bEnd && (firstX === null || t[0] < firstX)) firstX = t[0]; });
+      var tx0 = firstX === null ? hw + (bEnd - xa) / 2 : hw + (firstX - xa) - 6;
+      out.push('<text class="fg-tempo' + (firstX === null ? '' : ' at-note') + '" x="' + tx0.toFixed(1) + '" y="' + Math.max(-22, ty) + '">♩ = ' + sg.bpm + '</text>');
     }
     else if (bo) out.push('<text class="fg-bn" x="2" y="' + (Y0 - 24) + '">' + esc(bo.num) + '</text>');
     /* a position held over a page turn: its numeral again at the top of the new page (Trix) */

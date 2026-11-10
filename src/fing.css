@@ -18,7 +18,7 @@
 .fg-page .fg-qr { fill: #777; }   /* light, the running header's grey (Trix); decodes at 300 dpi */
 .fg-page .fg-cap { fill: #777; font: 400 10.67px var(--font-body); text-anchor: end; }   /* 8 pt, above the QR */
 .fg-page .fg-run { fill: #777; font: 400 10.67px var(--font-body); }   /* the running header, 8 pt, muted */
-.fg-page .fg-bn { fill: #555; font: italic 11px 'Times New Roman', 'Noto Serif', serif; }
+.fg-page .fg-bn { fill: #444; font: italic 16px 'Times New Roman', 'Noto Serif', serif; }   /* bigger (Trix) */
 .fg-page .fg-pg-n { text-anchor: end; }
 .mp-fg { position: absolute; z-index: 4; top: 6px; right: 6px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 1px solid color-mix(in srgb, var(--sc-ink) 18%, transparent); border-radius: 9px; background: color-mix(in srgb, var(--sc-bg) 88%, transparent); color: var(--sc-ink); cursor: pointer; }
 .mp-fg svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -37,3 +37,4 @@ html.fg-shot, html.fg-shot body { margin: 0 !important; padding: 0 !important; b
 html.fg-shot body > :not(#shell), html.fg-shot #shell > :not(#main), html.fg-shot #main > :not(#view-fingering), html.fg-shot #view-fingering > * > :not(.fg-pages) { display: none !important; }
 html.fg-shot #shell, html.fg-shot #main, html.fg-shot #view-fingering, html.fg-shot #fg, html.fg-shot .fg-pages { display: block !important; margin: 0 !important; padding: 0 !important; max-width: none !important; width: 595.28px !important; border: 0 !important; box-shadow: none !important; }
 html.fg-shot .fg-page { width: 595.28px !important; height: 841.89px !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+.fg-page .fg-tempo.at-note { text-anchor: start; }   /* starts at the first note */
