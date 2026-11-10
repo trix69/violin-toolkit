@@ -1406,7 +1406,10 @@
     song = songs[i].song;
     if (song && !song.composer && songs[i].demo && songs[i].demo.c) song.composer = songs[i].demo.c;   /* a built-in MIDI names no composer: the list does */
     delBtn.hidden = !songs[i].kept;   /* the bin only for an imported file */
-    subEl.textContent = songs[i].title;
+    /* the tune and its composer under the heading (Trix); the title is translated, the name never */
+    subEl.textContent = '';
+    var tSp = document.createElement('span'); tSp.textContent = songs[i].title; subEl.appendChild(tSp);
+    if (song && song.composer) { var cSp = document.createElement('span'); cSp.setAttribute('translate', 'no'); cSp.className = 'sub-comp'; cSp.textContent = ' · ' + song.composer; subEl.appendChild(cSp); }
     if (!song) {   /* a built-in tune not downloaded yet (Android app): an empty score until it arrives */
       svg.innerHTML = ''; keySvg.innerHTML = ''; noteEls = []; chunks = [];
       seekTo(0); flashParts(); mixUi();
