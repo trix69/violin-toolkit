@@ -1008,17 +1008,37 @@
           });
         });
       });
+      /* a slur over beamed notes (Hermes F35): slurs within a fifth (over a wider leap engravers let the stems change)
+         link their notes and the whole beam groups they touch; each chain of linked notes takes one direction from
+         its mean, when the chain stays within an octave (Humoresque: a slur inside each dotted pair and one from
+         its semiquaver into the next pair) */
+      var gOf = {}, par = {};
+      groups.forEach(function (gr, gi) { if (gr.length > 1) gr.forEach(function (k) { gOf[k] = gi; }); });
+      function root(k) { while (par[k] !== k) k = par[k]; return k; }
+      function join(a, b) { if (par[a] === undefined) par[a] = a; if (par[b] === undefined) par[b] = b; a = root(a); b = root(b); if (a !== b) par[b] = a; }
       spans.forEach(function (sp) {
         var ks = heads.filter(function (k) { return k >= sp[0] && k <= sp[1] && !inf[k].nt.grace; });
         if (ks.length < 2) return;
         var up = ks.reduce(function (t, k) { return t + inf[k].mean; }, 0) / ks.length < 6;
         ks.forEach(function (k) { inf[k].up = up; });
+        var steps = []; ks.forEach(function (k) { inf[k].members.forEach(function (j) { steps.push(inf[j].step); }); });
+        if (Math.max.apply(null, steps) - Math.min.apply(null, steps) > 4 || !ks.some(function (k) { return gOf[k] !== undefined; })) return;
+        ks.forEach(function (k) { join(ks[0], k); if (gOf[k] !== undefined) groups[gOf[k]].forEach(function (j) { join(ks[0], j); }); });
+      });
+      var chains = {};
+      Object.keys(par).forEach(function (k) { k = +k; var r = root(k); (chains[r] = chains[r] || []).push(k); });
+      Object.keys(chains).forEach(function (r) {
+        var ks = chains[r], steps = [];
+        ks.forEach(function (k) { inf[k].members.forEach(function (j) { steps.push(inf[j].step); }); });
+        if (Math.max.apply(null, steps) - Math.min.apply(null, steps) > 7) return;   /* a chain wider than an octave: each part its own way */
+        var up = ks.reduce(function (t, k) { return t + inf[k].mean; }, 0) / ks.length < 6;
+        ks.forEach(function (k) { inf[k].up = up; if (gOf[k] !== undefined) groups[gOf[k]].slurUp = up; });
       });
     })();
     var beams = [];
     groups.forEach(function (gr, gi) {
       if (gr.length < 2) return;
-      var mean = gr.reduce(function (t, k) { return t + inf[k].mean; }, 0) / gr.length, up = mean < 6, d = up ? -1 : 1;
+      var mean = gr.reduce(function (t, k) { return t + inf[k].mean; }, 0) / gr.length, up = gr.slurUp !== undefined ? gr.slurUp : mean < 6, d = up ? -1 : 1;
       var tipY = function (f) { return up ? f.yTop : f.yBot; };   /* the stem runs past the chord's far note */
       var f0 = inf[gr[0]], f1 = inf[gr[gr.length - 1]];
       var x0 = f0.hx + (up ? 4.9 : -4.9), x1 = f1.hx + (up ? 4.9 : -4.9);
