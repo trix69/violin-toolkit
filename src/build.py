@@ -502,7 +502,7 @@ SCORE_CREDITS = [
     ('In the Hall of the Mountain King', 'Edvard Grieg', 'Mutopia Project no. 1888 (The University Society, 1918), typeset by Coyau; violin line arranged by Violin Toolkit', 'Public Domain'),
     ('Canon', 'Johann Pachelbel', 'Mutopia Project no. 2047 (Canon per 3 Violini e Basso), typeset by Michael Fischer v. Mollard; converted to MusicXML and tempo changed to crotchet = 50 by Violin Toolkit', 'Creative Commons Attribution 4.0'),
     ('Spring (La primavera), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
-    ('Autumn (L\'autunno), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 350 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Autumn (L\'autunno), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 350 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit, bar 2 made like bar 1", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Winter (L\'inverno), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 351 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML and tempo changed to crotchet = 80 by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Serenade (K525), 1st movement', 'Wolfgang Amadeus Mozart', 'Mutopia Project no. 900 (Eine kleine Nachtmusik K. 525); MusicXML by Violin Toolkit', 'Public Domain'),
 ]
