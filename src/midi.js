@@ -974,6 +974,26 @@
       var joins = ok && cur && prev && !prev.nt.grace && Math.floor(f.nt.b / unit + 1e-6) === Math.floor(prev.nt.b / unit + 1e-6) && Math.abs(prev.nt.b + prev.len - f.nt.b) < 0.02 && f.nt.b > prev.nt.b + 1e-6;
       if (joins) cur.push(k); else { cur = ok ? [k] : null; if (cur) groups.push(cur); }
     });
+    /* notes under one slur, not beamed, share a stem direction (Trix: a slurred A-B had one stem up, one down):
+       up when they sit below the middle line on average; beamed groups set their own below */
+    (function () {
+      var open = {}, spans = [];
+      heads.forEach(function (k) {
+        var f = inf[k]; if (f.nt.grace) return;
+        f.members.forEach(function (j) {
+          (inf[j].nt.slur || []).forEach(function (sl) {
+            if (sl.t === 'start') open[sl.n] = k;
+            else if (sl.t === 'stop' && open[sl.n] !== undefined) { spans.push([open[sl.n], k]); delete open[sl.n]; }
+          });
+        });
+      });
+      spans.forEach(function (sp) {
+        var ks = heads.filter(function (k) { return k >= sp[0] && k <= sp[1] && !inf[k].nt.grace; });
+        if (ks.length < 2) return;
+        var up = ks.reduce(function (t, k) { return t + inf[k].mean; }, 0) / ks.length < 6;
+        ks.forEach(function (k) { inf[k].up = up; });
+      });
+    })();
     var beams = [];
     groups.forEach(function (gr, gi) {
       if (gr.length < 2) return;
