@@ -44,7 +44,7 @@ first.insert(next(i for i, e in enumerate(list(first)) if e.tag in ('note', 'dir
 # transpose down a semitone
 LET, SEMI = 'CDEFGAB', [0, 2, 4, 5, 7, 9, 11]
 MID = range(25, 41)
-for p in parts:
+for p in (parts if '--gflat' in sys.argv else []):   # Trix chose G (the arrangement's key); --gflat for Dvořák's keys
     for i, m in enumerate(p.findall('measure')):
         bar = i + 1; mid = bar in MID
         for k in m.iter('key'):
