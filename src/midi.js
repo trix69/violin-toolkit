@@ -809,7 +809,10 @@
       var gx = left - 12 - gw + 4, groom = Y0 - 7;
       for (var j2 = Math.max(0, open.k0 - 8); j2 <= Math.min(ns.length - 1, open.k0 + 4); j2++) if (inf[j2] && inf[j2].hx > gx - 10 && inf[j2].hx < gx + gw + 6) groom = Math.min(groom, raw(j2));
       var pick = cands.filter(function (c) { return c[1] >= 14; })[0];
-      if (!pick && paged && cands.length) pick = [cands[0][0], Math.max(-22, cands[0][1])];   /* the pages: up over the passage's first note, above everything there (the addendum's rule: up, not sideways) */
+      /* the pages: up over one of the passage's first notes, above everything there (the addendum's rule: up, not
+         sideways), at most 22 units over the staff; where even that is taken the numeral is left out rather than
+         printed over a fingering (Hermes F36) */
+      if (!pick && paged) { pick = cands.filter(function (c) { return c[1] >= -22; })[0]; if (!pick) { open = null; return; } }
       if (!pick) { cands.push([gx + 4, groom]); pick = cands.reduce(function (m, c) { return c[1] > m[1] ? c : m; }); pick = [pick[0], Math.max(-4, pick[1])]; }   /* the player's strip has no room above it: the best spot it has */
       var x0 = pick[0], y = Math.min(pick[1], Y0 - 7);
       var x1 = inf[kEnd].hx + 6, ly = y - 5, a = x0 + 2 + gw;
@@ -830,12 +833,30 @@
       }
       open = null;
     }
-    runs.forEach(function (r, i) {
-      if (r.b1 - r.b0 < 2 - 1e-6 || r.h === shown) { if (open && r.h === open.h) open.kEnd = r.k1; return; }   /* short excursions are not marked */
-      if (open) close(open.kEnd);
-      open = { h: r.h, k0: r.k0, kEnd: r.k1 }; shown = r.h;
+    var cl = [];   /* the passages that would get a numeral */
+    runs.forEach(function (r) {
+      if (r.b1 - r.b0 < 2 - 1e-6 || r.h === shown) { if (cl.length && r.h === cl[cl.length - 1].h) cl[cl.length - 1].kEnd = r.k1; return; }   /* short excursions are not marked */
+      cl.push({ h: r.h, k0: r.k0, kEnd: r.k1 }); shown = r.h;
     });
-    if (open) close(open.kEnd);
+    /* density (Hermes F36): a passage of fewer than 6 notes is a position the planner does not settle in; several of
+       them in a row (Winter's tremolo chords, a new hand every chord) get one numeral, for the position held longest
+       there, and the rest are left out */
+    function onsets(c) { var m = 0, last = null; for (var k = c.k0; k <= c.kEnd; k++) if (!ns[k].grace && ns[k].b !== last) { m++; last = ns[k].b; } return m; }
+    function held(c) { return ns[c.kEnd].b + (ns[c.kEnd].own || ns[c.kEnd].len || 0) - ns[c.k0].b; }
+    var kept = [], before = 0;
+    for (var ci = 0; ci < cl.length; ) {
+      var grp = [cl[ci]];
+      while (onsets(grp[grp.length - 1]) < 6 && ci + grp.length < cl.length && onsets(cl[ci + grp.length]) < 6 && cl[ci + grp.length].k0 - grp[grp.length - 1].kEnd <= 4) grp.push(cl[ci + grp.length]);
+      if (grp.length === 1) kept.push(grp[0]);
+      else {
+        var tot = {}, best = null;
+        grp.forEach(function (c) { tot[c.h] = (tot[c.h] || 0) + held(c); });
+        grp.forEach(function (c) { if (best === null || tot[c.h] > tot[best.h] + 1e-6) best = c; });
+        kept.push(best);
+      }
+      ci += grp.length;
+    }
+    kept.forEach(function (c) { if (c.h === before) return; before = c.h; open = c; close(c.kEnd); });   /* no numeral repeating the one before */
     return out;
   }
   /* the score drawing, shared by the player's scrolling strip and the Fingerings pages (one renderer, two
@@ -1971,7 +1992,7 @@
     r.sys = sys; r.hw = hw; r.hwK = hwK; r.items.sort(function (p, q) { return p[0] - q[0]; });
     return r;
   }
-  function fgSystem(sg, r, si, firstOnPage, id) {
+  function fgSystem(sg, r, si, firstOnPage, id, ceil) {   /* ceil: the highest numeral baseline allowed (under a page header) */
     var q = r.sys[si], xa = r.bars[q[0]].x, xb = r.bars[q[1]].x, hw = si === 0 ? r.hw : r.hwK, tx = hw - xa, wide = hw + xb - xa, out = [], lines = '';
     for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M0 ' + (Y0 + j * S) + 'H' + wide + '"/>';
     var bo = sg.barAt ? sg.barAt(r.bars[q[0]].beat + 1e-3) : null;
@@ -1988,11 +2009,21 @@
     else if (bo) out.push('<text class="fg-bn" x="2" y="' + (Y0 - 24) + '">' + esc(bo.num) + '</text>');
     /* a position held over a page turn: its numeral again at the top of the new page (Trix) */
     if (firstOnPage && si > 0) r.passages.forEach(function (p) {
-      if (p.h > 0 && p.x0 < xa - 1 && p.x1 > xa + 14) out.push('<text class="mp-pos" x="' + (hw + 4) + '" y="' + p.y + '">' + ROMAN_U[p.h] + '</text>');
+      if (!(p.h > 0 && p.x0 < xa - 1 && p.x1 > xa + 14)) return;
+      /* over the page's first notes: above their fingerings and bowings (Hermes F36: the Ⅲ sat on a 4) */
+      var yy = p.y; r.tops.forEach(function (t) { if (t[0] > xa - 4 && t[0] < xa + 18 * ROMAN_W[p.h] + 12) yy = Math.min(yy, t[1] - 2); });
+      if (yy >= -22 && !(yy < ceil)) out.push('<text class="mp-pos" x="' + (hw + 4) + '" y="' + yy + '">' + ROMAN_U[p.h] + '</text>');
     });
     var body = [];
     for (var lo = 0, hi = r.items.length; lo < hi; ) { var mid = (lo + hi) >> 1; if (r.items[mid][0] <= xa + 0.5) lo = mid + 1; else hi = mid; }
-    for (var k = lo; k < r.items.length && r.items[k][0] <= xb + 0.5; k++) body.push(r.items[k][1]);
+    for (var k = lo; k < r.items.length && r.items[k][0] <= xb + 0.5; k++) {
+      var it = r.items[k][1];
+      if (ceil !== undefined && it.indexOf('mp-pos') > 0) {   /* a numeral (or its line) that would print through the page header is left out (Hermes F36) */
+        var yv = /y="(-?[\d.]+)"/.exec(it) || /d="M-?[\d.]+ (-?[\d.]+)/.exec(it);
+        if (yv && +yv[1] + (it.indexOf('mp-posd') > 0 ? 5 : 0) < ceil) continue;
+      }
+      body.push(it);
+    }
     out.push('<clipPath id="' + id + '"><rect x="' + (hw - 2) + '" y="-40" width="' + (xb - xa + 8) + '" height="' + (SYS_H + 52) + '"/></clipPath>');   /* room above for a raised numeral */
     out.push('<g clip-path="url(#' + id + ')"><g transform="translate(' + tx.toFixed(2) + ' 0)">' + body.join('') + '</g></g>');
     return out.join('');
@@ -2049,7 +2080,18 @@
       if (src) o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_H - PG_M + 22) + '">' + esc((zh ? '来源：' : 'Source: ') + src) + '</text>');
       /* page N of M at the bottom right of every page (Trix), in the margin below the music */
       o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_H - PG_M + 22) + '">' + (zh ? '第 ' + (pi + 1) + ' 页，共 ' + pages.length + ' 页' : 'Page ' + (pi + 1) + ' of ' + pages.length) + '</text>');
-      pg.forEach(function (e) { o.push('<g transform="translate(' + (PG_M + (e[0] === 0 ? FG_IND * PG_K : 0)).toFixed(2) + ' ' + e[1].toFixed(1) + ') scale(' + PG_K + ')">' + fgSystem(sg, r, e[0], e[2], 'fgc' + pi + '_' + e[0]) + '</g>'); });
+      /* a raised numeral on a later page's first system must clear the running header (Hermes F36): the page's music
+         moves down into the room left at the bottom; whatever still would not clear is left out */
+      var shift = 0, ceil;
+      if (pi > 0) {
+        var q0 = r.sys[pg[0][0]], xa0 = r.bars[q0[0]].x, xb0 = r.bars[q0[1]].x, minY = Infinity, CL = -3;   /* CL: a numeral's top at the header's descenders */
+        r.passages.forEach(function (p) { if ((p.x0 > xa0 - 1 && p.x0 <= xb0 + 0.5) || (p.h > 0 && p.x0 < xa0 - 1 && p.x1 > xa0 + 14)) minY = Math.min(minY, p.y); });
+        if (minY < CL) {
+          shift = Math.max(0, Math.min((CL - minY) * PG_K, bottom - (pg[pg.length - 1][1] + sysH)));
+          ceil = CL - shift / PG_K;
+        }
+      }
+      pg.forEach(function (e, ei) { o.push('<g transform="translate(' + (PG_M + (e[0] === 0 ? FG_IND * PG_K : 0)).toFixed(2) + ' ' + (e[1] + shift).toFixed(1) + ') scale(' + PG_K + ')">' + fgSystem(sg, r, e[0], e[2], 'fgc' + pi + '_' + e[0], ei === 0 ? ceil : undefined) + '</g>'); });
       o.push('</svg>');
       return o.join('');
     }).join('');
