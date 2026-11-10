@@ -1943,7 +1943,7 @@
   if (fgSel) {
     fgSel.addEventListener('change', function () { songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
     $('fgImport').addEventListener('click', function () { $('mpImport').click(); });   /* the same import, the same list */
-    $('fgPlay').addEventListener('click', function () { APP.show('midi'); window.scrollTo(0, 0); });   /* back to the player, the same tune (Trix) */
+    $('fgPlay').addEventListener('click', function () { APP.show('midi'); window.scrollTo(0, 0); if (song && !playing && !counting) play(); });   /* back to the player, the same tune, playing (Trix); inside the tap, so the sound may start (iPhone) */
     $('mpFg').addEventListener('click', function (e) { e.stopPropagation(); APP.show('fingering'); window.scrollTo(0, 0); });
     $('mpFg').addEventListener('pointerdown', function (e) { e.stopPropagation(); });
     document.addEventListener('i18n', function () { fgOptions(); if (fgShown) fgRender(); else fgDirty = true; });
