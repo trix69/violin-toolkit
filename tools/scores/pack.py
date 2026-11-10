@@ -28,7 +28,7 @@ for bl in root.iter('barline'):
 for part in root.findall('part'):
     ms = part.findall('measure')
     for i in range(1, len(ms)):
-        kids = list(ms[i])
+        kids = [e for e in ms[i] if e.tag not in ('barline', 'attributes', 'print', 'direction')]   # a repeat sign may come first
         while kids and kids[0].tag == 'note' and kids[0].find('chord') is not None:
             prev = list(ms[i - 1]); at = max((j for j, e in enumerate(prev) if e.tag == 'note'), default=len(prev) - 1) + 1
             ms[i].remove(kids[0]); ms[i - 1].insert(at, kids[0]); kids.pop(0)   # after the bar's last note, before trailing backups
