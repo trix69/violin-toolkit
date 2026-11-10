@@ -1819,8 +1819,10 @@
   }
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   function fgLayout(sg) {
-    var r1 = scoreItems(sg, { barsOnly: true }), hw = r1.X0 - 12, full = (PG_W - 2 * PG_M) / PG_K - hw - 4, bars = r1.bars, sys = [], a = 0;
-    function avail(i) { return full - (i === 0 ? FG_IND : 0); }   /* the first system is indented (首行缩进, Trix) */
+    /* the first system has clef, key and time; later ones only clef and key (Trix: no 4/4 on every line), so
+       their music starts further left and they hold more */
+    var r1 = scoreItems(sg, { barsOnly: true }), hw = r1.X0 - 12, hwK = 52 + Math.abs(sg.sf) * 10.5, line = (PG_W - 2 * PG_M) / PG_K - 4, bars = r1.bars, sys = [], a = 0;
+    function avail(i) { return i === 0 ? line - hw - FG_IND : line - hwK; }   /* the first system is indented too (首行缩进, Trix) */
     /* line breaks chosen together (as engraving programs do), not line by line: the set of breaks whose lines need
        the least stretching or squeezing, so a short bar is not stranded alone before a very wide one (Trix:
        Winter's bars 11 and 16). A line's cost grows with how far its spacing is from natural; squeezing below 55 %
@@ -1857,14 +1859,14 @@
       return g > 2.5 ? 1 : Math.max(0.55, g);
     });
     var r = scoreItems(sg, { paged: true, gain: function (b) { for (var i = 0; i < sys.length; i++) if (b < bars[sys[i][1]].beat - 1e-6) return gains[i]; return gains[gains.length - 1]; } });
-    r.sys = sys; r.hw = hw; r.items.sort(function (p, q) { return p[0] - q[0]; });
+    r.sys = sys; r.hw = hw; r.hwK = hwK; r.items.sort(function (p, q) { return p[0] - q[0]; });
     return r;
   }
   function fgSystem(sg, r, si, firstOnPage, id) {
-    var q = r.sys[si], xa = r.bars[q[0]].x, xb = r.bars[q[1]].x, hw = r.hw, tx = hw - xa, wide = hw + xb - xa, out = [], lines = '';
+    var q = r.sys[si], xa = r.bars[q[0]].x, xb = r.bars[q[1]].x, hw = si === 0 ? r.hw : r.hwK, tx = hw - xa, wide = hw + xb - xa, out = [], lines = '';
     for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M0 ' + (Y0 + j * S) + 'H' + wide + '"/>';
     var bo = sg.barAt ? sg.barAt(r.bars[q[0]].beat + 1e-3) : null;
-    out.push(lines, CLEF, r.head.join(''));
+    out.push(lines, CLEF, (si === 0 ? r.head : r.head.filter(function (h) { return h.indexOf('class="ts"') < 0; })).join(''));   /* the time signature on the first system only */
     if (si === 0) {   /* the tempo over the middle of the first bar (Trix), above anything there: fingerings, bowings, a position numeral */
       var bEnd = r.bars[q[0] + 1] ? r.bars[q[0] + 1].x : xb, ty = Y0 - 24;
       r.tops.forEach(function (t) { if (t[0] > xa && t[0] < bEnd) ty = Math.min(ty, t[1] - 6); });
