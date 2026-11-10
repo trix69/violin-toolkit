@@ -1574,7 +1574,7 @@
     var s = songs[+songSel.value];
     if (!s || !s.kept) return;
     var rec = kept.filter(function (f) { return f.id === s.kept; })[0], zh = window.I18N && I18N.lang === 'zh', nm = (rec && rec.fn) || s.title;
-    $('delAskMsg').textContent = zh ? '“' + nm + '”将从这台设备上删除，删除后无法恢复。' : '“' + nm + '” will be removed from this device. This can’t be undone.';
+    $('delAskMsg').textContent = zh ? '“' + nm + '”将从这台设备上删除，MIDI 播放器和指法谱中都不再有它。删除后无法恢复。' : '“' + nm + '” will be removed from this device, from both the MIDI player and Fingerings. This can’t be undone.';
     askBack = back; ask.hidden = false; window.addEventListener('keydown', onAskKey, true); askCancel.focus();
   };
   delBtn.addEventListener('click', function () { APP.askDelete(songSel); });
