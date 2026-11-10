@@ -1956,7 +1956,7 @@
   var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '';
   var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.62, SYS_H = BOT + 46, FG_IND = 60;   /* FG_IND: the first system's indent, in score units (~10 mm) */   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
   function fgOptions() { if (!fgSel) return; fgSel.innerHTML = songSel.innerHTML; fgSel.value = songSel.value; }
-  function fgSync() { fgOptions(); fgDirty = true; if (APP.fgReset) APP.fgReset(); if (fgShown) fgRender(); }
+  function fgSync() { fgOptions(); var cur = songs[+songSel.value]; $('fgDel').hidden = !(cur && cur.kept); fgDirty = true; if (APP.fgReset) APP.fgReset(); if (fgShown) fgRender(); }
   var fgT = 0;
   APP.fgSync = function () { clearTimeout(fgT); fgT = setTimeout(fgSync, 0); };   /* after the caller has set the list's value (an import selects its tune after loading it) */
   /* the exported PDF's name (Trix): the tune as the list shows it (never an import's file name), a hyphen and the part
@@ -2132,6 +2132,7 @@
   if (fgSel) {
     fgSel.addEventListener('change', function () { songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
     $('fgImport').addEventListener('click', function () { $('mpImport').click(); });   /* the same import, the same list */
+    $('fgDel').addEventListener('click', function () { delBtn.click(); fgSel.focus(); });   /* the player's bin: the same list (Trix) */
     $('fgPlay').addEventListener('click', function () { APP.show('midi'); window.scrollTo(0, 0); if (song && !playing && !counting) play(); });   /* back to the player, the same tune, playing (Trix); inside the tap, so the sound may start (iPhone) */
     $('mpFg').addEventListener('click', function (e) { e.stopPropagation(); APP.show('fingering'); window.scrollTo(0, 0); });
     $('mpFg').addEventListener('pointerdown', function (e) { e.stopPropagation(); });
