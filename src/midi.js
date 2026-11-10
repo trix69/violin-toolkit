@@ -1040,7 +1040,7 @@
       }
       var upY = Math.min(stem && up ? (hd.beam >= 0 ? hd.tip : hd.yTop - 3.4 * S) : topY - (fg !== null && !chord ? 12 : 0), Y0) - 7;
       arts.forEach(function (a) {   /* above the note and its fingering */
-        var by = Math.max(8, upY), d = null;
+        var by = Math.max(opts.paged ? -34 : 8, upY), d = null;   /* the pages have room above a system (Trix: tr sat on the fingering of Winter's high notes) */
         if (a === 'down-bow') d = '<path class="art bow" d="M' + (hx - 5) + ' ' + (by + 4) + 'V' + (by - 3) + 'H' + (hx + 5) + 'V' + (by + 4) + '"/>';
         else if (a === 'up-bow') d = '<path class="art" d="M' + (hx - 4) + ' ' + (by - 4) + 'L' + hx + ' ' + (by + 4) + 'L' + (hx + 4) + ' ' + (by - 4) + '"/>';
         else if (a === 'stopped') d = '<path class="art" d="M' + (hx - 4) + ' ' + by + 'h8M' + hx + ' ' + (by - 4) + 'v8"/>';
@@ -1358,6 +1358,7 @@
     APP.board.toTop();   /* a new tune opens at the open strings, whatever the last one scrolled to (Hermes F14) */
     if (shown) fit();
     if (APP.fgSync) APP.fgSync();   /* the Fingerings pages follow the current tune */
+    settle();   /* and once more when it has settled (an iPhone left the board short) */
   }
   function addSong(title, buf, kept) {   /* kept: an imported file, with its id in the saved list */
     var sg = parse(buf);
@@ -1444,6 +1445,16 @@
     songSel.focus();
   });
   songSel.addEventListener('change', function () { load(+songSel.value); });
+  /* Trix (iPhone): a board left short, cut after two rows, after choosing Winter; not reproduced. Measure the board
+     again once the list's picker has closed and the tune has settled, and when the visible area changes (sizes only) */
+  var settleT = [];
+  function settle() {
+    settleT.forEach(clearTimeout); settleT = [];
+    [250, 800].forEach(function (ms) { settleT.push(setTimeout(function () { if (shown && !full && song) { APP.board.relayout(); scroll(); placeFull(); } }, ms)); });
+  }
+  songSel.addEventListener('blur', settle);
+  songSel.addEventListener('change', settle);
+  if (window.visualViewport) visualViewport.addEventListener('resize', function () { if (shown && !full) settle(); });
   /* only MIDI and MusicXML files (Trix). iPhone / iPad Safari greys out types iOS does not know (.mxl), so there the
      picker shows every file and a wrong one is turned away here; the iPhone app has its own picker with just these */
   var OK_EXT = /\.(mid|midi|musicxml|xml|mxl)$/i;

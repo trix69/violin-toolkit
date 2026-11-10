@@ -740,7 +740,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       K = f[0]; r = Math.floor(f[1]);
       /* never smaller than 18 px with a clear gap between notes (Trix; a small Android screen: "too small"):
          the board then runs past the room and scrolls in its box, following the notes played */
-      if (r < 18) { r = 18; K = (2 * r + 10) / (mm(N) - mm(N - 1)); }
+      if (r < 18) {
+        /* Trix: a bit tighter, so one position and its 4th-finger stretch (9 rows: low 1st finger to a tone past the
+           4th; 1st position from the open strings) are all in view at once and a stretch never scrolls: the clear gap between notes 10 px down to 4,
+           then the notes down to 15 px */
+        var G = 9;   /* gaps: 1st position's box with the open strings, to a tone past the 4th finger (10 rows) */
+        r = 18; var clr = Math.max(4, Math.min(10, (room - 16 - 2 * r) / G - 2 * r));
+        if ((room - 16 - 2 * r) / G - 2 * r < 4) r = Math.max(15, Math.floor((room - 16 - 4 * G) / (2 * G + 2)));
+        K = (2 * r + clr) / (mm(N) - mm(N - 1));
+      }
       }
     } else if (evenly || renderedEvenly) { evenly = false; renderedEvenly = false; render(); }
     if (!box && showN) { showN = 0; paint(); }
@@ -1480,7 +1488,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     var nt = notes[i], el = buttons[i];
     /* a string sounds one note at a time: a new note on it replaces the one before (overlapping legato in the file) */
     if (nt) pvoices.forEach(function (r, k) { if (r.si === nt.si && k !== id && (grp === undefined || r.grp !== grp)) pOff(k); });
-    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : tone === 'pizz' ? startPluck(nt ? noteFreq(nt) : midiFreq(midi)) : startVoice(nt ? noteFreq(nt) : midiFreq(midi), tone === 'pure', 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN) };
+    var rec = { el: el, grp: grp, si: nt ? nt.si : -1, v: quiet ? null : tone === 'pizz' ? startPluck(nt ? noteFreq(nt) : midiFreq(midi)) : startVoice(nt ? noteFreq(nt) : midiFreq(midi), tone === 'pure', 0.02), t0: performance.now(), vibOn: false, player: true, open: !!nt && (nt.n === 0 || nt.n === MAXN), n: nt ? nt.n : -1 };
     if (rec.v) {   /* through the note's dynamic level, then the mixer's violin level */
       rec.v.out.disconnect();
       if (lvl && lvl !== 1) { var lg = ctx.createGain(); lg.gain.value = lvl; rec.v.out.connect(lg); lg.connect(soloOut()); }
@@ -1548,7 +1556,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   function centreHand() {
     if (stage.style.overflowY !== 'auto' || pHand < 0) return;
     var s = HAND_S[pHand];
-    centreRows(pHand === 0 ? 0 : Math.max(1, s - 1), Math.min(playerN, s + 5), false, false);
+    centreRows(pHand === 0 ? 0 : s - 1, Math.min(playerN, s + 7), false, false);   /* the box and the 4th finger's stretch, so a stretched note is in view without scrolling (Trix) */   /* the box and the 4th finger's stretch, so a stretched note is in view without scrolling */
   }
   /* the Fingerboard tool: the same glass box over the chosen position's keys (Trix); 1st position includes the open strings */
   function posBox(pc) {
@@ -1563,12 +1571,19 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (h === pHand || h < 0) return;   /* unknown (a chord out of reach): keep the last one */
     pHand = h; handLabel(); centreHand();
   }
+  /* the position's box and its 4th-finger stretch all fit the board's box (a very small screen: not) */
+  function handFits() {
+    var s0 = HAND_S[pHand], base = 2 * (TOPN + 1), a = buttons[base + (pHand === 0 ? 0 : s0 - 1)], z = buttons[base + Math.min(playerN, s0 + 7)];
+    if (!a || !z) return false;
+    return z.getBoundingClientRect().bottom - a.getBoundingClientRect().top + 16 <= stage.clientHeight;
+  }
   function follow(latest) {
     if (stage.style.overflowY !== 'auto') return;
     var top = Infinity, bot = -Infinity, sr = stage.getBoundingClientRect(), cur = stage.scrollTop;
     pvoices.forEach(function (r) {   /* positions within the scrolled box */
       if (!r.el) return;
       if (r.open && pHand >= 0) return;   /* an open string lights the whole string anyway: no scrolling back to the nut */
+      if (pHand >= 0 && r.n > HAND_S[pHand] + 5 && r.n <= HAND_S[pHand] + 7 && handFits()) return;   /* the 4th finger stretched (a semitone or a tone past its usual note): the hand stays, the board too (Trix), when it is in view with the box */
       var er = r.el.getBoundingClientRect();
       top = Math.min(top, er.top - sr.top + cur); bot = Math.max(bot, er.bottom - sr.top + cur);
     });

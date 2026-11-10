@@ -3,7 +3,7 @@
 #view-fingering .fg-note { flex: 1; margin: 0; font: 400 13px var(--font-body); color: var(--muted); }
 #view-fingering .fg-pdf { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-note); cursor: pointer; }
 #view-fingering .fg-play { flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); cursor: pointer; }
-#view-fingering .fg-play svg { width: 20px; height: 20px; fill: currentColor; margin-left: 3px; }
+#view-fingering .fg-play svg { width: 26px; height: 26px; fill: currentColor; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }   /* the MIDI player's triangle: same size, outline and centre (Trix) */
 #view-fingering .fg-play:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 #view-fingering .fg-pdf svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #view-fingering .fg-pdf:disabled { opacity: .4; cursor: default; }
