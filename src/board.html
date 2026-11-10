@@ -361,6 +361,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 }
 /* the line pivots at the finger, so it moves little there and most towards the bridge */
 .stage.small .note { border-width: 1px; }
+.note.tiny { border-width: 1px; }   /* a small circle near the bridge (real spacing in the player) */
 /* MIDI player: the tune's key in a pale string colour; the note being played in full */
 .note.tint:not(.down) { background: color-mix(in srgb, var(--hue) 15%, transparent); color: color-mix(in srgb, var(--hue) 55%, #fff); box-shadow: none; border-color: color-mix(in srgb, var(--hue) 30%, transparent); }   /* paler (Trix), so the played note stands out */   /* see-through like the grey notes, so a lit string shows under them (Trix) */
 .note.tint.root:not(.down) { box-shadow: inset 0 0 0 2px var(--nut); }   /* the key note keeps the fingerboard's white ring */
@@ -645,6 +646,15 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 
   /* real spacing: distance from the nut = string length x (1 - 2^(-semitones/12)) */
   function mm(n) { return evenly ? n * 9.5 : STRING_MM * (1 - Math.pow(2, -n / 12)); }
+  var rowR = null;   /* the MIDI player with real spacing that is tight: each row's circle radius (px) */
+  /* each key's circle and letters at its row's size (the letters shrink with the circle: Trix) */
+  function applyRowR() {
+    buttons.forEach(function (b, i) {
+      var nt = notes[i]; if (!b || !nt) return;
+      if (rowR) { var rr = rowR(noteN(nt)); b.style.setProperty('--r', rr + 'px'); b.style.setProperty('--fs', Math.round(rr * 0.95) + 'px'); b.classList.toggle('tiny', rr < 15); }
+      else { b.style.removeProperty('--r'); b.style.removeProperty('--fs'); b.classList.remove('tiny'); }
+    });
+  }
   var evenly = false;   /* the MIDI player, for a tune high up the string: semitones evenly spaced so all fit */
   /* Settings > Intonation (built page only): in just or Pythagorean intonation (APP.temper) each stopped note
      follows the key and the open strings are pure fifths, so a note sounds and sits a few cents away from
@@ -687,7 +697,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     /* MIDI player: the score and controls sit above, and the board runs only as far up the string as the tune
        goes (up to a twelfth, for double stops). It fills the room left if it fits; otherwise notes keep their
        size and the board scrolls in its own box, following the notes played */
-    var N = playerOn ? playerN : MAXN, room = 0;
+    var N = playerOn ? playerN : MAXN, room = 0; rowR = null;
     var box = playerOn && playerTop && playerRot ? playerRot() : null, boxLen = 0;   /* full screen (Trix): the board turned a quarter turn, in this box */
     if (playerOn && playerTop) {
       /* the whole tune's range fits the room: real spacing if the notes stay 16 px or more, else even spacing;
@@ -735,19 +745,23 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       } else {
       if (evenly) { evenly = false; }
       var f = fit();
-      if (f[1] < 18) { evenly = true; f = fit(); want = true; }
       if (want !== renderedEvenly) { renderedEvenly = want; render(); }   /* positions are baked in at render */
       K = f[0]; r = Math.floor(f[1]);
       /* never smaller than 18 px with a clear gap between notes (Trix; a small Android screen: "too small"):
          the board then runs past the room and scrolls in its box, following the notes played */
       if (r < 18) {
-        /* Trix: a bit tighter, so one position and its 4th-finger stretch (9 rows: low 1st finger to a tone past the
-           4th; 1st position from the open strings) are all in view at once and a stretch never scrolls: the clear gap between notes 10 px down to 4,
-           then the notes down to 15 px */
-        var G = 9;   /* gaps: 1st position's box with the open strings, to a tone past the 4th finger (10 rows) */
-        r = 18; var clr = Math.max(4, Math.min(10, (room - 16 - 2 * r) / G - 2 * r));
-        if ((room - 16 - 2 * r) / G - 2 * r < 4) r = Math.max(15, Math.floor((room - 16 - 4 * G) / (2 * G + 2)));
-        K = (2 * r + clr) / (mm(N) - mm(N - 1));
+        /* Trix: real spacing always (wider near the nut, narrower towards the bridge), the circles getting smaller
+           with the gaps instead. The scale lets 1st position with its 4th-finger stretch (open strings to a tone past
+           the 4th finger, 10 rows) fit the room, so a stretch never scrolls; each row's circles take the room their
+           gap leaves (18 px at most, 9 at least); the board scrolls past that */
+        r = 18;
+        var gMin = mm(N) - mm(N - 1);
+        K = Math.max((room - (r + 4) - r - 16) / mm(9), (2 * 9 + 3) / gMin);
+        rowR = function (n) {
+          if (n <= 0) return r;
+          var g = Math.min(mm(n) - mm(n - 1), n < TOPN ? mm(n + 1) - mm(n) : Infinity);
+          return Math.max(9, Math.min(r, Math.floor((g * K - 4) / 2)));
+        };
       }
       }
     } else if (evenly || renderedEvenly) { evenly = false; renderedEvenly = false; render(); }
@@ -771,6 +785,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     st.setProperty('--k', K.toFixed(3) + 'px');
     st.setProperty('--span', Math.round(K * (box ? boxLen : mm(N))) + 'px');   /* full screen: the length set above */
     st.setProperty('--fs', Math.round(r * 0.95) + 'px');
+    applyRowR();
     stage.classList.toggle('small', r < 15);   /* small notes: thinner rim */
     curK = K; curR = r;
     hitAreas();
