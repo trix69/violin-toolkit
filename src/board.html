@@ -365,15 +365,21 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .note.tint:not(.down) { background: color-mix(in srgb, var(--hue) 15%, transparent); color: color-mix(in srgb, var(--hue) 55%, #fff); box-shadow: none; border-color: color-mix(in srgb, var(--hue) 30%, transparent); }   /* paler (Trix), so the played note stands out */   /* see-through like the grey notes, so a lit string shows under them (Trix) */
 .note.tint.root:not(.down) { box-shadow: inset 0 0 0 2px var(--nut); }   /* the key note keeps the fingerboard's white ring */
 .note.down.quiet { filter: saturate(.35) brightness(.8); opacity: .75; }   /* pressed but silent: a higher finger holds the same string (Hermes F22) */
-.stage.rot { grid-template-columns: 1fr 0; border-radius: 12px; z-index: 1; }   /* MIDI full screen: turned a quarter turn (Trix); no label column */
+.stage.rot { grid-template-columns: 1fr 28px; border-radius: 12px; z-index: 1; }   /* MIDI full screen: turned a quarter turn (Trix); no labels, the column is a strip above the E string for the position tab */
 .stage.rot .labels { display: none; }
 .stage.rot .note::after { transform: rotate(90deg); }   /* the letters stay upright */
-/* full screen has no label column: the position numeral sits in the middle of its box, between the D and A strings (Trix) */
+/* full screen: the position as a tab on the box's E-string edge, in the strip above the E string (Trix chose it from a mock-up) */
 .handbox .hb-n { display: none; }
-.stage.rot .handbox { display: grid; place-items: center; }
-.stage.rot .handbox[hidden] { display: grid; }
-.stage.rot .handbox .hb-n { display: block; transform: rotate(90deg) skewX(-14deg); color: #F2F5F3; opacity: .9;
-  font: 600 calc(var(--r) * 1.5)/1 'Times New Roman', Times, serif; text-shadow: 0 1px 6px rgba(0, 0, 0, .35); }
+.stage.rot .handbox .hb-n {
+  display: block; position: absolute; left: calc(100% + 6px); top: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  height: 20px; line-height: 20px; padding: 0 9px; border-radius: 7px; white-space: nowrap;
+  font: 600 13px 'Times New Roman', Times, serif; letter-spacing: .02em; color: #16201B;
+  background: rgba(242, 245, 243, .92); box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+  transition: opacity .25s;
+}
+.stage.rot .handbox .hb-n i { font-style: italic; margin-right: 5px; }
+.stage.rot .handbox .hb-n span:lang(zh) { font-family: var(--font-note); font-size: 12px; }
 .note.beyond { display: none; }   /* MIDI player: rows past the tune's range (display none: hidden rows must not stretch the scroll box, or follow() scrolls into empty space) */
 .vib.still { animation: none; transform: translateX(-50%); }
 .vib.still::before { display: none; }
@@ -687,7 +693,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       /* the whole tune's range fits the room: real spacing if the notes stay 16 px or more, else even spacing;
          the notes and their letters shrink as needed, never overlapping (Trix: no pressing in the player anyway) */
       room = box ? Math.max(120, box.W) : Math.max(120, avail - playerTop());
-      var cap = box ? Math.max(6, Math.floor((box.H / 4 - 3) / 2)) : 26;   /* turned: the four strings share the box's height; Trix: smaller than 58, then 24 a little too small */
+      var cap = box ? Math.max(6, Math.floor(((box.H - 28) / 4 - 3) / 2)) : 26;   /* 28: the tab strip above the E string */   /* turned: the four strings share the box's height; Trix: smaller than 58, then 24 a little too small */
       var fit = function () {
         var rr = 19, KK = 3, g = mm(N) - mm(N - 1);
         for (var j = 0; j < 4; j++) {
@@ -1494,7 +1500,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
   /* a board taller than its box: keep every note sounding now (both notes of a double stop) in view */
   /* the hand position the tune is played in (midi.js planner: 0 = 1st ... 8 = 9th), shown as a numeral in the label column (Trix) */
-  var pHand = -1, HAND_S = [2, 4, 5, 7, 9, 10, 12, 14, 15], ROMAN = ['\u2160', '\u2161', '\u2162', '\u2163', '\u2164', '\u2165', '\u2166', '\u2167', '\u2168'];
+  var pHand = -1, HAND_S = [2, 4, 5, 7, 9, 10, 12, 14, 15], ROMAN_L = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'], ROMAN = ['\u2160', '\u2161', '\u2162', '\u2163', '\u2164', '\u2165', '\u2166', '\u2167', '\u2168'];
   function handLabel() {
     var old = labels.querySelector('.hand'), hl = labels.querySelector('.harmlbl'), box = document.getElementById('handbox');
     if (old) old.remove();
@@ -1504,7 +1510,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (!show) return;
     /* the box: every key the hand reaches in this position, 1st finger (low) to 4th, all four strings; 1st position takes the open strings too (Trix) */
     var ed = boxEdges(box, lo, hi);
-    box.innerHTML = '<b class="hb-n" translate="no">' + ROMAN[pHand] + '</b>';
+    var zh = window.I18N && I18N.lang === 'zh';
+    box.innerHTML = '<b class="hb-n" translate="no"><i>' + ROMAN_L[pHand] + '</i><span lang="' + (zh ? 'zh' : 'en') + '">' + (zh ? '把位' : 'position') + '</span></b>';   /* full screen only */
     var sp = document.createElement('span');
     sp.className = 'hand';
     sp.style.setProperty('--y', 'calc((' + ed[0] + ' + ' + ed[1] + ') / 2)');   /* level with the middle of the box's height (Trix) */
@@ -1550,6 +1557,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     box.hidden = pc || !P;
     if (!box.hidden) boxEdges(box, state.pos === '1' ? 0 : P.lo, P.hi);
   }
+  document.addEventListener('i18n', function () { if (playerOn) handLabel(); });
   function setHand(h) {
     h = h >= 0 && h < HAND_S.length ? h : -1;
     if (h === pHand || h < 0) return;   /* unknown (a chord out of reach): keep the last one */
