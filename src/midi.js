@@ -2099,6 +2099,8 @@
       }
       /* the edition this part comes from, bottom left of every page (Trix; the CC licences ask for credit) */
       if (src) o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_H - PG_M + 22) + '">' + esc((zh ? '来源：' : 'Source: ') + src) + '</text>');
+      /* our part of the page, on every page and for imported files too (Trix): the fingerings are ours, released CC0 */
+      o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_H - PG_M + (src ? 37 : 22)) + '">' + (zh ? '指法：Violin Toolkit，2026（CC0）' : 'Fingerings by Violin Toolkit, 2026 (CC0)') + '</text>');
       /* page N of M at the bottom right of every page (Trix), in the margin below the music */
       o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_H - PG_M + 22) + '">' + (zh ? '第 ' + (pi + 1) + ' 页，共 ' + pages.length + ' 页' : 'Page ' + (pi + 1) + ' of ' + pages.length) + '</text>');
       /* a raised numeral on a later page's first system must clear the running header (Hermes F36): the page's music

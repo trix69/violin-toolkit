@@ -1562,6 +1562,7 @@ markup = f"""
   <div class="sheet-card" id="creditsCard" tabindex="-1">
     <h2 id="creditsTitle">Score credits</h2>
     <p class="cr-note">The built-in tunes and the editions they come from. The compositions are public domain; each edition is used under the licence shown.</p>
+    <p class="cr-note">Fingerings pages made from the built-in tunes carry the licence of their source, shown at the foot of each page; the fingerings and layout added by Violin Toolkit are released under CC0.</p>
     <ol class="credits">{CREDITS_HTML}</ol>
     <button type="button" class="sheet-done" id="creditsDone">Done</button>
   </div>
