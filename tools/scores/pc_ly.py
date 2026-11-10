@@ -1,5 +1,5 @@
 """Por una Cabeza (Gardel / Le Pera, 1935), violin + piano, from Adam Cuerden's edition (2008, CC BY 3.0;
-IMSLP #295296): the voice line (Canto) as the violin, the piano as printed with its inner voices merged into
+IMSLP #295296; piano bars 8 and 32-33 as in its corrected version by Constantin Stephan, IMSLP #494334): the voice line (Canto) as the violin, the piano as printed with its inner voices merged into
 chords. Read bar by bar from the edition (staff-guide crops; Audiveris's draft was not usable). Written spelling;
 the verse (bars 1-16) in A major, the refrain (17-31) in A minor, as the edition (its later systems omit the
 A-major signature, but its accidentals - the double sharp in bar 5 - show it is meant). The Chorus staff is left
@@ -31,21 +31,21 @@ RH = [
     R21, R22, "<dis' b'>8 fis' <e' a'>16 b' c'' a'", "<dis' fis' c''>4 <e' gis' b'>16 e' dis' d'",
     "c'8 <c'' e'' a'' c'''>8 <c'' e'' a'' c'''>8 <d'' d'''>16 <e'' e'''>16", R18, R19, R20,
     R21, R22, "b'8 fis' gis'16 a' b' gis'",
-    "<c' a'>4 cis'16 d' dis' e'", "a'4~ a'8 r8",
+    "<c' a'>4 cis'16 d' dis' e'", "<c' a'>4 r4",
 ]
 L18, L19, L20 = "<g, f>8 <g c' e'>8 <g c' e'>16 <g, g>8 <fis, fis>16", "<f, f>8 <f a d'>8 <f a d'>8 <f, f>8", "<e, e>8 <e g c'>8 <e g c'>16 <e, e>8 <es, es>16"
 L21 = "<d, d>8 <d f a>8 <d f a>8 <d, d>8"
 LH = [
     "r4",
     "a,8 <e cis'>8 r8 bis,8", "cis8 <e a>8 r8 e8", "<cis e a>16 <cis e a>8 <cis e a>16 <c e a>8 <cis e a>8", "<b, e gis>16 gis,16 a, ais, b,8 cis8",
-    "d8 <b d'>8 <b d'>8 dis8", "e16 ais b cis' <e d'>16 fis8 f16", "<e gis d'>8 <e gis d'>8 e,8 <d e gis>8", "<a, cis e>4 r4",
+    "d8 <b d'>8 <b d'>8 dis8", "e16 ais b cis' <e d'>16 fis8 f16", "<e gis d'>8 <e gis d'>8 e,8 <d e gis>8", "<a, cis e>8 e,8 r4",
     "a,8 <e cis'>8 r8 bis,8", "cis8 <e a>8 r8 e8", "<a, cis g>8 <a, cis g>8 <a, cis g>8 <a, cis g>8", "<d, a, fis>16 a,16 d16 <a, e>16 <d fis>8 r8",
     "<d f a>4 <d a b>4", "cis8 <e a>8 fis,8 <cis e a>8", "b,8 <fis a>8 e,8 <e gis>8", "<a, a>8 e8 a,8 <e, d e gis>8",
     "<a,, a, c e a>8 r8 <a, a>4", L18, L19, L20,
     L21, "<c, c>8 <c e a>8 <c e a>8 <c e a>8", "b,8 <a b>8 <fis d'>16 gis a fis", "<a c'>4 <gis b>16 e fis gis",
     "a8 r8 <a, a>4", L18, L19, L20,
     L21, "<c, c>8 <c e a>8 <c a>4", "<b, fis a>4 <f b>8 e8",
-    "<a, a>8 e8 a,8 r8", "<a, a>8 e8 a,8 r8",
+    "a8 a,8 r4", "<a, a>8 e8 a,8 r8",
 ]
 assert len(VN) == len(RH) == len(LH) == 34
 

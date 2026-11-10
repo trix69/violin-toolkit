@@ -71,3 +71,5 @@ as bar 2 and the phrase's returns; Trix chose it by ear.
 staff / #1888's right hand. The first version took the highest note at each onset, so inner voices moving under a
 held melody note leaked in (Ode bars 2, 6, 8, 14, 16; Mountain King bars 29, 33, 37, 41, 45). Output is MIDI, kept
 as ode.mxl / mountain_king.mxl (and the .mid copies) for the phone apps.
+4. `pc_transpose.py porunacabeza.mxl out.mxl` (Trix, 2026-11-11): down a major second into G (verse G major, refrain
+   G minor), the violin also up an octave; key signatures moved two fifths, printed accidentals dropped.
