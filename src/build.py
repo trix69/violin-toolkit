@@ -481,7 +481,7 @@ fing_html = open(SP + 'fing.html').read()
 midi_html = open(SP + 'midi.html').read()
 # the built-in tunes (eleven, growing to twenty), easy to hard (Trix, 2026-11-10; Ave Maria added the same day): every one from an edition we may redistribute, recorded
 # row for row in docs/score-credits.md (Mutopia Project editions; Twinkle written by us). Existing file names stay
-# (phones on 1.38+ fetch src/midi/<f> by name); Minuet, Gavotte, Air, Canon, Spring, Winter, Serenade are MusicXML converted
+# (phones on 1.38+ fetch src/midi/<f> by name); Minuet, Gavotte, Air, Canon, Spring, Autumn, Winter, Serenade are MusicXML converted
 # from the Mutopia LilyPond sources (python-ly + fixes, 2026-11-10); ode/mountain_king .mxl names hold MIDI;
 # the .mid files of the same names (and night_music.mid) hold the same new content for 1.37 apps.
 # the Score credits window (Trix, 2026-11-10; required by the CC BY / CC BY-SA editions): title, composer,
@@ -497,10 +497,12 @@ SCORE_CREDITS = [
     ('The Swan (Le Cygne)', 'Camille Saint-Saëns', "Saint-Saëns's transcription for violin and piano, Paris: Durand & Schoenewerk, n.d. [1888], plate D.S. 3891 (IMSLP #27110); engraved by Violin Toolkit, 2026", 'Public Domain (edition); our engraving CC0 1.0'),
     ('Humoresque No. 7', 'Antonín Dvořák', "Op. 101 No. 7, from Leoš Soustružník's arrangement for strings, 2025 (IMSLP #989437), in G major as arranged (Dvořák wrote G-flat), tempo as Dvořák's (crotchet = 72); checked by Violin Toolkit, 2026", 'CC0 1.0'),
     ('Habanera (Carmen)', 'Georges Bizet', "Arranged for violin and piano by RSB, 2012 (IMSLP #259809); engraved from that score by Violin Toolkit, 2026 (a grace pair in bar 43 left out, the closing turn written as grace notes)", 'Creative Commons Attribution 3.0'),
+    ('Por una Cabeza', 'Carlos Gardel', "Tango, 1935 (words Alfredo Le Pera); from Adam Cuerden's edition for voice and piano, 2008 (IMSLP #295296): the voice part played by the violin, the piano's inner voices merged into chords; engraved by Violin Toolkit, 2026", 'Creative Commons Attribution 3.0'),
     ('Grande Valse brillante (opening)', 'Frédéric Chopin', "Op. 18, bars 1-69, from the arrangement for violin and piano rev. Fr. Seitz, Hamburg: Anton J. Benjamin, Musikalisches Universum, plate A.J.B. 3298 (IMSLP #24059); engraved by Violin Toolkit, 2026 (the piano's right hand in bars 9-10 simplified)", 'Public Domain (edition); our engraving CC0 1.0'),
     ('In the Hall of the Mountain King', 'Edvard Grieg', 'Mutopia Project no. 1888 (The University Society, 1918), typeset by Coyau; violin line arranged by Violin Toolkit', 'Public Domain'),
     ('Canon', 'Johann Pachelbel', 'Mutopia Project no. 2047 (Canon per 3 Violini e Basso), typeset by Michael Fischer v. Mollard; converted to MusicXML and tempo changed to crotchet = 50 by Violin Toolkit', 'Creative Commons Attribution 4.0'),
     ('Spring (La primavera), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Autumn (L\'autunno), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 350 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Winter (L\'inverno), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 351 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML and tempo changed to crotchet = 80 by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Serenade (K525), 1st movement', 'Wolfgang Amadeus Mozart', 'Mutopia Project no. 900 (Eine kleine Nachtmusik K. 525); MusicXML by Violin Toolkit', 'Public Domain'),
 ]
@@ -518,10 +520,12 @@ SCORE_SOURCE = {
     'cygne.mxl': 'Durand 1888 violin transcription (public domain), engraved by Violin Toolkit · CC0 1.0',
     'habanera.mxl': 'Arranged by RSB (2012, IMSLP #259809), engraved by Violin Toolkit · CC BY 3.0',
     'humoresque.mxl': 'Soustružník\'s string arrangement (2025, CC0), in G major · CC0 1.0',
+    'porunacabeza.mxl': 'Adam Cuerden\'s edition (2008, IMSLP #295296), engraved by Violin Toolkit · CC BY 3.0',
     'valse.mxl': 'Seitz violin + piano arrangement (Benjamin, public domain), engraved by Violin Toolkit · CC0 1.0',
     'mountain_king.mxl': 'Mutopia Project #1888 (typeset by Coyau), violin line arr. Violin Toolkit · Public Domain',
     'canon.mxl': 'Mutopia Project #2047 (typeset by Michael Fischer v. Mollard), MusicXML and tempo by Violin Toolkit · CC BY 4.0',
     'spring.mxl': 'Mutopia Project #301 (typeset by smailliw), MusicXML by Violin Toolkit · CC BY-SA 3.0',
+    'autumn.mxl': 'Mutopia Project #350 (typeset by smailliw), MusicXML by Violin Toolkit · CC BY-SA 3.0',
     'winter.mxl': 'Mutopia Project #351 (typeset by smailliw), MusicXML and tempo by Violin Toolkit · CC BY-SA 3.0',
     'serenade.mxl': 'Mutopia Project #900, MusicXML by Violin Toolkit · Public Domain',
 }
@@ -535,10 +539,12 @@ MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
               ('cygne.mxl', 'The Swan (Le Cygne)', 'Camille Saint-Saëns'),
               ('humoresque.mxl', 'Humoresque No. 7', 'Antonín Dvořák'),
               ('habanera.mxl', 'Habanera (Carmen)', 'Georges Bizet'),
+              ('porunacabeza.mxl', 'Por una Cabeza', 'Carlos Gardel'),
               ('valse.mxl', 'Grande Valse brillante (opening)', 'Frédéric Chopin'),
               ('mountain_king.mxl', 'In the Hall of the Mountain King', 'Edvard Grieg'),
               ('canon.mxl', 'Canon', 'Johann Pachelbel'),
               ('spring.mxl', 'Spring (La primavera), 1st movement', 'Antonio Vivaldi'),
+              ('autumn.mxl', 'Autumn (L\'autunno), 1st movement', 'Antonio Vivaldi'),
               ('winter.mxl', 'Winter (L\'inverno), 1st movement', 'Antonio Vivaldi'),
               ('serenade.mxl', 'Serenade (K525), 1st movement', 'Wolfgang Amadeus Mozart')]
 midi_js = open(SP + 'midi.js').read()

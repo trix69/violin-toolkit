@@ -496,7 +496,8 @@
     notes.forEach(function (n, i) {
       var j = i + 1; while (j < notes.length && notes[j].b <= n.b + 1e-6) j++;
       var gap = j < notes.length ? notes[j].b - n.b : Infinity, len;
-      if (gap <= n.own + 0.5) len = gap;   /* runs on to the next note: a short breath is not a rest */
+      if (n.wsp) len = gap <= n.own + 1e-3 ? gap : n.own;   /* MusicXML: its written lengths and rests, as printed (Por una Cabeza's quaver rests) */
+      else if (gap <= n.own + 0.5) len = gap;   /* MIDI: runs on to the next note: a short breath is not a rest */
       else {   /* a rest follows: a short (staccato) note is written to the end of its beat (Trix: show the rests) */
         var unit = sig.den >= 8 ? 0.5 : 1, endB = n.b + n.own;
         len = n.own < unit ? Math.min(gap, Math.ceil(endB / unit - 1e-6) * unit - n.b) : n.own;

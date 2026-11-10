@@ -1,6 +1,6 @@
 # Built-in scores: how the MusicXML files were made (2026-11-10)
 
-Seven built-ins (`src/midi/minuet, gavotte, air, canon, spring, winter, serenade .mxl`) are MusicXML converted from
+Eight built-ins (`src/midi/minuet, gavotte, air, canon, spring, autumn, winter, serenade .mxl`) are MusicXML converted from
 the Mutopia Project LilyPond sources; `ave_maria.mxl` is OpenScore Lieder's file with the voice part renamed Violin.
 Credits and licences: `docs/score-credits.md`. Nothing here runs in the app or at build time.
 
@@ -25,6 +25,10 @@ for the checks.
    - Air: the separate `global` repeat skeleton dropped and the bars written straight through (as the edition's MIDI
      plays them).
    - Canon: spaces added between run-together notes (`a16fis32`, `b'a`, `fis 4`).
+   - Autumn (Mutopia #350, 1st movement, added later): the three `\context Voice = "soloup"/"solodown"` pairs ->
+     `<< {…} \\ {…} >>`; tempo 120 (the edition's MIDI). python-ly counts triplet semiquavers at full length when it
+     fills bars, so the solo's barlines drift from bar 39: `aut_fix.py` re-bars part 1 by real durations after its last
+     two-voice bar (pack.py skips parts with voices); then `pack.py` alone (not in xml7.py).
    - Serenade: `ly rel2abs` first (its `\ifemidi {print} {midi}` macro is inside `\relative`), then
      `serenade_resolve.py`: keeps the print version of each ornament, drops `\pitchedTrill` helper notes, the
      per-part `\book` blocks, a two-voice pair of quavers -> chords, `\repeat tremolo N x` -> `x<total>:<d>`.
@@ -38,3 +42,20 @@ for the checks.
 
 Ave Maria: `pack_ave.py lc6389103.mxl tmp.mxl plain.musicxml` (voice part -> Violin, its syllable beams removed),
 then `pack.py plain.musicxml ave_maria.mxl - - -` (beams by the beat; the file's own title and credits kept).
+
+## Por una Cabeza (Gardel, 1935), added 2026-11-10
+
+Source: Adam Cuerden's edition for voice and piano (2008, CC BY 3.0, IMSLP #295296; Trix downloaded it). Audiveris's
+draft was not usable (time signature read as 5, quavers/semiquavers confused, lyric hyphens read as notes), so the
+score was read bar by bar from crops with a pitch guide: `staffrows.swift` finds the staves on a 5000 px render
+(`pdfpng.swift`), `staffguide.swift page.png out.png top spacing treble|bass x0 x1` overlays a labelled line at
+every line and space. The edition prints its A-major signature on the first system only; its accidentals (bar 5's
+double sharp) show the verse is in A major, the refrain (bar 17, naturals) in A minor.
+
+1. `python3 -I pc_ly.py pc.ly` (violin = the Canto line, piano with its inner voices merged into chords, Chorus left
+   out, bars straight through with the pickup first, tempo 66).
+2. `ly musicxml pc.ly > pc.musicxml`; `pack.py pc.musicxml pc-packed.mxl "Por una Cabeza" "Carlos Gardel" "<rights>" 1`
+   (pickup 1 crotchet; pack.py now puts chord notes it moves back before a bar's trailing backups).
+3. `pc_repeat.py pc-packed.mxl porunacabeza.mxl`: the repeat (bar 1 to the 1st ending, bar 32), the 2nd ending
+   (bar 33), and the key change to A minor at bar 17 (back to A major at bar 1).
+Checks: every bar's length (mlen.py), the player's play order (0, 1-31, 32, 1-31, 33 = 65 bars, 1:57), the pages.
