@@ -479,7 +479,7 @@ midi_css = open(SP + 'midi.css').read()
 fing_css = open(SP + 'fing.css').read()   # Fingerings (指法谱): pages + PDF from the MIDI player's drawing
 fing_html = open(SP + 'fing.html').read()
 midi_html = open(SP + 'midi.html').read()
-# the eleven built-in tunes, easy to hard (Trix, 2026-11-10; Ave Maria added the same day): every one from an edition we may redistribute, recorded
+# the built-in tunes (eleven, growing to twenty), easy to hard (Trix, 2026-11-10; Ave Maria added the same day): every one from an edition we may redistribute, recorded
 # row for row in docs/score-credits.md (Mutopia Project editions; Twinkle written by us). Existing file names stay
 # (phones on 1.38+ fetch src/midi/<f> by name); Minuet, Gavotte, Air, Canon, Spring, Winter, Serenade are MusicXML converted
 # from the Mutopia LilyPond sources (python-ly + fixes, 2026-11-10); ode/mountain_king .mxl names hold MIDI;
@@ -493,6 +493,7 @@ SCORE_CREDITS = [
     ('Gavotte', 'Giovanni Battista Martini', 'Mutopia Project no. 1785 (C. F. Peters, ca. 1891), typeset by Fabien Mirloup; converted to MusicXML by Violin Toolkit', 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Air (BWV 1068)', 'Johann Sebastian Bach', 'Mutopia Project no. 242 (Bach-Gesellschaft), typeset by Jeff Covey; converted to MusicXML by Violin Toolkit, repeats written out', 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Ave Maria', 'Franz Schubert', "OpenScore Lieder (Ellens Gesang III, D. 839), transcribed by Mark Gotham from IMSLP #16400; the voice part played by the violin", 'CC0 1.0'),
+    ('Ständchen (Serenade)', 'Franz Schubert', "OpenScore Lieder (Schwanengesang, D. 957 No. 4), transcribed by pental from IMSLP #60828; the voice part played by the violin", 'CC0 1.0'),
     ('In the Hall of the Mountain King', 'Edvard Grieg', 'Mutopia Project no. 1888 (The University Society, 1918), typeset by Coyau; violin line arranged by Violin Toolkit', 'Public Domain'),
     ('Canon', 'Johann Pachelbel', 'Mutopia Project no. 2047 (Canon per 3 Violini e Basso), typeset by Michael Fischer v. Mollard; converted to MusicXML by Violin Toolkit', 'Creative Commons Attribution 4.0'),
     ('Spring, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
@@ -509,6 +510,7 @@ SCORE_SOURCE = {
     'gavotte.mxl': 'Mutopia Project #1785 (typeset by Fabien Mirloup), MusicXML by Violin Toolkit · CC BY-SA 3.0',
     'air.mxl': 'Mutopia Project #242 (typeset by Jeff Covey), MusicXML by Violin Toolkit · CC BY-SA 3.0',
     'ave_maria.mxl': 'OpenScore Lieder (transcribed by Mark Gotham), voice part as violin · CC0 1.0',
+    'standchen.mxl': 'OpenScore Lieder (transcribed by pental), voice part as violin · CC0 1.0',
     'mountain_king.mxl': 'Mutopia Project #1888 (typeset by Coyau), violin line arr. Violin Toolkit · Public Domain',
     'canon.mxl': 'Mutopia Project #2047 (typeset by Michael Fischer v. Mollard), MusicXML by Violin Toolkit · CC BY 4.0',
     'spring.mxl': 'Mutopia Project #301 (typeset by smailliw), MusicXML by Violin Toolkit · CC BY-SA 3.0',
@@ -521,6 +523,7 @@ MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
               ('gavotte.mxl', 'Gavotte', 'Giovanni Battista Martini'),
               ('air.mxl', 'Air (BWV 1068)', 'Johann Sebastian Bach'),
               ('ave_maria.mxl', 'Ave Maria', 'Franz Schubert'),
+              ('standchen.mxl', 'Ständchen (Serenade)', 'Franz Schubert'),
               ('mountain_king.mxl', 'In the Hall of the Mountain King', 'Edvard Grieg'),
               ('canon.mxl', 'Canon', 'Johann Pachelbel'),
               ('spring.mxl', 'Spring, 1st movement', 'Antonio Vivaldi'),
