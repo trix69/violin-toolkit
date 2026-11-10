@@ -20,7 +20,7 @@ for the checks.
      the half bar after the two-voice block of bars 53-55 moved inside it (`e''!4 s4 s2`, `as'' c'' …` in voice 2);
      tempo 80.
    - Minuet: `<< { \stemUp X \stemNeutral } { \context Voice = "ii" { << \stemDown Y >> } } >>` -> `<< {X} \\ {Y} >>`;
-     the last chord `<d b>2.` given its length.
+     the last chord `<d b>2.` given its length; tempo 120 (the edition's MIDI: 140, Trix chose 120).
    - Gavotte: `\header`, `\paper`, `tempoMark` removed; `sol're4.` -> `sol' re4.` (python-ly misreads it).
    - Air: the separate `global` repeat skeleton dropped and the bars written straight through (as the edition's MIDI
      plays them).

@@ -5,7 +5,7 @@ H = os.path.dirname(os.path.abspath(__file__))
 CONV = ' Converted from the LilyPond source to MusicXML by Violin Toolkit (2026).'
 T = [
     ('minuet/min2.musicxml', 'minuet.mxl', 'Minuet in G', 'Christian Petzold (formerly attributed to J. S. Bach)',
-     'Mutopia Project #75, typeset by Allen Garvin.' + CONV + ' Public Domain.', 0),
+     'Mutopia Project #75, typeset by Allen Garvin.' + CONV + ' Tempo crotchet = 120. Public Domain.', 0),
     ('gavotte/g1.musicxml', 'gavotte.mxl', 'Gavotte', 'Giovanni Battista Martini',
      'Mutopia Project #1785, typeset by Fabien Mirloup.' + CONV + ' Licensed under Creative Commons Attribution-ShareAlike 3.0.', 2),
     ('air/a3.musicxml', 'air.mxl', 'Air (BWV 1068)', 'Johann Sebastian Bach',
