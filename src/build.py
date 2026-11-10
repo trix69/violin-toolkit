@@ -294,6 +294,12 @@ html[lang="zh-CN"] {
 /* practice time overlay: last 7 days as bars, today in the accent colour */
 #usage { z-index: 130; }
 #a4pop { z-index: 130; }
+#credits { z-index: 130; }
+.cr-note { margin: 0 0 12px; font: 400 13px/1.45 var(--font-body); color: var(--muted); }
+.credits { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.credits li { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font: 400 13px/1.4 var(--font-body); color: var(--muted); }
+.credits li b { font: 600 15px var(--font-note); color: var(--fg); }
+.credits .cr-lic { color: var(--fg); }
 .segc.six { grid-template-columns: repeat(6, 1fr); }
 .segc.six button { padding: 0 2px; font-variant-numeric: tabular-nums; }
 .segc .a4more[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
@@ -473,15 +479,44 @@ midi_css = open(SP + 'midi.css').read()
 fing_css = open(SP + 'fing.css').read()   # Fingerings (指法谱): pages + PDF from the MIDI player's drawing
 fing_html = open(SP + 'fing.html').read()
 midi_html = open(SP + 'midi.html').read()
-MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star'), ('ode.mxl', 'Ode to Joy'), ('mountain_king.mxl', 'In the Hall of the Mountain King'), ('canon.mxl', 'Canon'), ('serenade.mxl', 'Serenade, 1st movement'), ('winter.mxl', 'Winter, 1st movement')]   # 2026-11-07 (Trix): all six built-ins are now (Twinkle, Ode, Mountain King, Canon, Serenade, Winter) Trix's MusicXML (.mxl, MuseScore) files; the old .mid files stay in src/midi/ because the 1.37 phone apps download them by name. Earlier notes: canon.mid, mountain_king.mid, night_music.mid, winter.mid (Vivaldi, accompaniment part): Trix's own files (2026-11-06); night_music.mid: Trix's Serenade K525 for string quartet, all four parts (2026-11-07, shown as 'Serenade' / 小夜曲); canon.mid: Trix's string quartet arrangement (2026-11-07, replaces the earlier canon.mid); mountain_king.mid: Trix's violin + piano arrangement (2026-11-07, B minor, 4-bar piano intro); ode.mid: Trix's violin + piano arrangement (2026-11-07, replaces make_demos.py's one-part version: do not regenerate it). winter.mid: Trix's violin (named 'Violín') + piano arrangement (2026-11-07, replaces the earlier winter.mid; piano intro ~11 s). twinkle.mid: Trix's string orchestra arrangement (2026-11-07, D major). make_demos.py no longer writes either
+# the ten built-in tunes, easy to hard (Trix, 2026-11-10): every one from an edition we may redistribute, recorded
+# row for row in docs/score-credits.md (Mutopia Project editions; Twinkle written by us). Existing file names stay
+# (phones on 1.38+ fetch src/midi/<f> by name; several .mxl names now hold MIDI, which the player reads by content);
+# the .mid files of the same names (and night_music.mid) hold the same new content for 1.37 apps.
+# the Score credits window (Trix, 2026-11-10; required by the CC BY / CC BY-SA editions): title, composer,
+# edition (source, typesetter), licence verbatim. Plain text: the store apps have no outside links.
+SCORE_CREDITS = [
+    ('Twinkle, Twinkle, Little Star', 'Traditional', 'Engraved by Violin Toolkit, 2026', 'CC0 1.0'),
+    ('Minuet in G', 'Christian Petzold (formerly attributed to J. S. Bach)', 'Mutopia Project no. 75 (Bach-Gesellschaft), typeset by Allen Garvin', 'Public Domain'),
+    ('Ode to Joy', 'Ludwig van Beethoven', 'Mutopia Project no. 528, typeset by Peter Chubb; violin line arranged by Violin Toolkit', 'Public Domain'),
+    ('Gavotte', 'Giovanni Battista Martini', 'Mutopia Project no. 1785 (C. F. Peters, ca. 1891), typeset by Fabien Mirloup', 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Air (BWV 1068)', 'Johann Sebastian Bach', 'Mutopia Project no. 242 (Bach-Gesellschaft), typeset by Jeff Covey', 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('In the Hall of the Mountain King', 'Edvard Grieg', 'Mutopia Project no. 1888 (The University Society, 1918), typeset by Coyau; violin line arranged by Violin Toolkit', 'Public Domain'),
+    ('Canon', 'Johann Pachelbel', 'Mutopia Project no. 2047 (Canon per 3 Violini e Basso), typeset by Michael Fischer v. Mollard', 'Creative Commons Attribution 4.0'),
+    ('Spring, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw", 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Winter, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 351 (Performers' Facsimiles), typeset by smailliw", 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Serenade, 1st movement', 'Wolfgang Amadeus Mozart', 'Mutopia Project no. 900 (Eine kleine Nachtmusik K. 525)', 'Public Domain'),
+]
+import html as _h
+CREDITS_HTML = ''.join('<li><b>%s</b><span translate="no">%s</span><span translate="no">%s</span><span class="cr-lic" translate="no">%s</span></li>' % tuple(_h.escape(x) for x in r) for r in SCORE_CREDITS)
+MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
+              ('minuet.mid', 'Minuet in G', 'Christian Petzold (formerly attributed to J. S. Bach)'),
+              ('ode.mxl', 'Ode to Joy', 'Ludwig van Beethoven'),
+              ('gavotte.mid', 'Gavotte', 'Giovanni Battista Martini'),
+              ('air.mid', 'Air (BWV 1068)', 'Johann Sebastian Bach'),
+              ('mountain_king.mxl', 'In the Hall of the Mountain King', 'Edvard Grieg'),
+              ('canon.mxl', 'Canon', 'Johann Pachelbel'),
+              ('spring.mid', 'Spring, 1st movement', 'Antonio Vivaldi'),
+              ('winter.mxl', 'Winter, 1st movement', 'Antonio Vivaldi'),
+              ('serenade.mxl', 'Serenade, 1st movement', 'Wolfgang Amadeus Mozart')]
 midi_js = open(SP + 'midi.js').read()
 assert midi_js.count('/*DEMOS*/[]') == 1
 # each tune: title, file name, a short hash of its bytes, and the bytes last ("b64"), so the Android app's build
 # (Android/wrapper/build.sh) can drop the bytes and fetch the tune from the website the first time it is played (Trix)
-def _demo(f, t):
+def _demo(f, t, c):
     raw = open(SP + 'midi/' + f, 'rb').read()
-    return {'title': t, 'f': f, 'h': hashlib.sha1(raw).hexdigest()[:10], 'b64': base64.b64encode(raw).decode()}
-midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps([_demo(f, t) for f, t in MIDI_DEMOS]))
+    return {'title': t, 'c': c, 'f': f, 'h': hashlib.sha1(raw).hexdigest()[:10], 'b64': base64.b64encode(raw).decode()}   # c before f: the phone builds' strip pattern expects f, h, b64 in a row
+midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps([_demo(f, t, c) for f, t, c in MIDI_DEMOS]))
 # the Fingerings page's QR (Trix): the app's address, encoded here by src/qr.py (no library), drawn as vector squares
 import importlib.util as _ilu
 _qs = _ilu.spec_from_file_location('vt_qr', SP + 'qr.py'); _qr = _ilu.module_from_spec(_qs); _qs.loader.exec_module(_qr)
@@ -904,6 +939,12 @@ nav_js = """(function () {
     APP.a4Ui();
     Array.prototype.forEach.call(document.querySelectorAll('#a4List button'), function (b) { b.querySelector('span').textContent = a4Name(+b.dataset.a4); });
   });
+  var credits = document.getElementById('credits'), credOpener = null;
+  function onCredKey(e) { if (e.key === 'Escape') { e.stopPropagation(); closeCred(); } else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); document.getElementById('creditsDone').focus(); } }
+  function closeCred() { credits.hidden = true; window.removeEventListener('keydown', onCredKey, true); try { credOpener.focus(); } catch (e) {} }
+  document.getElementById('openCredits').addEventListener('click', function () { credOpener = this; credits.hidden = false; window.addEventListener('keydown', onCredKey, true); document.getElementById('creditsCard').focus(); });
+  document.getElementById('creditsDone').addEventListener('click', closeCred);
+  credits.addEventListener('click', function (e) { if (e.target === credits) closeCred(); });
   document.getElementById('openUsage').addEventListener('click', openUsage);
   document.getElementById('launchDays').addEventListener('click', openUsage);
   document.getElementById('usageDone').addEventListener('click', closeUsage);
@@ -1408,6 +1449,7 @@ markup = f"""
     <button type="button" class="howto-btn" id="openUsage" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
+    <button type="button" class="howto-btn" id="openCredits" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2"/></svg><span>Score credits</span></button>
     <div class="pair" id="linkPair">
       <div>
       <h3 id="lblStar">Like this app?</h3>
@@ -1476,6 +1518,14 @@ markup = f"""
       <div><dt>Total time</dt><dd id="useTotal">0 min</dd></div>
     </dl>
     <button type="button" class="sheet-done" id="usageDone">Done</button>
+  </div>
+</div>
+<div class="sheet" id="credits" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" hidden>
+  <div class="sheet-card" id="creditsCard" tabindex="-1">
+    <h2 id="creditsTitle">Score credits</h2>
+    <p class="cr-note">The built-in tunes and the editions they come from. The compositions are public domain; each edition is used under the licence shown.</p>
+    <ol class="credits">{CREDITS_HTML}</ol>
+    <button type="button" class="sheet-done" id="creditsDone">Done</button>
   </div>
 </div>
 <div class="sheet" id="a4pop" role="dialog" aria-modal="true" aria-labelledby="a4Title" hidden>

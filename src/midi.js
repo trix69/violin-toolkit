@@ -1317,6 +1317,7 @@
   function load(i) {
     pause();
     song = songs[i].song;
+    if (song && !song.composer && songs[i].demo && songs[i].demo.c) song.composer = songs[i].demo.c;   /* a built-in MIDI names no composer: the list does */
     delBtn.hidden = !songs[i].kept;   /* the bin only for an imported file */
     subEl.textContent = songs[i].title;
     if (!song) {   /* a built-in tune not downloaded yet (Android app): an empty score until it arrives */
