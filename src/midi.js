@@ -1618,7 +1618,7 @@
         /* keeping it for next time; a failure here only means not kept (Hermes F17). MusicXML is kept compressed */
         var xml = looksXml(new Uint8Array(buf)) && typeof CompressionStream !== 'undefined';
         (xml ? zip(buf).then(function (z) { return { b64: toB64(z), z: 'gz' }; }) : Promise.resolve({ b64: toB64(buf) })).then(function (rec) {
-          kept.push({ id: id, name: name, b64: rec.b64, z: rec.z });
+          kept.push({ id: id, name: name, fn: fname, b64: rec.b64, z: rec.z });   /* fn: the file's own name, for the Fingerings footer */
           if (!saveKept()) throw new Error('no room');
         }).catch(function (e) {
           console.error('MIDI import: keep', e);
@@ -2073,7 +2073,12 @@
     });
     var o0 = songSel.options[songSel.selectedIndex], s0 = songs[+songSel.value];
     var title = s0 ? (s0.kept ? s0.title : (o0 ? o0.textContent : s0.title)) : '';
-    var src = s0 && s0.demo && s0.demo.s ? s0.demo.s : '';   /* built-ins only: an imported file's source is not known */
+    var src = s0 && s0.demo && s0.demo.s ? s0.demo.s : '';
+    if (s0 && s0.kept) {   /* an imported piece: its source is the user's own file, named in the footer (Trix) */
+      var rec = kept.filter(function (f) { return f.id === s0.kept; })[0];
+      var fnm = (rec && rec.fn) || s0.title; if (fnm.length > 60) fnm = fnm.slice(0, 57) + '…';   /* clear of 'Page N of M' */
+      src = fnm + (zh ? '（导入的文件）' : ' (imported file)');
+    }
     var part = zh ? '小提琴' : 'Violin';
     var html = pages.map(function (pg, pi) {
       var o = ['<svg class="fg-page" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + PG_W + ' ' + PG_H + '" width="' + PG_W + '" height="' + PG_H + '"><rect class="fg-paper" width="' + PG_W + '" height="' + PG_H + '"/>'];
