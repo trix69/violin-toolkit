@@ -1,5 +1,5 @@
 (function () {
-  var P = { '1st': '一把位', '2nd': '二把位', '3rd': '三把位' };
+  var P = { '1st': '一把位', '2nd': '二把位', '3rd': '三把位', '\u2160': '一把位', '\u2161': '二把位', '\u2162': '三把位' };   /* the position buttons show Ⅰ Ⅱ Ⅲ in English (Trix) */
   var DICT = {
     /* chrome */
     'Skip to content': '跳到内容',

@@ -430,6 +430,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .posbar button[aria-pressed="true"] {
   background: var(--accent); color: var(--on-accent); border-color: var(--accent);
 }
+.posbar button.rn:not(:lang(zh)) { font: 600 19px/1 'Times New Roman', Times, serif; }   /* English: Roman numerals, as printed in scores (Trix); 中文 keeps 一把位 */
 .posbar button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 /* Pitch Check readout in the right-hand column */
@@ -519,9 +520,9 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   <div class="visually-hidden" id="ksigSr" role="status" aria-live="polite"></div>
 
   <div class="posbar" id="posbar" role="group" aria-label="Position">
-    <button type="button" data-id="1" aria-pressed="true" aria-label="1st position">1st</button>
-    <button type="button" data-id="2" aria-pressed="false" aria-label="2nd position">2nd</button>
-    <button type="button" data-id="3" aria-pressed="false" aria-label="3rd position">3rd</button>
+    <button type="button" class="rn" data-id="1" aria-pressed="true" aria-label="1st position">Ⅰ</button>
+    <button type="button" class="rn" data-id="2" aria-pressed="false" aria-label="2nd position">Ⅱ</button>
+    <button type="button" class="rn" data-id="3" aria-pressed="false" aria-label="3rd position">Ⅲ</button>
     <button type="button" data-id="pc" aria-pressed="false">Pitch Check</button>
   </div>
 </main>
@@ -904,6 +905,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     board.classList.toggle('pcmode', pc);
     vibBtn.disabled = pc;   /* reference notes stay steady while checking pitch */
     if (pc) labels.innerHTML = PC_HTML;
+    if (!playerOn) posBox(pc);
     if (playerOn) {
       /* the fingerboard's dashed lines between the fingers (1st position), as far as the board reaches (Trix) */
       if (sp) sp.innerHTML = WIDE_SPLITS.filter(function (n) { return n < playerN; }).map(function (n) {
@@ -1057,7 +1059,11 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       stopAll();
       state.pos = id;
       if (id === 'pc') { paint(); startMic(); }
-      else { stopMic(); paint(); }
+      else {
+        stopMic(); paint();
+        var P = POSITIONS[id];
+        centreRows(id === '1' ? 0 : P.lo, P.hi, true, true);   /* the chosen position's box to the middle of the screen (Trix) */
+      }
     });
   });
   showVib();
@@ -1486,29 +1492,56 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   function handLabel() {
     var old = labels.querySelector('.hand'), hl = labels.querySelector('.harmlbl'), box = document.getElementById('handbox');
     if (old) old.remove();
-    var show = playerOn && pHand >= 0, s = show ? HAND_S[pHand] : 0, lo = Math.max(0.5, s - 1.5), hi = Math.min(s + 5.5, playerN + 0.5), mid = (lo + hi) / 2;
+    var show = playerOn && pHand >= 0, s = show ? HAND_S[pHand] : 0, lo = pHand === 0 ? 0 : s - 1, hi = Math.min(s + 5, playerN), mid = (lo + hi) / 2;
     if (box) box.hidden = !show;
     if (hl) hl.hidden = show && Math.abs(mid - MAXN) <= 1;   /* a numeral on the harmonic's row hides that label */
     if (!show) return;
-    /* the box: every key the hand reaches in this position, 1st finger (low) to 4th, all four strings (Trix) */
-    box.style.setProperty('--y0', yFor(lo));
-    box.style.setProperty('--y1', yFor(hi));
+    /* the box: every key the hand reaches in this position, 1st finger (low) to 4th, all four strings; 1st position takes the open strings too (Trix) */
+    var ed = boxEdges(box, lo, hi);
     var sp = document.createElement('span');
     sp.className = 'hand';
-    sp.style.setProperty('--y', 'calc((' + yFor(lo) + ' + ' + yFor(hi) + ') / 2)');   /* level with the middle of the box's height (Trix) */
+    sp.style.setProperty('--y', 'calc((' + ed[0] + ' + ' + ed[1] + ') / 2)');   /* level with the middle of the box's height (Trix) */
     sp.innerHTML = '<b translate="no">' + ROMAN[pHand] + '</b><small>Position</small>';
     labels.appendChild(sp);
   }
   /* a board taller than its box: when the hand moves to another position, bring that position's finger range to the middle, once,
      so the board does not jump up and down with every note (Trix) */
+  /* the glass box's edges: half a row beyond rows lo..hi (row 0 = the open strings, from just above their discs) */
+  function boxEdges(box, lo, hi) {
+    var e = [lo <= 0 ? 'calc(var(--oy) - var(--r) - 7px)' : yFor(lo - 0.5), yFor(hi + 0.5)];
+    box.style.setProperty('--y0', e[0]); box.style.setProperty('--y1', e[1]);
+    return e;
+  }
+  /* bring rows lo..hi (measured on the A string's keys, which don't move while the box glides) to the middle of what is visible:
+     the board's own box when it scrolls (MIDI player), else the page above the position bar. always: centre even if on screen */
+  function centreRows(lo, hi, always, smooth) {
+    var base = 2 * (TOPN + 1), a = buttons[base + lo], b = buttons[base + hi];
+    if (!a || !b) return;
+    var ar = a.getBoundingClientRect(), br = b.getBoundingClientRect(), r = curR + 8;
+    var top = ar.top - r, bot = br.bottom + r;
+    if (stage.style.overflowY === 'auto') {
+      var sr = stage.getBoundingClientRect(), cur = stage.scrollTop;
+      if (!always && top >= sr.top && bot <= sr.bottom) return;   /* already all on screen: stay put */
+      stage.scrollTop = Math.max(0, (top + bot) / 2 - sr.top + cur - stage.clientHeight / 2);
+      return;
+    }
+    var vTop = 0, vBot = posbar.getBoundingClientRect().top || window.innerHeight;
+    var want = (bot - top) > vBot - vTop ? top - vTop - 8 : (top + bot) / 2 - (vTop + vBot) / 2;
+    if (Math.abs(want) < 2) return;
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: Math.max(0, window.scrollY + want), behavior: smooth && !reduce ? 'smooth' : 'auto' });
+  }
   function centreHand() {
     if (stage.style.overflowY !== 'auto' || pHand < 0) return;
-    var s = HAND_S[pHand], lo = Math.max(1, s - 1), hi = Math.min(playerN, s + 5), base = 2 * (TOPN + 1);
-    var a = buttons[base + Math.min(lo, hi)], b = buttons[base + hi];
-    if (!a || !b) return;
-    var sr = stage.getBoundingClientRect(), cur = stage.scrollTop, ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
-    if (ar.top >= sr.top + 4 && br.bottom <= sr.bottom - 4) return;   /* already all on screen: stay put */
-    stage.scrollTop = Math.max(0, (ar.top + br.bottom) / 2 - sr.top + cur - stage.clientHeight / 2);
+    var s = HAND_S[pHand];
+    centreRows(pHand === 0 ? 0 : Math.max(1, s - 1), Math.min(playerN, s + 5), false, false);
+  }
+  /* the Fingerboard tool: the same glass box over the chosen position's keys (Trix); 1st position includes the open strings */
+  function posBox(pc) {
+    var box = document.getElementById('handbox'), P = POSITIONS[state.pos];
+    if (!box) return;
+    box.hidden = pc || !P;
+    if (!box.hidden) boxEdges(box, state.pos === '1' ? 0 : P.lo, P.hi);
   }
   function setHand(h) {
     h = h >= 0 && h < HAND_S.length ? h : -1;
