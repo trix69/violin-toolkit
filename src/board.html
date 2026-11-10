@@ -707,7 +707,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       var fit = function () {
         var rr = 19, KK = 3, g = mm(N) - mm(N - 1);
         for (var j = 0; j < 4; j++) {
-          KK = Math.min(box ? 1e9 : 14, (room - (rr + 4) - rr - 10 - 16) / mm(N));   /* full screen: the whole width (Trix) */   /* stretched to fill the box: a short range spreads out (Trix) */
+          KK = Math.min(box ? 1e9 : 14, (room - (rr + 4) - rr - 10) / mm(N));   /* room is the stage's inner height: its 8 px padding sits outside max-height (Trix: the board stopped short of the controls) */   /* full screen: the whole width (Trix) */   /* stretched to fill the box: a short range spreads out (Trix) */
           rr = Math.min(cap, Math.max(6, (g * KK - 8) / 2));            /* at least 8 px between the closest notes */
         }
         return [KK, rr];
@@ -756,7 +756,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
            gap leaves (18 px at most, 9 at least); the board scrolls past that */
         r = 18;
         var gMin = mm(N) - mm(N - 1);
-        K = Math.max((room - (r + 4) - r - 16) / mm(9), (2 * 9 + 3) / gMin);
+        K = Math.max((room - (r + 4) - r - 10) / mm(Math.min(9, N)), (2 * 9 + 3) / gMin);   /* a tune that stays lower fills the room (Trix: the board stopped short of the controls) */
         rowR = function (n) {
           if (n <= 0) return r;
           var g = Math.min(mm(n) - mm(n - 1), n < TOPN ? mm(n + 1) - mm(n) : Infinity);
@@ -775,7 +775,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       st0.transformOrigin = '0 0'; st0.transform = 'rotate(-90deg)';
     } else { st0.position = st0.left = st0.top = st0.width = st0.height = st0.boxSizing = st0.transformOrigin = st0.transform = ''; }
     stage.style.maxHeight = room ? room + 'px' : '';
-    stage.style.overflowY = room && (r + 4) + K * mm(N) + r + 10 + 16 > room + 2 ? 'auto' : room ? 'hidden' : '';   /* rows past the tune's range stay out of sight */
+    stage.style.overflowY = room && (r + 4) + K * mm(N) + r + 10 > room + 2 ? 'auto' : room ? 'hidden' : '';   /* rows past the tune's range stay out of sight */
     if (box) stage.style.overflowY = 'hidden';
     if (stage.style.overflowY !== 'auto') stage.scrollTop = 0;   /* a tune that fits starts at the open strings, even after one that scrolled (Trix) */
     var st = stage.style;
