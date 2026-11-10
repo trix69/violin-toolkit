@@ -499,7 +499,7 @@ SCORE_CREDITS = [
     ('Canon', 'Johann Pachelbel', 'Mutopia Project no. 2047 (Canon per 3 Violini e Basso), typeset by Michael Fischer v. Mollard; converted to MusicXML by Violin Toolkit', 'Creative Commons Attribution 4.0'),
     ('Spring, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Winter, 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 351 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML and tempo changed to crotchet = 80 by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
-    ('Serenade, 1st movement', 'Wolfgang Amadeus Mozart', 'Mutopia Project no. 900 (Eine kleine Nachtmusik K. 525); MusicXML by Violin Toolkit', 'Public Domain'),
+    ('Serenade (K525), 1st movement', 'Wolfgang Amadeus Mozart', 'Mutopia Project no. 900 (Eine kleine Nachtmusik K. 525); MusicXML by Violin Toolkit', 'Public Domain'),
 ]
 import html as _h
 CREDITS_HTML = ''.join('<li><b>%s</b><span translate="no">%s</span><span translate="no">%s</span><span class="cr-lic" translate="no">%s</span></li>' % tuple(_h.escape(x) for x in r) for r in SCORE_CREDITS)
@@ -531,7 +531,7 @@ MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
               ('canon.mxl', 'Canon', 'Johann Pachelbel'),
               ('spring.mxl', 'Spring, 1st movement', 'Antonio Vivaldi'),
               ('winter.mxl', 'Winter, 1st movement', 'Antonio Vivaldi'),
-              ('serenade.mxl', 'Serenade, 1st movement', 'Wolfgang Amadeus Mozart')]
+              ('serenade.mxl', 'Serenade (K525), 1st movement', 'Wolfgang Amadeus Mozart')]
 midi_js = open(SP + 'midi.js').read()
 assert midi_js.count('/*DEMOS*/[]') == 1
 # each tune: title, file name, a short hash of its bytes, and the bytes last ("b64"), so the Android app's build
