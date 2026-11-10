@@ -245,7 +245,7 @@
               if (ties.indexOf('start') < 0) delete tie[mm]; return;
             }
             var bm = kids(el, 'beam').filter(function (b) { return (b.getAttribute('number') || '1') === '1'; })[0];
-            var n = { m: mm, t0: t0, t1: t1, sb: tk(from), xb: bm ? bm.textContent.trim() : 'none', ch: ch, v: 90, pz: pz }, tech   /* sb: where it is written (a grace note may delay its sound); xb: the score's beam */ = el.getElementsByTagName('technical')[0];
+            var n = { m: mm, t0: t0, t1: t1, sb: tk(from), xb: bm ? bm.textContent.trim() : 'none', ch: ch, v: 90, pz: pz, wsp: ['CDEFGAB'.indexOf(txt(pt, 'step')), Math.round(+txt(pt, 'alter') || 0), +txt(pt, 'octave')] }, tech   /* sb: where it is written (a grace note may delay its sound); xb: the score's beam */ = el.getElementsByTagName('technical')[0];
             if (tech) {   /* written fingering (0 = open), open-string mark, string number (1 = E) */
               /* the finger written plainly; one in brackets ("(3) 2": an alternative) only if it is the only one */
               var fe = kid(tech, 'fingering'), se = kid(tech, 'string'), ft = fe ? fe.textContent : '';
@@ -483,7 +483,7 @@
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
       var sb = n.sb !== undefined ? n.sb : n.t0;
-      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, oacc: n.oacc, slur: n.slur, vel: n.v || 80, grace: n.grace };
+      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, oacc: n.oacc, wsp: n.wsp, slur: n.slur, vel: n.v || 80, grace: n.grace };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -935,6 +935,8 @@
       var bn = Math.floor((nt.b + pk) / barBeats + 1e-6);
       if (bn !== barNo) { barNo = bn; inBar = {}; }
       var spl = sp[nt.m % 12], L = spl[0], acc = spl[1], oct = Math.floor(nt.m / 12) - 1;
+      /* MusicXML: the note as written (Trix: the Habanera's F# after its change to D major was drawn as Gb) */
+      if (nt.wsp && nt.wsp[0] >= 0 && Math.abs(nt.wsp[1]) <= 1) { L = nt.wsp[0]; acc = nt.wsp[1]; oct = nt.wsp[2]; }
       var step = L + 7 * (oct - 4), id = L + '/' + oct, have = id in inBar ? inBar[id] : (keyAcc[L] || 0), sign = null;
       if (acc !== have) { sign = ACC[String(acc)]; inBar[id] = acc; }
       return { nt: nt, step: step, y: yOf(step), hx: nt.grace ? xAt(nt.b + (nt.gn - nt.gi) / 480) - 12 * (nt.gn - nt.gi) - 2 : xAt(nt.b), len: nt.dl || nt.len, sign: sign, up: step < 6, beam: -1 };
