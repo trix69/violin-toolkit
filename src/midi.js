@@ -1199,6 +1199,7 @@
       if (ns[ni].e <= pos) { noteEls[ni].classList.add('done'); ni++; continue; }
       /* a note under a quarter of a second just lights up: no string wobble, rings or glow (Trix: fast pieces lagged) */
       var quick = (ns[ni].e - ns[ni].t) / speed < 0.25;
+      APP.board.hand(ns[ni].hand);   /* before on(): a new position centres the board first */
       APP.board.on(ns[ni].m, 'n' + ni, !quick, ns[ni].si, ns[ni].b, false, toneOf(ns[ni]), lvlOf(ns[ni]));   /* a harmonic sounds pure, pizzicato plucked */   /* its string, and its chord (both notes of a double stop stay lit) */
       noteEls[ni].classList.add('on');
       noteEls[ni].classList.toggle('quick', quick);
@@ -1248,6 +1249,7 @@
     for (k = Math.max(0, ni - 64); k < ns.length && ns[k].t <= pos + 1e-6; k++) if (ns[k].e > pos) show.push(k);
     /* in the short break between two notes: the one just played */
     if (!show.length) for (k = Math.min(ni, ns.length) - 1; k >= 0 && (lastB === null || ns[k].b === lastB); k--) { lastB = ns[k].b; show.push(k); }
+    if (show.length) APP.board.hand(ns[show[0]].hand);
     show.forEach(function (k) {
       APP.board.on(ns[k].m, 'n' + k, false, ns[k].si, ns[k].b, true);
       noteEls[k].classList.add('on'); noteEls[k].classList.add('quick');

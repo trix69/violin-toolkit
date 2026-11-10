@@ -244,6 +244,22 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   transform: translateY(-50%); line-height: 1.25;
 }
 .labels small { display: block; font-size: 8px; letter-spacing: 0.08em; opacity: 0.85; }
+/* MIDI player: the hand position (Trix), a numeral like the score's position marks */
+.labels .hand { color: #F2F5F3; }   /* brighter than the other labels: it changes as the tune moves */
+.labels .hand b { display: block; font: 600 20px/1 'Times New Roman', Times, serif; letter-spacing: 0; text-transform: none; transform: skewX(-14deg); }
+.labels .harmlbl[hidden] { display: none; }
+/* the hand position's keys: a faint glass panel under the keys, strings and rings; glides to the next position */
+.handbox {
+  position: absolute; z-index: 0; pointer-events: none;
+  left: calc(12.5% - var(--r) - 9px); right: calc(12.5% - var(--r) - 9px);
+  top: var(--y0); height: calc(var(--y1) - var(--y0));
+  border-radius: calc(var(--r) + 10px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .04));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16), 0 0 18px rgba(255, 255, 255, .05);
+  transition: top .35s cubic-bezier(.3, .7, .3, 1), height .35s cubic-bezier(.3, .7, .3, 1), opacity .25s;
+}
+.handbox[hidden] { display: block; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .handbox { transition: none; } }
 .labels small.fing:lang(zh) { display: inline; font-size: inherit; letter-spacing: 0; opacity: 1; }
 
 .string {
@@ -782,7 +798,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     stopAll();
     var key = keyObj();
     notes = buildNotes(key);
-    var html = '<div class="splits" id="splits"></div><div class="nut"></div>';
+    var html = '<div class="handbox" id="handbox" hidden></div><div class="splits" id="splits"></div><div class="nut"></div>';   /* handbox: the MIDI player's hand position, under everything */
     STRINGS.forEach(function (s, si) {
       html += '<div class="string" style="--x:' + (si * 25 + 12.5) + '%;--w:' + WIDTHS[si] + 'px"></div>';
     });
@@ -893,7 +909,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       if (sp) sp.innerHTML = WIDE_SPLITS.filter(function (n) { return n < playerN; }).map(function (n) {
         return '<div class="split" style="--y:' + yFor(n) + '"></div>';
       }).join('');
-      labels.innerHTML = '<span style="--y:var(--oy)">open</span>' + (playerN >= MAXN ? '<span style="--y:' + yFor(MAXN) + '">harm.<small>octave</small></span>' : '');   /* the octave harmonic only if the board reaches it */
+      labels.innerHTML = '<span style="--y:var(--oy)">open</span>' + (playerN >= MAXN ? '<span class="harmlbl" style="--y:' + yFor(MAXN) + '">harm.<small>octave</small></span>' : '');   /* the octave harmonic only if the board reaches it */
+      handLabel();
     }
     pcShow(pc ? pcCur : null);
     updateSub();
@@ -1464,11 +1481,46 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (el) follow(el);   /* after it joins the sounding notes, so a high note brings the board up to it */
   }
   /* a board taller than its box: keep every note sounding now (both notes of a double stop) in view */
+  /* the hand position the tune is played in (midi.js planner: 0 = 1st ... 8 = 9th), shown as a numeral in the label column (Trix) */
+  var pHand = -1, HAND_S = [2, 4, 5, 7, 9, 10, 12, 14, 15], ROMAN = ['\u2160', '\u2161', '\u2162', '\u2163', '\u2164', '\u2165', '\u2166', '\u2167', '\u2168'];
+  function handLabel() {
+    var old = labels.querySelector('.hand'), hl = labels.querySelector('.harmlbl'), box = document.getElementById('handbox');
+    if (old) old.remove();
+    var show = playerOn && pHand >= 0, s = show ? HAND_S[pHand] : 0, lo = Math.max(0.5, s - 1.5), hi = Math.min(s + 5.5, playerN + 0.5), mid = (lo + hi) / 2;
+    if (box) box.hidden = !show;
+    if (hl) hl.hidden = show && Math.abs(mid - MAXN) <= 1;   /* a numeral on the harmonic's row hides that label */
+    if (!show) return;
+    /* the box: every key the hand reaches in this position, 1st finger (low) to 4th, all four strings (Trix) */
+    box.style.setProperty('--y0', yFor(lo));
+    box.style.setProperty('--y1', yFor(hi));
+    var sp = document.createElement('span');
+    sp.className = 'hand';
+    sp.style.setProperty('--y', 'calc((' + yFor(lo) + ' + ' + yFor(hi) + ') / 2)');   /* level with the middle of the box's height (Trix) */
+    sp.innerHTML = '<b translate="no">' + ROMAN[pHand] + '</b><small>Position</small>';
+    labels.appendChild(sp);
+  }
+  /* a board taller than its box: when the hand moves to another position, bring that position's finger range to the middle, once,
+     so the board does not jump up and down with every note (Trix) */
+  function centreHand() {
+    if (stage.style.overflowY !== 'auto' || pHand < 0) return;
+    var s = HAND_S[pHand], lo = Math.max(1, s - 1), hi = Math.min(playerN, s + 5), base = 2 * (TOPN + 1);
+    var a = buttons[base + Math.min(lo, hi)], b = buttons[base + hi];
+    if (!a || !b) return;
+    var sr = stage.getBoundingClientRect(), cur = stage.scrollTop, ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
+    if (ar.top >= sr.top + 4 && br.bottom <= sr.bottom - 4) return;   /* already all on screen: stay put */
+    stage.scrollTop = Math.max(0, (ar.top + br.bottom) / 2 - sr.top + cur - stage.clientHeight / 2);
+  }
+  function setHand(h) {
+    h = h >= 0 && h < HAND_S.length ? h : -1;
+    if (h === pHand || h < 0) return;   /* unknown (a chord out of reach): keep the last one */
+    pHand = h; handLabel(); centreHand();
+  }
   function follow(latest) {
     if (stage.style.overflowY !== 'auto') return;
     var top = Infinity, bot = -Infinity, sr = stage.getBoundingClientRect(), cur = stage.scrollTop;
     pvoices.forEach(function (r) {   /* positions within the scrolled box */
       if (!r.el) return;
+      if (r.open && pHand >= 0) return;   /* an open string lights the whole string anyway: no scrolling back to the nut */
       var er = r.el.getBoundingClientRect();
       top = Math.min(top, er.top - sr.top + cur); bot = Math.max(bot, er.bottom - sr.top + cur);
     });
@@ -1506,12 +1558,12 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     relayout: function () { layout(); },   /* sizes only, no redraw (full screen settling: a redraw flashed the notes) */   /* a newly chosen tune starts at the open strings (Hermes F14) */
     /* on: player mode; top(): height of the player's own part above the board, so the board fits below it */
     player: function (on, top, n, key, flat, rot) {   /* rot(): full screen, the box { L, T, W, H } the turned board fills */
-      pAllOff(); stopAll(); playerOn = on; playerTop = top || null; playerRot = on && rot || null; playerKey = on ? key || null : null; playerFlat = on ? !!flat : null;
+      pAllOff(); stopAll(); pHand = -1; playerOn = on; playerTop = top || null; playerRot = on && rot || null; playerKey = on ? key || null : null; playerFlat = on ? !!flat : null;
       playerN = on ? Math.max(4, Math.min(PTOP, n || MAXN)) : MAXN;
       TOPN = on ? Math.max(MAXN, playerN) : MAXN;
       renderedEvenly = null; layout(); if (renderedEvenly === null) { renderedEvenly = false; render(); layout(); }
     },
-    on: pOn, off: pOff, allOff: pAllOff, has: function (id) { return pvoices.has(id); },
+    on: pOn, off: pOff, allOff: pAllOff, hand: setHand, has: function (id) { return pvoices.has(id); },
     click: function (strong, vol) {   /* the MIDI player's count-in and metronome: a tick, the first one stronger; vol 0-1 (the Mixer) */
       if (!ensureCtx()) return;
       var t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
