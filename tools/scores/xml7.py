@@ -11,7 +11,7 @@ T = [
     ('air/a3.musicxml', 'air.mxl', 'Air (BWV 1068)', 'Johann Sebastian Bach',
      'Mutopia Project #242, typeset by Jeff Covey.' + CONV + ' Repeats written out once, as in the edition\'s MIDI. Licensed under Creative Commons Attribution-ShareAlike 3.0.', 0),
     ('canon/c1.musicxml', 'canon.mxl', 'Canon', 'Johann Pachelbel',
-     'Mutopia Project #2047, typeset by Michael Fischer v. Mollard.' + CONV + ' Licensed under Creative Commons Attribution 4.0.', 0),
+     'Mutopia Project #2047, typeset by Michael Fischer v. Mollard.' + CONV + ' Tempo crotchet = 50. Licensed under Creative Commons Attribution 4.0.', 0),
     ('spring/sp1.musicxml', 'spring.mxl', 'Spring, 1st movement', 'Antonio Vivaldi',
      'Mutopia Project #301, typeset by smailliw.' + CONV + ' Licensed under Creative Commons Attribution-ShareAlike 3.0.', 0.5),
     ('winter/win1.musicxml', 'winter.mxl', 'Winter, 1st movement', 'Antonio Vivaldi',
