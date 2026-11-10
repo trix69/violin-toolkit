@@ -1141,7 +1141,7 @@
           var tUp = cStem ? !cUp : !up, ty = y + (tUp ? -6 : 6), tb = tUp ? -5 : 5;   /* the tie on the side away from the stem */
           var tx0 = px + 7, tx1 = cx2 - 7;
           cg.push('<path class="slur tie" d="M' + tx0 + ' ' + ty + 'C' + (tx0 + (tx1 - tx0) * 0.3) + ' ' + (ty + tb) + ' ' + (tx0 + (tx1 - tx0) * 0.7) + ' ' + (ty + tb) + ' ' + tx1 + ' ' + ty + '"/>');
-          items.push([cx2, '<g class="mp-n mp-cont" style="--hue:' + hueOf(nt) + '">' + cg.join('') + '</g>']);
+          items.push([cx2, '<g class="mp-n mp-cont" data-c="' + k + '" style="--hue:' + hueOf(nt) + '">' + cg.join('') + '</g>']);
           px = cx2;
         });
       }
@@ -1199,7 +1199,17 @@
     if (typeof placeAB === 'function') setTimeout(placeAB, 0);
     noteEls = [];
     Array.prototype.forEach.call(svg.querySelectorAll('.mp-n[data-k]'), function (el) { noteEls[+el.getAttribute('data-k')] = el; });
+    /* a long note's tied heads light up and grey out with it (Trix: Ave Maria's tied note stayed black) */
+    contObs.forEach(function (o) { o.disconnect(); }); contObs = [];
+    var conts = {};
+    Array.prototype.forEach.call(svg.querySelectorAll('.mp-cont[data-c]'), function (el) { (conts[el.getAttribute('data-c')] = conts[el.getAttribute('data-c')] || []).push(el); });
+    Object.keys(conts).forEach(function (k) {
+      var el = noteEls[+k]; if (!el || !window.MutationObserver) return;
+      var o = new MutationObserver(function () { conts[k].forEach(function (c) { c.setAttribute('class', el.getAttribute('class') + ' mp-cont'); }); });
+      o.observe(el, { attributes: true, attributeFilter: ['class'] }); contObs.push(o);
+    });
   }
+  var contObs = [];
   /* the playhead sits a third of the way across; the score slides under it */
   function scroll() {
     if (!song) return;
