@@ -1369,8 +1369,11 @@
     var v = songSel.value;
     songSel.textContent = '';
     var tag = window.I18N && I18N.lang === 'zh' ? ' [已导入]' : ' [imported]';   /* imported files marked in the list (Trix) */
-    songs.forEach(function (s, i) {
-      var o = document.createElement('option');
+    /* imported files first, newest at the top, then the built-ins (Trix); values stay indexes into songs */
+    var order = songs.map(function (s, i) { return i; });
+    order = order.filter(function (i) { return !songs[i].demo; }).reverse().concat(order.filter(function (i) { return songs[i].demo; }));
+    order.forEach(function (i) {
+      var s = songs[i], o = document.createElement('option');
       o.value = i; o.textContent = s.kept ? s.title + tag : s.title;
       if (s.kept) o.setAttribute('translate', 'no');   /* a file name stays as it is in 中文; the tag is set here */
       songSel.appendChild(o);
