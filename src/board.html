@@ -368,6 +368,12 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
 .stage.rot { grid-template-columns: 1fr 0; border-radius: 12px; z-index: 1; }   /* MIDI full screen: turned a quarter turn (Trix); no label column */
 .stage.rot .labels { display: none; }
 .stage.rot .note::after { transform: rotate(90deg); }   /* the letters stay upright */
+/* full screen has no label column: the position numeral sits in the middle of its box, between the D and A strings (Trix) */
+.handbox .hb-n { display: none; }
+.stage.rot .handbox { display: grid; place-items: center; }
+.stage.rot .handbox[hidden] { display: grid; }
+.stage.rot .handbox .hb-n { display: block; transform: rotate(90deg) skewX(-14deg); color: #F2F5F3; opacity: .9;
+  font: 600 calc(var(--r) * 1.5)/1 'Times New Roman', Times, serif; text-shadow: 0 1px 6px rgba(0, 0, 0, .35); }
 .note.beyond { display: none; }   /* MIDI player: rows past the tune's range (display none: hidden rows must not stretch the scroll box, or follow() scrolls into empty space) */
 .vib.still { animation: none; transform: translateX(-50%); }
 .vib.still::before { display: none; }
@@ -1498,6 +1504,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     if (!show) return;
     /* the box: every key the hand reaches in this position, 1st finger (low) to 4th, all four strings; 1st position takes the open strings too (Trix) */
     var ed = boxEdges(box, lo, hi);
+    box.innerHTML = '<b class="hb-n" translate="no">' + ROMAN[pHand] + '</b>';
     var sp = document.createElement('span');
     sp.className = 'hand';
     sp.style.setProperty('--y', 'calc((' + ed[0] + ' + ' + ed[1] + ') / 2)');   /* level with the middle of the box's height (Trix) */
