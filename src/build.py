@@ -263,6 +263,10 @@ html[lang="zh-CN"] {
 .shell[data-view="board"] .tabs .tab[data-view="metronome"] { display: grid; }
 @media (max-width: 480px) { .tab { width: 42px; height: 42px; } .tabs { gap: 6px; } .tab svg { width: 22px; height: 22px; } .appbar h1 { font-size: 26px; letter-spacing: -0.02em; } }
 @media (max-width: 350px) { .appbar { gap: 6px; } .tabs { gap: 4px; } .tab { width: 40px; height: 40px; } .appbar h1 { font-size: 22px; } }   /* "Fingerboard" clear of the three buttons at 320 px */
+/* the tool's icon before each page title (Trix), in the accent colour, sized with the title */
+.appbar h1 { white-space: nowrap; }
+.appbar h1 .ttl-ico { display: inline-block; width: 0.8em; height: 0.8em; margin-right: 0.28em; vertical-align: -0.06em; color: var(--accent); }
+.appbar h1 .ttl-ico svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 /* ---- settings sheet ---- */
 .tab-set { margin-left: 2px; }
 .sheet {
@@ -1355,27 +1359,27 @@ markup = f"""
   <a class="skip" href="#main" id="skip">Skip to content</a>
   <header class="appbar">
     <div id="ttl-board">
-      <h1>Fingerboard</h1>
+      <h1><span class="ttl-ico">{ICON_BOARD}</span>Fingerboard</h1>
       <p class="appsub" id="sub">G major · first position</p>
     </div>
     <div id="ttl-tuner" hidden>
-      <h1>Tuner</h1>
+      <h1><span class="ttl-ico">{ICON_TUNER}</span>Tuner</h1>
       <p class="appsub">G · D · A · E</p>
     </div>
     <div id="ttl-metronome" hidden>
-      <h1>Metronome</h1>
+      <h1><span class="ttl-ico">{ICON_MET}</span>Metronome</h1>
       <p class="appsub" id="ttl-metronome-sub">80 BPM · 4/4</p>
     </div>
     <div id="ttl-symbols" hidden>
-      <h1>Symbols</h1>
+      <h1><span class="ttl-ico">{ICON_SYM}</span>Symbols</h1>
       <p class="appsub">Tap for the meaning</p>
     </div>
     <div id="ttl-midi" hidden>
-      <h1>MIDI Player</h1>
+      <h1><span class="ttl-ico">{ICON_MIDI}</span>MIDI Player</h1>
       <p class="appsub" id="ttl-midi-sub"></p>
     </div>
     <div id="ttl-fingering" hidden>
-      <h1>Fingerings</h1>
+      <h1><span class="ttl-ico">{ICON_FING}</span>Fingerings</h1>
       <p class="appsub">Automatic fingerings · PDF</p>
     </div>
     <nav class="tabs" aria-label="Tools">
