@@ -1,0 +1,10 @@
+# The version service for Violin Toolkit's automatic update check (see README.md). Deployed headless with
+# worker/deploy.sh (wrangler + CLOUDFLARE_API_TOKEN from ~/projects/cloudflare.env; no browser login).
+name = "violin-toolkit-version"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[[analytics_engine_datasets]]
+binding = "CHECKS"
+dataset = "violin_toolkit_checks"

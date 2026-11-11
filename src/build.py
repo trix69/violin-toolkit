@@ -1136,8 +1136,39 @@ nav_js = """(function () {
       });
     }
     /* the release on the site when it is newer than this copy, else null (rejects when offline) */
+    /* the check goes to our version service (a Cloudflare Worker), which answers with the site's own version.json
+       unchanged and counts the check: which kind of app, its version, and a random id made on this device; no IP,
+       no cookies (Trix; docs/privacy.html). If it fails, once more straight to the site, as before. The test site
+       keeps asking its own version.json directly (the service only knows the live one) */
+    var SERVICE = 'https://violin-toolkit-version.trix69.workers.dev/version.json';
+    var SITE = APK || IOSAPP ? 'https://trix69.github.io/violin-toolkit/version.json' : 'version.json';
+    var TESTSITE = /-test-$/.test(btn.dataset.cache || '');
+    function clientTag() {
+      if (window.VTPlay) return 'play';
+      if (IOSAPP) return 'ios';
+      if (APK) return 'apk';
+      try { if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) return 'pwa'; } catch (e) {}
+      return 'web';
+    }
+    function installId() {   /* 16 hex characters, made once on this device; none when storage is unavailable */
+      try {
+        var v = localStorage.getItem('vt-id');
+        if (!/^[0-9a-f]{16}$/.test(v || '')) {
+          var a = new Uint8Array(8); crypto.getRandomValues(a);
+          v = Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+          localStorage.setItem('vt-id', v);
+        }
+        return v;
+      } catch (e) { return ''; }
+    }
+    function getJson(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); }
+    function versionJson() {
+      if (TESTSITE) return getJson(SITE);
+      var id = installId(), q = '?c=' + clientTag() + '&v=' + encodeURIComponent(btn.dataset.version || '') + (id ? '&id=' + id : '');
+      return getJson(SERVICE + q).catch(function () { return getJson(SITE); });
+    }
     function newer() {
-      return fetch(APK || IOSAPP ? 'https://trix69.github.io/violin-toolkit/version.json' : 'version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+      return versionJson().then(function (j) {
         if (APK || IOSAPP) return num(j.version) > num(btn.dataset.version) ? j : null;   /* the app: only a higher version number */
         /* a different build stamp means a new release (test builds keep the same version number) */
         return (j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version)) ? j : null;
