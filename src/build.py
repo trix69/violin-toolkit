@@ -335,6 +335,8 @@ html[lang="zh-CN"] {
 .pp-body a { color: var(--accent); font-weight: 600; }
 .pp-msg { color: var(--t-bad, #B5566B); font-weight: 600; }
 .pp-card .upd-row { flex: none; }
+.pp-card .pp-close { flex: none; position: relative; }
+.pp-card .pp-close::before { display: none; }
 .pp-state { margin-left: auto; color: var(--muted); font: 400 13px var(--font-note); }
 .upd-msg { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
 .upd-note { margin: 6px 0 0; font: 400 13px/1.5 var(--font-note); color: var(--muted); }
@@ -1338,7 +1340,7 @@ nav_js = """(function () {
      (for testing; not a visible control). If storage is unavailable the screen shows once per launch. */
   var PPV = document.documentElement.getAttribute('data-pp') || '';
   var pp = document.getElementById('pp'), ppTitle = document.getElementById('ppTitle'), ppMsg = document.getElementById('ppMsg');
-  var ppMem = null, ppSeen = false, ppDate = '', ppInert = [], ppBack = null;
+  var ppMem = null, ppSeen = false, ppDate = '', ppInert = [], ppBack = null, ppView = false;   /* ppView: opened from Settings to read, nothing to agree */
   function ppGet() { try { return localStorage.getItem('violin-pp') || ''; } catch (e) { return ppMem || ''; } }
   function ppPut(v) { ppMem = v; try { localStorage.setItem('violin-pp', v); } catch (e) {} }
   if (/(?:^|[#,&;])pp=reset(?=$|[,&;])/i.test(location.hash)) { try { localStorage.removeItem('violin-pp'); } catch (e) {} }
@@ -1348,16 +1350,17 @@ nav_js = """(function () {
   }
   function ppKey(e) {
     if (pp.hidden) return;
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }   /* no way round it */
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (ppView) ppClose(); return; }   /* asking: no way round it */
     if (e.key === 'Tab') {
-      var els = [document.getElementById('ppLink'), document.getElementById('ppNo'), document.getElementById('ppYes')];
+      var els = ppView ? [document.getElementById('ppLink'), document.getElementById('ppDone')] : [document.getElementById('ppLink'), document.getElementById('ppNo'), document.getElementById('ppYes')];
       var i = els.indexOf(document.activeElement);
       e.preventDefault(); e.stopPropagation();
       els[(i + (e.shiftKey ? els.length - 1 : 1) + els.length) % els.length].focus();
     }
   }
-  function ppOpen(date, updated) {
-    ppDate = date; ppSeen = true;
+  function ppOpen(date, updated, view) {
+    ppDate = date; ppView = !!view; if (!view) ppSeen = true;
+    document.getElementById('ppAsk').hidden = ppView; document.getElementById('ppDone').hidden = !ppView;
     ppTitle.textContent = updated ? 'Privacy policy updated' : 'Privacy policy';
     document.getElementById('ppDate').textContent = 'Last updated ' + date;
     ppMsg.hidden = true;
@@ -1384,7 +1387,11 @@ nav_js = """(function () {
   document.getElementById('ppLink').addEventListener('click', function (e) {   /* offline: say so rather than open a dead page */
     if (navigator.onLine === false) { e.preventDefault(); ppMsg.textContent = 'You are offline. The full policy opens when you are online; the summary above covers it.'; ppMsg.hidden = false; }
   });
-  document.getElementById('ppShow').addEventListener('click', function () { ppOpen(ppGet() > PPV ? ppGet() : PPV, false); });   /* Settings > Help: look again */
+  document.getElementById('ppShow').addEventListener('click', function () {   /* Settings > Help: read it again; asks only if not yet agreed */
+    var a = ppGet(); ppOpen(a > PPV ? a : PPV, false, a >= PPV);
+  });
+  document.getElementById('ppDone').addEventListener('click', function () { ppClose(); });
+  pp.addEventListener('click', function (e) { if (ppView && e.target === pp) ppClose(); });
   /* the update check hands over the site's policy date (version.json pp): a newer one than accepted asks again, once */
   APP.ppRemote = function (d) {
     if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d || '') || d <= PPV || ppGet() >= d || !pp.hidden || ppSeen) return;
@@ -1712,10 +1719,11 @@ markup = f"""
       <p><a id="ppLink" href="https://trix69.github.io/violin-toolkit/docs/privacy.html" target="_blank" rel="noopener">Read the full policy</a></p>
       <p class="pp-msg" id="ppMsg" role="status" hidden></p>
     </div>
-    <div class="upd-row">
+    <div class="upd-row" id="ppAsk">
       <button type="button" class="upd-later" id="ppNo">Decline</button>
       <button type="button" class="sheet-done" id="ppYes">Accept</button>
     </div>
+    <button type="button" class="sheet-done pp-close" id="ppDone" hidden>Close</button>
   </div>
 </div>
 <div class="sheet" id="delAsk" role="dialog" aria-modal="true" aria-labelledby="delAskTitle" aria-describedby="delAskMsg" hidden>
