@@ -525,6 +525,7 @@ SCORE_CREDITS = [
     ('Spring (La primavera), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Autumn (L\'autunno), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 350 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit, bar 2 made like bar 1", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Winter (L\'inverno), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 351 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML and tempo changed to crotchet = 80 by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
+    ('Summer (L\'estate), 3rd movement', 'Antonio Vivaldi', "Mutopia Project no. 336 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Serenade (K525), 1st movement', 'Wolfgang Amadeus Mozart', 'Mutopia Project no. 900 (Eine kleine Nachtmusik K. 525); MusicXML by Violin Toolkit', 'Public Domain'),
 ]
 import html as _h
@@ -548,6 +549,7 @@ SCORE_SOURCE = {
     'spring.mxl': 'Mutopia Project #301 (typeset by smailliw), MusicXML by Violin Toolkit · CC BY-SA 3.0',
     'autumn.mxl': 'Mutopia Project #350 (typeset by smailliw), MusicXML by Violin Toolkit · CC BY-SA 3.0',
     'winter.mxl': 'Mutopia Project #351 (typeset by smailliw), MusicXML and tempo by Violin Toolkit · CC BY-SA 3.0',
+    'summer.mxl': 'Mutopia Project #336 (typeset by smailliw), MusicXML by Violin Toolkit · CC BY-SA 3.0',
     'serenade.mxl': 'Mutopia Project #900, MusicXML by Violin Toolkit · Public Domain',
 }
 MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
@@ -567,6 +569,7 @@ MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
               ('spring.mxl', 'Spring (La primavera), 1st movement', 'Antonio Vivaldi'),
               ('autumn.mxl', 'Autumn (L\'autunno), 1st movement', 'Antonio Vivaldi'),
               ('winter.mxl', 'Winter (L\'inverno), 1st movement', 'Antonio Vivaldi'),
+              ('summer.mxl', 'Summer (L\'estate), 3rd movement', 'Antonio Vivaldi'),
               ('serenade.mxl', 'Serenade (K525), 1st movement', 'Wolfgang Amadeus Mozart')]
 midi_js = open(SP + 'midi.js').read()
 assert midi_js.count('/*DEMOS*/[]') == 1

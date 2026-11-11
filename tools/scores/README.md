@@ -73,3 +73,11 @@ held melody note leaked in (Ode bars 2, 6, 8, 14, 16; Mountain King bars 29, 33,
 as ode.mxl / mountain_king.mxl (and the .mid copies) for the phone apps.
 4. `pc_transpose.py porunacabeza.mxl out.mxl` (Trix, 2026-11-11): down a major second into G (verse G major, refrain
    G minor), the violin also up an octave; key signatures moved two fifths, printed accidentals dropped.
+
+## Summer, 3rd movement (2026-11-12)
+
+Mutopia #336 (`summer-lys.zip`: `summer3.ly` solo, `summer3a-d.ly` strings), CC BY-SA 3.0. `lyclean.py` on each; in the
+solo the two `\context Voice = SoloUp/SoloDown` pairs (bars 51-54 held D under quavers, bars 72-76 held notes over
+semiquavers) -> `<< {…} \\ {…} >>`; wrapper like Autumn's with `\tempo 4 = 150` (the edition's MIDI); then
+`pack.py sum3.musicxml summer.mxl …`. Checks: mlen.py clean (130 bars); the player's solo notes per bar equal
+`summer-score-2.mid` except bars 52-54, where the MIDI drops the D quavers that coincide with the held D.
