@@ -1115,15 +1115,15 @@ nav_js = """(function () {
        download (Play policy); Check for updates opens the app's Play page (Trix) */
     var PLAY = APK && !!window.VTPlay, PLAY_URL = 'https://play.google.com/store/apps/details?id=io.github.trix69.violintoolkit';
     /* the store apps (Trix): they ask the website whether a newer version exists and send the user to the store
-       page; they never update themselves. APP_STORE_ID stays empty until the App Store listing exists, and the
-       iPhone app does no automatic check until then (no prompt with a dead button) */
+       page; they never update themselves. APP_STORE_ID stays empty until the App Store listing exists; until then
+       the iPhone app's button opens an App Store search for the app (Trix: check on launch like the others) */
     var APP_STORE_ID = '';
-    var STORE = PLAY || (IOSAPP && !!APP_STORE_ID);
+    var STORE = PLAY || IOSAPP;   /* the iPhone app checks on launch too (Trix); until the listing exists its button opens an App Store search */
     function openStore() {
       if (PLAY) {   /* the Play app; if nothing opens it (no Play on the phone) the web listing after 1.5 s */
         location.href = 'market://details?id=io.github.trix69.violintoolkit';
         setTimeout(function () { if (!document.hidden) location.href = PLAY_URL; }, 1500);
-      } else location.href = 'itms-apps://apps.apple.com/app/id' + APP_STORE_ID;
+      } else location.href = APP_STORE_ID ? 'itms-apps://apps.apple.com/app/id' + APP_STORE_ID : 'itms-apps://apps.apple.com/search?term=Violin%20Toolkit';
     }
     function num(v) { var p = String(v).split('.'); return +p[0] * 100 + +((p[1] || '0') + '0').slice(0, 2); }
     function say(t) { msg.textContent = t; }
@@ -1201,7 +1201,6 @@ nav_js = """(function () {
       newer().then(function (j) {
         if (!j) { busy = false; say('Up to date'); return; }
         if (APK || STORE) { busy = false; say('Version ' + j.version + ' available'); ask(j, true); return; }   /* the website APK: download; a store app: its store page */
-        if (IOSAPP) { busy = false; say('Version ' + j.version + ' available'); return; }
         return install(j);
       }).catch(function () { busy = false; say('Can’t check while offline'); });
     });

@@ -23,6 +23,5 @@ Engine); until then deploy with `WRANGLER_CONFIG=wrangler.nobinding.toml worker/
 nothing recorded).
 
 What the numbers cannot see: launches while offline (no request), plain-browser visits without a service worker
-(no automatic check, so first visits are invisible), the iPhone app until it has an App Store listing (it checks
-only when "Check for updates" is tapped), and the test site (it asks its own version.json). Clearing site data
+(no automatic check, so first visits are invisible), and the test site (it asks its own version.json). Clearing site data
 makes a new install id. "Check for updates" taps are counted too.
