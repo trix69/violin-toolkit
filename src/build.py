@@ -324,6 +324,18 @@ html[lang="zh-CN"] {
 #upd { z-index: 140; }
 #fgWarn { z-index: 140; }
 #delAsk { z-index: 140; }
+/* the privacy policy screen (Trix): above everything (start overlay 100, tour 105, sheets 140); the body scrolls,
+   the title, date and buttons stay in view */
+#pp { z-index: 200; }
+.pp-card { display: flex; flex-direction: column; overflow: hidden; }
+.pp-card h2 { margin: 0; outline: none; }
+.pp-date { margin: 4px 0 0; color: var(--muted); font: 400 13px var(--font-note); }
+.pp-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-top: 10px; font: 400 15px/1.5 var(--font-note); }
+.pp-body p { margin: 0 0 10px; }
+.pp-body a { color: var(--accent); font-weight: 600; }
+.pp-msg { color: var(--t-bad, #B5566B); font-weight: 600; }
+.pp-card .upd-row { flex: none; }
+.pp-state { margin-left: auto; color: var(--muted); font: 400 13px var(--font-note); }
 .upd-msg { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
 .upd-note { margin: 6px 0 0; font: 400 13px/1.5 var(--font-note); color: var(--muted); }
 .upd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1169,6 +1181,7 @@ nav_js = """(function () {
     }
     function newer() {
       return versionJson().then(function (j) {
+        if (j && j.pp && APP.ppRemote) APP.ppRemote(j.pp);   /* the policy's date on the site (no extra request) */
         if (APK || IOSAPP) return num(j.version) > num(btn.dataset.version) ? j : null;   /* the app: only a higher version number */
         /* a different build stamp means a new release (test builds keep the same version number) */
         return (j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version)) ? j : null;
@@ -1221,7 +1234,7 @@ nav_js = """(function () {
     function ask(j, now) {   /* now: asked for (Check for updates), so not held back by the automatic-check setting */
       if ((!APP.autoUpd && !now) || busy) return;
       var tips = document.getElementById('coach');   /* a first-use tour makes the rest of the page inert: wait for it */
-      if (anyBusy() || document.hidden || (tips && !tips.hidden)) { setTimeout(function () { ask(j); }, tips && !tips.hidden ? 1000 : 5000); return; }
+      if (anyBusy() || document.hidden || (tips && !tips.hidden) || (APP.ppOpen && APP.ppOpen())) { setTimeout(function () { ask(j); }, tips && !tips.hidden ? 1000 : 5000); return; }
       pending = j; offered = j.build || j.version;
       document.getElementById('updMsg').textContent = STORE ? 'Version ' + j.version + ' is available.' : APK ? 'Version ' + j.version + ' is available. Download the new Android app from the website to update.' : 'Version ' + j.version + ' is ready. Update now?';
       if (STORE) { updNow.textContent = PLAY ? 'Update in Google Play' : 'Update on the App Store'; }
@@ -1315,6 +1328,71 @@ nav_js = """(function () {
   /* switch tool (Trix): back to the start screen to pick another tool; Escape returns to this one */
   document.getElementById('switchTool').addEventListener('click', function () { if (APP.coach) APP.coach.interrupt(); openLaunch(true, this); });
   if (!map[h]) openLaunch();
+
+  /* Privacy policy (Trix): its version is its date (src/PP_VERSION, stamped into this page as data-pp). Before the
+     app is used, and again whenever that date is newer than the one accepted, a screen asks for agreement: it sits
+     above everything, the page behind is inert, no Escape, no tap-outside; Accept stores the date (localStorage
+     violin-pp), Decline leaves the app closed with Accept still offered. The page's own date needs no request, so
+     it works offline; the update check also passes on the date in version.json (pp), so a newer policy on the
+     site is noticed without an extra request. #pp=reset in the address clears the acceptance for this visit
+     (for testing; not a visible control). If storage is unavailable the screen shows once per launch. */
+  var PPV = document.documentElement.getAttribute('data-pp') || '';
+  var pp = document.getElementById('pp'), ppTitle = document.getElementById('ppTitle'), ppMsg = document.getElementById('ppMsg');
+  var ppMem = null, ppSeen = false, ppDate = '', ppInert = [], ppBack = null;
+  function ppGet() { try { return localStorage.getItem('violin-pp') || ''; } catch (e) { return ppMem || ''; } }
+  function ppPut(v) { ppMem = v; try { localStorage.setItem('violin-pp', v); } catch (e) {} }
+  if (/(?:^|[#,&;])pp=reset(?=$|[,&;])/i.test(location.hash)) { try { localStorage.removeItem('violin-pp'); } catch (e) {} }
+  function ppState() {
+    var a = ppGet(), el = document.getElementById('ppState');
+    if (el) el.textContent = a ? 'Accepted ' + a : 'Not accepted';
+  }
+  function ppKey(e) {
+    if (pp.hidden) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }   /* no way round it */
+    if (e.key === 'Tab') {
+      var els = [document.getElementById('ppLink'), document.getElementById('ppNo'), document.getElementById('ppYes')];
+      var i = els.indexOf(document.activeElement);
+      e.preventDefault(); e.stopPropagation();
+      els[(i + (e.shiftKey ? els.length - 1 : 1) + els.length) % els.length].focus();
+    }
+  }
+  function ppOpen(date, updated) {
+    ppDate = date; ppSeen = true;
+    ppTitle.textContent = updated ? 'Privacy policy updated' : 'Privacy policy';
+    document.getElementById('ppDate').textContent = 'Last updated ' + date;
+    ppMsg.hidden = true;
+    if (APP.coach) APP.coach.interrupt();
+    ppBack = document.activeElement;
+    ppInert = Array.prototype.filter.call(document.body.children, function (el) { return el !== pp && !el.inert; });
+    ppInert.forEach(function (el) { el.inert = true; });
+    pp.hidden = false;
+    window.addEventListener('keydown', ppKey, true);
+    ppTitle.focus();
+  }
+  function ppClose() {
+    pp.hidden = true;
+    window.removeEventListener('keydown', ppKey, true);
+    ppInert.forEach(function (el) { el.inert = false; }); ppInert = [];
+    if (!launch.hidden) { try { document.getElementById('launchCard').focus({ preventScroll: true }); } catch (e) {} }
+    else if (ppBack && ppBack.focus) { try { ppBack.focus(); } catch (e) {} }
+    if (APP.coach) APP.coach.maybe(cur);   /* the tips tour waited for this */
+  }
+  document.getElementById('ppYes').addEventListener('click', function () { ppPut(ppDate); ppState(); ppClose(); });
+  document.getElementById('ppNo').addEventListener('click', function () {
+    ppMsg.textContent = 'The app needs your agreement to the privacy policy to run.'; ppMsg.hidden = false;
+  });
+  document.getElementById('ppLink').addEventListener('click', function (e) {   /* offline: say so rather than open a dead page */
+    if (navigator.onLine === false) { e.preventDefault(); ppMsg.textContent = 'You are offline. The full policy opens when you are online; the summary above covers it.'; ppMsg.hidden = false; }
+  });
+  document.getElementById('ppShow').addEventListener('click', function () { ppOpen(ppGet() > PPV ? ppGet() : PPV, false); });   /* Settings > Help: look again */
+  /* the update check hands over the site's policy date (version.json pp): a newer one than accepted asks again, once */
+  APP.ppRemote = function (d) {
+    if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d || '') || d <= PPV || ppGet() >= d || !pp.hidden || ppSeen) return;
+    ppOpen(d, true);
+  };
+  APP.ppOpen = function () { return !pp.hidden; };
+  ppState();
+  if (PPV && ppGet() < PPV) ppOpen(PPV, !!ppGet());
 })();
 """
 
@@ -1525,6 +1603,7 @@ markup = f"""
     <button type="button" class="howto-btn" id="openUsage" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
+    <button type="button" class="howto-btn" id="ppShow" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 2.6v5.4c0 4.2-2.9 7.8-7 9-4.1-1.2-7-4.8-7-9V6.1z"/><path d="M9 12l2 2 4-4"/></svg><span>Privacy policy</span><small class="pp-state" id="ppState"></small></button>
     <button type="button" class="howto-btn" id="openCredits" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2"/></svg><span>Score credits</span></button>
     <div class="pair" id="linkPair">
       <div>
@@ -1624,6 +1703,21 @@ markup = f"""
     </div>
   </div>
 </div>
+<div class="sheet pp-sheet" id="pp" role="dialog" aria-modal="true" aria-labelledby="ppTitle" aria-describedby="ppText" hidden>
+  <div class="sheet-card pp-card">
+    <h2 id="ppTitle" tabindex="-1">Privacy policy</h2>
+    <p class="pp-date" id="ppDate"></p>
+    <div class="pp-body">
+      <p id="ppText">Violin Toolkit has no accounts and no cookies. Your settings, practice time and imported tunes stay on this device. The only time the app goes online is to check for a new version (it sends the app version, the kind of app and a random number made on this device, which we count) and, on the phone builds, to fetch a built-in tune the first time you play it.</p>
+      <p><a id="ppLink" href="https://trix69.github.io/violin-toolkit/docs/privacy.html" target="_blank" rel="noopener">Read the full policy</a></p>
+      <p class="pp-msg" id="ppMsg" role="status" hidden></p>
+    </div>
+    <div class="upd-row">
+      <button type="button" class="upd-later" id="ppNo">Decline</button>
+      <button type="button" class="sheet-done" id="ppYes">Accept</button>
+    </div>
+  </div>
+</div>
 <div class="sheet" id="delAsk" role="dialog" aria-modal="true" aria-labelledby="delAskTitle" aria-describedby="delAskMsg" hidden>
   <div class="sheet-card" id="delAskCard" tabindex="-1">
     <h2 id="delAskTitle">Delete this file?</h2>
@@ -1673,7 +1767,26 @@ open(DIST + 'violin-fingerboard.html', 'w', encoding='utf-8').write(doc)
 i = doc.index('<div class="shell"')
 h, b = doc[:i], doc[i:]
 h = h.replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')
-out = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+# The privacy policy's version is its date (Trix): src/PP_VERSION, stamped into docs/privacy.html (meta + the visible
+# "Last updated" lines), docs/privacy-version.json and the app page (data-pp on <html>); the build fails if they disagree
+PP = open(SP + 'PP_VERSION').read().strip()
+assert re.fullmatch(r'\d{4}-\d{2}-\d{2}', PP), 'src/PP_VERSION must be YYYY-MM-DD'
+_DOCS = os.path.join(os.path.dirname(SP.rstrip('/')), 'docs') + '/'
+_pp = open(_DOCS + 'privacy.html', encoding='utf-8').read()
+_pp = re.sub(r'<meta name="pp-version" content="[^"]*">\n?', '', _pp)
+_pp = _pp.replace('</title>', '</title>\n<meta name="pp-version" content="%s">' % PP, 1)
+_pp = re.sub(r'<p class="date">Last updated [^<]*</p>', '<p class="date">Last updated %s</p>' % PP, _pp)
+_pp = re.sub(r'<p class="date">最后更新：[^<]*</p>', '<p class="date">最后更新：%s</p>' % PP, _pp)
+open(_DOCS + 'privacy.html', 'w', encoding='utf-8').write(_pp)
+open(_DOCS + 'privacy-version.json', 'w').write('{"version":"%s"}\n' % PP)
+out = ('<!doctype html>\n<html lang="en" data-pp="' + PP + '">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
        + h + '<style>:root{color-scheme:light}[hidden]{display:none!important}body{margin:0;font-size:14px}</style>\n</head>\n<body>\n' + b + '</body>\n</html>\n')
 open(DIST + 'standalone.html', 'w', encoding='utf-8').write(out)
+# the three places agree, or the build stops
+_chk = open(_DOCS + 'privacy.html', encoding='utf-8').read()
+_found = {'meta': re.findall(r'<meta name="pp-version" content="([^"]*)">', _chk), 'en date': re.findall(r'<p class="date">Last updated ([^<]*)</p>', _chk),
+          'zh date': re.findall(r'<p class="date">最后更新：([^<]*)</p>', _chk), 'json': re.findall(r'"version":"([^"]*)"', open(_DOCS + 'privacy-version.json').read()),
+          'page': re.findall(r'<html lang="en" data-pp="([^"]*)">', out)}
+for _k, _v in _found.items():
+    if _v != [PP]: sys.exit('privacy policy version mismatch: %s has %r, src/PP_VERSION has %s' % (_k, _v, PP))
 print('built', len(doc))

@@ -63,7 +63,7 @@ if TEST:
     # Any case, - or _; a bare 'violin-' fragment means a key built by concatenation, also flagged.
     SHARED = {'violin-lang', 'violin-theme', 'violin-names', 'violin-a4', 'violin-temper', 'violin-metronome-v2', 'violin-flash', 'violin-keys', 'violin-autoupdate', 'violin-midi-loop', 'violin-midi-mix', 'violin-midi-vib',
               'violin-fingerboard-v2', 'vt-mode',
-              'vt-a4-v2', 'vt-id',                                  # tuner.html's old A4 select, cut out by build.py
+              'vt-a4-v2', 'vt-id', 'violin-pp',                                  # tuner.html's old A4 select, cut out by build.py
               'violin-toolkit-', 'violin-toolkit-test-'}   # cache-name prefixes (data-cache), not keys
     keylike = re.compile(r"""(['"`])((?:violin|vt)[_-][A-Za-z0-9_-]+)\1""", re.I)
     frag = re.compile(r"""(['"`])((?:violin|vt)[_-])\1""", re.I)
@@ -103,7 +103,7 @@ for f in ('icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'og-image.png'
     shutil.copy(SRC + 'icons/' + f, OUT + f)
 open(OUT + 'index.html', 'w', encoding='utf-8').write(out)
 # read by the Settings version button to see whether a newer release is online
-json.dump({'version': app_version, 'build': ver}, open(OUT + 'version.json', 'w'))
+json.dump({'version': app_version, 'build': ver, 'pp': open(SRC + 'PP_VERSION').read().strip()}, open(OUT + 'version.json', 'w'))   # pp: the privacy policy's date (the app re-asks when it is newer)
 json.dump({
   "name": NAME, "short_name": "VT Test" if TEST else "Violin Toolkit", "description": "Violin tuner, fingerboard chart, metronome, MIDI player and music symbols.",
   "id": "/violin-toolkit-test/" if TEST else "/violin-toolkit/", "lang": "en", "dir": "ltr", "categories": ["music", "education", "utilities"],
