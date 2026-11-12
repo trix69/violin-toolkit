@@ -26,6 +26,7 @@
 #view-fingering .fg-fitbar.zoomed .fg-fit { margin-right: 16px; }   /* the full-width page keeps 16 px from the window edge */
 /* more controls (Trix): − + back-to-start mixer loop A–B, between play and full width; they wrap on narrow phones */
 #view-fingering .fg-fitbar { flex-wrap: wrap; height: auto; min-height: 32px; row-gap: 6px; }
+@media (hover: none) and (pointer: coarse) { #view-fingering .fg-fitbar { top: max(48px, calc(env(safe-area-inset-top, 0px) + 12px)); } }   /* phones: clear of the browser's blurred top edge (Trix, iPhone Safari) */
 #view-fingering .fgx { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; pointer-events: none; }
 #view-fingering .fgx[hidden] { display: none; }
 #view-fingering .fg-mini { pointer-events: auto; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; font: 600 18px/1 var(--font-note); }
