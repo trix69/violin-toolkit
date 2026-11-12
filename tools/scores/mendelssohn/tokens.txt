@@ -1,0 +1,16 @@
+; Mendelssohn Op. 64, 1st mvt, violin, from the Breitkopf violin part (IMSLP #913234), checked bar by bar
+P1 1: r:1
+P1 2: r:2 B5:4. B5:8
+P1 3: B5:2 G5:4 E6:4
+P1 4: E6:2 B5:4 G6:4
+P1 5: F#6:4 E6:4 C6:4 E6:4
+P1 6: B5:2. B5:4
+P1 7: C6:4 B5:8 A5:8 A5:4 A5:4
+P1 8: E6:2. B5:4
+P1 9: C6:4 B5:8 A5:8 A5:4 A5:4
+P1 10: D#6:2 B5:4. B5:8
+P1 11: B5:2 G5:4 E6:4
+P1 12: E6:2 B5:4 G6:4
+P1 13: F#6:4 E6:4 C6:4 E6:4
+P1 14: B5:2. G5:8 A5:8
+P1 15: B5:4 B5:8 B5:8 D6:8 C6:8 C6:8 B5:8
