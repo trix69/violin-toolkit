@@ -261,6 +261,7 @@ html[lang="zh-CN"] {
    metronome on the fingerboard; the other tool buttons stay in the markup for show() but are not shown */
 .tabs .tab[data-view] { display: none; }
 .shell[data-view="board"] .tabs .tab[data-view="metronome"] { display: grid; }
+.shell[data-view="midi"] .tabs .tab[data-view="fingering"], .shell[data-view="fingering"] .tabs .tab[data-view="midi"] { display: grid; }   /* the two tools, one tap apart (Trix) */
 @media (max-width: 480px) { .tab { width: 42px; height: 42px; } .tabs { gap: 6px; } .tab svg { width: 22px; height: 22px; } .appbar h1 { font-size: 26px; letter-spacing: -0.02em; } }
 @media (max-width: 350px) { .appbar { gap: 6px; } .tabs { gap: 4px; } .tab { width: 40px; height: 40px; } .appbar h1 { font-size: 22px; } }   /* "Fingerboard" clear of the three buttons at 320 px */
 /* the tool's icon before each page title (Trix), in the accent colour, sized with the title */
@@ -779,6 +780,7 @@ nav_js = """(function () {
   function show(name) {
     if (name === cur || !APP.views[name]) return;
     if (APP.coach) APP.coach.interrupt();   /* a tour for the old tool stops (not marked seen); the new tool's may start below */
+    APP.nextView = name;   /* the MIDI player keeps playing into Fingerings (Trix) */
     if (cur && APP.views[cur]) APP.views[cur].hide();
     cur = name;
     /* the tuner listens through the microphone and the MIDI player plays its own time (Trix), so the metronome

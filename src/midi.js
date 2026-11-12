@@ -1260,6 +1260,7 @@
   /* the playhead sits a third of the way across; the score slides under it */
   function scroll() {
     if (!song) return;
+    if (fgShown) fgHead();
     var bar = song.sig.num * 4 / song.sig.den;
     var beat = counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar */
     var z = full ? (fsShort ? 0.8 : 1.4) : 1;   /* full screen: the score larger, easier to read (Trix); a phone on its side: smaller, for room; positions below are in score units */
@@ -1289,6 +1290,7 @@
     bpmEl.textContent = song ? '♩ = ' + Math.round(song.bpm * speed) : '';
     playBtn.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play');
     playBtn.classList.toggle('on', playing || counting);
+    var fpb = $('fgPlay'); if (fpb) { fpb.classList.toggle('on', playing || counting); fpb.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play'); fpb.title = playing || counting ? 'Pause' : 'Play'; }
     scoreEl.classList.toggle('playing', playing || counting);   /* tap-a-note only while paused */
     loopBtn.setAttribute('aria-pressed', loop ? 'true' : 'false');
     $('mpSlower').disabled = speed <= 0.5 + 1e-9;
@@ -1782,7 +1784,7 @@
      the player shows, not while typing or with a window open; Space never also presses the focused button */
   var spaceKey = false;
   function keyOk(e) {
-    if (!shown || e.ctrlKey || e.metaKey || e.altKey) return false;
+    if (!(shown || fgShown) || e.ctrlKey || e.metaKey || e.altKey) return false;   /* Fingerings plays the same player (Trix) */
     var t = e.target, tag = t && t.tagName;
     if (tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return false;
     if (tag === 'INPUT' && !/^(range|button|checkbox)$/i.test(t.type)) return false;
@@ -2120,6 +2122,7 @@
       src = fnm + (zh ? '（导入的文件）' : ' (imported file)');
     }
     var part = zh ? '小提琴' : 'Violin';
+    var pageShift = [];
     var html = pages.map(function (pg, pi) {
       var o = ['<svg class="fg-page" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + PG_W + ' ' + PG_H + '" width="' + PG_W + '" height="' + PG_H + '"><rect class="fg-paper" width="' + PG_W + '" height="' + PG_H + '"/>'];
       if (pi === 0) {
@@ -2161,17 +2164,53 @@
           ceil = CL - shift / PG_K;
         }
       }
+      pageShift[pi] = shift;
       pg.forEach(function (e, ei) { o.push('<g transform="translate(' + (PG_M + (e[0] === 0 ? FG_IND * PG_K : 0)).toFixed(2) + ' ' + (e[1] + shift).toFixed(1) + ') scale(' + PG_K + ')">' + fgSystem(sg, r, e[0], e[2], 'fgc' + pi + '_' + e[0], ei === 0 ? ceil : undefined) + '</g>'); });
       o.push('</svg>');
       return o.join('');
     }).join('');
     fgHtml = html; fgPages.innerHTML = html;
+    /* the play line (Trix): where each system sits on its page, to follow the music; added after fgHtml, so never in the PDF */
+    fgR = r; fgMap = [];
+    var svgs = fgPages.querySelectorAll('svg.fg-page');
+    pages.forEach(function (pg, pi) {
+      var hl = document.createElementNS('http://www.w3.org/2000/svg', 'line'); hl.setAttribute('class', 'fg-head'); hl.style.display = 'none';
+      svgs[pi].appendChild(hl);
+      pg.forEach(function (e) {
+        var si = e[0], q = r.sys[si], hw = si === 0 ? r.hw : r.hwK;
+        fgMap.push({ pi: pi, si: si, b0: r.bars[q[0]].beat, b1: r.bars[q[1]].beat, ox: PG_M + (si === 0 ? FG_IND * PG_K : 0), oy: e[1] + pageShift[pi], tx: hw - r.bars[q[0]].x, line: hl, svg: svgs[pi] });
+      });
+    });
+    fgSys = -1; fgHead(true);
+  }
+  var fgR = null, fgMap = [], fgSys = -1, bg = false;   /* bg: the player plays on while Fingerings shows */
+  function fgHead(jump) {
+    if (!fgMap.length || !song || !fgR) return;
+    var on = playing || counting || pos > 0.01;
+    fgMap.forEach(function (m) { m.line.style.display = 'none'; });
+    if (!on) { fgSys = -1; return; }
+    var beat = counting ? Math.max(countBeat, 0) : song.toBeat(pos), m = fgMap[0];
+    for (var i = 0; i < fgMap.length; i++) { if (fgMap[i].b0 <= beat + 1e-6) m = fgMap[i]; else break; }
+    var x = m.ox + (fgR.xAt(Math.min(beat, m.b1)) + m.tx) * PG_K, y0 = m.oy + (Y0 - 22) * PG_K, y1 = m.oy + (Y0 + 4 * S + 22) * PG_K;
+    var L = m.line; L.setAttribute('x1', x.toFixed(1)); L.setAttribute('x2', x.toFixed(1)); L.setAttribute('y1', y0.toFixed(1)); L.setAttribute('y2', y1.toFixed(1)); L.style.display = '';
+    /* a new line of music: keep it on screen (Trix), about a quarter of the way down; only while the music moves, or on opening */
+    if (m.si !== fgSys) {
+      fgSys = m.si;
+      if (playing || counting || jump) {
+        var rc = L.getBoundingClientRect(), vh = window.innerHeight, top = rc.top - 30;
+        if (top < 70 || rc.bottom > vh - 20) window.scrollTo({ top: Math.max(0, window.scrollY + top - vh * 0.25), behavior: jump ? 'auto' : 'smooth' });
+      }
+    }
   }
   if (fgSel) {
     fgSel.addEventListener('change', function () { songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
     $('fgImport').addEventListener('click', function () { $('mpImport').click(); });   /* the same import, the same list */
     $('fgDel').addEventListener('click', function () { APP.askDelete(fgSel); });   /* the player's delete, after asking: the same list (Trix) */
-    $('fgPlay').addEventListener('click', function () { APP.show('midi'); window.scrollTo(0, 0); if (song && !playing && !counting) play(); });   /* back to the player, the same tune, playing (Trix); inside the tap, so the sound may start (iPhone) */
+    $('fgPlay').addEventListener('click', function () {   /* play / pause the MIDI player from here, staying on the pages (Trix); its speed, loop and A–B */
+      if (!song) return;
+      if (playing || counting) { pause(); return; }
+      bg = true; play();   /* inside the tap, so the sound may start (iPhone) */
+    });
     $('mpFg').addEventListener('click', function (e) { e.stopPropagation(); APP.show('fingering'); window.scrollTo(0, 0); });
     $('mpFg').addEventListener('pointerdown', function (e) { e.stopPropagation(); });
     document.addEventListener('i18n', function () { fgOptions(); if (fgShown) fgRender(); else fgDirty = true; });
@@ -2305,13 +2344,20 @@
     window.addEventListener('afterprint', function () { document.documentElement.classList.remove('fg-printing'); });
     APP.fgPrinted = function () { document.documentElement.classList.remove('fg-printing'); document.documentElement.classList.remove('fg-shot'); };   /* the apps call this when their print screen closes */
     APP.views.fingering = {
-      show: function () { fgShown = true; fgOptions(); if (fgDirty) fgRender(); },
-      hide: function () { fgShown = false; }
+      show: function () { fgShown = true; fgOptions(); if (fgDirty) fgRender(); fgSys = -1; fgHead(true); },
+      hide: function () {
+        fgShown = false;
+        if (bg && APP.nextView !== 'midi') { bg = false; pause(); APP.board.player(false); }   /* playing on from the player: it stops when neither tool shows */
+      }
     };
   }
   APP.views.midi = {
-    show: function () { appCall('rotate', true); shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* the phone apps turn only in the MIDI player (Trix) */   /* opened on a phone held sideways: full screen (Trix) */
-    hide: function () { setFull(false); appCall('rotate', false); shown = false; pause(); setMixOpen(false); APP.board.player(false); }
+    show: function () { bg = false; appCall('rotate', true); shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* the phone apps turn only in the MIDI player (Trix) */   /* opened on a phone held sideways: full screen (Trix) */
+    hide: function () {
+      setFull(false); appCall('rotate', false); shown = false; setMixOpen(false);
+      if (APP.nextView === 'fingering') { bg = true; return; }   /* the music goes on into Fingerings, playing or paused where it is (Trix) */
+      pause(); APP.board.player(false);
+    }
   };
   load(0);
 })();
