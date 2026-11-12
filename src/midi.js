@@ -635,7 +635,8 @@
     if (!ns.length) return false;
     if (ns.some(function (n) { return n.m < 55 || n.m > 83; })) return false;
     var on = [], chords = 0;
-    for (var i = 0; i < ns.length; ) { var j = i; while (j < ns.length && Math.abs(ns[j].b - ns[i].b) < 1e-6) j++; if (j - i > 1) chords++; on.push(ns[i]); i = j; }
+    /* a held chord (a minim or longer) closes a section, as in the keyboard minuets (Hermes F57): it is not a double-stop passage */
+    for (var i = 0; i < ns.length; ) { var j = i; while (j < ns.length && Math.abs(ns[j].b - ns[i].b) < 1e-6) j++; if (j - i > 1 && !((ns[i].own || 0) >= 2 - 1e-6)) chords++; on.push(ns[i]); i = j; }
     if (chords > 1) return false;
     var lv = [];
     lv.push(sf >= 0 && sf <= 3 ? 1 : (sf === -1 || sf === -2 || sf === 4) ? 2 : 3);

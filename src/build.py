@@ -1445,7 +1445,7 @@ nav_js = """(function () {
      personal; the user sees it all before sending) */
   document.getElementById('reportIssue').addEventListener('click', function () {
     var kind = window.VTPlay ? 'Android app (Google Play)' : window.VTiOSApp ? 'iPhone app' : location.hostname === 'appassets.androidplatform.net' ? 'Android app (website download)' : (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone ? 'Installed web app' : 'Website';
-    var v = document.getElementById('verBtn').getAttribute('data-version') || '', bd = document.documentElement.getAttribute('data-build') || '';
+    var v = document.getElementById('verBtn').getAttribute('data-version') || '', bd = document.getElementById('verBtn').getAttribute('data-build') || '';   /* Hermes F58 */
     this.href = 'https://github.com/trix69/violin-toolkit/issues/new?body=' + encodeURIComponent('\\n\\n---\\nViolin Toolkit ' + v + (bd ? ' (' + bd + ')' : '') + ', ' + kind);
   }, true);
   /* any link that leaves the app asks first (Trix): what opens and where; Google Play and the App Store go straight
@@ -1472,7 +1472,7 @@ nav_js = """(function () {
       var a = e.target.closest && e.target.closest('a[href]');
       if (!a) return;
       var u; try { u = new URL(a.href, location.href); } catch (x) { return; }
-      if (exempt(u)) return;
+      if (exempt(u) || a.id === 'ppLink') return;   /* the privacy screen's own policy link opens straight away (Hermes F60: the ask sat behind that screen) */
       if (!/^https?:$/.test(u.protocol) || u.origin === location.origin) return;   /* in-page, blob, our own site in the website */
       if (navigator.onLine === false) return;   /* the link's own handler says it is offline */
       e.preventDefault(); e.stopPropagation();
@@ -1824,7 +1824,7 @@ markup = f"""
     <h2 id="ppTitle" tabindex="-1">Privacy policy</h2>
     <p class="pp-date" id="ppDate"></p>
     <div class="pp-body">
-      <p id="ppText">Violin Toolkit has no accounts and no cookies. Your settings, practice time and imported tunes stay on this device. The only time the app goes online is to check for a new version (it sends the app version, the kind of app and a random number made on this device, which we count) and, on the phone builds, to fetch a built-in tune the first time you play it.</p>
+      <p id="ppText">Violin Toolkit has no accounts and no cookies. Your settings, practice time and imported tunes stay on this device. The only time the app goes online is to check for a new version (it sends the app version, the kind of app and a random number made on this device, which we count) and, on the phone builds, to fetch a built-in tune the first time you play it. Links that leave the app, such as Report an issue, open your browser only after you confirm.</p>
       <p><a id="ppLink" href="https://trix69.github.io/violin-toolkit/docs/privacy.html" target="_blank" rel="noopener">Read the full policy</a></p>
       <p class="pp-msg" id="ppMsg" role="status" hidden></p>
     </div>
