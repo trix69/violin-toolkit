@@ -613,12 +613,10 @@
     shift: 2.2, shiftStep: 0.5,   /* a shift, plus per position moved */
     shiftHard: 2,                 /* x: on fast notes or inside a slur */
     shiftEasy: 0.3,               /* x: after or on an open string, after a rest or a long note */
-    drone: 2,                     /* an open-string note that comes back every other note (a drone, bariolage: Bagpipes) */
-    fourBeginner: 2.2             /* a beginner piece (Trix): open strings first, as beginner books print them (0, with 4
-                                     as the alternative); the 4th finger only to save crossing out and back and more */
+    drone: 2                      /* an open-string note that comes back every other note (a drone, bariolage: Bagpipes) */
   };
-  /* a beginner piece (Trix: "don't prioritise the 4th finger for vibrato"): then no extra cost for an open string on a
-     long or last note, and the 4th finger costs more. What counts as a beginner piece (Trix, 2026-11-13), from string
+  /* a beginner piece (Trix: "don't prioritise the 4th finger for vibrato"): then an open string on a long or last note
+     costs nothing extra; every other cost is as in any piece (Trix, 2026-11-13: not "open before 4th"). What counts as a beginner piece (Trix, 2026-11-13), from string
      grading guides (ASTA / Shar, Alfred-Belwin series guidelines, MTB): two hard limits, 1st position only (G3–B5) and
      no double stops (one chord, a final one, allowed); then each criterion gets a level, 1 beginner, 2 early, 3 harder:
        key: G D A C and their relative minors 1 (A is easy on the violin: open A and E), F B♭ E 2, more 3;
@@ -686,7 +684,7 @@
         if (d < -1 || d > 7) continue;
         var fg = d <= 0 ? 1 : d <= 2 ? 2 : d <= 4 ? 3 : 4;
         if (!blind && n.xfg !== undefined && n.xfg !== fg) continue;   /* a written finger */
-        var c = FG_COST.pos[p] + (fg === 4 ? (fgBeginner ? FG_COST.fourBeginner : FG_COST.four) : 0) + (d === 6 ? FG_COST.high4 : 0) + (d === 7 ? FG_COST.ext : 0);
+        var c = FG_COST.pos[p] + (fg === 4 ? FG_COST.four : 0) + (d === 6 ? FG_COST.high4 : 0) + (d === 7 ? FG_COST.ext : 0);
         if (si <= 1 && p > 2) c += FG_COST.lowHigh;
         out.push({ si: si, p: p, fg: fg, c: c });
       }
