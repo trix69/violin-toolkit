@@ -329,6 +329,7 @@ html[lang="zh-CN"] {
 #upd { z-index: 140; }
 #fgWarn { z-index: 140; }
 #delAsk, #repAsk { z-index: 140; }
+#extAsk { z-index: 160; }
 /* the privacy policy screen (Trix): above everything (start overlay 100, tour 105, sheets 140); the body scrolls,
    the title, date and buttons stay in view */
 #pp { z-index: 200; }
@@ -1437,6 +1438,47 @@ nav_js = """(function () {
   document.getElementById('ppLink').addEventListener('click', function (e) {   /* offline: say so rather than open a dead page */
     if (navigator.onLine === false) { e.preventDefault(); ppMsg.textContent = 'You are offline. The full policy opens when you are online; the summary above covers it.'; ppMsg.hidden = false; }
   });
+  /* Settings > Help > Report an issue (Trix): GitHub's new-issue form, with the version and kind of app filled in (nothing
+     personal; the user sees it all before sending) */
+  document.getElementById('reportIssue').addEventListener('click', function () {
+    var kind = window.VTPlay ? 'Android app (Google Play)' : window.VTiOSApp ? 'iPhone app' : location.hostname === 'appassets.androidplatform.net' ? 'Android app (website download)' : (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone ? 'Installed web app' : 'Website';
+    var v = document.getElementById('verBtn').getAttribute('data-version') || '', bd = document.documentElement.getAttribute('data-build') || '';
+    this.href = 'https://github.com/trix69/violin-toolkit/issues/new?body=' + encodeURIComponent('\\n\\n---\\nViolin Toolkit ' + v + (bd ? ' (' + bd + ')' : '') + ', ' + kind);
+  }, true);
+  /* any link that leaves the app asks first (Trix): what opens and where; Google Play and the App Store go straight
+     there (the store is where the app lives). Our own site's pages, read in the website, are not leaving it. Links
+     only; the update window's Download / store buttons are their own confirmation */
+  (function () {
+    var box = document.getElementById('extAsk'), go = document.getElementById('extAskGo'), no = document.getElementById('extAskCancel'), pass = false, link = null, back = null;
+    function exempt(u) { return /^(market|itms-apps):/.test(u.protocol) || /(^|\\.)play\\.google\\.com$/.test(u.hostname) || /(^|\\.)apps\\.apple\\.com$/.test(u.hostname); }
+    function close(open) {
+      box.hidden = true; window.removeEventListener('keydown', key, true);
+      var a = link; link = null;
+      if (open && a) { pass = true; try { a.click(); } finally { pass = false; } }
+      try { back && back.focus(); } catch (e) {}
+    }
+    function key(e) {
+      if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(false); }
+      else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); (document.activeElement === go ? no : go).focus(); }
+    }
+    go.addEventListener('click', function () { close(true); });
+    no.addEventListener('click', function () { close(false); });
+    box.addEventListener('click', function (e) { if (e.target === box) close(false); });
+    document.addEventListener('click', function (e) {
+      if (pass || e.defaultPrevented || e.button) return;
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      var u; try { u = new URL(a.href, location.href); } catch (x) { return; }
+      if (exempt(u)) return;
+      if (!/^https?:$/.test(u.protocol) || u.origin === location.origin) return;   /* in-page, blob, our own site in the website */
+      if (navigator.onLine === false) return;   /* the link's own handler says it is offline */
+      e.preventDefault(); e.stopPropagation();
+      link = a; back = a;
+      var zh = window.I18N && I18N.lang === 'zh', host = u.hostname.replace(/^www\\./, '');
+      document.getElementById('extAskMsg').textContent = zh ? '将在浏览器中打开“' + host + '”。' : '“' + host + '” opens in your browser.';
+      box.hidden = false; window.addEventListener('keydown', key, true); go.focus();
+    }, true);
+  })();
   document.getElementById('ppShow').addEventListener('click', function () {   /* Settings > Help: read it again; asks only if not yet agreed */
     var a = ppGet(); ppOpen(a > PPV ? a : PPV, false, a >= PPV);
   });
@@ -1662,6 +1704,7 @@ markup = f"""
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <button type="button" class="howto-btn" id="ppShow" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 2.6v5.4c0 4.2-2.9 7.8-7 9-4.1-1.2-7-4.8-7-9V6.1z"/><path d="M9 12l2 2 4-4"/></svg><span>Privacy policy</span></button>
     <button type="button" class="howto-btn" id="openCredits" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2"/></svg><span>Score credits</span></button>
+    <a class="howto-btn" id="reportIssue" href="https://github.com/trix69/violin-toolkit/issues/new" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span>Report an issue</span></a>
     <div class="pair" id="linkPair">
       <div>
       <h3 id="lblStar">Like this app?</h3>
@@ -1796,6 +1839,16 @@ markup = f"""
     <div class="upd-row">
       <button type="button" class="upd-later" id="delAskCancel">Cancel</button>
       <button type="button" class="sheet-done" id="delAskGo">Delete</button>
+    </div>
+  </div>
+</div>
+<div class="sheet" id="extAsk" role="dialog" aria-modal="true" aria-labelledby="extAskTitle" aria-describedby="extAskMsg" hidden>
+  <div class="sheet-card" tabindex="-1">
+    <h2 id="extAskTitle">Open this link?</h2>
+    <p class="upd-msg" id="extAskMsg" translate="no"></p>
+    <div class="upd-row">
+      <button type="button" class="upd-later" id="extAskCancel">Cancel</button>
+      <button type="button" class="sheet-done" id="extAskGo">Open</button>
     </div>
   </div>
 </div>
