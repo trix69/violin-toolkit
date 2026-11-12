@@ -2239,31 +2239,52 @@
     /* Ctrl + mouse wheel zooms the pages (Trix), 50 % to 300 %, keeping the point under the pointer still; the PDF is not affected */
     var fgZoom = 1;
     function fgWide() {   /* past 100 %: the box spans the browser window, edge to edge (its column's own left offset undone) */
-      var on = fgZoom > 1.001;
-      fgPages.classList.remove('zoomed');
+      var on = fgZoom > 1.001, bar = fgPages.parentNode.querySelector('.fg-fitbar'), host = fgPages.parentNode;
+      fgPages.classList.remove('zoomed'); if (bar) bar.classList.remove('zoomed');
       if (on) {
         var left = fgPages.getBoundingClientRect().left + window.scrollX;
-        fgPages.style.setProperty('--fgml', -left + 'px');
-        fgPages.style.setProperty('--fgvw', document.documentElement.clientWidth + 'px');
-        fgPages.classList.add('zoomed');
+        host.style.setProperty('--fgml', -left + 'px');   /* on the parent: the pages and the button's strip both widen */
+        host.style.setProperty('--fgvw', document.documentElement.clientWidth + 'px');
+        fgPages.classList.add('zoomed'); if (bar) bar.classList.add('zoomed');
       }
     }
     window.addEventListener('resize', function () { if (fgZoom > 1.001) { var sl = fgPages.scrollLeft; fgWide(); fgPages.scrollLeft = sl; } });
-    fgPages.addEventListener('wheel', function (e) {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      var z0 = fgZoom, z1 = Math.max(0.5, Math.min(3, z0 * Math.exp(-e.deltaY * (e.deltaMode ? 0.05 : 0.002))));
+    function setZoom(z1, cx, cy) {   /* cx, cy: the screen point that stays still */
+      var z0 = fgZoom; z1 = Math.max(0.5, Math.min(3, z1));
       if (Math.abs(z1 - z0) < 1e-3) return;
       var p0 = fgPages.querySelector('.fg-page'); if (!p0) return;
-      var a = p0.getBoundingClientRect(), dx = e.clientX - a.left, dy = e.clientY - a.top, k = z1 / z0;
+      var a = p0.getBoundingClientRect(), dx = cx - a.left, dy = cy - a.top, k = z1 / z0;
       if (!fgPages.classList.contains('zoomed')) fgPages.style.setProperty('--fgw', fgPages.clientWidth + 'px');   /* the column width = 100 % */
       fgZoom = z1;
       fgPages.style.setProperty('--fgz', z1.toFixed(3));
       fgWide();
-      var b = p0.getBoundingClientRect();   /* keep the point under the pointer still */
-      fgPages.scrollLeft += b.left + dx * k - e.clientX;
-      window.scrollBy(0, b.top + dy * k - e.clientY);
+      var b = p0.getBoundingClientRect();
+      fgPages.scrollLeft += b.left + dx * k - cx;
+      window.scrollBy(0, b.top + dy * k - cy);
+      zoomUi();
+    }
+    fgPages.addEventListener('wheel', function (e) {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setZoom(fgZoom * Math.exp(-e.deltaY * (e.deltaMode ? 0.05 : 0.002)), e.clientX, e.clientY);
     }, { passive: false });
+    /* the button at the top right of the pages (Trix): straight to the browser's full width, and back to the normal size */
+    var fgFit = $('fgFit');
+    function zoomUi() {
+      var big = Math.abs(fgZoom - 1) > 0.01;
+      fgFit.classList.toggle('back', big);
+      fgFit.setAttribute('aria-label', big ? 'Back to normal size' : 'Full width');
+      fgFit.title = big ? 'Back to normal size' : 'Full width';
+    }
+    fgFit.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var cx = window.innerWidth / 2, cy = Math.min(window.innerHeight / 2, Math.max(0, fgPages.getBoundingClientRect().top + 40));
+      if (Math.abs(fgZoom - 1) > 0.01) { setZoom(1, cx, cy); return; }
+      var col = fgPages.clientWidth, full = document.documentElement.clientWidth - 32;   /* a 16 px margin each side */
+      setZoom(Math.min(3, full / col), cx, cy);
+      if (fgZoom <= 1.001) zoomUi();   /* a window no wider than the column: nothing to gain */
+    });
+    zoomUi();
     $('fgPlay').addEventListener('click', function () {   /* play / pause the MIDI player from here, staying on the pages (Trix); its speed, loop and A–B */
       if (!song) return;
       if (playing || counting) { pause(); return; }
