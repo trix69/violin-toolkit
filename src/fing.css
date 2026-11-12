@@ -18,12 +18,13 @@
 @keyframes fgFlashStill { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 @media print { #view-fingering .fg-flash { display: none !important; } }
 /* full width / back (Trix): a round button over the pages' top right corner, staying in view while scrolling */
-#view-fingering .fg-fitbar { position: sticky; top: 10px; z-index: 5; height: 0; display: flex; justify-content: flex-end; gap: 8px; pointer-events: none; }
-#view-fingering .fg-fitbar .fg-play { pointer-events: auto; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }   /* play / pause floats with the pages too (Trix) */
+#view-fingering .fg-fitbar { position: sticky; top: 6px; z-index: 5; height: 32px; margin: 0 0 6px; display: flex; justify-content: flex-end; gap: 6px; pointer-events: none; }
+#view-fingering .fg-fitbar .fg-play { pointer-events: auto; margin: 0; width: 32px; height: 32px; box-shadow: 0 2px 6px rgba(0,0,0,.15); }   /* small: clear of the page's header text (Trix) */
+#view-fingering .fg-fitbar .fg-play svg { width: 16px; height: 16px; stroke-width: 2.6; }   /* play / pause floats with the pages too (Trix) */
 #view-fingering .fg-fitbar.zoomed { width: var(--fgvw); margin-left: var(--fgml); }   /* over the widened pages' right edge */
-#view-fingering .fg-fitbar.zoomed .fg-fit { margin-right: 26px; }   /* the full-width page keeps 16 px from the window edge */
-#view-fingering .fg-fit { pointer-events: auto; margin: 10px 10px 0 0; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); box-shadow: 0 2px 8px rgba(0,0,0,.15); cursor: pointer; }
-#view-fingering .fg-fit svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#view-fingering .fg-fitbar.zoomed .fg-fit { margin-right: 16px; }   /* the full-width page keeps 16 px from the window edge */
+#view-fingering .fg-fit { pointer-events: auto; margin: 0; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); box-shadow: 0 2px 8px rgba(0,0,0,.15); cursor: pointer; }
+#view-fingering .fg-fit svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #view-fingering .fg-fit .i-in, #view-fingering .fg-fit.back .i-out { display: none; }
 #view-fingering .fg-fit.back .i-in { display: block; }
 #view-fingering .fg-fit:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
