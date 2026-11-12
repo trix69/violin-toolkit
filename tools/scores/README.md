@@ -104,3 +104,12 @@ crotchet pairs, the two semiquavers before each refrain crotchet; staccato pairs
 Mutopia #1619 (one `.ly`, duets for two violins): the variable definitions (first 300 lines) through `lyclean.py`; a
 wrapper per minuet with Violin = `centQuinzeA` / `CentSeizeA` and Ripieno = `…B`, `\tempo 4 = 96` (the edition's),
 `ly musicxml`, `pack.py`. Notes equal the edition's MIDI (`…_alto-1.mid` = 115, `…_alto-2.mid` = 116; count chord notes).
+
+## Beethoven, Romance No. 2 in F, Op. 50 (2026-11-12)
+
+Mutopia #911 (one file per instrument). `lyclean.py` on the solo and the four string parts; in the solo the four
+`\afterGrace x { g }` -> `x \grace { g }`; in the cello the three `<< { upper } \\ { rests / the same } >>` -> upper;
+wrapper Violin (`violinoprincipale`), Ripieno 1/2, Viola, Violoncello, `\tempo 4 = 48` (the edition's MIDI); woodwinds and
+horns left out. `ly musicxml`, then `rebar.py` (python-ly mis-fills bars around the long triplet runs; each note's own
+duration is right), then `pack.py`. 103 bars; every string part's notes = the edition's MIDI track; the solo = the MIDI plus
+the five written after-grace notes.
