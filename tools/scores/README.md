@@ -98,3 +98,9 @@ crotchet pairs, the two semiquavers before each refrain crotchet; staccato pairs
   shared tutti passages, writes out `\repeat unfold`, drops `\partial`), wrapper with Violin (`violinI`), Ripieno
   (`violinII`), Viola, Violoncello and `\tempo 4 = 120`, `ly musicxml`, `pack.py … 0.5` (quaver pickup). 80 bars + pickup,
   895 solo notes in the same order as `6/violinI.mid`.
+
+## Minuets BWV Anh. 115 and 116 (2026-11-12)
+
+Mutopia #1619 (one `.ly`, duets for two violins): the variable definitions (first 300 lines) through `lyclean.py`; a
+wrapper per minuet with Violin = `centQuinzeA` / `CentSeizeA` and Ripieno = `…B`, `\tempo 4 = 96` (the edition's),
+`ly musicxml`, `pack.py`. Notes equal the edition's MIDI (`…_alto-1.mid` = 115, `…_alto-2.mid` = 116; count chord notes).
