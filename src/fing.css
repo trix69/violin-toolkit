@@ -15,7 +15,8 @@
 #view-fingering .fg-pdf:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 /* white paper and black ink whatever the theme (the player's score box styles undone) */
 #view-fingering .fg-pages.mp-score { --sc-bg: #FFFFFF; --sc-ink: #1A1A1A; --sc-fing: 8%; height: auto; overflow: visible; margin: 0; border-radius: 0; background: none; box-shadow: none; color: var(--sc-ink); }
-#view-fingering .fg-page { display: block; width: 100%; height: auto; margin: 0 0 16px; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 6px 20px rgba(0,0,0,.08); }
+#view-fingering .fg-pages.zoomed { overflow-x: auto; }   /* Ctrl + wheel zoom (Trix): wider pages scroll sideways */
+#view-fingering .fg-page { display: block; width: calc(100% * var(--fgz, 1)); max-width: none; height: auto; margin: 0 auto 16px; cursor: pointer; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 6px 20px rgba(0,0,0,.08); }
 .fg-page .fg-paper { fill: #fff; }
 .fg-page .fg-title { fill: #1A1A1A; font: 700 22px 'Times New Roman', 'Noto Serif', 'Songti SC', serif; text-anchor: middle; }
 .fg-page .fg-sub { fill: #333; font: 400 13px 'Times New Roman', 'Noto Serif', 'Songti SC', serif; text-anchor: middle; }
@@ -34,6 +35,7 @@
   html.fg-printing, html.fg-printing body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
   html.fg-printing body > :not(#shell), html.fg-printing #shell > :not(#main), html.fg-printing #main > :not(#view-fingering), html.fg-printing #view-fingering > * > :not(.fg-pages) { display: none !important; }
   html.fg-printing #shell, html.fg-printing #main, html.fg-printing #view-fingering, html.fg-printing #fg { display: block !important; margin: 0 !important; padding: 0 !important; max-width: none !important; width: auto !important; border: 0 !important; box-shadow: none !important; }
+  html.fg-printing .fg-pages { overflow: visible !important; }
   html.fg-printing .fg-page { width: 210mm !important; height: 297mm !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; break-after: page; page-break-after: always; }
   html.fg-printing .fg-page:last-child { break-after: auto; page-break-after: auto; }
 }

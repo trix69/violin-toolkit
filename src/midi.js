@@ -2195,6 +2195,10 @@
     for (var i = 0; i < fgMap.length; i++) { if (fgMap[i].b0 <= beat + 1e-6) m = fgMap[i]; else break; }
     var x = m.ox + (fgR.xAt(Math.min(beat, m.b1)) + m.tx) * PG_K, y0 = m.oy + (Y0 - 22) * PG_K, y1 = m.oy + (Y0 + 4 * S + 22) * PG_K;
     var L = m.line; L.setAttribute('x1', x.toFixed(1)); L.setAttribute('x2', x.toFixed(1)); L.setAttribute('y1', y0.toFixed(1)); L.setAttribute('y2', y1.toFixed(1)); L.style.display = '';
+    if (fgPages.classList.contains('zoomed') && (playing || counting)) {   /* zoomed in: follow the line sideways too */
+      var lr = L.getBoundingClientRect(), pr = fgPages.getBoundingClientRect();
+      if (lr.left < pr.left + 20 || lr.right > pr.right - 20) fgPages.scrollLeft += lr.left - pr.left - pr.width * 0.25;
+    }
     /* a new line of music: keep it on screen (Trix), about a quarter of the way down; only while the music moves, or on opening */
     if (m.si !== fgSys) {
       fgSys = m.si;
@@ -2208,6 +2212,28 @@
     fgSel.addEventListener('change', function () { songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
     $('fgImport').addEventListener('click', function () { $('mpImport').click(); });   /* the same import, the same list */
     $('fgDel').addEventListener('click', function () { APP.askDelete(fgSel); });   /* the player's delete, after asking: the same list (Trix) */
+    /* a click or tap on the pages plays / pauses, like the play button (Trix); not after a drag (text selection, scrolling) */
+    var fgDown = null;
+    fgPages.addEventListener('pointerdown', function (e) { fgDown = [e.clientX, e.clientY]; });
+    fgPages.addEventListener('click', function (e) {
+      if (!song || !fgDown || Math.abs(e.clientX - fgDown[0]) > 6 || Math.abs(e.clientY - fgDown[1]) > 6) return;
+      if (window.getSelection && String(window.getSelection())) return;
+      $('fgPlay').click();
+    });
+    /* Ctrl + mouse wheel zooms the pages (Trix), 50 % to 300 %, keeping the point under the pointer still; the PDF is not affected */
+    var fgZoom = 1;
+    fgPages.addEventListener('wheel', function (e) {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      var z0 = fgZoom, z1 = Math.max(0.5, Math.min(3, z0 * Math.exp(-e.deltaY * (e.deltaMode ? 0.05 : 0.002))));
+      if (Math.abs(z1 - z0) < 1e-3) return;
+      var r = fgPages.getBoundingClientRect(), px = e.clientX - r.left + fgPages.scrollLeft, py = e.clientY - r.top, k = z1 / z0;
+      fgZoom = z1;
+      fgPages.style.setProperty('--fgz', z1.toFixed(3));
+      fgPages.classList.toggle('zoomed', z1 > 1.001);
+      fgPages.scrollLeft = Math.max(0, px * k - (e.clientX - r.left));
+      window.scrollBy(0, py * k - py);
+    }, { passive: false });
     $('fgPlay').addEventListener('click', function () {   /* play / pause the MIDI player from here, staying on the pages (Trix); its speed, loop and A–B */
       if (!song) return;
       if (playing || counting) { pause(); return; }
