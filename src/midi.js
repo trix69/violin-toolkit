@@ -1696,7 +1696,7 @@
   volA.addEventListener('input', function () { mix.a = volA.value / 100; mixUi(); saveMix(); });
   volM.addEventListener('input', function () { mix.m = volM.value / 100; mixUi(); saveMix(); });
   document.addEventListener('pointerdown', function (e) { if (!mixPop.hidden && !mixPop.contains(e.target) && !mixBtn.contains(e.target) && !(e.target.closest && e.target.closest('.fgx-mix'))) setMixOpen(false); }, true);
-  mixPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setMixOpen(false); mixBtn.focus(); } });
+  mixPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setMixOpen(false); owner(mixBtn, mixPop).focus(); } });
   /* A–B (Trix): repeat a passage, from bar A to the end of bar B, counting in each time round. Off until it is set
      in its panel; bars picked from lists (a scrolling wheel on phones); A empty = the beginning, B empty = the end;
      B at least one bar after A */
@@ -1758,17 +1758,19 @@
   }
   abBtn.addEventListener('click', function (e) { e.stopPropagation(); setABOpen(abPop.hidden); });
   selA.addEventListener('change', limitB);
-  $('mpABCancel').addEventListener('click', function () { setABOpen(false); abBtn.focus(); });   /* nothing set: stays as it was (off) */
+  $('mpABCancel').addEventListener('click', function () { setABOpen(false); owner(abBtn, abPop).focus(); });   /* nothing set: stays as it was (off) */
   /* a change of A–B pauses and moves to bar A (or the start when off); Play then counts in (Trix) */
-  $('mpABOff').addEventListener('click', function () { ab = null; abUi(); setABOpen(false); pause(); seekTo(0); abBtn.focus(); fgFlash('text', 'A–B off'); });
+  $('mpABOff').addEventListener('click', function () { ab = null; abUi(); setABOpen(false); pause(); seekTo(0); owner(abBtn, abPop).focus(); fgFlash('text', 'A–B off'); });
   $('mpABSet').addEventListener('click', function () {
     ab = { a: +selA.value, b: +selB.value };
-    abUi(); setABOpen(false); abBtn.focus();
+    abUi(); setABOpen(false); owner(abBtn, abPop).focus();
     pause(); seekTo(abRange().aT);
     fgFlash('text', 'A–B on');
   });
   document.addEventListener('pointerdown', function (e) { if (!abPop.hidden && !abPop.contains(e.target) && !abBtn.contains(e.target) && !(e.target.closest && e.target.closest('.fgx-ab'))) setABOpen(false); }, true);
-  abPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setABOpen(false); abBtn.focus(); } });
+  abPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setABOpen(false); owner(abBtn, abPop).focus(); } });
+  /* the button a panel belongs to: the player's own, or the Fingerings floating one when it was opened there (Hermes F47) */
+  function owner(btn, pop) { return pop.parentNode && pop.parentNode.classList.contains('fg-fitbar') ? document.querySelector(pop === abPop ? '.fgx-ab' : '.fgx-mix') || btn : btn; }
   document.addEventListener('i18n', function () { if (!abPop.hidden) { var a = selA.value, b = selB.value; fillAB(); selA.value = a; selB.value = b; limitB(); } });
   playBtn.addEventListener('click', function () { if (playing || counting) pause(); else play(); });
   $('mpStart').addEventListener('click', function () {
@@ -2381,8 +2383,10 @@
         STYLE_PROPS.forEach(function (pr) { var v = cs.getPropertyValue(pr); if (v) st.push(pr + ':' + v); });
         if (src[i].classList.contains('mp-pos')) st.push('transform:skewX(-14deg)', 'transform-box:fill-box', 'transform-origin:50% 100%');
         dst[i].setAttribute('style', st.join(';'));
+        if (src[i].classList.contains('fg-head')) dst[i].setAttribute('data-drop', '1');   /* the play line: not in the PDF (Hermes F46) */
         dst[i].removeAttribute('class');
       }
+      Array.prototype.forEach.call(clone.querySelectorAll('[data-drop]'), function (el) { el.remove(); });
       clone.setAttribute('width', '2480'); clone.setAttribute('height', '3508');
       clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
       var style = document.createElementNS('http://www.w3.org/2000/svg', 'style'); style.textContent = fontCss;
@@ -2468,6 +2472,7 @@
     });
     function exportPdf() {
       if (!song) return;
+      if (fgMap.length) fgMap.forEach(function (m) { m.line.style.display = 'none'; });   /* the play line is a screen marker, not part of the PDF (Hermes F46) */
       if (!window.VTiOSApp && homeScreenIos()) { rasterPdf(); return; }
       var ios = window.VTiOSApp && window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt;
       if (ios) {   /* the iPhone app: only the A4 pages on screen (html.fg-shot), captured page by page into a PDF for the share sheet */
@@ -2499,7 +2504,7 @@
   APP.views.midi = {
     show: function () { bg = false; appCall('rotate', true); shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* the phone apps turn only in the MIDI player (Trix) */   /* opened on a phone held sideways: full screen (Trix) */
     hide: function () {
-      setFull(false); appCall('rotate', false); shown = false; setMixOpen(false);
+      setFull(false); appCall('rotate', false); shown = false; setMixOpen(false); setABOpen(false);   /* A–B too (Hermes F47) */
       if (APP.nextView === 'fingering') { bg = true; return; }   /* the music goes on into Fingerings, playing or paused where it is (Trix) */
       pause(); APP.board.player(false);
     }

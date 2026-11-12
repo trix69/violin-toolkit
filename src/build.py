@@ -1259,7 +1259,7 @@ nav_js = """(function () {
     var pending = null, offered = '', lastCheck = 0, updOpener = null;
     function autoCheck() {
       var sw = navigator.serviceWorker;
-      if (!APP.autoUpd || busy || (IOSAPP && !STORE) || document.hidden || (!APK && !STORE && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;
+      if (!APP.autoUpd || busy || (IOSAPP && !STORE) || document.hidden || (APP.ppOpen && APP.ppOpen()) || (!APK && !STORE && (!sw || !sw.controller)) || Date.now() - lastCheck < 6 * 3600e3) return;   /* not before the privacy policy is answered: no count, no install id (Hermes F44) */
       lastCheck = Date.now();
       newer().then(function (j) { if (j && (j.build || j.version) !== offered) ask(j); }).catch(function () { lastCheck = 0; });
     }
@@ -1293,6 +1293,7 @@ nav_js = """(function () {
       if (APK) { location.href = APK_URL; return; }   /* the app opens it in the browser, which downloads the APK */
       if (pending && !busy) install(pending).catch(function () { location.reload(); });
     });
+    APP.autoCheck = autoCheck;
     setTimeout(autoCheck, 1500);
     document.addEventListener('visibilitychange', autoCheck);
   })();
@@ -1409,6 +1410,7 @@ nav_js = """(function () {
     if (!launch.hidden) { try { document.getElementById('launchCard').focus({ preventScroll: true }); } catch (e) {} }
     else if (ppBack && ppBack.focus) { try { ppBack.focus(); } catch (e) {} }
     if (APP.coach) APP.coach.maybe(cur);   /* the tips tour waited for this */
+    if (APP.autoCheck) setTimeout(APP.autoCheck, 300);   /* the update check waited for this too (Hermes F44) */
   }
   document.getElementById('ppYes').addEventListener('click', function () { ppPut(ppDate); ppState(); ppClose(); });
   document.getElementById('ppNo').addEventListener('click', function () {
