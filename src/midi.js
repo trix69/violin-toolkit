@@ -2222,17 +2222,31 @@
     });
     /* Ctrl + mouse wheel zooms the pages (Trix), 50 % to 300 %, keeping the point under the pointer still; the PDF is not affected */
     var fgZoom = 1;
+    function fgWide() {   /* past 100 %: the box spans the browser window, edge to edge (its column's own left offset undone) */
+      var on = fgZoom > 1.001;
+      fgPages.classList.remove('zoomed');
+      if (on) {
+        var left = fgPages.getBoundingClientRect().left + window.scrollX;
+        fgPages.style.setProperty('--fgml', -left + 'px');
+        fgPages.style.setProperty('--fgvw', document.documentElement.clientWidth + 'px');
+        fgPages.classList.add('zoomed');
+      }
+    }
+    window.addEventListener('resize', function () { if (fgZoom > 1.001) { var sl = fgPages.scrollLeft; fgWide(); fgPages.scrollLeft = sl; } });
     fgPages.addEventListener('wheel', function (e) {
       if (!e.ctrlKey) return;
       e.preventDefault();
       var z0 = fgZoom, z1 = Math.max(0.5, Math.min(3, z0 * Math.exp(-e.deltaY * (e.deltaMode ? 0.05 : 0.002))));
       if (Math.abs(z1 - z0) < 1e-3) return;
-      var r = fgPages.getBoundingClientRect(), px = e.clientX - r.left + fgPages.scrollLeft, py = e.clientY - r.top, k = z1 / z0;
+      var p0 = fgPages.querySelector('.fg-page'); if (!p0) return;
+      var a = p0.getBoundingClientRect(), dx = e.clientX - a.left, dy = e.clientY - a.top, k = z1 / z0;
+      if (!fgPages.classList.contains('zoomed')) fgPages.style.setProperty('--fgw', fgPages.clientWidth + 'px');   /* the column width = 100 % */
       fgZoom = z1;
       fgPages.style.setProperty('--fgz', z1.toFixed(3));
-      fgPages.classList.toggle('zoomed', z1 > 1.001);
-      fgPages.scrollLeft = Math.max(0, px * k - (e.clientX - r.left));
-      window.scrollBy(0, py * k - py);
+      fgWide();
+      var b = p0.getBoundingClientRect();   /* keep the point under the pointer still */
+      fgPages.scrollLeft += b.left + dx * k - e.clientX;
+      window.scrollBy(0, b.top + dy * k - e.clientY);
     }, { passive: false });
     $('fgPlay').addEventListener('click', function () {   /* play / pause the MIDI player from here, staying on the pages (Trix); its speed, loop and A–B */
       if (!song) return;

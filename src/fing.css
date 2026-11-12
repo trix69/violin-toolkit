@@ -15,7 +15,8 @@
 #view-fingering .fg-pdf:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 /* white paper and black ink whatever the theme (the player's score box styles undone) */
 #view-fingering .fg-pages.mp-score { --sc-bg: #FFFFFF; --sc-ink: #1A1A1A; --sc-fing: 8%; height: auto; overflow: visible; margin: 0; border-radius: 0; background: none; box-shadow: none; color: var(--sc-ink); }
-#view-fingering .fg-pages.zoomed { overflow-x: auto; }   /* Ctrl + wheel zoom (Trix): wider pages scroll sideways */
+#view-fingering .fg-pages.zoomed { width: var(--fgvw); max-width: none; margin-left: var(--fgml); overflow-x: auto; }   /* Ctrl + wheel zoom (Trix): past 100 % the pages use the whole browser width, then scroll sideways */
+#view-fingering .fg-pages.zoomed .fg-page { width: calc(var(--fgw) * var(--fgz)); }
 #view-fingering .fg-page { display: block; width: calc(100% * var(--fgz, 1)); max-width: none; height: auto; margin: 0 auto 16px; cursor: pointer; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 6px 20px rgba(0,0,0,.08); }
 .fg-page .fg-paper { fill: #fff; }
 .fg-page .fg-title { fill: #1A1A1A; font: 700 22px 'Times New Roman', 'Noto Serif', 'Songti SC', serif; text-anchor: middle; }
