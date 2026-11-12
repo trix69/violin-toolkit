@@ -630,6 +630,7 @@
      Beginner = no level 3 and at most two criteria at level 2. */
   var fgBeginner = false;
   function isBeginner(notes, sig, sf, minor) {
+    window.VT_BEGINNER_LEVELS = 'hard limit';   /* replaced below when the hard limits pass (Hermes F56: never the last tune's) */
     var ns = notes.filter(function (n) { return !n.grace; });
     if (!ns.length) return false;
     if (ns.some(function (n) { return n.m < 55 || n.m > 83; })) return false;
