@@ -9,6 +9,14 @@
 #view-fingering .fg-play.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .fg-page .fg-head { stroke: var(--accent); stroke-width: 5; stroke-linecap: round; opacity: .75; pointer-events: none; }   /* where the music is (Trix) */
 @media print { .fg-page .fg-head { display: none; } }
+/* a quick sign in the middle of the screen that a key or a click did something (Trix) */
+#view-fingering .fg-flash { position: fixed; left: 50%; top: 50%; z-index: 60; transform: translate(-50%, -50%); display: grid; place-items: center; min-width: 96px; height: 96px; padding: 0 22px; box-sizing: border-box; border-radius: 48px; background: rgba(20, 28, 24, .72); color: #fff; font: 600 26px var(--font-note); white-space: nowrap; pointer-events: none; animation: fgFlash .9s ease-out forwards; }
+#view-fingering .fg-flash svg { width: 44px; height: 44px; fill: currentColor; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
+#view-fingering .fg-flash.txt { height: 64px; border-radius: 32px; }
+@keyframes fgFlash { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.85); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 65% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #view-fingering .fg-flash { animation: fgFlashStill 1s linear forwards; } }
+@keyframes fgFlashStill { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+@media print { #view-fingering .fg-flash { display: none !important; } }
 #view-fingering .fg-play:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 #view-fingering .fg-pdf svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #view-fingering .fg-pdf:disabled { opacity: .4; cursor: default; }

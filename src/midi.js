@@ -1777,10 +1777,20 @@
     ui();
   });
   /* d: +-0.05 = the buttons and - / + keys, to the next multiple of 5 % (83 -> 85 or 80); +-0.01 = the arrow keys, 1 % (Trix) */
+  var flashT = 0;
+  function fgFlash(what) {   /* Fingerings only (Trix): 'play' / 'pause' icon, or 'speed' = the new tempo and percentage */
+    var el = $('fgFlash'); if (!el || !fgShown || !song) return;
+    clearTimeout(flashT);
+    el.classList.toggle('txt', what === 'speed');
+    el.innerHTML = what === 'play' ? '<svg viewBox="0 0 24 24"><path d="M8 5.5v13L19 12z"/></svg>' : what === 'pause' ? '<svg viewBox="0 0 24 24"><path d="M8 5.5v13M16 5.5v13"/></svg>'
+      : '♩ = ' + Math.round(song.bpm * speed) + ' · ' + Math.round(speed * 100) + '%';
+    el.hidden = true; void el.offsetWidth; el.hidden = false;   /* restart the fade */
+    flashT = setTimeout(function () { el.hidden = true; }, 1000);
+  }
   function setSpeed(d) {
     var pc = Math.round(speed * 100), st = Math.round(Math.abs(d) * 100), dir = d > 0 ? 1 : -1;
     pc = dir > 0 ? (Math.floor(pc / st) + 1) * st : (Math.ceil(pc / st) - 1) * st;
-    speed = Math.max(0.5, Math.min(1.5, pc / 100)); ui(); if (playing) { accStop(); accStart(); } }   /* notes under way take the new speed (Hermes R20.2) */   /* 5 % steps (Trix) */
+    speed = Math.max(0.5, Math.min(1.5, pc / 100)); ui(); fgFlash('speed'); if (playing) { accStop(); accStart(); } }   /* notes under way take the new speed (Hermes R20.2) */   /* 5 % steps (Trix) */
   $('mpSlower').addEventListener('click', function () { setSpeed(-0.05); });
   /* keyboard (Trix): Space plays / pauses, - and + (or =, and the number pad's) change the speed 5 %; only while
      the player shows, not while typing or with a window open; Space never also presses the focused button */
@@ -1797,7 +1807,12 @@
     if (!keyOk(e)) return;
     if (e.key === ' ' || e.code === 'Space') {
       e.preventDefault(); e.stopPropagation();
-      if (!e.repeat) { spaceKey = true; if (playing || counting) pause(); else play(); }
+      if (!e.repeat) {
+        spaceKey = true;
+        if (fgShown && !shown) bg = true;   /* started on the Fingerings page: it stops when leaving both tools */
+        if (playing || counting) pause(); else play();
+        fgFlash(playing || counting ? 'play' : 'pause');
+      }
     } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') { e.preventDefault(); setSpeed(-0.05); }
     else if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') { e.preventDefault(); setSpeed(0.05); }
     else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !(e.target && e.target.type === 'range')) { e.preventDefault(); setSpeed(e.key === 'ArrowLeft' ? -0.01 : 0.01); }   /* 1 % steps (Trix); a slider with focus keeps its arrows */
@@ -2219,6 +2234,7 @@
       if (!song || !fgDown || Math.abs(e.clientX - fgDown[0]) > 6 || Math.abs(e.clientY - fgDown[1]) > 6) return;
       if (window.getSelection && String(window.getSelection())) return;
       $('fgPlay').click();
+      fgFlash(playing || counting ? 'play' : 'pause');
     });
     /* Ctrl + mouse wheel zooms the pages (Trix), 50 % to 300 %, keeping the point under the pointer still; the PDF is not affected */
     var fgZoom = 1;
