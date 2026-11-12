@@ -515,8 +515,8 @@ midi_html = open(SP + 'midi.html').read()
 SCORE_CREDITS = [
     ('Twinkle, Twinkle, Little Star', 'Traditional', 'Engraved by Violin Toolkit, 2026', 'CC0 1.0'),
     ('Minuet in G major, BWV Anh. 114', 'Christian Petzold (formerly attributed to J. S. Bach)', 'Mutopia Project no. 75 (Bach-Gesellschaft), typeset by Allen Garvin; MusicXML by Violin Toolkit', 'Public Domain'),
-    ('Minuet in G minor, BWV Anh. 115', 'Christian Petzold (formerly attributed to J. S. Bach)', 'Mutopia Project no. 1619 (Bach-Gesellschaft), typeset by Moulun Stephane; the duet for two violins: the first violin played, the second as accompaniment; converted to MusicXML by Violin Toolkit', 'Public Domain'),
-    ('Minuet in G major, BWV Anh. 116', 'Attributed to J. S. Bach', 'Mutopia Project no. 1619 (Bach-Gesellschaft), typeset by Moulun Stephane; the duet for two violins: the first violin played, the second as accompaniment; converted to MusicXML by Violin Toolkit', 'Public Domain'),
+    ('Minuet in G minor, BWV Anh. 115', 'Christian Petzold (formerly attributed to J. S. Bach)', 'Mutopia Project no. 76 (Bach-Gesellschaft), typeset by Allen Garvin; the keyboard original: the right hand played on the violin at its own pitch, the left hand as accompaniment; converted to MusicXML by Violin Toolkit', 'Public Domain'),
+    ('Minuet in G major, BWV Anh. 116', 'Attributed to J. S. Bach', 'Mutopia Project no. 77 (Bach-Gesellschaft), typeset by Allen Garvin; the keyboard original: the right hand played on the violin at its own pitch, the left hand as accompaniment; converted to MusicXML by Violin Toolkit', 'Public Domain'),
     ('Ode to Joy', 'Ludwig van Beethoven', 'Mutopia Project no. 528, typeset by Peter Chubb; violin line arranged by Violin Toolkit', 'Public Domain'),
     ('Gavotte by Martini', 'Giovanni Battista Martini', 'Mutopia Project no. 1785 (C. F. Peters, ca. 1891), typeset by Fabien Mirloup; converted to MusicXML by Violin Toolkit', 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Air (BWV 1068)', 'Johann Sebastian Bach', 'Mutopia Project no. 242 (Bach-Gesellschaft), typeset by Jeff Covey; converted to MusicXML by Violin Toolkit, repeats written out', 'Creative Commons Attribution-ShareAlike 3.0'),
@@ -545,8 +545,8 @@ CREDITS_HTML = ''.join('<li><b>%s</b><span translate="no">%s</span><span transla
 SCORE_SOURCE = {
     'twinkle.mxl': 'Engraved by Violin Toolkit, 2026 · CC0 1.0',
     'minuet.mxl': 'Mutopia Project #75 (typeset by Allen Garvin), MusicXML by Violin Toolkit · Public Domain',
-    'minuet115.mxl': 'Mutopia Project #1619 (typeset by Moulun Stephane), MusicXML by Violin Toolkit · Public Domain',
-    'minuet116.mxl': 'Mutopia Project #1619 (typeset by Moulun Stephane), MusicXML by Violin Toolkit · Public Domain',
+    'minuet115.mxl': 'Mutopia Project #76 (typeset by Allen Garvin), MusicXML by Violin Toolkit · Public Domain',
+    'minuet116.mxl': 'Mutopia Project #77 (typeset by Allen Garvin), MusicXML by Violin Toolkit · Public Domain',
     'ode.mxl': 'Mutopia Project #528 (typeset by Peter Chubb), violin line arr. Violin Toolkit · Public Domain',
     'gavotte.mxl': 'Mutopia Project #1785 (typeset by Fabien Mirloup), MusicXML by Violin Toolkit · CC BY-SA 3.0',
     'air.mxl': 'Mutopia Project #242 (typeset by Jeff Covey), MusicXML by Violin Toolkit · CC BY-SA 3.0',

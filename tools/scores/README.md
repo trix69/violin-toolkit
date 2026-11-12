@@ -124,3 +124,14 @@ bar at the Vivace key change (so 97 bars instead of 96). `hungarian5/build.py hu
 writes the score (repeats 33–48, 49–54, 55–62; key G major 49–62; tempo words from the PDF with meno = crotchet 120 /
 150), beams per beat, and fails nothing silently: it lists any bar whose voices do not fill 2/4. The ad lib. 8va
 (bars 25–28, 71–74) is played as written. Dynamics, slurs and articulations are not transcribed.
+
+## Minuets BWV Anh. 115 and 116 again, from the keyboard editions (2026-11-13)
+
+Hermes F51: #1619 is written for violas, so the melody sat an octave low and lost notes below the G string. Now Mutopia
+#76 (Anh. 115) and #77 (Anh. 116), Allen Garvin's Bach-Gesellschaft keyboard editions (Public Domain): `lyclean.py`,
+header and `\score` dropped, the final `<< { \stemUp X } { \context Voice = "ii" … } >>` -> `<< {X} \\ {Y} >>`, stem
+commands removed, `\repeat "volta"` -> `\repeat volta` (python-ly ignores the quoted form), wrapper Violin = `voiceone`,
+Harpsichord = `voicetwo`, `\tempo 4 = 96` (as before; the editions' MIDI says 140). `ly musicxml`, `pack.py`; then the
+empty last measure python-ly leaves dropped and the repeat barlines written explicitly (1–16, 17–end): python-ly put the
+first backward repeat one bar late. Notes = the editions' MIDI (115: 118 + 81, 116: 166 + 144). 115's melody runs
+B♭3–B♭5 as written, 116's D4–A5.
