@@ -328,7 +328,7 @@ html[lang="zh-CN"] {
 /* "new version" popup: Later and Update side by side */
 #upd { z-index: 140; }
 #fgWarn { z-index: 140; }
-#delAsk { z-index: 140; }
+#delAsk, #repAsk { z-index: 140; }
 /* the privacy policy screen (Trix): above everything (start overlay 100, tour 105, sheets 140); the body scrolls,
    the title, date and buttons stay in view */
 #pp { z-index: 200; }
@@ -1796,6 +1796,16 @@ markup = f"""
     <div class="upd-row">
       <button type="button" class="upd-later" id="delAskCancel">Cancel</button>
       <button type="button" class="sheet-done" id="delAskGo">Delete</button>
+    </div>
+  </div>
+</div>
+<div class="sheet" id="repAsk" role="dialog" aria-modal="true" aria-labelledby="repAskTitle" aria-describedby="repAskMsg" hidden>
+  <div class="sheet-card" tabindex="-1">
+    <h2 id="repAskTitle">Replace this file?</h2>
+    <p class="upd-msg" id="repAskMsg" translate="no"></p>
+    <div class="upd-row">
+      <button type="button" class="upd-later" id="repAskKeep">Keep both</button>
+      <button type="button" class="sheet-done" id="repAskGo">Replace</button>
     </div>
   </div>
 </div>

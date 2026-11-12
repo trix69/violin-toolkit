@@ -1598,6 +1598,27 @@
     songSel.value = 0; load(0);
     try { askBack.focus(); } catch (e) {}
   });
+  /* Replace or keep both, when an import has the name of a kept file. Resolves true = replace. Escape, the backdrop
+     and Keep both all keep both: nothing is lost unless Replace is chosen */
+  function askReplace(fname) {
+    return new Promise(function (done) {
+      var box = $('repAsk'), go = $('repAskGo'), keep = $('repAskKeep'), back = document.activeElement, zh = window.I18N && I18N.lang === 'zh';
+      $('repAskMsg').textContent = zh ? '已经导入过“' + fname + '”。替换后，之前那份会从这台设备上删除，无法恢复。' : '“' + fname + '” is already imported. Replacing removes the earlier copy from this device. This can’t be undone.';
+      function end(yes) {
+        box.hidden = true; window.removeEventListener('keydown', key, true);
+        go.removeEventListener('click', onGo); keep.removeEventListener('click', onKeep); box.removeEventListener('click', onBack);
+        try { back.focus(); } catch (e) {}
+        done(yes);
+      }
+      function onGo() { end(true); } function onKeep() { end(false); } function onBack(e) { if (e.target === box) end(false); }
+      function key(e) {
+        if (e.key === 'Escape') { e.stopPropagation(); end(false); }
+        else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); (document.activeElement === go ? keep : go).focus(); }
+      }
+      go.addEventListener('click', onGo); keep.addEventListener('click', onKeep); box.addEventListener('click', onBack);
+      box.hidden = false; window.addEventListener('keydown', key, true); keep.focus();
+    });
+  }
   APP.askDelete = function (back) {
     var s = songs[+songSel.value];
     if (!s || !s.kept) return;
@@ -1668,6 +1689,14 @@
           /* the same file imported again replaces its old copy (Trix): one entry in the list, and a copy kept before
              1.44 (no fn, so the Fingerings footer named it without its extension) is renewed */
           var old = kept.filter(function (k) { return k.fn ? k.fn === fname : k.name === name; }).map(function (k) { return k.id; });
+          /* replacing cannot be undone, so it is asked first (Trix, UX-PRINCIPLES): Keep both loses nothing */
+          return (old.length ? askReplace(fname) : Promise.resolve(false)).then(function (yes) { if (!yes) old = []; keepIt(rec, old); });
+        }).catch(function (e) {
+          console.error('MIDI import: keep', e);
+          kept = before; saveKept();   /* the earlier copy, if any, stays (Hermes F54) */
+          say('This file plays now, but there is no room to keep it for next time.', true);
+        });
+        function keepIt(rec, old) {
           kept = kept.filter(function (k) { return old.indexOf(k.id) < 0; });
           kept.push({ id: id, name: name, fn: fname, b64: rec.b64, z: rec.z });   /* fn: the file's own name, for the Fingerings footer */
           if (!saveKept()) throw new Error('no room');
@@ -1679,11 +1708,7 @@
             /* said, not silent (Hermes F53): a different file with the same name also replaces the copy */
             say(window.I18N && I18N.lang === 'zh' ? '已替换之前导入的“' + fname + '”。' : 'Replaced the earlier copy of “' + fname + '”.');
           }
-        }).catch(function (e) {
-          console.error('MIDI import: keep', e);
-          kept = before; saveKept();   /* the earlier copy, if any, stays (Hermes F54) */
-          say('This file plays now, but there is no room to keep it for next time.', true);
-        });
+        }
       }).catch(function (e) { if (!e.mine) console.error('MIDI import: unzip', e); say(e.mine ? e.message : 'This file could not be read.', true); });
   }
 
