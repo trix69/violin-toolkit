@@ -796,6 +796,66 @@
   function fingerOf(nt) {   /* 0 open, 1-4; first position up to the 4th finger (n 7), third position above */
     return nt.fg;   /* worked out per chord in build() */
   }
+  /* how many numerals are printed (Trix, 2026-11-13): Full (every stopped note, as before), Medium (none that tell the
+     reader nothing new), Minimum (the Suzuki book 1 look: only where a player cannot infer it). A filter on what is
+     drawn: the planner's choices do not change, and a fingering written in the score prints at every level. One
+     setting for the player's strip, the Fingerings pages and the PDF (they share this renderer). */
+  var FG_LEVELS = ['full', 'medium', 'minimum'], FG_LEVEL = 'full', fgForce = null;   /* fgForce: beats whose first note must show (each page's first note) */
+  try { var lv0 = localStorage.getItem('violin-fg-level'); if (FG_LEVELS.indexOf(lv0) >= 0) FG_LEVEL = lv0; } catch (e) {}
+  function fgMark(sg) {   /* sets n._fs (shown) on every note for the current level */
+    var key = FG_LEVEL + '|' + (fgForce ? fgForce.join(',') : '');
+    if (sg._fgKey === key) return;
+    sg._fgKey = key;
+    var ns = sg.notes, beatQ = 4 / sg.sig.den, prev = null, shown = null, first = true;
+    ns.forEach(function (n) { n._fs = true; });
+    if (FG_LEVEL === 'full') return;
+    var forced = {}; (fgForce || []).forEach(function (b) { forced[b.toFixed(3)] = 1; });
+    function barOf(n) { var bo = sg.barAt ? sg.barAt(n.b + 1e-6) : null; return bo ? bo.beat : Math.floor(n.b / (sg.sig.num * beatQ)); }
+    var units = [];   /* onsets in time order: a chord counts as its top note */
+    for (var i = 0; i < ns.length; ) {
+      var j = i; while (j < ns.length && Math.abs(ns[j].b - ns[i].b) < 1e-6) j++;
+      var un = ns.slice(i, j).filter(function (n) { return !n.grace; });
+      if (un.length) units.push(un);
+      ns.slice(i, j).forEach(function (n) { if (n.grace) n._fs = n.xfg !== undefined; });
+      i = j;
+    }
+    units.forEach(function (un, ui) {
+      var n = un.reduce(function (a, b) { return b.m > a.m ? b : a; }), next = units[ui + 1] ? units[ui + 1][0] : null;
+      var fg = n.fg, k = n.si >= 0 ? n.m - OPEN[n.si] : 0, d = n.hand >= 0 && fg > 0 ? k - POS_S[n.hand] : 0;
+      var ext = fg === 4 || d >= 6, bar = barOf(n);
+      var posCh = prev && fg > 0 && prev.fg > 0 && n.hand !== undefined && prev.hand !== undefined && n.hand !== prev.hand;
+      var strCh = prev && n.si !== prev.si;
+      var keep = n.xfg !== undefined || n.harm || ext || posCh || forced[n.b.toFixed(3)];
+      var show;
+      if (FG_LEVEL === 'medium') {
+        var openAlt = fg === 0 && n.si > 0;   /* an open D, A or E: a stopped note of that pitch exists on the lower string */
+        keep = keep || openAlt || strCh || !prev;
+        if (!keep && shown && bar !== shown.bar && fg !== shown.fg) keep = true;   /* the first new finger after a bar line */
+        if (keep) show = true;
+        else if (shown && shown.si === n.si && shown.bar === bar && shown.fg === fg && Math.abs(n.m - shown.m) <= 2) show = false;   /* repeats the last numeral shown */
+        else if (prev && prev._fs && prev.si === n.si && barOf(prev) === bar) show = false;   /* never two in a row on one string in a bar */
+        else show = true;
+      } else {
+        var rest = prev ? n.b - (prev.b + (prev.own || prev.len || 0)) : Infinity;
+        var phrase = first || rest >= beatQ - 1e-6;
+        /* a deliberate open string: away from 1st position, or reached from the string below (the run lay there) */
+        var deliberate = fg === 0 && n.si > 0 && ((prev && prev.hand > 0) || (prev && prev.si === n.si - 1 && next && next.si === n.si - 1));
+        /* a finger that goes against the run: up the string with a lower finger, or down with a higher one */
+        var against = prev && fg > 0 && prev.fg > 0 && prev.si === n.si && prev.hand === n.hand && ((n.m > prev.m && fg < prev.fg) || (n.m < prev.m && fg > prev.fg));
+        show = !!(keep || phrase || deliberate || against);
+      }
+      un.forEach(function (x) { x._fs = show || x.xfg !== undefined; });
+      if (show) shown = { si: n.si, fg: fg, bar: bar, m: n.m };
+      prev = n; first = false;
+    });
+  }
+  APP.fgLevel = function (lv) {   /* the Fingerings control: re-draws the strip and the pages, keeps the scroll */
+    if (lv === undefined) return FG_LEVEL;
+    if (FG_LEVELS.indexOf(lv) < 0 || lv === FG_LEVEL) return FG_LEVEL;
+    FG_LEVEL = lv; try { localStorage.setItem('violin-fg-level', lv); } catch (e) {}
+    if (song) { var y = window.scrollY, sl = fgPages ? fgPages.scrollLeft : 0; drawScore(); scroll(); fgDirty = true; if (fgShown) fgRender(); window.scrollTo(0, y); if (fgPages) fgPages.scrollLeft = sl; }
+    return FG_LEVEL;
+  };
   function hueOf(nt) { return nt.si >= 0 ? 'var(' + HUE[nt.si] + ')' : 'var(--accent)'; }
   var CLEF = '<g transform="translate(2 ' + (Y0 - 36) + ') scale(0.9)"><path fill="currentColor" transform="translate(-5.000 80.125) scale(0.0750 -0.0750)" d="M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z"/></g>';
   var ACC = { '1': '#', '-1': 'b', '0': 'n' };   /* drawn by APP.accSvg */
@@ -929,6 +989,7 @@
      layouts): every shape as [x, svg markup] on one long line, plus where each bar starts. opts.gain(beat) widens
      the spacing after a beat (the pages justify each system with it) */
   function scoreItems(sg, opts) {
+    fgMark(sg);
     opts = opts || {};
     var X0, W, xAt, bars = [];
     var sharps = sg.sf >= 0, sp = sharps ? SP_S : SP_F, n = Math.abs(sg.sf), keyAcc = {};
@@ -1179,6 +1240,7 @@
       });
       /* fingering, in the string colour, on the side of the note away from the stem (Trix); past any articulation */
       var fg = fingerOf(nt), topY = Math.min(y - 9, Y0 - 5);
+      if (fg !== null && !nt._fs && nt.xfg === undefined) fg = null;   /* the chosen density (FG_LEVEL) */
       if (above && nearN) topY = Math.min(topY, ay - 1);
       if (fg !== null) {
         if (chord) g.push('<text class="fing side" x="' + (hx + (up ? -15 : 9)) + '" y="' + f.fy + '">' + fg + '</text>');   /* beside each note of a chord, spaced apart */
@@ -2131,6 +2193,21 @@
   var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '';
   var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.62, SYS_H = BOT + 46, FG_IND = 60;   /* FG_IND: the first system's indent, in score units (~10 mm) */   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
   function fgOptions() { if (!fgSel) return; fgSel.innerHTML = songSel.innerHTML; fgSel.value = songSel.value; }
+  /* the density control (Trix): three radios, arrows move between them as in a radio group */
+  (function () {
+    var box = $('fgLv'); if (!box) return;
+    var bs = Array.prototype.slice.call(box.querySelectorAll('button'));
+    function ui() { var lv = APP.fgLevel(); bs.forEach(function (b) { var on = b.dataset.lv === lv; b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; }); }
+    bs.forEach(function (b, i) {
+      b.addEventListener('click', function () { APP.fgLevel(b.dataset.lv); ui(); });
+      b.addEventListener('keydown', function (e) {
+        var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+        if (!d) return; e.preventDefault(); e.stopPropagation();
+        var nb = bs[(i + d + bs.length) % bs.length]; APP.fgLevel(nb.dataset.lv); ui(); nb.focus();
+      });
+    });
+    ui();
+  })();
   function fgSync() { fgOptions(); var cur = songs[+songSel.value]; $('fgDel').hidden = !(cur && cur.kept); fgDirty = true; if (APP.fgReset) APP.fgReset(); if (fgShown) fgRender(); }
   var fgT = 0;
   APP.fgSync = function () { clearTimeout(fgT); fgT = setTimeout(fgSync, 0); };   /* after the caller has set the list's value (an import selects its tune after loading it) */
@@ -2295,6 +2372,11 @@
       if (!cur || y + sysH > bottom) { cur = []; pages.push(cur); y = pages.length === 1 ? TOP1 : TOPN; }
       cur.push([si, y, cur.length === 0]); y += sysH;
     });
+    /* Minimum: the first note of each page carries its finger (Trix); the layout itself does not change */
+    if (FG_LEVEL === 'minimum') {
+      fgForce = pages.map(function (pg) { var P = r.sys[pg[0][0]], b0 = r.bars[P[0][0]].beat, n = sg.notes.filter(function (x) { return !x.grace && x.b >= b0 - 1e-6; })[0]; return n ? n.b : null; }).filter(function (b) { return b !== null; });
+      r = fgLayout(sg); fgForce = null;
+    }
     var o0 = songSel.options[songSel.selectedIndex], s0 = songs[+songSel.value];
     var title = s0 ? (s0.kept ? s0.title : (o0 ? o0.textContent : s0.title)) : '';
     var src = s0 && s0.demo && s0.demo.s ? s0.demo.s : '';
