@@ -612,8 +612,13 @@
     shift: 2.2, shiftStep: 0.5,   /* a shift, plus per position moved */
     shiftHard: 2,                 /* x: on fast notes or inside a slur */
     shiftEasy: 0.3,               /* x: after or on an open string, after a rest or a long note */
-    drone: 2                      /* an open-string note that comes back every other note (a drone, bariolage: Bagpipes) */
+    drone: 2,                     /* an open-string note that comes back every other note (a drone, bariolage: Bagpipes) */
+    fourBeginner: 2.2             /* a beginner piece (Trix): open strings first, as beginner books print them (0, with 4
+                                     as the alternative); the 4th finger only to save crossing out and back and more */
   };
+  /* a beginner piece (Trix: "don't prioritise the 4th finger for vibrato"): every note within 1st position, nothing
+     above B on the E string. Then no extra cost for an open string on a long or last note, and the 4th finger costs more */
+  var fgBeginner = false;
   /* the fingered ways to play pitch m: [{si, p (position index), fg, c (cost)}], plus the open string */
   function waysFor(n) {
     var out = [];
@@ -628,7 +633,7 @@
         if (d < -1 || d > 7) continue;
         var fg = d <= 0 ? 1 : d <= 2 ? 2 : d <= 4 ? 3 : 4;
         if (!blind && n.xfg !== undefined && n.xfg !== fg) continue;   /* a written finger */
-        var c = FG_COST.pos[p] + (fg === 4 ? FG_COST.four : 0) + (d === 6 ? FG_COST.high4 : 0) + (d === 7 ? FG_COST.ext : 0);
+        var c = FG_COST.pos[p] + (fg === 4 ? (fgBeginner ? FG_COST.fourBeginner : FG_COST.four) : 0) + (d === 6 ? FG_COST.high4 : 0) + (d === 7 ? FG_COST.ext : 0);
         if (si <= 1 && p > 2) c += FG_COST.lowHigh;
         out.push({ si: si, p: p, fg: fg, c: c });
       }
@@ -636,6 +641,7 @@
     return out;
   }
   function planFingers(notes, tpq) {
+    fgBeginner = notes.length > 0 && notes.every(function (n) { return n.m <= 83; });
     /* onsets as units; only single notes are planned, a chord is a fixed point (its top note's string/position) */
     var units = [];
     for (var u0 = 0; u0 < notes.length; ) { var u1 = u0; while (u1 < notes.length && Math.abs(notes[u1].b - notes[u0].b) < 1e-6) u1++; units.push(notes.slice(u0, u1)); u0 = u1; }
@@ -662,7 +668,7 @@
       var res = [];
       w.forEach(function (s) {
         if (s.fg === 0) {
-          var oc = (dur >= 0.8 ? FG_COST.openLong : 0) + (last ? FG_COST.openLong : 0);
+          var oc = fgBeginner ? 0 : (dur >= 0.8 ? FG_COST.openLong : 0) + (last ? FG_COST.openLong : 0);
           /* a drone: the same open-string note two notes before or after, with another open string between */
           var sm = function (z) { var u = units[z]; return u && u.length === 1 ? u[0].m : -1; };
           var otherOpen = function (z) { var m = sm(z); return m !== top.m && OPEN.indexOf(m) >= 0; };
