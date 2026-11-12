@@ -2134,7 +2134,7 @@
         o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + (sg.composer ? 63 : 44)) + '">' + esc(sg.modeKnown ? part + ' · ' + fgKey(sg, zh) : part) + '</text>');
         if (QR) {   /* 16 mm with a 2 mm quiet zone, inside the margins, over no staff */
           var qx = PG_W - PG_M - QZ - QS, qy = PG_M + QT + QZ, u = QS / QR.n;
-          o.push('<text class="fg-cap" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 9) + '">Violin Toolkit</text>');   /* right-aligned: wider than the QR, kept out of the margin */
+          o.push('<text class="fg-cap" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 9) + '">' + (zh ? '小提琴工具箱' : 'Violin Toolkit') + '</text>');   /* right-aligned: wider than the QR, kept out of the margin */
           o.push('<rect class="fg-paper" x="' + (qx - QZ).toFixed(2) + '" y="' + (PG_M + QT) + '" width="' + (QS + 2 * QZ).toFixed(2) + '" height="' + (QS + 2 * QZ).toFixed(2) + '"/>');
           o.push('<path class="fg-qr" transform="translate(' + qx.toFixed(2) + ' ' + qy.toFixed(2) + ') scale(' + u.toFixed(4) + ')" d="' + QR.d + '"/>');
           if (QR.icon) {   /* the app icon in the middle (Trix): 7 modules on a white square 9 modules across; level Q corrects the cover */
@@ -2145,12 +2145,12 @@
         }
       } else {
         o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_M + 8) + '">' + esc(title) + '</text>');   /* the piece at top left, the app at top right (Trix) */
-        o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 8) + '">Violin Toolkit</text>');
+        o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 8) + '">' + (zh ? '小提琴工具箱' : 'Violin Toolkit') + '</text>');
       }
       /* the edition this part comes from, bottom left of every page (Trix; the CC licences ask for credit) */
       if (src) o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_H - PG_M + 22) + '">' + esc((zh ? '来源：' : 'Source: ') + src) + '</text>');
       /* our part of the page, on every page and for imported files too (Trix): the fingerings are ours, released CC0 */
-      o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_H - PG_M + (src ? 37 : 22)) + '">' + (zh ? '指法：Violin Toolkit，2026（CC0）' : 'Fingerings by Violin Toolkit, 2026 (CC0)') + '</text>');
+      o.push('<text class="fg-run" x="' + PG_M + '" y="' + (PG_H - PG_M + (src ? 37 : 22)) + '">' + (zh ? '指法：小提琴工具箱，2026（CC0）' : 'Fingerings by Violin Toolkit, 2026 (CC0)') + '</text>');
       /* page N of M at the bottom right of every page (Trix), in the margin below the music */
       o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_H - PG_M + 22) + '">' + (zh ? '第 ' + (pi + 1) + ' 页，共 ' + pages.length + ' 页' : 'Page ' + (pi + 1) + ' of ' + pages.length) + '</text>');
       /* a raised numeral on a later page's first system must clear the running header (Hermes F36): the page's music
