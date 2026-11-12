@@ -1217,8 +1217,8 @@ nav_js = """(function () {
       busy = true; say('Checking…');
       newer().then(function (j) {
         if (!j) { busy = false; say('Up to date'); return; }
-        if (APK || STORE) { busy = false; say('Version ' + j.version + ' available'); ask(j, true); return; }   /* the website APK: download; a store app: its store page */
-        return install(j);
+        /* every build asks first (Trix, 2026-11-12): the website's Update installs, the APK downloads, a store app opens its page */
+        busy = false; say('Version ' + j.version + ' available'); ask(j, true);
       }).catch(function () { busy = false; say('Can’t check while offline'); });
     });
 
