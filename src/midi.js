@@ -636,8 +636,11 @@
     if (ns.some(function (n) { return n.m < 55 || n.m > 83; })) return false;
     var on = [], chords = 0;
     /* a held chord (a minim or longer) closes a section, as in the keyboard minuets (Hermes F57): it is not a double-stop passage */
-    for (var i = 0; i < ns.length; ) { var j = i; while (j < ns.length && Math.abs(ns[j].b - ns[i].b) < 1e-6) j++; if (j - i > 1 && !((ns[i].own || 0) >= 2 - 1e-6)) chords++; on.push(ns[i]); i = j; }
-    if (chords > 1) return false;
+    var held = 0;
+    for (var i = 0; i < ns.length; ) { var j = i; while (j < ns.length && Math.abs(ns[j].b - ns[i].b) < 1e-6) j++; if (j - i > 1) { if ((ns[i].own || 0) >= 2 - 1e-6) held++; else chords++; } on.push(ns[i]); i = j; }
+    /* held chords allowed only as section endings: at most one per 8 bars of music (Hermes F61) */
+    var barsN = Math.max(1, (ns[ns.length - 1].b + (ns[ns.length - 1].own || 0) - ns[0].b) / (sig.num * 4 / sig.den));
+    if (chords > 1 || held > Math.max(1, Math.floor(barsN / 8))) return false;
     var lv = [];
     lv.push(sf >= 0 && sf <= 3 ? 1 : (sf === -1 || sf === -2 || sf === 4) ? 2 : 3);
     var root = ((sf * 7) % 12 + 12) % 12, dia = [0, 2, 4, 5, 7, 9, 11].map(function (x) { return (x + root) % 12; });
