@@ -1657,6 +1657,7 @@
         }
         /* keeping it for next time; a failure here only means not kept (Hermes F17). MusicXML is kept compressed */
         var xml = looksXml(new Uint8Array(buf)) && typeof CompressionStream !== 'undefined';
+        var before = kept.slice();   /* restored if saving fails, so a failed re-import never loses the earlier copy (Hermes F54) */
         (xml ? zip(buf).then(function (z) { return { b64: toB64(z), z: 'gz' }; }) : Promise.resolve({ b64: toB64(buf) })).then(function (rec) {
           /* the same file imported again replaces its old copy (Trix): one entry in the list, and a copy kept before
              1.44 (no fn, so the Fingerings footer named it without its extension) is renewed */
@@ -1669,10 +1670,12 @@
             var now = songs.map(function (s) { return s.kept; }).indexOf(id);
             options(); if (now >= 0) songSel.value = now;
             if (window.APP && APP.fgSync) APP.fgSync();
+            /* said, not silent (Hermes F53): a different file with the same name also replaces the copy */
+            say(window.I18N && I18N.lang === 'zh' ? '已替换之前导入的“' + fname + '”。' : 'Replaced the earlier copy of “' + fname + '”.');
           }
         }).catch(function (e) {
           console.error('MIDI import: keep', e);
-          kept = kept.filter(function (k) { return k.id !== id; });
+          kept = before; saveKept();   /* the earlier copy, if any, stays (Hermes F54) */
           say('This file plays now, but there is no room to keep it for next time.', true);
         });
       }).catch(function (e) { if (!e.mine) console.error('MIDI import: unzip', e); say(e.mine ? e.message : 'This file could not be read.', true); });
