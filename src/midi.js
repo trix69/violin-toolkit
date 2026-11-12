@@ -1767,7 +1767,11 @@
     try { localStorage.setItem('violin-midi-loop', loop ? 'on' : 'off'); } catch (e) {}
     ui();
   });
-  function setSpeed(d) { speed = Math.max(0.5, Math.min(1.5, Math.round((speed + d) * 20) / 20)); ui(); if (playing) { accStop(); accStart(); } }   /* notes under way take the new speed (Hermes R20.2) */   /* 5 % steps (Trix) */
+  /* d: +-0.05 = the buttons and - / + keys, to the next multiple of 5 % (83 -> 85 or 80); +-0.01 = the arrow keys, 1 % (Trix) */
+  function setSpeed(d) {
+    var pc = Math.round(speed * 100), st = Math.round(Math.abs(d) * 100), dir = d > 0 ? 1 : -1;
+    pc = dir > 0 ? (Math.floor(pc / st) + 1) * st : (Math.ceil(pc / st) - 1) * st;
+    speed = Math.max(0.5, Math.min(1.5, pc / 100)); ui(); if (playing) { accStop(); accStart(); } }   /* notes under way take the new speed (Hermes R20.2) */   /* 5 % steps (Trix) */
   $('mpSlower').addEventListener('click', function () { setSpeed(-0.05); });
   /* keyboard (Trix): Space plays / pauses, - and + (or =, and the number pad's) change the speed 5 %; only while
      the player shows, not while typing or with a window open; Space never also presses the focused button */
@@ -1787,7 +1791,7 @@
       if (!e.repeat) { spaceKey = true; if (playing || counting) pause(); else play(); }
     } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') { e.preventDefault(); setSpeed(-0.05); }
     else if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') { e.preventDefault(); setSpeed(0.05); }
-    else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !(e.target && e.target.type === 'range')) { e.preventDefault(); setSpeed(e.key === 'ArrowLeft' ? -0.05 : 0.05); }   /* Trix; a slider with focus keeps its arrows */
+    else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !(e.target && e.target.type === 'range')) { e.preventDefault(); setSpeed(e.key === 'ArrowLeft' ? -0.01 : 0.01); }   /* 1 % steps (Trix); a slider with focus keeps its arrows */
   }, true);
   document.addEventListener('keyup', function (e) {   /* a focused button would click on Space's keyup */
     if (spaceKey && (e.key === ' ' || e.code === 'Space')) { spaceKey = false; e.preventDefault(); e.stopPropagation(); }
