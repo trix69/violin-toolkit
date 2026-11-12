@@ -1658,8 +1658,18 @@
         /* keeping it for next time; a failure here only means not kept (Hermes F17). MusicXML is kept compressed */
         var xml = looksXml(new Uint8Array(buf)) && typeof CompressionStream !== 'undefined';
         (xml ? zip(buf).then(function (z) { return { b64: toB64(z), z: 'gz' }; }) : Promise.resolve({ b64: toB64(buf) })).then(function (rec) {
+          /* the same file imported again replaces its old copy (Trix): one entry in the list, and a copy kept before
+             1.44 (no fn, so the Fingerings footer named it without its extension) is renewed */
+          var old = kept.filter(function (k) { return k.fn ? k.fn === fname : k.name === name; }).map(function (k) { return k.id; });
+          kept = kept.filter(function (k) { return old.indexOf(k.id) < 0; });
           kept.push({ id: id, name: name, fn: fname, b64: rec.b64, z: rec.z });   /* fn: the file's own name, for the Fingerings footer */
           if (!saveKept()) throw new Error('no room');
+          if (old.length) {
+            songs = songs.filter(function (s) { return !s.kept || old.indexOf(s.kept) < 0; });
+            var now = songs.map(function (s) { return s.kept; }).indexOf(id);
+            options(); if (now >= 0) songSel.value = now;
+            if (window.APP && APP.fgSync) APP.fgSync();
+          }
         }).catch(function (e) {
           console.error('MIDI import: keep', e);
           kept = kept.filter(function (k) { return k.id !== id; });
