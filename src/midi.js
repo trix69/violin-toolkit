@@ -2317,9 +2317,9 @@
     zoomUi();
     /* more controls (Trix): each one presses the MIDI player's own button; the Mixer and A–B panels move under the
        floating buttons while open from here, and back to the player's bar when opened there */
-    var fgMore = $('fgMore'), fgx = $('fgx'), mpBarEl = $('mpBar'), fitBar = fgPages.parentNode.querySelector('.fg-fitbar');
-    fgMore.addEventListener('click', function () { fgx.hidden = !fgx.hidden; fgMore.setAttribute('aria-expanded', fgx.hidden ? 'false' : 'true'); if (fgx.hidden) { setMixOpen(false); setABOpen(false); } });
-    Array.prototype.forEach.call(fgx.querySelectorAll('[data-for]'), function (b) {
+    var fgMore = $('fgMore'), fgx = $('fgx'), fgx2 = $('fgx2'), mpBarEl = $('mpBar'), fitBar = fgPages.parentNode.querySelector('.fg-fitbar');
+    fgMore.addEventListener('click', function () { fgx.hidden = !fgx.hidden; fgx2.hidden = fgx.hidden; fgMore.setAttribute('aria-expanded', fgx.hidden ? 'false' : 'true'); if (fgx.hidden) { setMixOpen(false); setABOpen(false); } });   /* the player's order: back to start, −, play, +, mixer; then loop, A–B (Trix) */
+    Array.prototype.forEach.call(fgPages.parentNode.querySelectorAll('.fg-fitbar [data-for]'), function (b) {
       b.addEventListener('click', function (e) {
         e.stopPropagation();
         var id = b.dataset.for, src = $(id);
@@ -2335,7 +2335,7 @@
       b.addEventListener('click', function () { if (mixPop.parentNode !== mpBarEl) { mpBarEl.insertBefore(abPop, mpBarEl.firstChild); mpBarEl.insertBefore(mixPop, abPop); } }, true);
     });
     APP.fgxSync = function () {
-      Array.prototype.forEach.call(fgx.querySelectorAll('[data-for]'), function (b) {
+      Array.prototype.forEach.call(fgPages.parentNode.querySelectorAll('.fg-fitbar [data-for]'), function (b) {
         var src = $(b.dataset.for); if (!src) return;
         b.disabled = !!src.disabled;
         if (src.hasAttribute('aria-pressed')) b.setAttribute('aria-pressed', src.getAttribute('aria-pressed'));
