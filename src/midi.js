@@ -2318,6 +2318,7 @@
     warnGo.addEventListener('click', function () { var f = warnThen; closeWarn(); if (f) f(); });   /* still inside the tap: printing and sharing are allowed */
     fgPdf.addEventListener('click', function () {
       if (!song) return;
+      if (playing || counting) pause();   /* Export pauses the music first (Trix): the print / share window would leave a note sounding */
       if (fgReady) { sharePdf(); return; }
       var s = songs[+songSel.value];
       if (s && s.kept) { warnThen = exportPdf; warnOpener = fgPdf; warn.hidden = false; window.addEventListener('keydown', onWarnKey, true); warnGo.focus(); return; }
