@@ -87,3 +87,14 @@ semiquavers) -> `<< {…} \\ {…} >>`; wrapper like Autumn's with `\tempo 4 = 1
 `pc_slurs.py in.mxl out.mxl` after `pc_transpose.py` (Trix: "add violin style slurs"; the song edition has none for
 bowing): 36 slurs by measure — four-semiquaver runs in one bow, eight-semiquaver bars as two fours, the refrain's
 crotchet pairs, the two semiquavers before each refrain crotchet; staccato pairs and repeated quavers stay detached.
+
+## Winter, 2nd movement (Largo) and RV 356, 1st movement (2026-11-12)
+
+- Winter Largo: Mutopia #351 `winter2*.ly` (solo, two ripieno violins, viola, cello), `lyclean.py`, wrapper like Autumn's
+  with `\tempo 4 = 46` (the edition's MIDI), `ly musicxml`, `pack.py`, then `win2_pizz.py` (a `<sound pizzicato="yes"/>`
+  at the start of both ripieno parts: the edition says "Largo e Pizziccati forte" only in words). 18 bars, 151 solo notes
+  = `winter-score-1.mid`.
+- RV 356 (L'estro armonico No. 6): Mutopia #2048 `6/notes1.ily`, `lyclean.py`, `ly rel2abs`, `rv356_flat.py` (pastes the
+  shared tutti passages, writes out `\repeat unfold`, drops `\partial`), wrapper with Violin (`violinI`), Ripieno
+  (`violinII`), Viola, Violoncello and `\tempo 4 = 120`, `ly musicxml`, `pack.py … 0.5` (quaver pickup). 80 bars + pickup,
+  895 solo notes in the same order as `6/violinI.mid`.
