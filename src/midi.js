@@ -1295,6 +1295,7 @@
     var fpb = $('fgPlay'); if (fpb) { fpb.classList.toggle('on', playing || counting); fpb.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play'); fpb.title = playing || counting ? 'Pause' : 'Play'; }
     scoreEl.classList.toggle('playing', playing || counting);   /* tap-a-note only while paused */
     loopBtn.setAttribute('aria-pressed', loop ? 'true' : 'false');
+    if (APP.fgxSync) APP.fgxSync();
     $('mpSlower').disabled = speed <= 0.5 + 1e-9;
     $('mpFaster').disabled = speed >= 1.5 - 1e-9;
   }
@@ -1679,6 +1680,7 @@
   }
   function setMixOpen(open) {
     mixPop.hidden = !open; mixBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (APP.fgxSync) APP.fgxSync();
     if (open) volV.focus();
   }
   /* vibrato on the player's long notes (Trix): off by default; a note gets it once it has sounded ~0.3 s */
@@ -1692,7 +1694,7 @@
   volV.addEventListener('input', function () { mix.v = volV.value / 100; mixUi(); saveMix(); });
   volA.addEventListener('input', function () { mix.a = volA.value / 100; mixUi(); saveMix(); });
   volM.addEventListener('input', function () { mix.m = volM.value / 100; mixUi(); saveMix(); });
-  document.addEventListener('pointerdown', function (e) { if (!mixPop.hidden && !mixPop.contains(e.target) && !mixBtn.contains(e.target)) setMixOpen(false); }, true);
+  document.addEventListener('pointerdown', function (e) { if (!mixPop.hidden && !mixPop.contains(e.target) && !mixBtn.contains(e.target) && !(e.target.closest && e.target.closest('.fgx-mix'))) setMixOpen(false); }, true);
   mixPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setMixOpen(false); mixBtn.focus(); } });
   /* A–B (Trix): repeat a passage, from bar A to the end of bar B, counting in each time round. Off until it is set
      in its panel; bars picked from lists (a scrolling wheel on phones); A empty = the beginning, B empty = the end;
@@ -1730,6 +1732,7 @@
   function abUi() {
     abBtn.setAttribute('aria-pressed', ab ? 'true' : 'false');
     $('mpABOff').hidden = !ab;
+    if (APP.fgxSync) APP.fgxSync();
     placeAB();
   }
   function placeAB() {   /* A and B marked on the score */
@@ -1743,6 +1746,7 @@
   function setABOpen(open) {
     if (open && !song) return;
     abPop.hidden = !open; abBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (APP.fgxSync) APP.fgxSync();
     if (!open) return;
     setMixOpen(false);
     fillAB();
@@ -1761,7 +1765,7 @@
     abUi(); setABOpen(false); abBtn.focus();
     pause(); seekTo(abRange().aT);
   });
-  document.addEventListener('pointerdown', function (e) { if (!abPop.hidden && !abPop.contains(e.target) && !abBtn.contains(e.target)) setABOpen(false); }, true);
+  document.addEventListener('pointerdown', function (e) { if (!abPop.hidden && !abPop.contains(e.target) && !abBtn.contains(e.target) && !(e.target.closest && e.target.closest('.fgx-ab'))) setABOpen(false); }, true);
   abPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setABOpen(false); abBtn.focus(); } });
   document.addEventListener('i18n', function () { if (!abPop.hidden) { var a = selA.value, b = selB.value; fillAB(); selA.value = a; selB.value = b; limitB(); } });
   playBtn.addEventListener('click', function () { if (playing || counting) pause(); else play(); });
@@ -2308,6 +2312,35 @@
       if (fgZoom <= 1.001) zoomUi();   /* a window no wider than the column: nothing to gain */
     });
     zoomUi();
+    /* more controls (Trix): each one presses the MIDI player's own button; the Mixer and A–B panels move under the
+       floating buttons while open from here, and back to the player's bar when opened there */
+    var fgMore = $('fgMore'), fgx = $('fgx'), mpBarEl = $('mpBar'), fitBar = fgPages.parentNode.querySelector('.fg-fitbar');
+    fgMore.addEventListener('click', function () { fgx.hidden = !fgx.hidden; fgMore.setAttribute('aria-expanded', fgx.hidden ? 'false' : 'true'); if (fgx.hidden) { setMixOpen(false); setABOpen(false); } });
+    Array.prototype.forEach.call(fgx.querySelectorAll('[data-for]'), function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var id = b.dataset.for, src = $(id);
+        if (id === 'mpMix' || id === 'mpAB') {
+          if (mixPop.parentNode !== fitBar) { fitBar.appendChild(mixPop); fitBar.appendChild(abPop); }
+          if (id === 'mpMix') { setABOpen(false); setMixOpen(mixPop.hidden); } else setABOpen(abPop.hidden);
+          return;
+        }
+        if (src && !src.disabled) src.click();
+      });
+    });
+    [mixBtn, abBtn].forEach(function (b) {   /* opened in the player: the panels go home to its bar first */
+      b.addEventListener('click', function () { if (mixPop.parentNode !== mpBarEl) { mpBarEl.insertBefore(abPop, mpBarEl.firstChild); mpBarEl.insertBefore(mixPop, abPop); } }, true);
+    });
+    APP.fgxSync = function () {
+      Array.prototype.forEach.call(fgx.querySelectorAll('[data-for]'), function (b) {
+        var src = $(b.dataset.for); if (!src) return;
+        b.disabled = !!src.disabled;
+        if (src.hasAttribute('aria-pressed')) b.setAttribute('aria-pressed', src.getAttribute('aria-pressed'));
+        if (b.dataset.for === 'mpMix') b.setAttribute('aria-expanded', !mixPop.hidden && mixPop.parentNode === fitBar ? 'true' : 'false');
+        if (b.dataset.for === 'mpAB') b.setAttribute('aria-expanded', !abPop.hidden && abPop.parentNode === fitBar ? 'true' : 'false');
+      });
+    };
+    APP.fgxSync();
     $('fgPlay').addEventListener('click', function () {   /* play / pause the MIDI player from here, staying on the pages (Trix); its speed, loop and A–B */
       if (!song) return;
       if (playing || counting) { pause(); return; }
