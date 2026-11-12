@@ -25,6 +25,7 @@ async function upstream() {
   }
 }
 
+const VER_OK = /^[1-9][0-9]?\.[0-9]{1,2}$/;
 function param(q, name, ok, max) {
   const v = (q.get(name) || '').slice(0, max);
   return ok(v) ? v : '';
@@ -38,7 +39,7 @@ export default {
     if (req.method !== 'GET' || url.pathname !== '/version.json') return new Response('Not found', { status: 404, headers });
     const q = url.searchParams;
     const client = param(q, 'c', (v) => CLIENTS.includes(v), 8);
-    const version = param(q, 'v', (v) => /^[0-9.]{1,12}$/.test(v), 12);
+    const version = param(q, 'v', (v) => VER_OK.test(v), 12);   /* a real version (1.43), else stored empty = unknown (Trix) */
     const id = param(q, 'id', (v) => /^[a-z0-9]{8,32}$/.test(v), 32);
     const got = await upstream();
     try {
@@ -79,13 +80,20 @@ async function stats(url, env) {
   else {
     try {
       const T = 'violin_toolkit_checks';
-      const [daily, inst7, inst30, versions, day1] = await Promise.all([
-        sql(env, `SELECT index1 AS k, SUM(_sample_interval) AS checks, COUNT(DISTINCT blob2) AS installs FROM ${T} WHERE timestamp > NOW() - INTERVAL '90' DAY GROUP BY k ORDER BY k`),
-        sql(env, `SELECT blob4 AS client, COUNT(DISTINCT blob2) AS installs, SUM(_sample_interval) AS checks FROM ${T} WHERE timestamp > NOW() - INTERVAL '7' DAY GROUP BY client`),
-        sql(env, `SELECT blob4 AS client, COUNT(DISTINCT blob2) AS installs, SUM(_sample_interval) AS checks FROM ${T} WHERE timestamp > NOW() - INTERVAL '30' DAY GROUP BY client`),
-        sql(env, `SELECT blob1 AS version, COUNT(DISTINCT blob2) AS installs, SUM(_sample_interval) AS checks FROM ${T} WHERE timestamp > NOW() - INTERVAL '7' DAY GROUP BY version ORDER BY installs DESC`),
-        sql(env, `SELECT blob4 AS client, COUNT(DISTINCT blob2) AS installs, SUM(_sample_interval) AS checks FROM ${T} WHERE timestamp > NOW() - INTERVAL '1' DAY GROUP BY client`),
+      let [daily, inst7, inst30, versions, day1] = await Promise.all([
+        sql(env, `SELECT index1 AS k, SUM(_sample_interval) AS checks, COUNT(DISTINCT blob2) AS installs, SUM(if(blob2 = '', _sample_interval, 0)) AS noid FROM ${T} WHERE timestamp > NOW() - INTERVAL '90' DAY GROUP BY k ORDER BY k`),
+        sql(env, `SELECT blob4 AS client, COUNT(DISTINCT blob2) AS installs, SUM(_sample_interval) AS checks, SUM(if(blob2 = '', _sample_interval, 0)) AS noid FROM ${T} WHERE timestamp > NOW() - INTERVAL '7' DAY GROUP BY client`),
+        sql(env, `SELECT blob4 AS client, COUNT(DISTINCT blob2) AS installs, SUM(_sample_interval) AS checks, SUM(if(blob2 = '', _sample_interval, 0)) AS noid FROM ${T} WHERE timestamp > NOW() - INTERVAL '30' DAY GROUP BY client`),
+        sql(env, `SELECT blob1 AS version, COUNT(DISTINCT blob2) AS installs, SUM(_sample_interval) AS checks, SUM(if(blob2 = '', _sample_interval, 0)) AS noid FROM ${T} WHERE timestamp > NOW() - INTERVAL '7' DAY GROUP BY version ORDER BY installs DESC`),
+        sql(env, `SELECT blob4 AS client, COUNT(DISTINCT blob2) AS installs, SUM(_sample_interval) AS checks, SUM(if(blob2 = '', _sample_interval, 0)) AS noid FROM ${T} WHERE timestamp > NOW() - INTERVAL '1' DAY GROUP BY client`),
       ]);
+      /* visits without an install id (storage blocked) are not one visitor (Hermes, Trix): COUNT(DISTINCT) counts the
+         empty id once per group, so it comes off, and they are shown on their own */
+      [daily, inst7, inst30, versions, day1].forEach((rows) => rows.forEach((r) => { if (n(r.noid) > 0) r.installs = Math.max(0, n(r.installs) - 1); }));
+      /* versions: anything that is not a real version number is 'unknown' (Trix) */
+      const vm = {};
+      versions.forEach((r) => { const k = VER_OK.test(r.version || '') ? r.version : 'unknown'; const o = vm[k] || (vm[k] = { version: k, installs: 0, checks: 0, noid: 0 }); o.installs += n(r.installs); o.checks += n(r.checks); o.noid += n(r.noid); });
+      versions = Object.values(vm).sort((a, b) => b.installs - a.installs || b.checks - a.checks);
       body = render(daily, inst7, inst30, versions, day1);
     } catch (e) {
       body = '<p class="note">Could not read the counts: ' + esc(e.message) + '</p>';
@@ -100,7 +108,7 @@ h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 16px; margin: 26px 0 10
 .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
 .card b { display: block; font-size: 28px; line-height: 1.2; } .card span { color: var(--muted); font-size: 13px; display: block; } .card .lab { color: var(--fg); font-weight: 600; margin-bottom: 4px; } .card em { display: block; font-style: normal; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 14px; }
-.tot td { font-weight: 600; } .short { display: none; } @media (max-width: 480px) { .long { display: none; } .short { display: inline; } } th[colspan] { text-align: center; }
+.tot td { font-weight: 600; } .noid td { color: var(--muted); font-size: 13px; } .card small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; } .short { display: none; } @media (max-width: 480px) { .long { display: none; } .short { display: inline; } } th[colspan] { text-align: center; }
 .chart { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow-x: auto; }
 .wrap { overflow-x: auto; border-radius: 12px; }
 table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14px; }
@@ -123,9 +131,9 @@ function render(daily, inst7, inst30, versions, day1 = []) {
   const today = dayList.length ? dayList[dayList.length - 1] : '';
   // visits = launch checks (every online launch); unique visitors = different install ids (devices)
   const dayTot = (d, f) => cs.reduce((t, c) => t + ((days[d][c] || {})[f] || 0), 0);
-  const card = (label, vis, visits) => `<div class="card"><span class="lab">${label}</span><b>${vis}</b><span>unique visitors</span><em>${visits} visits</em></div>`;
-  const cards = `<div class="cards">` + card('Last 24 hours', sum(day1, 'installs'), sum(day1, 'checks')) +
-    card('Last 7 days', sum(inst7, 'installs'), sum(inst7, 'checks')) + card('Last 30 days', sum(inst30, 'installs'), sum(inst30, 'checks')) + `</div>`;
+  const card = (label, vis, visits, noid) => `<div class="card"><span class="lab">${label}</span><b>${vis}</b><span>unique visitors</span><em>${visits} visits</em>${noid ? `<small>${noid} without an id</small>` : ''}</div>`;
+  const cards = `<div class="cards">` + card('Last 24 hours', sum(day1, 'installs'), sum(day1, 'checks'), sum(day1, 'noid')) +
+    card('Last 7 days', sum(inst7, 'installs'), sum(inst7, 'checks'), sum(inst7, 'noid')) + card('Last 30 days', sum(inst30, 'installs'), sum(inst30, 'checks'), sum(inst30, 'noid')) + `</div>`;
   // per day: visits as a pale bar behind, unique visitors stacked by app type in front
   const W = Math.max(320, dayList.length * 22), H = 170, max = Math.max(1, ...dayList.map((d) => dayTot(d, 'checks')));
   let bars = '';
@@ -142,11 +150,12 @@ function render(daily, inst7, inst30, versions, day1 = []) {
   const m7 = by(inst7), m30 = by(inst30);
   const table = `<h2>By app type</h2><div class="wrap"><table><tr><th rowspan="2">App</th><th colspan="2">Last 7 days</th><th colspan="2">Last 30 days</th></tr><tr><th>Visitors</th><th>Visits</th><th>Visitors</th><th>Visits</th></tr>` +
     order.filter((c) => m7[c] || m30[c]).map((c) => `<tr><td><i class="key" style="background:${COLOURS[c]}"></i><span class="long">${esc(CLIENT_NAMES[c])}</span><span class="short">${esc(SHORT[c])}</span></td><td>${n((m7[c] || {}).installs)}</td><td>${n((m7[c] || {}).checks)}</td><td>${n((m30[c] || {}).installs)}</td><td>${n((m30[c] || {}).checks)}</td></tr>`).join('') +
+    `<tr class="noid"><td>Visits without an id</td><td>–</td><td>${sum(inst7, 'noid')}</td><td>–</td><td>${sum(inst30, 'noid')}</td></tr>` +
     `<tr class="tot"><td>Total</td><td>${sum(inst7, 'installs')}</td><td>${sum(inst7, 'checks')}</td><td>${sum(inst30, 'installs')}</td><td>${sum(inst30, 'checks')}</td></tr></table></div>`;
-  const vers = versions.length ? `<h2>Versions in use (last 7 days)</h2><table><tr><th>Version</th><th>Visitors</th><th>Visits</th></tr>` + versions.map((r) => `<tr><td>${esc(r.version || '?')}</td><td>${n(r.installs)}</td><td>${n(r.checks)}</td></tr>`).join('') + '</table>' : '';
+  const vers = versions.length ? `<h2>Versions in use (last 7 days)</h2><table><tr><th>Version</th><th>Visitors</th><th>Visits</th></tr>` + versions.map((r) => `<tr><td>${r.version === 'unknown' ? 'Unknown' : esc(r.version)}</td><td>${n(r.installs)}</td><td>${n(r.checks)}</td></tr>`).join('') + '</table>' : '';
   const recent = dayList.slice(-14).reverse();
   const daysT = `<h2>Daily (last 14 days)</h2><div class="wrap"><table><tr><th>Day</th><th>Visitors</th><th>Visits</th>` + cs.map((c) => `<th>${esc(SHORT[c])}</th>`).join('') + `</tr>` +
     recent.map((d) => `<tr><td>${esc(d.slice(5))}</td><td><b>${dayTot(d, 'installs')}</b></td><td>${dayTot(d, 'checks')}</td>` + cs.map((c) => `<td>${(days[d][c] || {}).installs || 0}</td>`).join('') + `</tr>`).join('') +
-    '</table></div><p class="note">Visit = one launch while online (each launch checks for updates; "Check for updates" taps count too). Unique visitor = one device (its random install id), however often it opens the app. App columns show visitors. Web = browser, PWA = installed web app, APK = Android app from the website, Play = Google Play, iOS = iPhone app. Days are UTC.</p>';
+    '</table></div><p class="note">Visit = one launch while online (each launch checks for updates; "Check for updates" taps count too). Unique visitor = one device (its random install id), however often it opens the app. A launch that cannot store an id (private browsing, blocked storage) is a visit without an id: counted as a visit, never as a visitor. App columns show visitors. Web = browser, PWA = installed web app, APK = Android app from the website, Play = Google Play, iOS = iPhone app. Days are UTC.</p>';
   return cards + chart + table + daysT + vers;
 }
