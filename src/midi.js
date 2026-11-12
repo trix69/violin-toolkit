@@ -1760,11 +1760,12 @@
   selA.addEventListener('change', limitB);
   $('mpABCancel').addEventListener('click', function () { setABOpen(false); abBtn.focus(); });   /* nothing set: stays as it was (off) */
   /* a change of A–B pauses and moves to bar A (or the start when off); Play then counts in (Trix) */
-  $('mpABOff').addEventListener('click', function () { ab = null; abUi(); setABOpen(false); pause(); seekTo(0); abBtn.focus(); });
+  $('mpABOff').addEventListener('click', function () { ab = null; abUi(); setABOpen(false); pause(); seekTo(0); abBtn.focus(); fgFlash('text', 'A–B off'); });
   $('mpABSet').addEventListener('click', function () {
     ab = { a: +selA.value, b: +selB.value };
     abUi(); setABOpen(false); abBtn.focus();
     pause(); seekTo(abRange().aT);
+    fgFlash('text', 'A–B on');
   });
   document.addEventListener('pointerdown', function (e) { if (!abPop.hidden && !abPop.contains(e.target) && !abBtn.contains(e.target) && !(e.target.closest && e.target.closest('.fgx-ab'))) setABOpen(false); }, true);
   abPop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); setABOpen(false); abBtn.focus(); } });
@@ -1780,14 +1781,16 @@
     loop = !loop;
     try { localStorage.setItem('violin-midi-loop', loop ? 'on' : 'off'); } catch (e) {}
     ui();
+    fgFlash('text', loop ? 'Loop on' : 'Loop off');
   });
   /* d: +-0.05 = the buttons and - / + keys, to the next multiple of 5 % (83 -> 85 or 80); +-0.01 = the arrow keys, 1 % (Trix) */
   var flashT = 0;
   function fgFlash(what, n) {   /* Fingerings only (Trix): 'play' / 'pause' icon, 'speed' = the new tempo and percentage, 'count' = the count-in's n */
     var el = $('fgFlash'); if (!el || !fgShown || !song) return;
     clearTimeout(flashT);
-    el.classList.toggle('txt', what === 'speed');
+    el.classList.toggle('txt', what === 'speed' || what === 'text');
     el.classList.toggle('cnt', what === 'count');
+    if (what === 'text') { el.textContent = n; el.hidden = true; void el.offsetWidth; el.hidden = false; flashT = setTimeout(function () { el.hidden = true; }, 1000); return; }   /* Loop / A–B on or off (Trix) */
     if (what === 'count') { el.textContent = n; el.hidden = true; void el.offsetWidth; el.hidden = false; flashT = setTimeout(function () { el.hidden = true; }, 1000); return; }
     el.innerHTML = what === 'play' ? '<svg viewBox="0 0 24 24"><path d="M8 5.5v13L19 12z"/></svg>' : what === 'pause' ? '<svg viewBox="0 0 24 24"><path d="M8 5.5v13M16 5.5v13"/></svg>'
       : '♩ = ' + Math.round(song.bpm * speed) + ' · ' + Math.round(speed * 100) + '%';
