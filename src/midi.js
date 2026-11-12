@@ -2227,14 +2227,37 @@
     fgSel.addEventListener('change', function () { songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
     $('fgImport').addEventListener('click', function () { $('mpImport').click(); });   /* the same import, the same list */
     $('fgDel').addEventListener('click', function () { APP.askDelete(fgSel); });   /* the player's delete, after asking: the same list (Trix) */
-    /* a click or tap on the pages plays / pauses, like the play button (Trix); not after a drag (text selection, scrolling) */
+    /* a click or tap on a note jumps there (Trix), as on the MIDI player's score: paused, it shows lit with its fingering;
+       playing, the music goes on from it. The nearest note in the system clicked, within 28 score units sideways.
+       Not after a drag (text selection, scrolling). */
     var fgDown = null;
     fgPages.addEventListener('pointerdown', function (e) { fgDown = [e.clientX, e.clientY]; });
+    function fgNoteAt(e) {
+      var svg = e.target.closest && e.target.closest('svg.fg-page'); if (!svg || !fgR || !song) return -1;
+      var pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      var p = pt.matrixTransform(svg.getScreenCTM().inverse()), best = null, bd = Infinity;
+      fgMap.forEach(function (m) {
+        if (m.svg !== svg) return;
+        var mid = m.oy + (Y0 + 2 * S) * PG_K, d = Math.abs(p.y - mid);
+        if (d < bd && d < (2 * S + 50) * PG_K) { bd = d; best = m; }
+      });
+      if (!best) return -1;
+      var xi = (p.x - best.ox) / PG_K - best.tx, k = -1, dx = 28;
+      song.notes.forEach(function (n, i) {
+        if (n.b < best.b0 - 1e-6 || n.b >= best.b1 - 1e-6 || n.grace) return;
+        var d = Math.abs(fgR.xAt(n.b) - xi); if (d < dx) { dx = d; k = i; }
+      });
+      return k;
+    }
     fgPages.addEventListener('click', function (e) {
       if (!song || !fgDown || Math.abs(e.clientX - fgDown[0]) > 6 || Math.abs(e.clientY - fgDown[1]) > 6) return;
       if (window.getSelection && String(window.getSelection())) return;
-      $('fgPlay').click();
-      fgFlash(playing || counting ? 'play' : 'pause');
+      var k = fgNoteAt(e); if (k < 0) return;
+      var t = song.notes[k].t;
+      if (counting) { stopCount(); seekTo(Math.max(0, t - 0.001)); go(); return; }   /* during the count-in: straight on from the note */
+      if (playing) { seekTo(Math.max(0, t - 0.001)); accStart(); return; }   /* playing: on from the note, the accompaniment with it */
+      if (t < 0.01) { seekTo(0); showAt(true); }   /* the first note: at the top (the count-in still comes), shown */
+      else seekTo(t + 0.001);   /* just inside the note, so it shows lit and resumes sounding */
     });
     /* Ctrl + mouse wheel zooms the pages (Trix), 50 % to 300 %, keeping the point under the pointer still; the PDF is not affected */
     var fgZoom = 1;
