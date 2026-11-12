@@ -9,6 +9,7 @@
 #view-fingering .fg-play.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .fg-page .fg-head { stroke: var(--accent); stroke-width: 5; stroke-linecap: round; opacity: .75; pointer-events: none; }   /* where the music is (Trix) */
 @media print { .fg-page .fg-head { display: none; } }
+html.fg-printing .fg-head, html.fg-shot .fg-head { display: none !important; }   /* only while an export runs; back on screen after (Hermes F48) */
 /* a quick sign in the middle of the screen that a key or a click did something (Trix) */
 #view-fingering .fg-flash { position: fixed; left: 50%; top: 50%; z-index: 60; transform: translate(-50%, -50%); display: grid; place-items: center; min-width: 96px; height: 96px; padding: 0 22px; box-sizing: border-box; border-radius: 48px; background: rgba(20, 28, 24, .72); color: #fff; font: 600 26px var(--font-note); white-space: nowrap; pointer-events: none; animation: fgFlash .9s ease-out forwards; }
 #view-fingering .fg-flash svg { width: 44px; height: 44px; fill: currentColor; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }

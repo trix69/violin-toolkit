@@ -2472,7 +2472,6 @@
     });
     function exportPdf() {
       if (!song) return;
-      if (fgMap.length) fgMap.forEach(function (m) { m.line.style.display = 'none'; });   /* the play line is a screen marker, not part of the PDF (Hermes F46) */
       if (!window.VTiOSApp && homeScreenIos()) { rasterPdf(); return; }
       var ios = window.VTiOSApp && window.webkit && webkit.messageHandlers && webkit.messageHandlers.vt;
       if (ios) {   /* the iPhone app: only the A4 pages on screen (html.fg-shot), captured page by page into a PDF for the share sheet */
