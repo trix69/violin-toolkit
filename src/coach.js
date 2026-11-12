@@ -36,6 +36,14 @@
       { sel: '#mpMix', title: 'Mixer', text: 'Levels for the violin, accompaniment and metronome, and vibrato on long notes.' },
       { sel: '#mpFull', title: 'Full screen', text: 'A bigger score and the whole fingerboard. On a phone, just turn it sideways.' },
       { sel: '#mpImport', title: 'Import your own', text: 'Add a MIDI or MusicXML file. The violin part lights up and the other parts play along.' }
+    ],
+    /* Fingerings (Trix, 2026-11-13): shown only when the page opens with nothing playing (see maybe()) */
+    fingering: [
+      { sel: '#fgSong', title: 'Pick a tune', text: 'The same tunes as the MIDI player, laid out on pages.' },
+      { sel: '#fgPages .fg-page:first-child', title: 'Fingers and positions', text: 'Each note shows its finger in its string’s colour; Roman numerals mark the position. Tap a note to play from there.' },
+      { sel: '#fgPlay', title: 'Play', text: 'Plays the tune; a line follows along on the pages.' },
+      { sel: '#fgMore', title: 'More controls', text: 'Back to start, speed, Mixer, Loop and A–B.' },
+      { sel: '#fgPdf', title: 'Export', text: 'Save the pages as a PDF to print or share.' }
     ]
   };
   /* a small picture of the board for the Pitch Check tip: F on the E string in C major (low 1st finger),
@@ -228,8 +236,11 @@
     maybe: function (v) {
       clearTimeout(timer);
       if (isSeen(v)) return;
+      /* Fingerings entered while a tune plays (or counts in): no tour, and it stays unseen for the next quiet visit (Trix) */
+      var quiet = function () { return v !== 'fingering' || !(APP.midiPlaying && APP.midiPlaying()); };
+      if (!quiet()) return;
       timer = setTimeout(function () {
-        if (document.body.getAttribute('data-view') === v && !isSeen(v)) start(v);
+        if (document.body.getAttribute('data-view') === v && !isSeen(v) && quiet()) start(v);
       }, 500);
     },
     /* show() calls this first: a tour for the old tool closes without counting as seen */

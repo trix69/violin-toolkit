@@ -2118,6 +2118,7 @@
     document.addEventListener(ev, function () { if (!fsEl() && full) setFull(false); else if (shown) setTimeout(fit, 50); });   /* left with Esc or Back */
   });
   APP.midiSong = function () { return song; };   /* for tests: the tune on screen */
+  APP.midiPlaying = function () { return !!(playing || counting); };   /* a tune is playing or counting in (the Fingerings tour waits: Trix) */
   /* ---------- Fingerings (指法谱, Trix): the violin part with the app's fingerings, on A4 pages and as a PDF.
      Same tune list, reader, planner and drawing as the player (scoreItems): the long line is cut at bar lines
      into systems, each system justified by widening its note spacing (a second drawing pass, so nothing is
