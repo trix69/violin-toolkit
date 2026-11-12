@@ -13,6 +13,7 @@
 #view-fingering .fg-flash { position: fixed; left: 50%; top: 50%; z-index: 60; transform: translate(-50%, -50%); display: grid; place-items: center; min-width: 96px; height: 96px; padding: 0 22px; box-sizing: border-box; border-radius: 48px; background: rgba(20, 28, 24, .72); color: #fff; font: 600 26px var(--font-note); white-space: nowrap; pointer-events: none; animation: fgFlash .9s ease-out forwards; }
 #view-fingering .fg-flash svg { width: 44px; height: 44px; fill: currentColor; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
 #view-fingering .fg-flash.txt { height: 64px; border-radius: 32px; }
+#view-fingering .fg-flash.cnt { width: 110px; height: 110px; border-radius: 50%; padding: 0; font: 700 56px/1 var(--font-note); }   /* the count-in, 4 3 2 1 (Trix) */
 @keyframes fgFlash { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.85); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 65% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { #view-fingering .fg-flash { animation: fgFlashStill 1s linear forwards; } }
 @keyframes fgFlashStill { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }

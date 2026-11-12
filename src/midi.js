@@ -1371,6 +1371,7 @@
       if (k === 0) { counting = false; countEl.hidden = true; then(); return; }
       APP.board.click(k === n);
       countEl.textContent = k; countEl.hidden = false;
+      fgFlash('count', k);   /* the count on the Fingerings page too (Trix) */
       countEl.classList.remove('beat'); void countEl.offsetWidth; countEl.classList.add('beat');
       k--; countT = setTimeout(beat, step);
     })();
@@ -1782,10 +1783,12 @@
   });
   /* d: +-0.05 = the buttons and - / + keys, to the next multiple of 5 % (83 -> 85 or 80); +-0.01 = the arrow keys, 1 % (Trix) */
   var flashT = 0;
-  function fgFlash(what) {   /* Fingerings only (Trix): 'play' / 'pause' icon, or 'speed' = the new tempo and percentage */
+  function fgFlash(what, n) {   /* Fingerings only (Trix): 'play' / 'pause' icon, 'speed' = the new tempo and percentage, 'count' = the count-in's n */
     var el = $('fgFlash'); if (!el || !fgShown || !song) return;
     clearTimeout(flashT);
     el.classList.toggle('txt', what === 'speed');
+    el.classList.toggle('cnt', what === 'count');
+    if (what === 'count') { el.textContent = n; el.hidden = true; void el.offsetWidth; el.hidden = false; flashT = setTimeout(function () { el.hidden = true; }, 1000); return; }
     el.innerHTML = what === 'play' ? '<svg viewBox="0 0 24 24"><path d="M8 5.5v13L19 12z"/></svg>' : what === 'pause' ? '<svg viewBox="0 0 24 24"><path d="M8 5.5v13M16 5.5v13"/></svg>'
       : '♩ = ' + Math.round(song.bpm * speed) + ' · ' + Math.round(speed * 100) + '%';
     el.hidden = true; void el.offsetWidth; el.hidden = false;   /* restart the fade */
