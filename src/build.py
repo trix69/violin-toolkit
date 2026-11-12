@@ -1266,7 +1266,7 @@ nav_js = """(function () {
     function ask(j, now) {   /* now: asked for (Check for updates), so not held back by the automatic-check setting */
       if ((!APP.autoUpd && !now) || busy) return;
       var tips = document.getElementById('coach');   /* a first-use tour makes the rest of the page inert: wait for it */
-      if (anyBusy() || document.hidden || (tips && !tips.hidden) || (APP.ppOpen && APP.ppOpen())) { setTimeout(function () { ask(j); }, tips && !tips.hidden ? 1000 : 5000); return; }
+      if (anyBusy() || document.hidden || (tips && !tips.hidden) || (APP.ppOpen && APP.ppOpen())) { setTimeout(function () { ask(j, now); }, tips && !tips.hidden ? 1000 : 5000); return; }   /* keeps 'asked for' across the wait (Hermes F43) */
       pending = j; offered = j.build || j.version;
       document.getElementById('updMsg').textContent = STORE ? 'Version ' + j.version + ' is available.' : APK ? 'Version ' + j.version + ' is available. Download the new Android app from the website to update.' : 'Version ' + j.version + ' is ready. Update now?';
       if (STORE) { updNow.textContent = PLAY ? 'Update in Google Play' : 'Update on the App Store'; }
