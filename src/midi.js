@@ -211,6 +211,7 @@
               kids(dt).forEach(function (d) {
                 if (d.nodeName === 'dynamics') { var dn = kids(d).map(function (x) { return x.nodeName === 'other-dynamics' ? x.textContent.trim() : x.nodeName; }).join(''); if (dn) marks.push({ tick: tk(cur), kind: 'dyn', text: dn }); }
                 else if (d.nodeName === 'wedge' && /crescendo|diminuendo|stop/.test(d.getAttribute('type'))) marks.push({ tick: tk(cur), kind: 'wedge', text: d.getAttribute('type') });
+                else if (d.nodeName === 'words' && /^(pizz\.?|pizzicato|arco)$/i.test(d.textContent.trim())) { if (!(snd && snd.getAttribute('pizzicato'))) pz = !/^arco$/i.test(d.textContent.trim()); }   /* pizz. / arco: drawn once, above the notes where the playing changes, and played so even without a <sound> (Trix) */
                 else if (d.nodeName === 'words' && d.textContent.trim() && !(snd && snd.getAttribute('tempo'))) marks.push({ tick: tk(cur), kind: 'words', text: d.textContent.trim() });
               });
             });
@@ -1156,12 +1157,16 @@
           if (ab) slurArcs.push([o.x, hx, Math.min(y0, y1) + 0.75 * (cy - Math.min(y0, y1))]);   /* the curve's highest point (both control points at cy) */
         }
       });
-      var pzPrev = k > 0 && !!inf[k - 1].nt.pz;
-      if (isHead && !!nt.pz !== pzPrev && (nt.pz || k > 0)) g.push('<text class="mp-word" x="' + (hx - 6) + '" y="9">' + (nt.pz ? 'pizz.' : 'arco') + '</text>');   /* where the playing changes (Trix) */
       if (nt.harm) {   /* a harmonic: a small o over the note, above the fingering, or over an up stem's tip (Trix) */
         var oy = stem && up ? (hd.beam >= 0 ? hd.tip : hd.yTop - 3.4 * S) - 7 : Math.min(y - 9, Y0 - 5) - (fg !== null && !chord ? 12 : 0);
         g.push('<circle class="harm" cx="' + hx + '" cy="' + Math.max(5, oy) + '" r="2.7"/>');
         inf[k].top = Math.min(inf[k].top, Math.max(5, oy) - 4);
+      }
+      var pzPrev = k > 0 && !!inf[k - 1].nt.pz;
+      if (isHead && !!nt.pz !== pzPrev && (nt.pz || k > 0)) {   /* pizz. / arco where the playing changes (Trix): just over the note's fingering and bowings, never cut off at the strip's top */
+        var wy = Math.max(15, inf[k].top - 1);
+        g.push('<text class="mp-word" x="' + (hx - 6) + '" y="' + wy + '">' + (nt.pz ? 'pizz.' : 'arco') + '</text>');
+        inf[k].top = Math.min(inf[k].top, wy - 13);   /* a position numeral goes above it */
       }
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
       items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);

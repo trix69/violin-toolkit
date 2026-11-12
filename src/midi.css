@@ -164,7 +164,7 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
    phone is upright */
 .shell.mp-up-rot { position: fixed; top: 0; left: 0; box-sizing: border-box; overflow: auto; -webkit-overflow-scrolling: touch; background: var(--bg); transform-origin: 0 0; padding: 8px 16px 0; }
 .mp-n .harm { fill: none; stroke: currentColor; stroke-width: 1.3; }   /* a harmonic's o */
-.mp-score .mp-word { fill: var(--sc-ink); font: italic 11px 'Times New Roman', 'Noto Serif', Georgia, serif; }   /* pizz. / arco */
+.mp-score .mp-word { fill: var(--sc-ink); font: italic 14px 'Times New Roman', 'Noto Serif', Georgia, serif; }   /* pizz. / arco, and the score's words; 14 px so the pages (scale 0.64) still read (Trix) */
 .mp-barno { position: absolute; z-index: 2; left: 9px; top: 4px; font: 600 12px/1 var(--font-mono); color: color-mix(in srgb, var(--sc-ink) 60%, transparent); pointer-events: none; font-variant-numeric: tabular-nums; }   /* the current bar number (Trix) */
 /* articulations, slurs, dynamics (MusicXML, Trix) */
 .mp-score .art, .mp-score .slur { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
