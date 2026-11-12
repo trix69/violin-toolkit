@@ -430,7 +430,7 @@
       return out;
     }, []);
     var firstTick = acc.reduce(function (a, n) { return Math.min(a, n.t0); }, Infinity);
-    var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick);
+    var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick, minor);
     /* the bar number at a beat, for the score's corner (Trix): MusicXML's own numbers (repeats show theirs again, a
        pickup is 0); a MIDI file's bars counted from its start */
     var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num }; }) : null;
@@ -470,7 +470,7 @@
   }
 
   /* ticks to seconds through the tempo changes, and back */
-  function build(raw, tpq, tempos, sig, sf, firstTick) {   /* firstTick: the accompaniment's first note, if any */
+  function build(raw, tpq, tempos, sig, sf, firstTick, minor) {   /* firstTick: the accompaniment's first note, if any */
     tempos.sort(function (a, b) { return a.tick - b.tick; });
     if (!tempos.length || tempos[0].tick > 0) tempos.unshift({ tick: 0, us: 500000 });
     var segs = [], sec = 0;
@@ -528,6 +528,7 @@
        as teachers finger and as fingering programs do it. Every possible (string, position, finger) gets a small
        cost, every move from one note to the next another (shifts, string crossings), and the path with the
        least total wins (Viterbi). Chords keep the choice above; fingerings written in the score are fixed. */
+    fgBeginner = isBeginner(notes, sig, sf, minor);
     planFingers(notes, tpq);
     /* fingerings and string numbers written in the score (MusicXML) win over the automatic choice (Trix) */
     notes.forEach(function (n) {
@@ -616,9 +617,61 @@
     fourBeginner: 2.2             /* a beginner piece (Trix): open strings first, as beginner books print them (0, with 4
                                      as the alternative); the 4th finger only to save crossing out and back and more */
   };
-  /* a beginner piece (Trix: "don't prioritise the 4th finger for vibrato"): every note within 1st position, nothing
-     above B on the E string. Then no extra cost for an open string on a long or last note, and the 4th finger costs more */
+  /* a beginner piece (Trix: "don't prioritise the 4th finger for vibrato"): then no extra cost for an open string on a
+     long or last note, and the 4th finger costs more. What counts as a beginner piece (Trix, 2026-11-13), from string
+     grading guides (ASTA / Shar, Alfred-Belwin series guidelines, MTB): two hard limits, 1st position only (G3–B5) and
+     no double stops (one chord, a final one, allowed); then each criterion gets a level, 1 beginner, 2 early, 3 harder:
+       key: G D A C and their relative minors 1 (A is easy on the violin: open A and E), F B♭ E 2, more 3;
+       notes outside the key: <= 5 % 1, <= 10 % 2, more 3 (Shar: "few accidentals");
+       time: 2/4 3/4 4/4 2/2 1, 6/8 3/8 6/4 9/8 12/8 2, others 3;
+       speed: the fastest notes at the written tempo (5th percentile of the onset gaps): <= 5 a second 1, <= 8 2, more 3
+         (speed rather than note values: Suzuki's Twinkle variations and Perpetual Motion use slow 16ths);
+       rhythm: triplets or dotted quaver + semiquaver 2, quintuplets / anything faster than a semiquaver 3;
+       slurs: the longest <= 4 notes 1 (Shar: "short 2–4 note slurs"), <= 8 2, more 3;
+       ornaments: any grace note, trill, turn or mordent 2.
+     Beginner = no level 3 and at most two criteria at level 2. */
   var fgBeginner = false;
+  function isBeginner(notes, sig, sf, minor) {
+    var ns = notes.filter(function (n) { return !n.grace; });
+    if (!ns.length) return false;
+    if (ns.some(function (n) { return n.m < 55 || n.m > 83; })) return false;
+    var on = [], chords = 0;
+    for (var i = 0; i < ns.length; ) { var j = i; while (j < ns.length && Math.abs(ns[j].b - ns[i].b) < 1e-6) j++; if (j - i > 1) chords++; on.push(ns[i]); i = j; }
+    if (chords > 1) return false;
+    var lv = [];
+    lv.push(sf >= 0 && sf <= 3 ? 1 : (sf === -1 || sf === -2 || sf === 4) ? 2 : 3);
+    var root = ((sf * 7) % 12 + 12) % 12, dia = [0, 2, 4, 5, 7, 9, 11].map(function (x) { return (x + root) % 12; });
+    if (minor) dia.push((root + 9 + 9) % 12, (root + 9 + 11) % 12);   /* the raised 6th and 7th of the minor key */
+    var out = ns.filter(function (n) { return dia.indexOf(n.m % 12) < 0; }).length / ns.length;
+    lv.push(out <= 0.05 ? 1 : out <= 0.10 ? 2 : 3);
+    var ts = sig.num + '/' + sig.den;
+    lv.push(/^(2\/4|3\/4|4\/4|2\/2)$/.test(ts) ? 1 : /^(6\/8|3\/8|6\/4|9\/8|12\/8)$/.test(ts) ? 2 : 3);
+    var gs = [], gb = [];
+    for (var k = 1; k < on.length; k++) { var dt = on[k].t - on[k - 1].t, db = on[k].b - on[k - 1].b; if (dt > 1e-3) gs.push(dt); if (db > 1e-6) gb.push(db); }
+    gs.sort(function (a, b) { return a - b; });
+    var fast = gs.length ? gs[Math.floor(gs.length * 0.05)] : 1, nps = 1 / fast;
+    lv.push(nps <= 5 ? 1 : nps <= 8 ? 2 : 3);
+    var r = 1;   /* gaps in crotchets (b is in crotchets) */
+    gb.forEach(function (g) {
+      var q = g;
+      if (q < 0.25 - 1e-3) r = 3;
+      else { var t12 = q * 12; if (Math.abs(t12 - Math.round(t12)) < 1e-3 && Math.round(t12) % 3 !== 0) r = Math.max(r, 2); }
+      if (Math.abs(q - 0.75) < 1e-3) r = Math.max(r, 2);
+    });
+    lv.push(r);
+    var longest = 0, run = 0, depth = 0;
+    ns.forEach(function (n) {
+      (n.slur || []).forEach(function (x) { if (x.t === 'start') depth++; });
+      if (depth > 0) run++;
+      (n.slur || []).forEach(function (x) { if (x.t === 'stop' && depth > 0 && !--depth) { longest = Math.max(longest, run); run = 0; } });
+    });
+    lv.push(longest <= 4 ? 1 : longest <= 8 ? 2 : 3);
+    var orn = notes.some(function (n) { return n.grace || (n.art || []).some(function (a) { return /trill|turn|mordent/.test(a); }); });
+    lv.push(orn ? 2 : 1);
+    var twos = lv.filter(function (x) { return x === 2; }).length;
+    window.VT_BEGINNER_LEVELS = lv;   /* for checking: key, outside, time, speed, rhythm, slurs, ornaments */
+    return lv.indexOf(3) < 0 && twos <= 2;
+  }
   /* the fingered ways to play pitch m: [{si, p (position index), fg, c (cost)}], plus the open string */
   function waysFor(n) {
     var out = [];
@@ -641,7 +694,6 @@
     return out;
   }
   function planFingers(notes, tpq) {
-    fgBeginner = notes.length > 0 && notes.every(function (n) { return n.m <= 83; });
     /* onsets as units; only single notes are planned, a chord is a fixed point (its top note's string/position) */
     var units = [];
     for (var u0 = 0; u0 < notes.length; ) { var u1 = u0; while (u1 < notes.length && Math.abs(notes[u1].b - notes[u0].b) < 1e-6) u1++; units.push(notes.slice(u0, u1)); u0 = u1; }

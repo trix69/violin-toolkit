@@ -570,10 +570,10 @@ SCORE_SOURCE = {
     'serenade.mxl': 'Mutopia Project #900, MusicXML by Violin Toolkit · Public Domain',
 }
 MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
+              ('ode.mxl', 'Ode to Joy', 'Ludwig van Beethoven'),
               ('minuet.mxl', 'Minuet in G major, BWV Anh. 114', 'Christian Petzold (formerly attributed to J. S. Bach)'),
               ('minuet115.mxl', 'Minuet in G minor, BWV Anh. 115', 'Christian Petzold (formerly attributed to J. S. Bach)'),
               ('minuet116.mxl', 'Minuet in G major, BWV Anh. 116', 'Attributed to J. S. Bach'),
-              ('ode.mxl', 'Ode to Joy', 'Ludwig van Beethoven'),
               ('gavotte.mxl', 'Gavotte by Martini', 'Giovanni Battista Martini'),
               ('air.mxl', 'Air (BWV 1068)', 'Johann Sebastian Bach'),
               ('ave_maria.mxl', 'Ave Maria', 'Franz Schubert'),
