@@ -81,3 +81,9 @@ solo the two `\context Voice = SoloUp/SoloDown` pairs (bars 51-54 held D under q
 semiquavers) -> `<< {…} \\ {…} >>`; wrapper like Autumn's with `\tempo 4 = 150` (the edition's MIDI); then
 `pack.py sum3.musicxml summer.mxl …`. Checks: mlen.py clean (130 bars); the player's solo notes per bar equal
 `summer-score-2.mid` except bars 52-54, where the MIDI drops the D quavers that coincide with the held D.
+
+## Por una Cabeza slurs (2026-11-12)
+
+`pc_slurs.py in.mxl out.mxl` after `pc_transpose.py` (Trix: "add violin style slurs"; the song edition has none for
+bowing): 36 slurs by measure — four-semiquaver runs in one bow, eight-semiquaver bars as two fours, the refrain's
+crotchet pairs, the two semiquavers before each refrain crotchet; staccato pairs and repeated quavers stay detached.
