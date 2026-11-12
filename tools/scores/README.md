@@ -113,3 +113,14 @@ wrapper Violin (`violinoprincipale`), Ripieno 1/2, Viola, Violoncello, `\tempo 4
 horns left out. `ly musicxml`, then `rebar.py` (python-ly mis-fills bars around the long triplet runs; each note's own
 duration is right), then `pack.py`. 103 bars; every string part's notes = the edition's MIDI track; the solo = the MIDI plus
 the five written after-grace notes.
+
+## Brahms, Hungarian Dance No. 5, arr. Hans Erblich (2026-11-13)
+
+IMSLP #205345 (2 violins, 2 violas, cello; PDF typeset by the arranger, CC BY-SA 3.0). No source file exists, so the
+PDF went through Audiveris and the draft was turned into `hungarian5/tokens.txt` (one line per part per bar:
+`PITCH[+PITCH]:DUR`, `~` tie, `q` quintuplet, `|` second voice), then checked bar by bar against 2x page crops: the
+draft had dropped most rests in Viola II, the key's flats in Violin II bars 29–31, every tie on chords, and an empty
+bar at the Vivace key change (so 97 bars instead of 96). `hungarian5/build.py hungarian5 ../../src/midi/hungarian5.mxl`
+writes the score (repeats 33–48, 49–54, 55–62; key G major 49–62; tempo words from the PDF with meno = crotchet 120 /
+150), beams per beat, and fails nothing silently: it lists any bar whose voices do not fill 2/4. The ad lib. 8va
+(bars 25–28, 71–74) is played as written. Dynamics, slurs and articulations are not transcribed.
