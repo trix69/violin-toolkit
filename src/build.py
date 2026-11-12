@@ -297,6 +297,7 @@ html[lang="zh-CN"] {
 .howto-btn svg { flex: none; }
 /* practice time overlay: last 7 days as bars, today in the accent colour */
 #usage { z-index: 130; }
+#useAsk { z-index: 135; }   /* the confirmation over the practice-time window (Trix) */
 #a4pop { z-index: 130; }
 #credits { z-index: 130; }
 .cr-note { margin: 0 0 12px; font: 400 13px/1.45 var(--font-body); color: var(--muted); }
@@ -900,7 +901,9 @@ nav_js = """(function () {
     function fmt(s) { var m = Math.floor(s / 60), r = m % 60; return s > 0 && m < 1 ? '<1 min' : m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (r ? ' ' + r + ' min' : ''); }   /* <1 min (Hermes F19); 1 h, not 1 h 0 min (F21) */   /* some practice under a minute: <1 min, not 0 (Hermes F19) */
     function days() { save(); var o = load(); return Object.keys(o).filter(function (k) { return +o[k] > 0; }).length; }   /* any practice counts as a day (Trix, 2026-11-06; was a minute) */
     function total() { save(); var o = load(), t = 0; Object.keys(o).forEach(function (k) { t += +o[k] || 0; }); return t; }   /* seconds, every day kept */
-    return { series: series, fmt: fmt, days: days, total: total };
+    /* Settings > Practice time > Clear (Trix): every stored day and anything not yet saved; a tool still running counts on from now */
+    function clear() { pend = {}; if (last) last = Date.now(); try { localStorage.removeItem(KEY); } catch (e) {} }
+    return { series: series, fmt: fmt, days: days, total: total, clear: clear };
   })();
   APP.usage = USAGE;
   function syncDays(textOnly) {
@@ -913,6 +916,12 @@ nav_js = """(function () {
   var usage = document.getElementById('usage'), usageOpener = null;
   function openUsage() {
     usageOpener = this;
+    fillUsage();
+    usage.hidden = false;
+    window.addEventListener('keydown', onUsageKey, true);
+    document.getElementById('usageCard').focus();
+  }
+  function fillUsage() {
     var zh = window.I18N && I18N.lang === 'zh', ser = USAGE.series(7), max = 0, tot = 0, html = '';
     var WD = zh ? ['周日', '周一', '周二', '周三', '周四', '周五', '周六'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     ser.forEach(function (x) { if (x.s > max) max = x.s; tot += x.s; });
@@ -929,9 +938,6 @@ nav_js = """(function () {
     document.getElementById('useWeek').textContent = USAGE.fmt(tot);
     var nd = USAGE.days(); document.getElementById('useDays').textContent = nd + (nd === 1 ? ' day' : ' days');   /* all time (Trix) */
     document.getElementById('useTotal').textContent = USAGE.fmt(USAGE.total());
-    usage.hidden = false;
-    window.addEventListener('keydown', onUsageKey, true);
-    document.getElementById('usageCard').focus();
   }
   function closeUsage() {
     usage.hidden = true;
@@ -939,9 +945,26 @@ nav_js = """(function () {
     try { usageOpener.focus(); } catch (e) {}
   }
   function onUsageKey(e) {   /* capture on window, so the Settings and start-overlay key handlers underneath stay quiet */
+    if (!useAsk.hidden) return;   /* the confirmation handles its own keys */
     if (e.key === 'Escape') { e.stopPropagation(); closeUsage(); }
-    else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); document.getElementById('usageDone').focus(); }
+    else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); var c = document.getElementById('usageClear'), d = document.getElementById('usageDone'); (document.activeElement === d ? c : d).focus(); }
   }
+  /* Clear (Trix): asks first; only the confirmation's Clear deletes */
+  var useAsk = document.getElementById('useAsk');
+  function closeUseAsk(focusEl) { useAsk.hidden = true; window.removeEventListener('keydown', onUseAskKey, true); try { (focusEl || document.getElementById('usageClear')).focus(); } catch (e) {} }
+  function onUseAskKey(e) {
+    if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closeUseAsk(); }
+    else if (e.key === 'Tab') { e.stopPropagation(); e.preventDefault(); var c = document.getElementById('useAskCancel'), g = document.getElementById('useAskGo'); (document.activeElement === c ? g : c).focus(); }
+  }
+  document.getElementById('usageClear').addEventListener('click', function () {
+    useAsk.hidden = false; window.addEventListener('keydown', onUseAskKey, true); document.getElementById('useAskCancel').focus();   /* Cancel first: the safe choice */
+  });
+  document.getElementById('useAskCancel').addEventListener('click', function () { closeUseAsk(); });
+  useAsk.addEventListener('click', function (e) { if (e.target === useAsk) closeUseAsk(); });
+  document.getElementById('useAskGo').addEventListener('click', function () {
+    USAGE.clear(); fillUsage(); syncDays(true);
+    closeUseAsk(document.getElementById('usageDone'));
+  });
   /* Tuning pitch (A4), Trix: five common values as buttons, the rest in a window with every historical and
      orchestral pitch and a 1 Hz stepper (380-470) for anything else; violin-a4 stays a plain number */
   var A4P = [[392, 'French Baroque', '法国巴洛克'], [415, 'Baroque', '巴洛克'], [425, 'Mozart era', '莫扎特时期'], [430, 'Classical', '古典'],
@@ -1681,7 +1704,20 @@ markup = f"""
       <div><dt>Days practised</dt><dd id="useDays">0 days</dd></div>
       <div><dt>Total time</dt><dd id="useTotal">0 min</dd></div>
     </dl>
-    <button type="button" class="sheet-done" id="usageDone">Done</button>
+    <div class="upd-row">
+      <button type="button" class="upd-later" id="usageClear">Clear</button>
+      <button type="button" class="sheet-done" id="usageDone">Done</button>
+    </div>
+  </div>
+</div>
+<div class="sheet" id="useAsk" role="dialog" aria-modal="true" aria-labelledby="useAskTitle" aria-describedby="useAskMsg" hidden>
+  <div class="sheet-card" id="useAskCard" tabindex="-1">
+    <h2 id="useAskTitle">Clear practice time?</h2>
+    <p class="upd-msg" id="useAskMsg">This deletes all the practice dates and times stored on this device: the chart, days practised and total time all go back to zero. This can’t be undone.</p>
+    <div class="upd-row">
+      <button type="button" class="upd-later" id="useAskCancel">Cancel</button>
+      <button type="button" class="sheet-done" id="useAskGo">Clear</button>
+    </div>
   </div>
 </div>
 <div class="sheet" id="credits" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" hidden>
