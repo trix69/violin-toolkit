@@ -209,3 +209,8 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .mp-score .orn-l { fill: none; stroke: var(--sc-ink); stroke-width: 1.3; }
 .mp-score .orn-t { fill: none; stroke: var(--sc-ink); stroke-width: 2; stroke-linecap: round; }
 .mp-n .trem { stroke: currentColor; stroke-width: 2.2; }
+
+/* the Fingerings pages' repeat signs and ending brackets (Trix: each bar once, repeats as the score writes them) */
+.mp-score .fg-rpt { fill: var(--sc-ink); }
+.mp-score .fg-end { fill: none; stroke: var(--sc-ink); stroke-width: 1.2; }
+.mp-score .fg-endn { fill: var(--sc-ink); font: 600 12px 'Times New Roman', 'Noto Serif', Georgia, serif; }

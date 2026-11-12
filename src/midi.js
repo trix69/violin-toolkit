@@ -137,6 +137,7 @@
       } else if (r.fin && !r.end) { start = i + 1; pass = 1; }
       i++;
     }
+    out.info = info;   /* the written repeats and endings, for the Fingerings pages (Trix: print each bar once) */
     return out;
   }
   /* the sound follows the score's dynamics (Trix): each note's velocity from the part's last dynamic, hairpins and
@@ -193,7 +194,7 @@
       ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); }); });
       order.forEach(function (k) {
         var m = ms[k]; if (!m) return;
-        if (pi === 0) bars.push({ tick: at, num: m.getAttribute('number') || String(k + 1) });
+        if (pi === 0) bars.push({ tick: at, num: m.getAttribute('number') || String(k + 1), mi: k, wr: order.info[k] });
         var dv = divStart[k] || 1, cur = 0, len = 0, last = 0;
         function tk(d) { return at + Math.round(d * TPQ / dv); }
         kids(m).forEach(function (el) {
@@ -433,13 +434,13 @@
     var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick, minor);
     /* the bar number at a beat, for the score's corner (Trix): MusicXML's own numbers (repeats show theirs again, a
        pickup is 0); a MIDI file's bars counted from its start */
-    var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num }; }) : null;
+    var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num, mi: b.mi, wr: b.wr }; }) : null;
     sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text }; }).filter(function (m) { return m.beat > -1e-6; });
     /* the bars in playing order, for A–B (Trix): the score's numbers (a bar played twice is listed twice) or counted */
     var blist = [];
     /* to the end of the music, not just the solo's: a last bar where only the accompaniment plays is a bar too (Hermes F50) */
     var endBeat = acc.reduce(function (e, n) { return Math.max(e, n.t1 / tpq - sg.skipB); }, sg.beats);
-    if (bl) bl.forEach(function (b) { if (b.beat > -1e-6 && b.beat < endBeat - 1e-6) blist.push({ beat: b.beat, num: b.num }); });
+    if (bl) bl.forEach(function (b) { if (b.beat > -1e-6 && b.beat < endBeat - 1e-6) blist.push({ beat: b.beat, num: b.num, mi: b.mi, wr: b.wr }); });
     else for (var bb = 0; bb < endBeat - 1e-6; bb += barQ) blist.push({ beat: bb, num: String(Math.floor((bb + sg.skipB) / barQ + 1e-6) + 1) });
     var seenBar = {}; blist.forEach(function (b) { b.time = seenBar[b.num] = (seenBar[b.num] || 0) + 1; });
     blist.forEach(function (b) { b.rep = seenBar[b.num] > 1; });
@@ -2153,12 +2154,22 @@
        Winter's bars 11 and 16). A line's cost grows with how far its spacing is from natural; squeezing below 55 %
        is allowed only for a single bar wider than a line; the last line may stay short; each line costs a little,
        so fewer lines (and pages) win a tie */
-    var B = bars.length - 1, best = [0], from = [];
+    /* the bars printed (Trix: as the score writes them): each written bar once, at its first time through; the
+       repeats are shown with repeat signs and ending brackets instead of the music twice. A MIDI file (no written
+       bars) prints everything, as before */
+    var K = [], seenMi = {};
+    for (var k0 = 0; k0 < bars.length - 1; k0++) {
+      var bo0 = sg.barAt ? sg.barAt(bars[k0].beat + 1e-3) : null, key = bo0 && bo0.mi !== undefined ? 'm' + bo0.mi : 'b' + k0;
+      if (!seenMi[key]) { seenMi[key] = 1; K.push(k0); }
+    }
+    var PW = [0]; K.forEach(function (k, i) { PW[i + 1] = PW[i] + bars[k + 1].x - bars[k].x; });
+    function bw(i) { return bars[K[i] + 1].x - bars[K[i]].x; }
+    var B = K.length, best = [0], from = [];
     function lineCost(a, b) {
-      var w = bars[b].x - bars[a].x, fixed = 12 * (b - a) + 4, g = (avail(a === 0 ? 0 : 1) - fixed) / Math.max(1, w - fixed);
+      var w = PW[b] - PW[a], fixed = 12 * (b - a) + 4, g = (avail(a === 0 ? 0 : 1) - fixed) / Math.max(1, w - fixed);
       /* several bars squeezed below 75 %: fingerings crowd (Trix: Winter bar 14); but a short bar (under a third of
          the line) may join one dense bar down to 62 %, rather than sit alone on a line (Trix: Winter bar 16) */
-      var shortPair = b === a + 2 && Math.min(bars[a + 1].x - bars[a].x, bars[b].x - bars[a + 1].x) < avail(a === 0 ? 0 : 1) / 3;
+      var shortPair = b === a + 2 && Math.min(bw(a), bw(a + 1)) < avail(a === 0 ? 0 : 1) / 3;
       if (g < (shortPair ? 0.62 : 0.75) && b > a + 1) return Infinity;
       if (g < 0.55) return b === a + 1 ? 1e6 : Infinity;
       if (b === B && g >= 1) return 0;
@@ -2175,7 +2186,7 @@
     }
     for (var e2 = B; e2 > 0; e2 = from[e2]) sys.unshift([from[e2], e2]);
     var gains = sys.map(function (q, i) {
-      var w = bars[q[1]].x - bars[q[0]].x, fixed = 12 * (q[1] - q[0]) + 4;
+      var w = PW[q[1]] - PW[q[0]], fixed = 12 * (q[1] - q[0]) + 4;
       if (i === sys.length - 1 && w < avail(i) * 0.75) return 1;   /* a short last system stays at its natural width */
       /* justified: widened to fill the line, or tightened (to 55 %) when one dense bar is wider than the line on its
          own (Trix: Winter's semiquaver bars ran off the page); a line that would need more than 2.5 x keeps its
@@ -2183,12 +2194,30 @@
       var g = (avail(i) - fixed) / Math.max(1, w - fixed);
       return g > 2.5 ? 1 : Math.max(0.55, g);
     });
-    var r = scoreItems(sg, { paged: true, gain: function (b) { for (var i = 0; i < sys.length; i++) if (b < bars[sys[i][1]].beat - 1e-6) return gains[i]; return gains[gains.length - 1]; } });
+    var gb = []; sys.forEach(function (q, si) { for (var i = q[0]; i < q[1]; i++) gb.push([bars[K[i]].beat, bars[K[i] + 1].beat, gains[si]]); });
+    var r = scoreItems(sg, { paged: true, gain: function (b) { for (var i = 0; i < gb.length; i++) if (b >= gb[i][0] - 1e-6 && b < gb[i][1] - 1e-6) return gb[i][2]; return 1; } });
+    /* each system as pieces of the line: runs of bars that follow each other in the music */
+    sys = sys.map(function (q) {
+      var P = [];
+      for (var i = q[0]; i < q[1]; i++) {
+        if (P.length && P[P.length - 1][1] === K[i]) P[P.length - 1][1] = K[i] + 1;
+        else P.push([K[i], K[i] + 1]);
+      }
+      return P;
+    });
     r.sys = sys; r.hw = hw; r.hwK = hwK; r.items.sort(function (p, q) { return p[0] - q[0]; });
     return r;
   }
+  /* a repeat sign at x: dir 1 forward (thick, thin, dots to the right), -1 backward (dots, thin, thick) */
+  function repSign(x, dir) {
+    var th = dir > 0 ? x : x - 3.5, tn = dir > 0 ? x + 6.5 : x - 6.5, dx = dir > 0 ? x + 11 : x - 11;
+    return '<rect class="fg-rpt" x="' + th.toFixed(1) + '" y="' + Y0 + '" width="3.5" height="' + (4 * S) + '"/>' +
+      '<path class="bl" d="M' + tn.toFixed(1) + ' ' + Y0 + 'V' + (Y0 + 4 * S) + '"/>' +
+      '<circle class="fg-rpt" cx="' + dx.toFixed(1) + '" cy="' + (Y0 + 1.5 * S) + '" r="1.9"/><circle class="fg-rpt" cx="' + dx.toFixed(1) + '" cy="' + (Y0 + 2.5 * S) + '" r="1.9"/>';
+  }
   function fgSystem(sg, r, si, firstOnPage, id, ceil) {   /* ceil: the highest numeral baseline allowed (under a page header) */
-    var q = r.sys[si], xa = r.bars[q[0]].x, xb = r.bars[q[1]].x, hw = si === 0 ? r.hw : r.hwK, tx = hw - xa, wide = hw + xb - xa, out = [], lines = '';
+    var P = r.sys[si], q = [P[0][0], P[P.length - 1][1]], xa = r.bars[q[0]].x, xb = r.bars[q[1]].x, hw = si === 0 ? r.hw : r.hwK, out = [], lines = '';
+    var wide = hw + P.reduce(function (t, p) { return t + r.bars[p[1]].x - r.bars[p[0]].x; }, 0);
     for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M0 ' + (Y0 + j * S) + 'H' + wide + '"/>';
     var bo = sg.barAt ? sg.barAt(r.bars[q[0]].beat + 1e-3) : null;
     out.push(lines, CLEF, (si === 0 ? r.head : r.head.filter(function (h) { return h.indexOf('class="ts"') < 0; })).join(''));   /* the time signature on the first system only */
@@ -2209,18 +2238,39 @@
       var yy = p.y; r.tops.forEach(function (t) { if (t[0] > xa - 4 && t[0] < xa + 18 * ROMAN_W[p.h] + 12) yy = Math.min(yy, t[1] - 2); });
       if (yy >= -22 && !(yy < ceil)) out.push('<text class="mp-pos" x="' + (hw + 4) + '" y="' + yy + '">' + ROMAN_U[p.h] + '</text>');
     });
-    var body = [];
-    for (var lo = 0, hi = r.items.length; lo < hi; ) { var mid = (lo + hi) >> 1; if (r.items[mid][0] <= xa + 0.5) lo = mid + 1; else hi = mid; }
-    for (var k = lo; k < r.items.length && r.items[k][0] <= xb + 0.5; k++) {
-      var it = r.items[k][1];
-      if (ceil !== undefined && it.indexOf('mp-pos') > 0) {   /* a numeral (or its line) that would print through the page header is left out (Hermes F36) */
-        var yv = /y="(-?[\d.]+)"/.exec(it) || /d="M-?[\d.]+ (-?[\d.]+)/.exec(it);
-        if (yv && +yv[1] + (it.indexOf('mp-posd') > 0 ? 5 : 0) < ceil) continue;
+    var off = 0;
+    P.forEach(function (pc, pn) {
+      var pa = r.bars[pc[0]].x, pb = r.bars[pc[1]].x, tx = hw + off - pa, last = pn === P.length - 1, body = [];
+      for (var lo = 0, hi = r.items.length; lo < hi; ) { var mid = (lo + hi) >> 1; if (r.items[mid][0] <= pa + 0.5) lo = mid + 1; else hi = mid; }
+      for (var k = lo; k < r.items.length && r.items[k][0] <= pb + 0.5; k++) {
+        var it = r.items[k][1];
+        if (ceil !== undefined && it.indexOf('mp-pos') > 0) {   /* a numeral (or its line) that would print through the page header is left out (Hermes F36) */
+          var yv = /y="(-?[\d.]+)"/.exec(it) || /d="M-?[\d.]+ (-?[\d.]+)/.exec(it);
+          if (yv && +yv[1] + (it.indexOf('mp-posd') > 0 ? 5 : 0) < ceil) continue;
+        }
+        body.push(it);
       }
-      body.push(it);
-    }
-    out.push('<clipPath id="' + id + '"><rect x="' + (hw - 2) + '" y="-40" width="' + (xb - xa + 8) + '" height="' + (SYS_H + 52) + '"/></clipPath>');   /* room above for a raised numeral */
-    out.push('<g clip-path="url(#' + id + ')"><g transform="translate(' + tx.toFixed(2) + ' 0)">' + body.join('') + '</g></g>');
+      out.push('<clipPath id="' + id + '_' + pn + '"><rect x="' + (hw + off - (pn ? 0 : 2)) + '" y="-40" width="' + (pb - pa + (last ? 8 : 1) + (pn ? 0 : 2)) + '" height="' + (SYS_H + 52) + '"/></clipPath>');   /* room above for a raised numeral */
+      out.push('<g clip-path="url(#' + id + '_' + pn + ')"><g transform="translate(' + tx.toFixed(2) + ' 0)">' + body.join('') + '</g></g>');
+      /* repeat signs and ending brackets, from the score's barlines (Trix) */
+      for (var bk = pc[0]; bk < pc[1]; bk++) {
+        var bo2 = sg.barAt ? sg.barAt(r.bars[bk].beat + 1e-3) : null, rp = bo2 && bo2.wr;
+        if (!rp) continue;
+        var X1 = r.bars[bk].x + tx, X2 = r.bars[bk + 1].x + tx;
+        if (bk === pc[0] && pn === 0 && si > 0 && bk === q[0]) X1 = hw;   /* at the start of a line: just after the clef and key */
+        if (rp.fwd) out.push(repSign(X1 + 1, 1));
+        if (rp.back) out.push(repSign(X2, -1));
+        if (rp.end) {
+          var prevB = bk > 0 && sg.barAt ? sg.barAt(r.bars[bk - 1].beat + 1e-3) : null, starts = !!rp.endStart || !(prevB && prevB.wr && prevB.wr.end) || bk === pc[0];
+          var EY = Y0 - 34, d = 'M' + (X1 + 3) + ' ' + EY + 'H' + (X2 - 3);
+          if (rp.endStart) d = 'M' + (X1 + 3) + ' ' + (EY + 12) + 'V' + EY + 'H' + (X2 - 3);
+          if (rp.endStop && rp.back) d += 'V' + (EY + 12);
+          out.push('<path class="fg-end" d="' + d + '"/>');
+          if (rp.endStart) out.push('<text class="fg-endn" x="' + (X1 + 7) + '" y="' + (EY + 11) + '">' + rp.endStart.join(', ') + '.</text>');
+        }
+      }
+      off += pb - pa;
+    });
     return out.join('');
   }
   /* the QR on page 1 (Trix): the app's address, drawn from src/qr.py at build time as vector squares */
@@ -2293,7 +2343,7 @@
          baseline, not the ink top: testing the ink top dropped 5 numerals (no room to move those pages down) to clear a
          0.57 px layout-box overlap with no ink touching */
       if (pi > 0) {
-        var q0 = r.sys[pg[0][0]], xa0 = r.bars[q0[0]].x, xb0 = r.bars[q0[1]].x, minY = Infinity, CL = -3;   /* CL: a numeral's top at the header's descenders */
+        var P0 = r.sys[pg[0][0]], xa0 = r.bars[P0[0][0]].x, xb0 = r.bars[P0[P0.length - 1][1]].x, minY = Infinity, CL = -3;   /* CL: a numeral's top at the header's descenders */
         r.passages.forEach(function (p) { if ((p.x0 > xa0 - 1 && p.x0 <= xb0 + 0.5) || (p.h > 0 && p.x0 < xa0 - 1 && p.x1 > xa0 + 14)) minY = Math.min(minY, p.y); });
         if (minY < CL) {
           shift = Math.max(0, Math.min((CL - minY) * PG_K, bottom - (pg[pg.length - 1][1] + sysH)));
@@ -2313,11 +2363,21 @@
       var hl = document.createElementNS('http://www.w3.org/2000/svg', 'line'); hl.setAttribute('class', 'fg-head'); hl.style.display = 'none';
       svgs[pi].appendChild(hl);
       pg.forEach(function (e) {
-        var si = e[0], q = r.sys[si], hw = si === 0 ? r.hw : r.hwK;
-        fgMap.push({ pi: pi, si: si, b0: r.bars[q[0]].beat, b1: r.bars[q[1]].beat, ox: PG_M + (si === 0 ? FG_IND * PG_K : 0), oy: e[1] + pageShift[pi], tx: hw - r.bars[q[0]].x, line: hl, svg: svgs[pi] });
+        var si = e[0], P = r.sys[si], hw = si === 0 ? r.hw : r.hwK, off = 0;
+        P.forEach(function (pc) {   /* one entry per piece of the line: its beats and where they sit */
+          fgMap.push({ pi: pi, si: si, b0: r.bars[pc[0]].beat, b1: r.bars[pc[1]].beat, ox: PG_M + (si === 0 ? FG_IND * PG_K : 0), oy: e[1] + pageShift[pi], tx: hw + off - r.bars[pc[0]].x, line: hl, svg: svgs[pi] });
+          off += r.bars[pc[1]].x - r.bars[pc[0]].x;
+        });
       });
     });
     fgSys = -1; fgHead(true);
+  }
+  /* a beat in play order -> the same place in the printed bars (a repeat's second time: its first time on the page) */
+  function writtenBeat(beat) {
+    if (!song || !song.barAt) return beat;
+    var bo = song.barAt(beat); if (!bo || bo.mi === undefined) return beat;
+    for (var i = 0; i < song.bars.length; i++) if (song.bars[i].mi === bo.mi) return song.bars[i].beat + (beat - bo.beat);
+    return beat;
   }
   var fgR = null, fgMap = [], fgSys = -1, bg = false;   /* bg: the player plays on while Fingerings shows */
   function fgHead(jump) {
@@ -2325,7 +2385,7 @@
     var on = playing || counting || pos > 0.01;
     fgMap.forEach(function (m) { m.line.style.display = 'none'; });
     if (!on) { fgSys = -1; return; }
-    var beat = counting ? Math.max(countBeat, 0) : song.toBeat(pos), m = fgMap[0];
+    var beat = writtenBeat(counting ? Math.max(countBeat, 0) : song.toBeat(pos)), m = fgMap[0];
     for (var i = 0; i < fgMap.length; i++) { if (fgMap[i].b0 <= beat + 1e-6) m = fgMap[i]; else break; }
     var x = m.ox + (fgR.xAt(Math.min(beat, m.b1)) + m.tx) * PG_K, y0 = m.oy + (Y0 - 22) * PG_K, y1 = m.oy + (Y0 + 4 * S + 22) * PG_K;
     var L = m.line; L.setAttribute('x1', x.toFixed(1)); L.setAttribute('x2', x.toFixed(1)); L.setAttribute('y1', y0.toFixed(1)); L.setAttribute('y2', y1.toFixed(1)); L.style.display = '';
@@ -2361,6 +2421,11 @@
         if (d < bd && d < (2 * S + 50) * PG_K) { bd = d; best = m; }
       });
       if (!best) return -1;
+      fgMap.forEach(function (m) {   /* the piece of that line under the tap */
+        if (m.svg !== svg || m.oy !== best.oy) return;
+        var xl = (p.x - m.ox) / PG_K - m.tx;
+        if (xl >= fgR.xAt(m.b0) - 14 && xl <= fgR.xAt(m.b1) + 2) best = m;
+      });
       var xi = (p.x - best.ox) / PG_K - best.tx, k = -1, dx = 28;
       song.notes.forEach(function (n, i) {
         if (n.b < best.b0 - 1e-6 || n.b >= best.b1 - 1e-6 || n.grace) return;
