@@ -437,8 +437,10 @@
     sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text }; }).filter(function (m) { return m.beat > -1e-6; });
     /* the bars in playing order, for A–B (Trix): the score's numbers (a bar played twice is listed twice) or counted */
     var blist = [];
-    if (bl) bl.forEach(function (b) { if (b.beat > -1e-6 && b.beat < sg.beats - 1e-6) blist.push({ beat: b.beat, num: b.num }); });
-    else for (var bb = 0; bb < sg.beats - 1e-6; bb += barQ) blist.push({ beat: bb, num: String(Math.floor((bb + sg.skipB) / barQ + 1e-6) + 1) });
+    /* to the end of the music, not just the solo's: a last bar where only the accompaniment plays is a bar too (Hermes F50) */
+    var endBeat = acc.reduce(function (e, n) { return Math.max(e, n.t1 / tpq - sg.skipB); }, sg.beats);
+    if (bl) bl.forEach(function (b) { if (b.beat > -1e-6 && b.beat < endBeat - 1e-6) blist.push({ beat: b.beat, num: b.num }); });
+    else for (var bb = 0; bb < endBeat - 1e-6; bb += barQ) blist.push({ beat: bb, num: String(Math.floor((bb + sg.skipB) / barQ + 1e-6) + 1) });
     var seenBar = {}; blist.forEach(function (b) { b.time = seenBar[b.num] = (seenBar[b.num] || 0) + 1; });
     blist.forEach(function (b) { b.rep = seenBar[b.num] > 1; });
     sg.bars = blist;
