@@ -1528,6 +1528,15 @@
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.arrayBuffer();
     }).then(function (buf) {
+      /* Hermes F42: keep a download only if its bytes are the build's (h = first 10 hex of their SHA-1). While the
+         site still serves an older file, nothing is kept or shown, and the next choice tries again. Without
+         crypto.subtle (no secure context) the check is skipped, as before. */
+      var sub = window.crypto && crypto.subtle;
+      return (sub ? sub.digest('SHA-1', buf).then(function (dg) {
+        var hex = Array.prototype.map.call(new Uint8Array(dg), function (x) { return (x < 16 ? '0' : '') + x.toString(16); }).join('');
+        if (hex.slice(0, d.h.length) !== d.h) throw new Error('stale');
+      }) : Promise.resolve()).then(function () { return buf; });
+    }).then(function (buf) {
       return scoreBytes(buf).then(function (b) {
         s.song = parse(b);
         try { localStorage.setItem(DEMO_KEY + d.f, JSON.stringify({ h: d.h, b64: toB64(buf) })); } catch (e) {}   /* no room: it downloads again next time */
@@ -2132,7 +2141,9 @@
       o.push('<text class="fg-run fg-pg-n" x="' + (PG_W - PG_M) + '" y="' + (PG_H - PG_M + 22) + '">' + (zh ? '第 ' + (pi + 1) + ' 页，共 ' + pages.length + ' 页' : 'Page ' + (pi + 1) + ' of ' + pages.length) + '</text>');
       /* a raised numeral on a later page's first system must clear the running header (Hermes F36): the page's music
          moves down into the room left at the bottom; whatever still would not clear is left out */
-      var shift = 0, ceil;
+      var shift = 0, ceil = pi > 0 ? -3 : undefined;   /* Hermes F41: the ceiling holds even when no counted passage is above it. Kept on the
+         baseline, not the ink top: testing the ink top dropped 5 numerals (no room to move those pages down) to clear a
+         0.57 px layout-box overlap with no ink touching */
       if (pi > 0) {
         var q0 = r.sys[pg[0][0]], xa0 = r.bars[q0[0]].x, xb0 = r.bars[q0[1]].x, minY = Infinity, CL = -3;   /* CL: a numeral's top at the header's descenders */
         r.passages.forEach(function (p) { if ((p.x0 > xa0 - 1 && p.x0 <= xb0 + 0.5) || (p.h > 0 && p.x0 < xa0 - 1 && p.x1 > xa0 + 14)) minY = Math.min(minY, p.y); });
