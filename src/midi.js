@@ -2281,7 +2281,7 @@
         fgPages.classList.add('zoomed'); if (bar) bar.classList.add('zoomed');
       }
     }
-    window.addEventListener('resize', function () { if (fgZoom > 1.001) { var sl = fgPages.scrollLeft; fgWide(); fgPages.scrollLeft = sl; } });
+    window.addEventListener('resize', function () { if (fgZoom > 1.001) { var sl = fgPages.scrollLeft; fgWide(); fgPages.scrollLeft = sl; } if (fgShown && window.APP && APP.fgZoomUi) APP.fgZoomUi(); });
     function setZoom(z1, cx, cy) {   /* cx, cy: the screen point that stays still */
       var z0 = fgZoom; z1 = Math.max(0.5, Math.min(3, z1));
       if (Math.abs(z1 - z0) < 1e-3) return;
@@ -2305,6 +2305,9 @@
     var fgFit = $('fgFit');
     function zoomUi() {
       var big = Math.abs(fgZoom - 1) > 0.01;
+      /* only where full width gains something (Trix): not on an upright phone; always while zoomed, to come back */
+      var col = fgPages.classList.contains('zoomed') ? parseFloat(getComputedStyle(fgPages).getPropertyValue('--fgw')) || fgPages.clientWidth : fgPages.clientWidth;
+      fgFit.hidden = !big && !(col > 0 && (document.documentElement.clientWidth - 32) / col > 1.1);
       fgFit.classList.toggle('back', big);
       fgFit.setAttribute('aria-label', big ? 'Back to normal size' : 'Full width');
       fgFit.title = big ? 'Back to normal size' : 'Full width';
@@ -2317,7 +2320,7 @@
       setZoom(Math.min(3, full / col), cx, cy);
       if (fgZoom <= 1.001) zoomUi();   /* a window no wider than the column: nothing to gain */
     });
-    zoomUi();
+    zoomUi(); APP.fgZoomUi = zoomUi;
     /* more controls (Trix): each one presses the MIDI player's own button; the Mixer and A–B panels move under the
        floating buttons while open from here, and back to the player's bar when opened there */
     var fgMore = $('fgMore'), fgx = $('fgx'), fgx2 = $('fgx2'), mpBarEl = $('mpBar'), fitBar = fgPages.parentNode.querySelector('.fg-fitbar');
@@ -2486,7 +2489,7 @@
     window.addEventListener('afterprint', function () { document.documentElement.classList.remove('fg-printing'); });
     APP.fgPrinted = function () { document.documentElement.classList.remove('fg-printing'); document.documentElement.classList.remove('fg-shot'); };   /* the apps call this when their print screen closes */
     APP.views.fingering = {
-      show: function () { fgShown = true; fgOptions(); if (fgDirty) fgRender(); fgSys = -1; fgHead(true); },
+      show: function () { fgShown = true; fgOptions(); if (fgDirty) fgRender(); fgSys = -1; fgHead(true); if (APP.fgZoomUi) APP.fgZoomUi(); },
       hide: function () {
         fgShown = false;
         if (bg && APP.nextView !== 'midi') { bg = false; pause(); APP.board.player(false); }   /* playing on from the player: it stops when neither tool shows */

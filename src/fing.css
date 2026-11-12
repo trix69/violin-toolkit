@@ -41,6 +41,7 @@
 #view-fingering .fg-fitbar .mp-mixpop, #view-fingering .fg-fitbar .mp-abpop { pointer-events: auto; top: calc(100% + 8px); bottom: auto; left: auto; right: 0; transform: none; }
 #view-fingering .fg-fit { pointer-events: auto; margin: 0; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); box-shadow: 0 2px 8px rgba(0,0,0,.15); cursor: pointer; }
 #view-fingering .fg-fit svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#view-fingering .fg-fit[hidden] { display: none; }
 #view-fingering .fg-fit .i-in, #view-fingering .fg-fit.back .i-out { display: none; }
 #view-fingering .fg-fit.back .i-in { display: block; }
 #view-fingering .fg-fit:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
