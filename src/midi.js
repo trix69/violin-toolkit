@@ -1290,6 +1290,8 @@
     bpmEl.textContent = song ? '♩ = ' + Math.round(song.bpm * speed) : '';
     playBtn.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play');
     playBtn.classList.toggle('on', playing || counting);
+    var mpTab = document.querySelector('.tab[data-view="midi"]');
+    if (mpTab) { mpTab.classList.toggle('live', playing || counting); mpTab.classList.toggle('blink', playing || counting); mpTab.setAttribute('aria-label', playing || counting ? 'MIDI Player (playing)' : 'MIDI Player'); }
     var fpb = $('fgPlay'); if (fpb) { fpb.classList.toggle('on', playing || counting); fpb.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play'); fpb.title = playing || counting ? 'Pause' : 'Play'; }
     scoreEl.classList.toggle('playing', playing || counting);   /* tap-a-note only while paused */
     loopBtn.setAttribute('aria-pressed', loop ? 'true' : 'false');
