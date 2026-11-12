@@ -1598,11 +1598,11 @@
     songSel.value = 0; load(0);
     try { askBack.focus(); } catch (e) {}
   });
-  /* Replace or keep both, when an import has the name of a kept file. Resolves true = replace. Escape, the backdrop
-     and Keep both all keep both: nothing is lost unless Replace is chosen */
+  /* Replace or Cancel, when an import has the name of a kept file (Trix). Resolves true = replace. Escape, the backdrop
+     and Cancel leave everything as it was */
   function askReplace(fname) {
     return new Promise(function (done) {
-      var box = $('repAsk'), go = $('repAskGo'), keep = $('repAskKeep'), back = document.activeElement, zh = window.I18N && I18N.lang === 'zh';
+      var box = $('repAsk'), go = $('repAskGo'), keep = $('repAskCancel'), back = document.activeElement, zh = window.I18N && I18N.lang === 'zh';
       $('repAskMsg').textContent = zh ? '已经导入过“' + fname + '”。替换后，之前那份会从这台设备上删除，无法恢复。' : '“' + fname + '” is already imported. Replacing removes the earlier copy from this device. This can’t be undone.';
       function end(yes) {
         box.hidden = true; window.removeEventListener('keydown', key, true);
@@ -1662,6 +1662,12 @@
   function importBytes(fname, raw) {
       if (!OK_EXT.test(fname)) { say('Choose a MIDI or MusicXML file (.mid, .midi, .musicxml, .xml or .mxl).', true); return; }
       var name = fname.replace(/\.(mid|midi|smf|musicxml|xml|mxl)$/i, ''), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      /* a file with the name of a kept import: replacing cannot be undone, so it is asked first (Trix, UX-PRINCIPLES):
+         Replace or Cancel; Cancel leaves everything as it was */
+      var old = kept.filter(function (k) { return k.fn ? k.fn === fname : k.name === name; }).map(function (k) { return k.id; });
+      if (old.length) { askReplace(fname).then(function (yes) { if (yes) readIt(); }); return; }
+      readIt();
+      function readIt() {
       /* a .mxl is a zip: its score first (MusicXML, Trix) */
       (isZip(new Uint8Array(raw)) ? unzipScore(raw) : Promise.resolve(raw)).then(function (buf) {
         var i;
@@ -1688,9 +1694,7 @@
         (xml ? zip(buf).then(function (z) { return { b64: toB64(z), z: 'gz' }; }) : Promise.resolve({ b64: toB64(buf) })).then(function (rec) {
           /* the same file imported again replaces its old copy (Trix): one entry in the list, and a copy kept before
              1.44 (no fn, so the Fingerings footer named it without its extension) is renewed */
-          var old = kept.filter(function (k) { return k.fn ? k.fn === fname : k.name === name; }).map(function (k) { return k.id; });
-          /* replacing cannot be undone, so it is asked first (Trix, UX-PRINCIPLES): Keep both loses nothing */
-          return (old.length ? askReplace(fname) : Promise.resolve(false)).then(function (yes) { if (!yes) old = []; keepIt(rec, old); });
+          keepIt(rec, old);   /* old: the copies the user agreed to replace (asked before reading) */
         }).catch(function (e) {
           console.error('MIDI import: keep', e);
           kept = before; saveKept();   /* the earlier copy, if any, stays (Hermes F54) */
@@ -1710,6 +1714,7 @@
           }
         }
       }).catch(function (e) { if (!e.mine) console.error('MIDI import: unzip', e); say(e.mine ? e.message : 'This file could not be read.', true); });
+      }
   }
 
   /* the mixer: a small panel above the controls with Violin and Accompaniment sliders */

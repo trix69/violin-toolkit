@@ -1804,7 +1804,7 @@ markup = f"""
     <h2 id="repAskTitle">Replace this file?</h2>
     <p class="upd-msg" id="repAskMsg" translate="no"></p>
     <div class="upd-row">
-      <button type="button" class="upd-later" id="repAskKeep">Keep both</button>
+      <button type="button" class="upd-later" id="repAskCancel">Cancel</button>
       <button type="button" class="sheet-done" id="repAskGo">Replace</button>
     </div>
   </div>
