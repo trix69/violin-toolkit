@@ -3297,7 +3297,7 @@
     var bars = song.bars || [], recBeat = song.toBeat(recEnd), recBars = bars.filter(function (b) { return b.beat < recBeat - 1e-6; });
     var sum = ASSESS.summarise(an, recBars.length ? recBars : bars.slice(0, 1));
     var total = bars.length ? bars[bars.length - 1].num : '', lastRec = recBars.length ? recBars[recBars.length - 1].num : '';
-    if (recBars.length && recBars.length < bars.length) sum.partial = 'Only bars ' + bars[0].num + '–' + lastRec + ' of ' + total + ' were recorded.';
+    if (recBars.length && recBars.length < bars.length) sum.partial = bars[0].num === lastRec ? 'Only bar ' + lastRec + ' of ' + total + ' was recorded.' : 'Only bars ' + bars[0].num + '–' + lastRec + ' of ' + total + ' were recorded.';   /* one bar: singular (Hermes F82) */
     sum.temper = APP.temper ? APP.temper.id : 'equal';
     sum.bars.forEach(function (b, i) { b.idx = i; });
     return sum;

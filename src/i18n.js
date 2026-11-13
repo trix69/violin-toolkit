@@ -297,6 +297,7 @@
   var RX = [
     [/^Bar (\S+)$/, function (m, n) { return '第 ' + n + ' 小节'; }],   /* Play-along (跟音练习) */
     [/^Page (\d+) of (\d+)$/, function (m, a, b) { return '第 ' + a + ' 页，共 ' + b + ' 页'; }],
+    [/^Only bar (\S+) of (\S+) was recorded\.$/, function (m, a, n) { return '只录到第 ' + a + ' 小节（共 ' + n + ' 小节）。'; }],
     [/^Only bars (\S+)–(\S+) of (\S+) were recorded\.$/, function (m, a, b, n) { return '只录到第 ' + a + '–' + b + ' 小节（共 ' + n + ' 小节）。'; }],
     [/^Pitch: (\d+) % of notes within 10 ¢$/, function (m, n) { return '音准：' + n + '% 的音在 10 音分以内'; }],
     [/^Timing: (\d+) % within 25 ms$/, function (m, n) { return '节奏：' + n + '% 的音在 25 毫秒以内'; }],
