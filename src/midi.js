@@ -1668,7 +1668,7 @@
   function scoreBytes(buf) { return isZip(new Uint8Array(buf)) ? unzipScore(buf) : Promise.resolve(buf); }
   DEMOS.forEach(function (d) {
     var s = { title: d.title, song: null, kept: null, demo: d, have: d.b64 || null };
-    if (!s.have) { try { var c = JSON.parse(localStorage.getItem(DEMO_KEY + d.f) || 'null'); if (c && c.h === d.h) s.have = c.b64; } catch (e) {} }
+    if (!s.have) { try { var c = JSON.parse(localStorage.getItem(DEMO_KEY + d.f) || 'null'); if (c && c.h === d.h) { s.have = c.b64; s.saved = true; } } catch (e) {} }
     songs.push(s);   /* read when first chosen (Serenade's score is 3.7 MB: not on every launch) */
   });
   options();
@@ -1678,9 +1678,27 @@
       .catch(function (e) { s.err = e && e.mine ? e.message : null; console.error('MIDI player: built-in tune', s.demo.f, e); })
       .then(function () { s.fetching = false; var k = songs.indexOf(s); if (+songSel.value === k) { s.failed = !s.song; load(k); } });
   }
+  /* a tune saved on the phone is checked against the website's fingerprints first (Trix): when the website's piece has
+     changed, it does not play until the app is updated. Offline (or no list yet) the saved copy plays. One fetch per visit */
+  var fpList = null;
+  function siteHashes() {
+    if (!fpList) fpList = fetch(DEMO_URL + 'hashes.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { fpList = null; return null; });
+    return fpList;
+  }
+  var STALE = 'This tune has been updated. Update the app to play it.';
   function fetchDemo(i) {
     var s = songs[i], d = s.demo;
     if (s.fetching) return;
+    if (s.have && s.saved && !s.checked) {
+      s.fetching = true;
+      siteHashes().then(function (m) {
+        s.fetching = false;
+        if (m && m[d.f] && m[d.f] !== d.h) { s.err = STALE; s.failed = true; if (+songSel.value === songs.indexOf(s)) load(songs.indexOf(s)); return; }
+        if (m) s.checked = true;   /* checked once per visit; without the list (offline) it is asked again next time */
+        prepDemo(s);
+      });
+      return;
+    }
     if (s.have) { prepDemo(s); return; }
     s.fetching = true;
     fetch(DEMO_URL + encodeURIComponent(d.f), { cache: 'no-cache' }).then(function (r) {
@@ -1703,7 +1721,7 @@
     }).catch(function (e) {
       /* the website has a newer version of this tune than this app knows (Trix: one version of each piece only):
          ask for the app update rather than offering an old copy */
-      s.err = e && e.message === 'stale' ? 'This tune has been updated. Update the app to play it.' : e && e.mine ? e.message : null;
+      s.err = e && e.message === 'stale' ? STALE : e && e.mine ? e.message : null;
       console.error('MIDI tune download', d.f, e);
     }).then(function () {
       s.fetching = false;

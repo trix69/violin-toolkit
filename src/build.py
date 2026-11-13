@@ -611,7 +611,13 @@ assert midi_js.count('/*DEMOS*/[]') == 1
 def _demo(f, t, c):
     raw = open(SP + 'midi/' + f, 'rb').read()
     return {'title': t, 'c': c, 's': SCORE_SOURCE[f], 'f': f, 'h': hashlib.sha1(raw).hexdigest()[:10], 'b64': base64.b64encode(raw).decode()}   # c before f: the phone builds' strip pattern expects f, h, b64 in a row
-midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps([_demo(f, t, c) for f, t, c in MIDI_DEMOS]))
+_demos = [_demo(f, t, c) for f, t, c in MIDI_DEMOS]
+midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps(_demos))
+# the website's fingerprints of the built-in tunes (Trix): phone apps check a saved tune against this before playing it,
+# and ask for the app update when the website's piece has changed. Committed with the tunes; live once shipped.
+_fp = json.dumps({d['f']: d['h'] for d in _demos}, indent=0, sort_keys=True) + '\n'
+if not os.path.exists(SP + 'midi/hashes.json') or open(SP + 'midi/hashes.json').read() != _fp:
+    open(SP + 'midi/hashes.json', 'w').write(_fp)
 # the Fingerings page's QR (Trix): the app's address, encoded here by src/qr.py (no library), drawn as vector squares
 import importlib.util as _ilu
 _qs = _ilu.spec_from_file_location('vt_qr', SP + 'qr.py'); _qr = _ilu.module_from_spec(_qs); _qs.loader.exec_module(_qr)
