@@ -505,6 +505,7 @@ import base64, json
 midi_css = open(SP + 'midi.css').read()
 fing_css = open(SP + 'fing.css').read()   # Fingerings (指法谱): pages + PDF from the MIDI player's drawing
 fing_html = open(SP + 'fing.html').read()
+PA_ON = os.environ.get('VT_PA') == '1'   # Play-along is still being built: its tile and tab only in a build made with VT_PA=1
 pa_html = open(SP + 'pa.html').read()   # Play-along (跟音练习): the take bar and the headphone gate
 pa_css = open(SP + 'pa.css').read()
 assess_js = open(SP + 'assess.js').read()   # Play-along's measurement: framer, onsets, alignment, per-note numbers
@@ -1593,6 +1594,8 @@ ICON_FING = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8.5l3.5
 ICON_MIDI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2" fill="currentColor"/><path d="M9 9.5l10-2"/></svg>'
 ICON_TUNER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0"/><path d="M12 17.5l3.6-7"/><circle cx="12" cy="17.5" r="1.2"/><path d="M12 5.8v1.8M5.6 9l1.3 1.2M18.4 9l-1.3 1.2"/></svg>'
 
+PA_TAB = '      <button type="button" class="tab" data-view="playalong" aria-label="Play-along" title="Play-along">' + ICON_PA + '</button>' if PA_ON else ''
+PA_TILE = '      <button type="button" class="launch-btn" data-view="playalong">' + ICON_PA + '<b>Play-along</b><span>Play a piece to the microphone, see each bar</span></button>' if PA_ON else ''
 markup = f"""
 <div class="shell" id="shell" data-view="board">
   <a class="skip" href="#main" id="skip">Skip to content</a>
@@ -1632,7 +1635,7 @@ markup = f"""
       <button type="button" class="tab" data-view="midi" aria-label="MIDI Player" title="MIDI Player">{ICON_MIDI}</button>
       <button type="button" class="tab" data-view="fingering" aria-label="Fingerings" title="Fingerings">{ICON_FING}</button>
       <button type="button" class="tab" data-view="symbols" aria-label="Symbols" title="Symbols">{ICON_SYM}</button>
-      <button type="button" class="tab" data-view="playalong" aria-label="Play-along" title="Play-along">{ICON_PA}</button>
+{PA_TAB}
       <button type="button" class="tab" id="switchTool" aria-label="Switch tool" title="Switch tool" aria-haspopup="dialog">{ICON_SWITCH}</button>
       <button type="button" class="tab tab-set" id="openSettings" aria-label="Settings" title="Settings" aria-haspopup="dialog">{ICON_SET}</button>
     </nav>
@@ -1931,7 +1934,7 @@ markup = f"""
       <button type="button" class="launch-btn" data-view="midi">{ICON_MIDI}<b>MIDI Player</b><span>Play a tune and watch it on the fingerboard</span></button>
       <button type="button" class="launch-btn" data-view="fingering">{ICON_FING}<b>Fingerings</b><span>Marks the violin part with fingerings, exports a PDF</span></button>
       <button type="button" class="launch-btn" data-view="symbols">{ICON_SYM}<b>Symbols</b><span>Look up music signs and what they mean</span></button>
-      <button type="button" class="launch-btn" data-view="playalong">{ICON_PA}<b>Play-along</b><span>Play a piece to the microphone, see each bar</span></button>
+{PA_TILE}
     </div>
     <button type="button" class="launch-days" id="launchDays" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
   </div>

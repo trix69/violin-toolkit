@@ -228,3 +228,9 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .mp-lvmenu button { text-align: left; min-height: 44px; padding: 0 12px 0 32px; border: 0; border-radius: 8px; background: none; color: var(--fg); font: 500 15px var(--font-body); cursor: pointer; position: relative; }
 .mp-lvmenu button[aria-checked="true"]::before { content: '✓'; position: absolute; left: 11px; color: var(--accent); font-weight: 700; }
 .mp-lvmenu button:hover, .mp-lvmenu button:focus-visible { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: none; }
+
+/* swiping between the MIDI player and Fingerings (Trix): the new page slides in from the side it comes from */
+@keyframes vt-slide-l { from { transform: translateX(28%); opacity: .3; } to { transform: none; opacity: 1; } }
+@keyframes vt-slide-r { from { transform: translateX(-28%); opacity: .3; } to { transform: none; opacity: 1; } }
+.slide-l { animation: vt-slide-l 240ms ease-out; }
+.slide-r { animation: vt-slide-r 240ms ease-out; }
