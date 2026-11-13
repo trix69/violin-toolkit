@@ -179,7 +179,7 @@
      most) instead of stepping there; a rit. with no tempo slows by a fifth and "a tempo" / "Tempo I" restores; a fermata
      holds its note (or rest) for up to two beats more. tp.shown keeps the tempo without the fermatas, for the ♩ readout */
   var RAMP_W = /^((poco a poco|molto|poco|un poco)\s+)?(rit|rall|allarg|calando|smorz|accel|string)/i, TEMPO_W = /^((poco a poco|molto|poco|un poco)\s+)?(rit|rall|allarg|calando|smorz|accel|string)|^(a tempo|tempo i|tempo primo)\b/i;
-  function playedTempo(tempos, ferm, words, tpq, sig) {
+  function playedTempo(tempos, ferm, words, tpq, sig, bars) {
     function sort() { tempos.sort(function (a, b) { return a.tick - b.tick; }); }
     function usAt(t) { var u = 500000; tempos.forEach(function (tp) { if (tp.tick <= t) u = tp.us; }); return u; }
     var before = null;
@@ -191,10 +191,14 @@
       sort();
     });
     tempos.forEach(function (tp) { tp.us0 = tp.us; });
-    var barT = (sig ? sig.num * 4 / sig.den : 4) * tpq, add = [];
+    function barT(tick) {   /* a bar in the metre in force there (Hermes F77: the Csárdás's 4/4 bars, not its opening 2/4) */
+      var m = sig; (bars || []).forEach(function (b) { if (b.tick <= tick && b.ts) m = b.ts; });
+      return (m ? m.num * 4 / m.den : 4) * tpq;
+    }
+    var add = [];
     tempos.forEach(function (tp, i) {
       if (!i || !tp.word || !RAMP_W.test(tp.word)) return;
-      var from = 60e6 / tempos[i - 1].us0, to = 60e6 / tp.us0, end = Math.min(tempos[i + 1] ? tempos[i + 1].tick : Infinity, tp.tick + 2 * barT);
+      var from = 60e6 / tempos[i - 1].us0, to = 60e6 / tp.us0, end = Math.min(tempos[i + 1] ? tempos[i + 1].tick : Infinity, tp.tick + 2 * barT(tp.tick));
       if (Math.abs(from - to) < 0.5 || !(end > tp.tick)) return;
       var N = Math.max(1, Math.round((end - tp.tick) / (tpq / 2))), step = (end - tp.tick) / N;   /* a step each quaver */
       tp.us = 60e6 / (from + (to - from) / N);
@@ -353,7 +357,7 @@
       }
     });
     tempos.sort(function (a, b) { return a.tick - b.tick; });
-    playedTempo(tempos, ferm, tempoWords, TPQ, sig);
+    playedTempo(tempos, ferm, tempoWords, TPQ, sig, bars);
     /* the composer (Trix: on the Fingerings pages): the credit printed on the score first, else the identification's
        creator; MuseScore's empty-template words ("Composer / arranger") are not a name */
     var composer = '', BLANK = /^(composer(\s*\/\s*arranger)?|arranger|subtitle|title)$/i;
