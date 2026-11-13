@@ -1,28 +1,29 @@
 """Token score -> MusicXML, general version of hungarian5/build.py: the piece is described by <dir>/conf.py
-(NAMES, PROG, CLEF, KEY(b), TIME (beats, beat-type), TEMPO {bar: (words, crotchet bpm)}, FWD, BWD, LAST, TITLE,
+(NAMES, PROG, CLEF, KEY(b), TIME (beats, beat-type) or TIME(b) -> (beats, beat-type), optional DIV (divisions per crotchet, 120), TEMPO {bar: (words, crotchet bpm)}, FWD, BWD, LAST, TITLE,
 COMPOSER, EXTRA_CREATORS [(type, name)], RIGHTS). Usage: build.py <dir with conf.py and tokens.txt> out.mxl
 tokens.txt -> hungarian5.mxl. Line: 'P<n> <bar>: tok tok | tok' ; tok = PITCH[+PITCH]:DUR[~] or r:DUR
-PITCH = step [# b n] octave (absolute, alter written out); DUR = 1 2 4 8 16 32 [.] [t triplet | q quintuplet]; '|' = second voice."""
+PITCH = step [# b n] octave (absolute, alter written out); DUR = 1 2 4 8 16 32 [.|..] [t triplet | q quintuplet | s septuplet (needs DIV a multiple of 7)]; '|' = second voice."""
 import sys, zipfile, re
 from xml.sax.saxutils import escape as esc
 D = sys.argv[1]; out = sys.argv[2]
-DIV = 120; BASE = {'1': 480, '2': 240, '4': 120, '8': 60, '16': 30, '32': 15}
 TYPE = {'1': 'whole', '2': 'half', '4': 'quarter', '8': 'eighth', '16': '16th', '32': '32nd'}
 C = {}; exec(open(D + '/conf.py').read(), C)
 NAMES, PROG, CLEF, KEY, TEMPO, FWD, BWD, LAST = C['NAMES'], C['PROG'], C['CLEF'], C['KEY'], C['TEMPO'], C['FWD'], C['BWD'], C['LAST']
-BEATS, BTYPE = C['TIME']; FULL = DIV * 4 * BEATS // BTYPE; BEAT = DIV * 4 // BTYPE   # a beat in divisions (beams group by it)
+DIV = C.get('DIV', 120); BASE = {'1': DIV * 4, '2': DIV * 2, '4': DIV, '8': DIV // 2, '16': DIV // 4, '32': DIV // 8}
+TIMEF = C['TIME'] if callable(C['TIME']) else (lambda b: C['TIME'])   # the time signature of bar b
 bars = {}
 for ln in open(D + '/tokens.txt'):
     ln = ln.split(';')[0].strip()
     if not ln: continue
     m = re.match(r'P(\d+) (\d+):(.*)', ln); bars[(int(m.group(1)), int(m.group(2)))] = m.group(3).strip()
 def dur(d):
-    q = d.rstrip('.tq'); v = BASE[q]
+    q = d.rstrip('.tqs'); v = BASE[q]
     if '..' in d: v = v * 7 // 4
     elif '.' in d: v = v * 3 // 2
     if 't' in d: v = v * 2 // 3
     if 'q' in d: v = v * 4 // 5
-    return v, TYPE[q], d.count('.'), 't' if 't' in d else 'q' if 'q' in d else ''
+    if 's' in d: v = v * 4 // 7
+    return v, TYPE[q], d.count('.'), 't' if 't' in d else 'q' if 'q' in d else 's' if 's' in d else ''
 def pitch(p):
     m = re.match(r'([A-G])(##|bb|[#bn]?)(\d)$', p); assert m, p
     al = {'#': 1, 'b': -1, '##': 2, 'bb': -2}.get(m.group(2), 0)
@@ -32,15 +33,18 @@ for pn in range(1, len(NAMES) + 1):
     ms = []; tied = set()
     for b in range(1, LAST + 1):
         src = bars.get((pn, b), '')
+        BEATS, BTYPE = TIMEF(b); FULL = DIV * 4 * BEATS // BTYPE; BEAT = DIV * 4 // BTYPE   # a beat in divisions (beams group by it)
+        newtime = b == 1 or TIMEF(b) != TIMEF(b - 1)
         x = '<measure number="%d">' % b
         if b in FWD: x += '<barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>'
-        if b == 1 or KEY(b) != KEY(b - 1):
-            x += '<attributes>' + ('<divisions>%d</divisions>' % DIV if b == 1 else '') + '<key><fifths>%d</fifths>%s</key>' % (KEY(b), '<mode>%s</mode>' % C['MODE'] if C.get('MODE') else '')
-            if b == 1: x += '<time><beats>%d</beats><beat-type>%d</beat-type></time>' % (BEATS, BTYPE) + '<clef><sign>%s</sign><line>%d</line></clef>' % CLEF[pn - 1]
+        if b == 1 or KEY(b) != KEY(b - 1) or newtime:
+            x += '<attributes>' + ('<divisions>%d</divisions>' % DIV if b == 1 else '') + ('<key><fifths>%d</fifths>%s</key>' % (KEY(b), '<mode>%s</mode>' % C['MODE'] if C.get('MODE') else '') if b == 1 or KEY(b) != KEY(b - 1) else '')
+            if newtime: x += '<time><beats>%d</beats><beat-type>%d</beat-type></time>' % (BEATS, BTYPE)
+            if b == 1: x += '<clef><sign>%s</sign><line>%d</line></clef>' % CLEF[pn - 1]
             x += '</attributes>'
         if pn == 1 and b in TEMPO:
             x += '<direction placement="above"><direction-type><words>%s</words></direction-type><sound tempo="%d"/></direction>' % TEMPO[b]
-        voices = [v.split() for v in src.split('|')] if src else [['r:%s' % {480: '1', 240: '2', 360: '2.'}.get(FULL, '1')]]
+        voices = [v.split() for v in src.split('|')] if src else [['r:%s' % {DIV * 4: '1', DIV * 2: '2', DIV * 3: '2.'}.get(FULL, '1')]]
         for vi, toks in enumerate(voices):
             if vi: x += '<backup><duration>%d</duration></backup>' % FULL
             tot = 0; tup = 0
@@ -55,14 +59,14 @@ for pn in range(1, len(NAMES) + 1):
                 for j, k in enumerate(g): beams[k][1] = 'begin' if j == 0 else 'end' if j == len(g) - 1 else 'continue'
                 run = []
                 for j, k in enumerate(g + [None]):
-                    if k is not None and info[k][1] <= 30: run.append(j); continue
+                    if k is not None and info[k][1] <= DIV // 4: run.append(j); continue
                     if len(run) >= 2:
                         for i2, jj in enumerate(run): beams[g[jj]][2] = 'begin' if i2 == 0 else 'end' if i2 == len(run) - 1 else 'continue'
                     elif len(run) == 1: beams[g[run[0]]][2] = 'forward hook' if run[0] == 0 else 'backward hook'
                     run = []
             for k, (st, v_, rest, trip, wt_) in enumerate(info):
-                if rest or v_ >= 120 or wt_ in ('quarter', 'half', 'whole'): flush(grp); grp = []; continue   # a crotchet in a triplet is not beamed
-                unit = 120 if trip else BEAT   # triplets beam in threes (one crotchet), other notes by the beat
+                if rest or v_ >= DIV or wt_ in ('quarter', 'half', 'whole'): flush(grp); grp = []; continue   # a crotchet in a triplet is not beamed
+                unit = DIV if trip else BEAT   # triplets beam in threes (one crotchet), other notes by the beat
                 if grp and (st // unit != info[grp[0]][0] // unit or trip != info[grp[0]][3]): flush(grp); grp = []
                 grp.append(k)
             flush(grp)
@@ -76,13 +80,13 @@ for pn in range(1, len(NAMES) + 1):
                     if key in tied: n += '<tie type="stop"/>'
                     if qt: n += '<tie type="start"/>'
                     n += '<voice>%d</voice><type>%s</type>' % (vi + 1, ty) + ('<dot/>' * dot if dot else '')
-                    if tm: n += '<time-modification><actual-notes>%d</actual-notes><normal-notes>%d</normal-notes></time-modification>' % ((3, 2) if tm == 't' else (5, 4))
+                    if tm: n += '<time-modification><actual-notes>%d</actual-notes><normal-notes>%d</normal-notes></time-modification>' % {'t': (3, 2), 'q': (5, 4), 's': (7, 4)}[tm]
                     if not k and q != 'r': n += ''.join('<beam number="%d">%s</beam>' % (lv, beams[ti][lv]) for lv in (1, 2) if lv in beams[ti])
                     nt = ''
                     if tm == 't' and not k:   # a triplet: '3' over each crotchet's three (start on the first, stop on the last)
                         st_ = info[ti][0]
-                        if st_ % 120 == 0: nt += '<tuplet type="start" bracket="no"/>'
-                        elif (st_ + 40) % 120 == 0: nt += '<tuplet type="stop"/>'
+                        if st_ % DIV == 0: nt += '<tuplet type="start" bracket="no"/>'
+                        elif (st_ + DIV // 3) % DIV == 0: nt += '<tuplet type="stop"/>'
                     if key in tied: nt += '<tied type="stop"/>'
                     if qt: nt += '<tied type="start"/>'
                     if nt: n += '<notations>%s</notations>' % nt
@@ -91,7 +95,7 @@ for pn in range(1, len(NAMES) + 1):
                     qt = tie or q.endswith('~'); q = q.rstrip('~')
                     tied.discard((vi, q))
                     if qt: tied.add((vi, q))
-            if tot != FULL: bad.append('P%d b%d voice %d: %s beats' % (pn, b, vi + 1, tot / 120))
+            if tot != FULL: bad.append('P%d b%d voice %d: %s beats' % (pn, b, vi + 1, tot / DIV))
         if b in BWD: x += '<barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward"/></barline>'
         elif b == LAST: x += '<barline location="right"><bar-style>light-heavy</bar-style></barline>'
         ms.append(x + '</measure>')

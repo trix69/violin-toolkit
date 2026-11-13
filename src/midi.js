@@ -194,7 +194,8 @@
       ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); }); });
       order.forEach(function (k) {
         var m = ms[k]; if (!m) return;
-        if (pi === 0) bars.push({ tick: at, num: m.getAttribute('number') || String(k + 1), mi: k, wr: order.info[k] });
+        var tmE = m.getElementsByTagName('time')[0];   /* a change of time signature (the Csárdás: 2/4, 4/4, 2/4) */
+        if (pi === 0) bars.push({ tick: at, num: m.getAttribute('number') || String(k + 1), mi: k, wr: order.info[k], ts: tmE && txt(tmE, 'beats') ? { num: parseInt(txt(tmE, 'beats'), 10) || 4, den: +txt(tmE, 'beat-type') || 4 } : null });
         var dv = divStart[k] || 1, cur = 0, len = 0, last = 0;
         function tk(d) { return at + Math.round(d * TPQ / dv); }
         kids(m).forEach(function (el) {
@@ -441,13 +442,13 @@
     var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick, minor);
     /* the bar number at a beat, for the score's corner (Trix): MusicXML's own numbers (repeats show theirs again, a
        pickup is 0); a MIDI file's bars counted from its start */
-    var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num, mi: b.mi, wr: b.wr }; }) : null;
+    var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num, mi: b.mi, wr: b.wr, ts: b.ts }; }) : null;
     sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text }; }).filter(function (m) { return m.beat > -1e-6; });
     /* the bars in playing order, for A–B (Trix): the score's numbers (a bar played twice is listed twice) or counted */
     var blist = [];
     /* to the end of the music, not just the solo's: a last bar where only the accompaniment plays is a bar too (Hermes F50) */
     var endBeat = acc.reduce(function (e, n) { return Math.max(e, n.t1 / tpq - sg.skipB); }, sg.beats);
-    if (bl) bl.forEach(function (b) { if (b.beat > -1e-6 && b.beat < endBeat - 1e-6) blist.push({ beat: b.beat, num: b.num, mi: b.mi, wr: b.wr }); });
+    if (bl) bl.forEach(function (b) { if (b.beat > -1e-6 && b.beat < endBeat - 1e-6) blist.push({ beat: b.beat, num: b.num, mi: b.mi, wr: b.wr, ts: b.ts }); });
     else for (var bb = 0; bb < endBeat - 1e-6; bb += barQ) blist.push({ beat: bb, num: String(Math.floor((bb + sg.skipB) / barQ + 1e-6) + 1) });
     var seenBar = {}; blist.forEach(function (b) { b.time = seenBar[b.num] = (seenBar[b.num] || 0) + 1; });
     blist.forEach(function (b) { b.rep = seenBar[b.num] > 1; });
@@ -1016,6 +1017,29 @@
     out.push('<text class="ts" style="font-size:' + tsz.toFixed(2) + 'px" x="' + x + '" y="' + (Y0 + 2 * S) + '">' + sg.sig.num + '</text><text class="ts" style="font-size:' + tsz.toFixed(2) + 'px" x="' + x + '" y="' + (Y0 + 4 * S) + '">' + sg.sig.den + '</text>');
     X0 = x + tw / 2 + 22;
     var barBeats = sg.sig.num * 4 / sg.sig.den, pk = sg.pick || 0;   /* pk: the pickup, beats before bar 1 is full */
+    /* a piece whose time signature changes (the Csárdás): its bar lines are the file's own measures, and the new
+       signature is printed where it changes; otherwise one bar length throughout, as before */
+    var VB = null, VL = [], tsAt = {};
+    (function () {
+      var cur = sg.sig, change = false;
+      (sg.bars || []).forEach(function (b, i) {
+        if (b.ts && i > 0 && (b.ts.num !== cur.num || b.ts.den !== cur.den)) { change = true; tsAt[i] = b.ts; }
+        if (b.ts) cur = b.ts;
+        VL.push(cur.num * 4 / cur.den);
+      });
+      if (change) VB = sg.bars.map(function (b) { return b.beat; });
+    })();
+    function bIdx(b) {
+      if (!VB) return Math.floor((b + pk) / barBeats + 1e-6);
+      var n = 0; while (n + 1 < VB.length && VB[n + 1] <= b + 1e-6) n++;
+      var last = VB.length - 1;
+      return n < last ? n : last + Math.max(0, Math.floor((b - VB[last]) / VL[last] + 1e-6));
+    }
+    function bStart(n) {
+      if (!VB) return n * barBeats - pk;
+      var last = VB.length - 1;
+      return n <= last ? (n >= 0 ? VB[n] : VB[0] + n * VL[0]) : VB[last] + (n - last) * VL[last];
+    }
     /* spacing by note length, as printed music does (a semiquaver ~41 px, a crotchet 56, a semibreve 86), with
        room at each bar line; xAt() maps beats to x for placing and scrolling */
     var ons = [], items = [];   /* what scrolls: [x, svg markup], drawn in sections */
@@ -1028,7 +1052,7 @@
       var b = n.b, L = n.full, pcs = [];
       while (L > 1e-6 && pcs.length < 24) {
         var unitB = barBeats === 6 || (barBeats === 4 && sg.sig.den === 8) ? barBeats / 2 : barBeats;   /* 6/4 and 12/8: halves of the bar (two dotted minims, not a semibreve and a minim) */
-        var barEnd = Math.floor((b + pk) / unitB + 1e-6) * unitB - pk + unitB, seg = Math.min(L, barEnd - b);
+        var barEnd = VB ? bStart(bIdx(b) + 1) : Math.floor((b + pk) / unitB + 1e-6) * unitB - pk + unitB, seg = Math.min(L, barEnd - b);
         while (seg > 1e-6) { var v = PV.filter(function (x) { return x <= seg + 1e-6; })[0] || 0.125; pcs.push({ b: b, len: v }); b += v; seg -= v; L -= v; }
       }
       if (pcs.length > 1) { n.pcs = pcs; n.dl = pcs[0].len; pcs.slice(1).forEach(function (pc) { conts.push(pc.b); }); }
@@ -1044,8 +1068,8 @@
     var rests = [], comp = sg.sig.den >= 8 && sg.sig.num % 3 === 0;
     function restRun(a, z) {
       while (z - a >= 0.25 - 1e-6) {
-        var bs = Math.floor((a + pk) / barBeats + 1e-6) * barBeats - pk, be = Math.min(z, bs + barBeats);
-        if (Math.abs(a - bs) < 1e-6 && Math.abs(be - (bs + barBeats)) < 1e-6) { rests.push({ b: a, v: barBeats, whole: true }); a = be; continue; }
+        var bs = bStart(bIdx(a)), bE = VB ? bStart(bIdx(a) + 1) : bs + barBeats, be = Math.min(z, bE);
+        if (Math.abs(a - bs) < 1e-6 && Math.abs(be - bE) < 1e-6) { rests.push({ b: a, v: bE - bs, whole: true }); a = be; continue; }
         var vs = comp ? [3, 1.5, 1, 0.5, 0.25] : [2, 1, 0.5, 0.25], v = 0.25;
         for (var q = 0; q < vs.length; q++) { var w = vs[q], off = a - bs; if (a + w <= be + 1e-6 && Math.abs(off / w - Math.round(off / w)) < 1e-6) { v = w; break; } }
         if (a + v > be + 1e-6) break;
@@ -1061,7 +1085,7 @@
     /* bars after the solo's last note where only the accompaniment plays: whole-bar rests to the end (Hermes F71) */
     var tailBars = (sg.bars || []).filter(function (x) { return x.beat >= sg.beats - 1e-6; }), END = sg.beats;
     if (tailBars.length && ons.length) {
-      END = tailBars[tailBars.length - 1].beat + barBeats;
+      END = VB ? bStart(bIdx(tailBars[tailBars.length - 1].beat) + 1) : tailBars[tailBars.length - 1].beat + barBeats;
       var lastEnd = ons[ons.length - 1]; sg.notes.forEach(function (n) { if (Math.abs(n.b - ons[ons.length - 1]) < 1e-6) lastEnd = Math.max(lastEnd, n.b + (n.pcs ? n.full : n.len)); });
       restRun(Math.round(lastEnd * 4) / 4, END);
     }
@@ -1076,13 +1100,18 @@
     cx += 12;
     var rp0 = opts.paged && sg.barAt ? sg.barAt(1e-3) : null; if (rp0 && rp0.wr && rp0.wr.fwd) cx += 14;   /* a forward repeat at the start (Hermes F67) */
     evs.forEach(function (b, i) {
-      var bn = Math.floor((b + pk) / barBeats + 1e-6);
+      var bn = bIdx(b);
       if (bn > lastBar) {
         /* a repeat sign takes ~14 units of ink beside its barline: room for it on the pages, so a note does not sit in
            it (Hermes F67); the scrolling strip draws no repeat signs and keeps its spacing */
-        var bS = bn * barBeats - pk, rpB = opts.paged && sg.barAt ? sg.barAt(bS - 1e-3) : null, rpF = opts.paged && sg.barAt ? sg.barAt(bS + 1e-3) : null;
+        var bS = bStart(bn), rpB = opts.paged && sg.barAt ? sg.barAt(bS - 1e-3) : null, rpF = opts.paged && sg.barAt ? sg.barAt(bS + 1e-3) : null;
         if (rpB && rpB.wr && rpB.wr.back) cx += 14;
         items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); bars.push({ beat: bS, x: cx - 6 }); cx += 12; lastBar = bn;
+        if (tsAt[bn]) {   /* the new time signature after the bar line */
+          var nts = tsAt[bn], ntw = Math.max(String(nts.num).length, String(nts.den).length) * tsz * 0.5;
+          items.push([cx, '<text class="ts" style="font-size:' + tsz.toFixed(2) + 'px" x="' + (cx + ntw / 2) + '" y="' + (Y0 + 2 * S) + '">' + nts.num + '</text><text class="ts" style="font-size:' + tsz.toFixed(2) + 'px" x="' + (cx + ntw / 2) + '" y="' + (Y0 + 4 * S) + '">' + nts.den + '</text>']);
+          cx += ntw + 12;
+        }
         if (rpF && rpF.wr && rpF.wr.fwd) cx += 14;
       }
       if (gRoom[b.toFixed(3)]) cx += 12 * gRoom[b.toFixed(3)];
@@ -1106,7 +1135,7 @@
     if (opts.barsOnly) return { X0: X0, bars: bars };   /* the pages' first pass: where the bars fall is all it needs */
     /* first pass: where each note sits; accidentals hold to the end of the bar */
     var barNo = -1, inBar = {}, inf = sg.notes.map(function (nt) {
-      var bn = Math.floor((nt.b + pk) / barBeats + 1e-6);
+      var bn = bIdx(nt.b);
       if (bn !== barNo) { barNo = bn; inBar = {}; }
       var spl = sp[nt.m % 12], L = spl[0], acc = spl[1], oct = Math.floor(nt.m / 12) - 1;
       /* MusicXML: the note as written (Trix: the Habanera's F# after its change to D major was drawn as Gb) */
