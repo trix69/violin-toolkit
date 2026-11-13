@@ -2554,6 +2554,8 @@
   var QR = /*QR*/null;
   var KEY_MAJ = ['C♭', 'G♭', 'D♭', 'A♭', 'E♭', 'B♭', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'C♯'];
   var KEY_MIN = ['A♭', 'E♭', 'B♭', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'C♯', 'G♯', 'D♯', 'A♯'];   /* capitals before 'minor' (Winter: 'F minor') */
+  /* a piece whose key changes is not named by one key (Trix) */
+  function keyChanges(sg) { return (sg.bars || []).some(function (b) { return b.ks !== null && b.ks !== undefined && (b.ks !== sg.sf || (b.km && (b.km === 'minor') !== !!sg.minor)); }); }
   function fgKey(sg, zh) {
     var i = Math.max(-7, Math.min(7, sg.sf)) + 7, k = sg.minor ? KEY_MIN[i] : KEY_MAJ[i];
     return zh ? k + (sg.minor ? ' 小调' : ' 大调') : k + (sg.minor ? ' minor' : ' major');
@@ -2597,7 +2599,7 @@
         o.push('<text class="fg-title" x="' + PG_W / 2 + '" y="' + (PG_M + 22) + '">' + esc(title) + '</text>');   /* centred (Trix) */
         /* line 2 the composer (when the score names one), line 3 instrument and key (Trix) */
         if (sg.composer) o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + 44) + '">' + esc(sg.composer) + '</text>');
-        o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + (sg.composer ? 63 : 44)) + '">' + esc(sg.modeKnown ? part + ' · ' + fgKey(sg, zh) : part) + '</text>');
+        o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + (sg.composer ? 63 : 44)) + '">' + esc(sg.modeKnown && !keyChanges(sg) ? part + ' · ' + fgKey(sg, zh) : part) + '</text>');
         if (QR) {   /* 16 mm with a 2 mm quiet zone, inside the margins, over no staff */
           var qx = PG_W - PG_M - QZ - QS, qy = PG_M + QT + QZ, u = QS / QR.n;
           o.push('<text class="fg-cap" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 9) + '">' + (zh ? '小提琴工具箱' : 'Violin Toolkit') + '</text>');   /* right-aligned: wider than the QR, kept out of the margin */
