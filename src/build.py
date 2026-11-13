@@ -1451,7 +1451,10 @@ nav_js = """(function () {
   document.getElementById('reportIssue').addEventListener('click', function () {
     var kind = window.VTPlay ? 'Android app (Google Play)' : window.VTiOSApp ? 'iPhone app' : location.hostname === 'appassets.androidplatform.net' ? 'Android app (website download)' : (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone ? 'Installed web app' : 'Website';
     var v = document.getElementById('verBtn').getAttribute('data-version') || '', bd = document.getElementById('verBtn').getAttribute('data-build') || '';   /* Hermes F58 */
-    this.href = 'https://github.com/trix69/violin-toolkit/issues/new?body=' + encodeURIComponent('\\n\\n---\\nViolin Toolkit ' + v + (bd ? ' (' + bd + ')' : '') + ', ' + kind);
+    var zh = window.I18N && I18N.lang === 'zh', tpl = zh   /* a template that says the issue is public (Trix) */
+      ? '发生了什么：\\n\\n你期望的结果：\\n\\n（公开问题——请不要写姓名、邮箱或其他个人信息。）'
+      : 'What happened:\\n\\nWhat you expected:\\n\\n(Public issue — please don\\'t include names, e-mail addresses or other personal details.)';
+    this.href = 'https://github.com/trix69/violin-toolkit/issues/new?body=' + encodeURIComponent(tpl + '\\n\\n---\\nViolin Toolkit ' + v + (bd ? ' (' + bd + ')' : '') + ', ' + kind);
   }, true);
   /* any link that leaves the app asks first (Trix): what opens and where; Google Play and the App Store go straight
      there (the store is where the app lives). Our own site's pages, read in the website, are not leaving it. Links
@@ -1483,7 +1486,9 @@ nav_js = """(function () {
       e.preventDefault(); e.stopPropagation();
       link = a; back = a;
       var zh = window.I18N && I18N.lang === 'zh', host = u.hostname.replace(/^www\\./, '');
-      document.getElementById('extAskMsg').textContent = zh ? '将在浏览器中打开“' + host + '”。' : '“' + host + '” opens in your browser.';
+      document.getElementById('extAskMsg').textContent = a.id === 'reportIssue'   /* Report an issue: say the page is public (Trix) */
+        ? (zh ? 'GitHub——应用之外的公开页面。任何人都能看到你写的内容，请不要写姓名、邮箱或其他个人信息。' : 'GitHub — a public page outside the app. Anyone can read what you write, so leave out names, e-mail addresses and anything else personal.')
+        : (zh ? '将在浏览器中打开“' + host + '”。' : '“' + host + '” opens in your browser.');
       box.hidden = false; window.addEventListener('keydown', key, true); go.focus();
     }, true);
   })();
