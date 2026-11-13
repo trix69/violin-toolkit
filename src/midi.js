@@ -1352,8 +1352,8 @@
     /* a slur arching above the notes takes the space over every note under it (Trix: Ⅲ and its dashes ran into slurs) */
     slurArcs.forEach(function (a) { inf.forEach(function (f) { if (f.hx >= a[0] - 2 && f.hx <= a[1] + 2) f.top = Math.min(f.top === undefined ? Y0 - 7 : f.top, a[2] - 4); }); });
     /* tuplets (Hermes F52): a run of tuplet notes is complete when its written values add up to its count times the
-       shortest of them (three quavers; crotchet + quaver; five semiquavers); a "3" (or "5") above it, with a bracket
-       when the run is not one beamed group; the figure takes the space over its notes */
+       shortest of them (three quavers; crotchet + quaver; five semiquavers); a "3" (or "5") on its beam side, with a
+       bracket when the run is not one beamed group */
     (function () {
       var run = null, runs = [];
       heads.forEach(function (k) {
@@ -1365,14 +1365,19 @@
         if (run.w >= run.n * run.min - 1e-6) run = null;
       });
       runs.forEach(function (r) {
-        var k0 = r.ks[0], k1 = r.ks[r.ks.length - 1], x0 = inf[k0].hx - 4, x1 = inf[k1].hx + 4, y = Y0 - 7;
-        r.ks.forEach(function (k) { inf[k].members.forEach(function (j) { if (inf[j].top !== undefined) y = Math.min(y, inf[j].top); }); });
-        y = Math.max(opts.paged ? -30 : 12, y - 2);
+        /* on the beam (stem) side, as printed music has it (Trix): above the beam when the stems go up, below it when
+           they go down; a fingering is on the other side of the note then */
+        var k0 = r.ks[0], k1 = r.ks[r.ks.length - 1], x0 = inf[k0].hx - 4, x1 = inf[k1].hx + 4, up = inf[k0].up;
+        var end = function (k) { var h = inf[k]; return h.beam >= 0 ? h.tip : up ? h.yTop - 3.4 * S : h.yBot + 3.4 * S; };
+        var y = up ? Math.min.apply(null, r.ks.map(end)) - 5 : Math.max.apply(null, r.ks.map(end)) + 13;
         var beamed = r.ks.every(function (k) { return inf[k].beam >= 0 && inf[k].beam === inf[k0].beam; }) && r.ks.length > 1, xm = (x0 + x1) / 2, g = '';
-        if (!beamed) g += '<path class="tup-br" d="M' + x0 + ' ' + (y + 1) + 'v-5H' + (xm - 6) + 'M' + (xm + 6) + ' ' + (y - 4) + 'H' + x1 + 'v5"/>';
+        if (!beamed) {
+          var by = up ? y - 4 : y - 4, hk = up ? 5 : -5;
+          g += '<path class="tup-br" d="M' + x0 + ' ' + (by + hk) + 'V' + by + 'H' + (xm - 6) + 'M' + (xm + 6) + ' ' + by + 'H' + x1 + 'V' + (by + hk) + '"/>';
+        }
         g += '<text class="tup-n" x="' + xm + '" y="' + y + '">' + r.n + '</text>';
         items.push([x0, '<g class="mp-tup">' + g + '</g>']);
-        r.ks.forEach(function (k) { inf[k].members.forEach(function (j) { inf[j].top = y - 11; }); });
+        if (up) r.ks.forEach(function (k) { inf[k].members.forEach(function (j) { inf[j].top = Math.min(inf[j].top === undefined ? Y0 - 7 : inf[j].top, y - 11); }); });
       });
     })();
     var passages = [];
