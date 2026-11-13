@@ -153,3 +153,9 @@ Trix: "Merge them and give a new piece name". `minuet_pair.py minuet.mxl minuet1
 now removed: `git show 68e5a7b:src/midi/minuet.mxl`): Anh. 114, Anh. 115 (its repeats), Anh. 114 again written out (no
 da capo in the player); each section keeps its divisions, key + mode and tempo (120 / 96 / 120); "Minuet II" / "Minuet I"
 words; double bar before the change. Title "Minuets in G major and G minor, BWV Anh. 114–115".
+
+## Minuets: quick graces (2026-11-14)
+
+Trix: the small note before bars 8 and 72 is a quick grace just before the beat. `minuet_grace.py minuets.mxl` marks the two
+violin `<grace/>` with `steal-time-previous="50"`; the player plays such graces (and every slashed grace) as a 32nd ending on the
+beat, taken from the note before (drawn at its written value).

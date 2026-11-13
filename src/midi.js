@@ -284,7 +284,7 @@
             var gr = kid(el, 'grace');
             if (gr) {   /* a grace note (Trix): played and drawn small just before the note it decorates */
               var gp = kid(el, 'pitch');
-              if (gp && !kid(el, 'chord')) graces.push({ m: (+txt(gp, 'octave') + 1) * 12 + (STEP[txt(gp, 'step')] || 0) + Math.round(+txt(gp, 'alter') || 0), slash: gr.getAttribute('slash') === 'yes' });
+              if (gp && !kid(el, 'chord')) graces.push({ m: (+txt(gp, 'octave') + 1) * 12 + (STEP[txt(gp, 'step')] || 0) + Math.round(+txt(gp, 'alter') || 0), slash: gr.getAttribute('slash') === 'yes', steal: +gr.getAttribute('steal-time-previous') || (gr.getAttribute('slash') === 'yes' ? 50 : 0) });   /* a slashed grace too (Trix): quick, just before the beat */
               return;
             }
             var dur = +txt(el, 'duration') || 0, chord = !!kid(el, 'chord'), from = chord ? last : cur;
@@ -297,8 +297,17 @@
             var mm = (+txt(pt, 'octave') + 1) * 12 + (STEP[txt(pt, 'step')] || 0) + Math.round(+txt(pt, 'alter') || 0);
             var t0 = tk(from), t1 = tk(from + dur), ties = kids(el, 'tie').map(function (t) { return t.getAttribute('type'); });
             if (chord && t0 === gFrom) t0 += gShift;   /* the rest of a chord moves with its first note */
+            else if (!chord && graces.length && graces.every(function (g) { return g.steal > 0; })) {
+              /* graces marked steal-time-previous, and slashed ones (Trix: the Minuets' bar 8, a quick grace just before the beat): about a
+                 32nd each (at most that share of the note before), ending on the beat; the note before gives up the time */
+              var prev = null; for (var pq = notes.length - 1; pq >= 0; pq--) if (!notes[pq].grace) { prev = notes[pq]; break; }
+              var cnt2 = graces.length, room = prev ? (t0 - prev.t0) * graces[0].steal / 100 : TPQ / 8, each2 = Math.max(1, Math.round(Math.min(TPQ / 8, room / cnt2))), g0 = t0 - cnt2 * each2;
+              if (prev && prev.t1 > g0) { if (!prev.wl) prev.wl = (prev.t1 - prev.t0) / TPQ; prev.t1 = Math.max(prev.t0 + 1, g0); }   /* drawn at its written value, played a little shorter */
+              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: g0 + gi * each2, t1: g0 + (gi + 1) * each2, sb: t0 - (cnt2 - gi), gi: gi, gn: cnt2, ch: ch, v: 90, pz: pz, grace: 'acc' }); });
+              gFrom = -1; gShift = 0; graces = [];
+            }
             else if (!chord && graces.length) {
-              /* an acciaccatura (slashed) or a run of graces: quick, about a 32nd each; a lone appoggiatura: half
+              /* a run of graces (not slashed): quick, about a 32nd each; a lone appoggiatura: half
                  the note. They take their time from the start of the main note (on the beat) */
               var main = t1 - t0, cnt = graces.length, each = cnt === 1 && !graces[0].slash ? Math.round(main / 2) : Math.round(Math.min(TPQ / 8, main / (2 * cnt)));
               graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: t0 - (cnt - gi), gi: gi, gn: cnt, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
