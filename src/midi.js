@@ -1060,9 +1060,17 @@
     items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']);
     bars.push({ beat: 0, x: cx - 6 });
     cx += 12;
+    var rp0 = opts.paged && sg.barAt ? sg.barAt(1e-3) : null; if (rp0 && rp0.wr && rp0.wr.fwd) cx += 14;   /* a forward repeat at the start (Hermes F67) */
     evs.forEach(function (b, i) {
       var bn = Math.floor((b + pk) / barBeats + 1e-6);
-      if (bn > lastBar) { items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); bars.push({ beat: bn * barBeats - pk, x: cx - 6 }); cx += 12; lastBar = bn; }
+      if (bn > lastBar) {
+        /* a repeat sign takes ~14 units of ink beside its barline: room for it on the pages, so a note does not sit in
+           it (Hermes F67); the scrolling strip draws no repeat signs and keeps its spacing */
+        var bS = bn * barBeats - pk, rpB = opts.paged && sg.barAt ? sg.barAt(bS - 1e-3) : null, rpF = opts.paged && sg.barAt ? sg.barAt(bS + 1e-3) : null;
+        if (rpB && rpB.wr && rpB.wr.back) cx += 14;
+        items.push([cx - 6, '<path class="bl" d="M' + (cx - 6) + ' ' + Y0 + 'V' + BOT + '"/>']); bars.push({ beat: bS, x: cx - 6 }); cx += 12; lastBar = bn;
+        if (rpF && rpF.wr && rpF.wr.fwd) cx += 14;
+      }
       if (gRoom[b.toFixed(3)]) cx += 12 * gRoom[b.toFixed(3)];
       pts.push([b, cx]);
       cx += (26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < evs.length ? evs[i + 1] : sg.beats) - b))) * (opts.gain ? opts.gain(b) : 1);
@@ -1246,11 +1254,14 @@
       var fg = fingerOf(nt), topY = Math.min(y - 9, Y0 - 5);
       if (fg !== null && !nt._fs && nt.xfg === undefined) fg = null;   /* the chosen density (FG_LEVEL) */
       if (above && nearN) topY = Math.min(topY, ay - 1);
+      /* a note so high that its fingering above would climb into the position numeral's row (or out of the system):
+         the fingering goes below the staff instead (Hermes F66) */
+      var fgBelow = !opts.paged && fg !== null && !chord && !(stem && up) && topY < 16;   /* the pages have room above: the numeral rises instead */
       if (fg !== null) {
         if (chord) g.push('<text class="fing side" x="' + (hx + (up ? -15 : 9)) + '" y="' + f.fy + '">' + fg + '</text>');   /* beside each note of a chord, spaced apart */
-        else g.push('<text class="fing" x="' + hx + '" y="' + Math.max(10, stem && up ? Math.max(y + 17, BOT + 13, nearN ? ay + 9 : 0) : topY) + '">' + fg + '</text>');
+        else g.push('<text class="fing" x="' + hx + '" y="' + Math.max(opts.paged ? -16 : 10, (stem && up) || fgBelow ? Math.max(y + 17, BOT + 13, nearN && !above ? ay + 9 : 0) : topY) + '">' + fg + '</text>');
       }
-      var upY = Math.min(stem && up ? (hd.beam >= 0 ? hd.tip : hd.yTop - 3.4 * S) : topY - (fg !== null && !chord ? 12 : 0), Y0) - 7;
+      var upY = Math.min(stem && up ? (hd.beam >= 0 ? hd.tip : hd.yTop - 3.4 * S) : topY - (fg !== null && !chord && !fgBelow ? 12 : 0), Y0) - 7;
       arts.forEach(function (a) {   /* above the note and its fingering */
         var by = Math.max(opts.paged ? -34 : 8, upY), d = null;   /* the pages have room above a system (Trix: tr sat on the fingering of Winter's high notes) */
         if (a === 'down-bow') d = '<path class="art bow" d="M' + (hx - 5) + ' ' + (by + 4) + 'V' + (by - 3) + 'H' + (hx + 5) + 'V' + (by + 4) + '"/>';
@@ -2372,7 +2383,8 @@
         var A = ends[ei], Z = ends[ej], EY = Y0 - 34, d = A.rp.endStart ? 'M' + (A.X1 + 3) + ' ' + (EY + 12) + 'V' + EY : 'M' + A.X1 + ' ' + EY;
         /* open only when the next printed bar carries the same ending (a line break); otherwise it closes on its own
            barline, a 2nd ending included (Hermes F65) */
-        var nb = r.bars[Z.bk + 1], nbo = nb && sg.barAt ? sg.barAt(nb.beat + 1e-3) : null;
+        var nb = r.bars[Z.bk + 1]; if (nb && nb.end) nb = null;   /* the end-of-song sentinel: no bar follows (Hermes F68) */
+        var nbo = nb && sg.barAt ? sg.barAt(nb.beat + 1e-3) : null;
         var goesOn = Z.bk + 1 >= pc[1] && nbo && nbo.wr && nbo.wr.end && !nbo.wr.endStart && String(nbo.wr.end) === String(A.rp.end);
         d += 'H' + (goesOn ? Z.X2 - 3 : Z.X2); if (!goesOn) d += 'V' + (EY + 12);
         out.push('<path class="fg-end" d="' + d + '"/>');
