@@ -116,7 +116,7 @@ th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--li
 th { color: var(--muted); font-weight: 600; } td:first-child { white-space: nowrap; }
 @media (max-width: 480px) { th, td { padding: 6px 5px; font-size: 13px; } .card { padding: 10px; } .card b { font-size: 24px; } } td { white-space: nowrap; } .key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin-top: 8px; }
-</style></head><body><main><h1>Violin Toolkit stats</h1><p class="sub">Visits are launches while online (each one checks for updates); unique visitors are different devices. Updated ${esc(new Date().toISOString().slice(0, 16).replace('T', ' '))} UTC.</p>${body}
+</style></head><body><main><h1>Violin Toolkit stats</h1><p class="sub">Visits are launches while online (each one checks for updates); devices are distinct install ids — usually one per device, a new one after a reinstall or cleared site data. Updated ${esc(new Date().toISOString().slice(0, 16).replace('T', ' '))} UTC.</p>${body}
 <h2>What these numbers miss</h2><p class="note">Launches while offline make no check, so launches are undercounted. A plain browser visit without the offline copy does not check, so first visits are invisible. The test site is not counted. Clearing site data gives a device a new install id. "Check for updates" taps are counted too.</p></main></body></html>`;
   return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } });
 }
@@ -129,33 +129,33 @@ function render(daily, inst7, inst30, versions, day1 = []) {
   const cs = order.filter((c) => clients.has(c));
   const sum = (rows, f) => rows.reduce((t, r) => t + n(r[f]), 0);
   const today = dayList.length ? dayList[dayList.length - 1] : '';
-  // visits = launch checks (every online launch); unique visitors = different install ids (devices)
+  // visits = launch checks (every online launch); devices = different install ids
   const dayTot = (d, f) => cs.reduce((t, c) => t + ((days[d][c] || {})[f] || 0), 0);
-  const card = (label, vis, visits, noid) => `<div class="card"><span class="lab">${label}</span><b>${vis}</b><span>unique visitors</span><em>${visits} visits</em>${noid ? `<small>${noid} without an id</small>` : ''}</div>`;
+  const card = (label, vis, visits, noid) => `<div class="card"><span class="lab">${label}</span><b>${vis}</b><span>devices</span><em>${visits} visits</em>${noid ? `<small>${noid} without an id</small>` : ''}</div>`;
   const cards = `<div class="cards">` + card('Last 24 hours', sum(day1, 'installs'), sum(day1, 'checks'), sum(day1, 'noid')) +
     card('Last 7 days', sum(inst7, 'installs'), sum(inst7, 'checks'), sum(inst7, 'noid')) + card('Last 30 days', sum(inst30, 'installs'), sum(inst30, 'checks'), sum(inst30, 'noid')) + `</div>`;
-  // per day: visits as a pale bar behind, unique visitors stacked by app type in front
+  // per day: visits as a pale bar behind, devices stacked by app type in front
   const W = Math.max(320, dayList.length * 22), H = 170, max = Math.max(1, ...dayList.map((d) => dayTot(d, 'checks')));
   let bars = '';
   dayList.forEach((d, i) => {
     const tv = dayTot(d, 'checks'), hv = tv / max * (H - 30);
     if (tv) bars += `<rect x="${i * 22 + 2}" y="${(H - 18 - hv).toFixed(1)}" width="20" height="${hv.toFixed(1)}" fill="currentColor" opacity=".13"><title>${esc(d)}: ${tv} visits</title></rect>`;
     let y = H - 18;
-    cs.forEach((c) => { const v = (days[d][c] || {}).installs || 0; if (!v) return; const h = v / max * (H - 30); y -= h; bars += `<rect x="${i * 22 + 6}" y="${y.toFixed(1)}" width="12" height="${h.toFixed(1)}" fill="${COLOURS[c]}"><title>${esc(d)} ${esc(CLIENT_NAMES[c])}: ${v} unique visitors, ${(days[d][c] || {}).checks || 0} visits</title></rect>`; });
+    cs.forEach((c) => { const v = (days[d][c] || {}).installs || 0; if (!v) return; const h = v / max * (H - 30); y -= h; bars += `<rect x="${i * 22 + 6}" y="${y.toFixed(1)}" width="12" height="${h.toFixed(1)}" fill="${COLOURS[c]}"><title>${esc(d)} ${esc(CLIENT_NAMES[c])}: ${v} devices, ${(days[d][c] || {}).checks || 0} visits</title></rect>`; });
     if (i % 5 === 0 || i === dayList.length - 1) bars += `<text x="${i * 22 + 12}" y="${H - 4}" font-size="9" text-anchor="middle" fill="currentColor" opacity=".6">${esc(d.slice(5))}</text>`;
   });
-  const legend = '<div class="legend"><span><i class="key" style="background:currentColor;opacity:.2"></i>Visits</span>' + cs.map((c) => `<span><i class="key" style="background:${COLOURS[c]}"></i>${esc(CLIENT_NAMES[c])} visitors</span>`).join('') + '</div>';
-  const chart = dayList.length ? `<h2>Per day (last 30 days)</h2><div class="chart"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Visits and unique visitors per day by app type">${bars}</svg>${legend}</div>` : '<p class="note">No checks recorded yet.</p>';
+  const legend = '<div class="legend"><span><i class="key" style="background:currentColor;opacity:.2"></i>Visits</span>' + cs.map((c) => `<span><i class="key" style="background:${COLOURS[c]}"></i>${esc(CLIENT_NAMES[c])} devices</span>`).join('') + '</div>';
+  const chart = dayList.length ? `<h2>Per day (last 30 days)</h2><div class="chart"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Visits and devices per day by app type">${bars}</svg>${legend}</div>` : '<p class="note">No checks recorded yet.</p>';
   const by = (rows) => { const m = {}; rows.forEach((r) => { m[r.client] = r; }); return m; };
   const m7 = by(inst7), m30 = by(inst30);
-  const table = `<h2>By app type</h2><div class="wrap"><table><tr><th rowspan="2">App</th><th colspan="2">Last 7 days</th><th colspan="2">Last 30 days</th></tr><tr><th>Visitors</th><th>Visits</th><th>Visitors</th><th>Visits</th></tr>` +
+  const table = `<h2>By app type</h2><div class="wrap"><table><tr><th rowspan="2">App</th><th colspan="2">Last 7 days</th><th colspan="2">Last 30 days</th></tr><tr><th>Devices</th><th>Visits</th><th>Devices</th><th>Visits</th></tr>` +
     order.filter((c) => m7[c] || m30[c]).map((c) => `<tr><td><i class="key" style="background:${COLOURS[c]}"></i><span class="long">${esc(CLIENT_NAMES[c])}</span><span class="short">${esc(SHORT[c])}</span></td><td>${n((m7[c] || {}).installs)}</td><td>${n((m7[c] || {}).checks)}</td><td>${n((m30[c] || {}).installs)}</td><td>${n((m30[c] || {}).checks)}</td></tr>`).join('') +
     `<tr class="noid"><td>Visits without an id</td><td>–</td><td>${sum(inst7, 'noid')}</td><td>–</td><td>${sum(inst30, 'noid')}</td></tr>` +
     `<tr class="tot"><td>Total</td><td>${sum(inst7, 'installs')}</td><td>${sum(inst7, 'checks')}</td><td>${sum(inst30, 'installs')}</td><td>${sum(inst30, 'checks')}</td></tr></table></div>`;
-  const vers = versions.length ? `<h2>Versions in use (last 7 days)</h2><table><tr><th>Version</th><th>Visitors</th><th>Visits</th></tr>` + versions.map((r) => `<tr><td>${r.version === 'unknown' ? 'Unknown' : esc(r.version)}</td><td>${n(r.installs)}</td><td>${n(r.checks)}</td></tr>`).join('') + '</table>' : '';
+  const vers = versions.length ? `<h2>Versions in use (last 7 days)</h2><table><tr><th>Version</th><th>Devices</th><th>Visits</th></tr>` + versions.map((r) => `<tr><td>${r.version === 'unknown' ? 'Unknown' : esc(r.version)}</td><td>${n(r.installs)}</td><td>${n(r.checks)}</td></tr>`).join('') + '</table>' : '';
   const recent = dayList.slice(-14).reverse();
-  const daysT = `<h2>Daily (last 14 days)</h2><div class="wrap"><table><tr><th>Day</th><th>Visitors</th><th>Visits</th>` + cs.map((c) => `<th>${esc(SHORT[c])}</th>`).join('') + `</tr>` +
+  const daysT = `<h2>Daily (last 14 days)</h2><div class="wrap"><table><tr><th>Day</th><th>Devices</th><th>Visits</th>` + cs.map((c) => `<th>${esc(SHORT[c])}</th>`).join('') + `</tr>` +
     recent.map((d) => `<tr><td>${esc(d.slice(5))}</td><td><b>${dayTot(d, 'installs')}</b></td><td>${dayTot(d, 'checks')}</td>` + cs.map((c) => `<td>${(days[d][c] || {}).installs || 0}</td>`).join('') + `</tr>`).join('') +
-    '</table></div><p class="note">Visit = one launch while online (each launch checks for updates; "Check for updates" taps count too). Unique visitor = one device (its random install id), however often it opens the app. A launch that cannot store an id (private browsing, blocked storage) is a visit without an id: counted as a visit, never as a visitor. App columns show visitors. Web = browser, PWA = installed web app, APK = Android app from the website, Play = Google Play, iOS = iPhone app. Days are UTC.</p>';
+    '</table></div><p class="note">Visit = one launch while online (each launch checks for updates; "Check for updates" taps count too). Device = one random install id, however often it opens the app; reinstalling the app or clearing site data gives a device a new id, so one device can look like two. A launch that cannot store an id (private browsing, blocked storage) is a visit without an id: counted as a visit, never as a device. App columns show devices. Web = browser, PWA = installed web app, APK = Android app from the website, Play = Google Play, iOS = iPhone app. Days are UTC.</p>';
   return cards + chart + table + daysT + vers;
 }
