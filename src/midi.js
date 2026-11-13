@@ -1051,6 +1051,13 @@
       var end = b; sg.notes.forEach(function (n) { if (Math.abs(n.b - b) < 1e-6) end = Math.max(end, n.b + (n.pcs ? n.full : n.len)); });
       restRun(Math.round(end * 4) / 4, ons[i + 1]);
     });
+    /* bars after the solo's last note where only the accompaniment plays: whole-bar rests to the end (Hermes F71) */
+    var tailBars = (sg.bars || []).filter(function (x) { return x.beat >= sg.beats - 1e-6; }), END = sg.beats;
+    if (tailBars.length && ons.length) {
+      END = tailBars[tailBars.length - 1].beat + barBeats;
+      var lastEnd = ons[ons.length - 1]; sg.notes.forEach(function (n) { if (Math.abs(n.b - ons[ons.length - 1]) < 1e-6) lastEnd = Math.max(lastEnd, n.b + (n.pcs ? n.full : n.len)); });
+      restRun(Math.round(lastEnd * 4) / 4, END);
+    }
     var evs = ons.concat(conts); rests.forEach(function (r) { evs.push(r.b); });
     evs.sort(function (a, b) { return a - b; });
     evs = evs.filter(function (b, i) { return !i || b > evs[i - 1] + 1e-6; });
@@ -1073,13 +1080,13 @@
       }
       if (gRoom[b.toFixed(3)]) cx += 12 * gRoom[b.toFixed(3)];
       pts.push([b, cx]);
-      cx += (26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < evs.length ? evs[i + 1] : sg.beats) - b))) * (opts.gain ? opts.gain(b) : 1);
+      cx += (26 + 30 * Math.sqrt(Math.max(0.125, (i + 1 < evs.length ? evs[i + 1] : END) - b))) * (opts.gain ? opts.gain(b) : 1);
     });
-    pts.push([sg.beats, cx]);
+    pts.push([END, cx]);
     xAt = function (b) {
       if (b <= pts[0][0]) return pts[0][1] - (pts[0][0] - b) * 50;   /* pts[0] is the start of the empty bar */
       for (var i = 1; i < pts.length; i++) if (b <= pts[i][0]) { var a = pts[i - 1], c = pts[i]; return a[1] + (c[1] - a[1]) * (b - a[0]) / ((c[0] - a[0]) || 1); }
-      return cx + (b - sg.beats) * 50;
+      return cx + (b - END) * 50;
     };
     W = cx + 30;
     rests.forEach(function (r) {
@@ -1088,7 +1095,7 @@
     });
     var endX = cx - 8;
     items.push([endX - 4, '<path class="bl" d="M' + (endX - 4) + ' ' + Y0 + 'V' + BOT + '"/><path class="bl end" d="M' + endX + ' ' + Y0 + 'V' + BOT + '"/>']);
-    bars.push({ beat: sg.beats, x: endX - 4, end: true });
+    bars.push({ beat: END, x: endX - 4, end: true });
     if (opts.barsOnly) return { X0: X0, bars: bars };   /* the pages' first pass: where the bars fall is all it needs */
     /* first pass: where each note sits; accidentals hold to the end of the bar */
     var barNo = -1, inBar = {}, inf = sg.notes.map(function (nt) {
