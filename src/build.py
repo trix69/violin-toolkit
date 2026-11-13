@@ -1496,7 +1496,7 @@ nav_js = """(function () {
       link = a; back = a;
       var zh = window.I18N && I18N.lang === 'zh', host = u.hostname.replace(/^www\\./, '');
       document.getElementById('extAskMsg').textContent = a.id === 'reportIssue'   /* Report an issue: say the page is public (Trix) */
-        ? (zh ? 'GitHub——应用之外的公开页面。任何人都能看到你写的内容，请不要写姓名、邮箱或其他个人信息。' : 'GitHub — a public page outside the app. Anyone can read what you write, so leave out names, e-mail addresses and anything else personal.')
+        ? (zh ? 'GitHub——应用之外的公开页面（发帖需要免费的 GitHub 账户）。任何人都能看到你写的内容，请不要写姓名、邮箱或其他个人信息。' : 'GitHub — a public page outside the app (you need a free GitHub account to post). Anyone can read what you write, so leave out names, e-mail addresses and anything else personal.')
         : (zh ? '将在浏览器中打开“' + host + '”。' : '“' + host + '” opens in your browser.');
       box.hidden = false; window.addEventListener('keydown', key, true); go.focus();
     }, true);
