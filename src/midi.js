@@ -1700,7 +1700,12 @@
         s.song = parse(b);
         try { localStorage.setItem(DEMO_KEY + d.f, JSON.stringify({ h: d.h, b64: toB64(buf) })); } catch (e) {}   /* no room: it downloads again next time */
       });
-    }).catch(function (e) { s.err = e && e.mine ? e.message : null; console.error('MIDI tune download', d.f, e); }).then(function () {
+    }).catch(function (e) {
+      /* the website has a newer version of this tune than this app knows (Trix: one version of each piece only):
+         ask for the app update rather than offering an old copy */
+      s.err = e && e.message === 'stale' ? 'This tune has been updated. Update the app to play it.' : e && e.mine ? e.message : null;
+      console.error('MIDI tune download', d.f, e);
+    }).then(function () {
       s.fetching = false;
       var k = songs.indexOf(s);
       if (+songSel.value === k) { s.failed = !s.song; load(k); }   /* still the chosen tune: show it, or say it failed */
