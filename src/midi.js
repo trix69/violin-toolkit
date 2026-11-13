@@ -1891,7 +1891,12 @@
      changed, it does not play until the app is updated. Offline (or no list yet) the saved copy plays. One fetch per visit */
   var fpList = null;
   function siteHashes() {
-    if (!fpList) fpList = fetch(DEMO_URL + 'hashes.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { fpList = null; return null; });
+    /* at most 6 s (Hermes F74): a request that neither answers nor fails counts as offline, so the saved tune plays; the
+       next visit asks again */
+    if (!fpList) fpList = Promise.race([
+      fetch(DEMO_URL + 'hashes.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }),
+      new Promise(function (ok) { setTimeout(function () { ok('timeout'); }, 6000); })
+    ]).then(function (m) { if (m === 'timeout') { fpList = null; return null; } return m; }, function () { fpList = null; return null; });
     return fpList;
   }
   var STALE = 'This tune has been updated. Update the app to play it.';
