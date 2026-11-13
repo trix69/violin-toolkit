@@ -270,6 +270,13 @@
               else if (nm === 'tremolo' && (o.getAttribute('type') || 'single') === 'single') n.trem = Math.max(1, Math.min(4, +o.textContent.trim() || 3));
               else if (nm === 'accidental-mark') n.oacc = o.textContent.trim();
             });
+            /* a tuplet (Hermes F52): its ratio and its written value, so the score draws three quavers with a "3",
+               not dotted semiquavers */
+            var tmo = kid(el, 'time-modification');
+            if (tmo) {
+              var WV = { whole: 4, half: 2, quarter: 1, eighth: 0.5, '16th': 0.25, '32nd': 0.125, '64th': 0.0625 }[txt(el, 'type')];
+              if (WV) { n.tup = +txt(tmo, 'actual-notes') || 3; n.wl = WV * (kids(el, 'dot').length ? 1.5 : 1); }
+            }
             if (!chord) chordTrem = n.trem || 0; else if (!n.trem && chordTrem) n.trem = chordTrem;   /* a chord's tremolo, often written on its first note only */
             if (art.length) n.art = art;
             if (slurs.length) n.slur = slurs;
@@ -487,7 +494,7 @@
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
       var sb = n.sb !== undefined ? n.sb : n.t0;
-      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, oacc: n.oacc, wsp: n.wsp, slur: n.slur, vel: n.v || 80, grace: n.grace };
+      return { m: n.m, t: t, e: e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, tup: n.tup, wl: n.wl, oacc: n.oacc, wsp: n.wsp, slur: n.slur, vel: n.v || 80, grace: n.grace };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -1106,7 +1113,7 @@
       if (nt.wsp && nt.wsp[0] >= 0 && Math.abs(nt.wsp[1]) <= 1) { L = nt.wsp[0]; acc = nt.wsp[1]; oct = nt.wsp[2]; }
       var step = L + 7 * (oct - 4), id = L + '/' + oct, have = id in inBar ? inBar[id] : (keyAcc[L] || 0), sign = null;
       if (acc !== have) { sign = ACC[String(acc)]; inBar[id] = acc; }
-      return { nt: nt, step: step, y: yOf(step), hx: nt.grace ? xAt(nt.b + (nt.gn - nt.gi) / 480) - 12 * (nt.gn - nt.gi) - 2 : xAt(nt.b), len: nt.dl || nt.len, sign: sign, up: step < 6, beam: -1 };
+      return { nt: nt, step: step, y: yOf(step), hx: nt.grace ? xAt(nt.b + (nt.gn - nt.gi) / 480) - 12 * (nt.gn - nt.gi) - 2 : xAt(nt.b), len: nt.wl || nt.dl || nt.len, sign: sign, up: step < 6, beam: -1 };
     });
     /* beams: quavers and semiquavers that follow on one another within a beat (a dotted crotchet in 6/8, 9/8,
        12/8) share a beam, all stems one way: up when the group sits below the middle line */
@@ -1132,6 +1139,7 @@
       if (xmlBeams) {
         var bt = inf[k].members.map(function (j) { return inf[j].nt.xb; }).filter(function (v) { return v && v !== 'none'; })[0];
         if (inf[k].nt.grace) return;
+        if (inf[k].len >= 1 - 1e-6) bt = 'none';   /* a crotchet or longer never takes a beam (a crotchet in a triplet) */
         if (bt === 'begin') { cur = [k]; groups.push(cur); }
         else if ((bt === 'continue' || bt === 'end') && cur) { cur.push(k); if (bt === 'end') cur = null; }
         else cur = null;
@@ -1343,6 +1351,30 @@
     });
     /* a slur arching above the notes takes the space over every note under it (Trix: Ⅲ and its dashes ran into slurs) */
     slurArcs.forEach(function (a) { inf.forEach(function (f) { if (f.hx >= a[0] - 2 && f.hx <= a[1] + 2) f.top = Math.min(f.top === undefined ? Y0 - 7 : f.top, a[2] - 4); }); });
+    /* tuplets (Hermes F52): a run of tuplet notes is complete when its written values add up to its count times the
+       shortest of them (three quavers; crotchet + quaver; five semiquavers); a "3" (or "5") above it, with a bracket
+       when the run is not one beamed group; the figure takes the space over its notes */
+    (function () {
+      var run = null, runs = [];
+      heads.forEach(function (k) {
+        var f = inf[k];
+        if (f.nt.grace) return;
+        if (!f.nt.tup) { run = null; return; }
+        if (!run || run.n !== f.nt.tup) { run = { n: f.nt.tup, ks: [], w: 0, min: 9 }; runs.push(run); }
+        run.ks.push(k); run.w += f.len; run.min = Math.min(run.min, f.len);
+        if (run.w >= run.n * run.min - 1e-6) run = null;
+      });
+      runs.forEach(function (r) {
+        var k0 = r.ks[0], k1 = r.ks[r.ks.length - 1], x0 = inf[k0].hx - 4, x1 = inf[k1].hx + 4, y = Y0 - 7;
+        r.ks.forEach(function (k) { inf[k].members.forEach(function (j) { if (inf[j].top !== undefined) y = Math.min(y, inf[j].top); }); });
+        y = Math.max(opts.paged ? -30 : 12, y - 2);
+        var beamed = r.ks.every(function (k) { return inf[k].beam >= 0 && inf[k].beam === inf[k0].beam; }) && r.ks.length > 1, xm = (x0 + x1) / 2, g = '';
+        if (!beamed) g += '<path class="tup-br" d="M' + x0 + ' ' + (y + 1) + 'v-5H' + (xm - 6) + 'M' + (xm + 6) + ' ' + (y - 4) + 'H' + x1 + 'v5"/>';
+        g += '<text class="tup-n" x="' + xm + '" y="' + y + '">' + r.n + '</text>';
+        items.push([x0, '<g class="mp-tup">' + g + '</g>']);
+        r.ks.forEach(function (k) { inf[k].members.forEach(function (j) { inf[j].top = y - 11; }); });
+      });
+    })();
     var passages = [];
     items = items.concat(beams, slurItems, posMarks(sg, inf, xAt, bars, passages, !!opts.paged));
     /* dynamics, hairpins and words under the staff (MusicXML, Trix) */

@@ -47,7 +47,7 @@ for pn in range(1, len(NAMES) + 1):
             # beams: notes shorter than a crotchet inside one beat are beamed (level 2 for 16ths and shorter)
             info = []; pos = 0
             for t in toks:
-                p_, d_ = t.split(':'); v_ = dur(d_.rstrip('~'))[0]; info.append((pos, v_, p_ == 'r', 't' in d_)); pos += v_
+                p_, d_ = t.split(':'); v_, wt_ = dur(d_.rstrip('~'))[:2]; info.append((pos, v_, p_ == 'r', 't' in d_, wt_)); pos += v_
             beams = [{} for _ in toks]
             grp = []
             def flush(g):
@@ -60,8 +60,8 @@ for pn in range(1, len(NAMES) + 1):
                         for i2, jj in enumerate(run): beams[g[jj]][2] = 'begin' if i2 == 0 else 'end' if i2 == len(run) - 1 else 'continue'
                     elif len(run) == 1: beams[g[run[0]]][2] = 'forward hook' if run[0] == 0 else 'backward hook'
                     run = []
-            for k, (st, v_, rest, trip) in enumerate(info):
-                if rest or v_ >= 120: flush(grp); grp = []; continue
+            for k, (st, v_, rest, trip, wt_) in enumerate(info):
+                if rest or v_ >= 120 or wt_ in ('quarter', 'half', 'whole'): flush(grp); grp = []; continue   # a crotchet in a triplet is not beamed
                 unit = 120 if trip else BEAT   # triplets beam in threes (one crotchet), other notes by the beat
                 if grp and (st // unit != info[grp[0]][0] // unit or trip != info[grp[0]][3]): flush(grp); grp = []
                 grp.append(k)
