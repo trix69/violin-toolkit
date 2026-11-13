@@ -1985,7 +1985,7 @@
     var t = e.target, tag = t && t.tagName;
     if (tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return false;
     if (tag === 'INPUT' && !/^(range|button|checkbox)$/i.test(t.type)) return false;
-    var open = Array.prototype.some.call(document.querySelectorAll('[role="dialog"], .sheet, #coach'), function (d) { return !d.hidden && d.getClientRects().length > 0; });   /* fixed windows have no offsetParent */
+    var open = Array.prototype.some.call(document.querySelectorAll('[role="dialog"], [role="menu"], .sheet, #coach'), function (d) { return !d.hidden && d.getClientRects().length > 0; });   /* fixed windows have no offsetParent */
     return !open;
   }
   document.addEventListener('keydown', function (e) {
@@ -2370,7 +2370,11 @@
       for (var ei = 0; ei < ends.length; ) {
         var ej = ei; while (ej + 1 < ends.length && ends[ej + 1].bk === ends[ej].bk + 1 && !ends[ej + 1].rp.endStart && String(ends[ej + 1].rp.end) === String(ends[ei].rp.end)) ej++;
         var A = ends[ei], Z = ends[ej], EY = Y0 - 34, d = A.rp.endStart ? 'M' + (A.X1 + 3) + ' ' + (EY + 12) + 'V' + EY : 'M' + A.X1 + ' ' + EY;
-        d += 'H' + (Z.X2 - 3); if (Z.rp.endStop && Z.rp.back) d += 'V' + (EY + 12);
+        /* open only when the next printed bar carries the same ending (a line break); otherwise it closes on its own
+           barline, a 2nd ending included (Hermes F65) */
+        var nb = r.bars[Z.bk + 1], nbo = nb && sg.barAt ? sg.barAt(nb.beat + 1e-3) : null;
+        var goesOn = Z.bk + 1 >= pc[1] && nbo && nbo.wr && nbo.wr.end && !nbo.wr.endStart && String(nbo.wr.end) === String(A.rp.end);
+        d += 'H' + (goesOn ? Z.X2 - 3 : Z.X2); if (!goesOn) d += 'V' + (EY + 12);
         out.push('<path class="fg-end" d="' + d + '"/>');
         if (A.rp.endStart) out.push('<text class="fg-endn" x="' + (A.X1 + 7) + '" y="' + (EY + 11) + '">' + A.rp.endStart.join(', ') + '.</text>');
         ei = ej + 1;
