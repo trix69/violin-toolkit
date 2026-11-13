@@ -1951,8 +1951,8 @@ markup = f"""
       <button type="button" class="launch-btn" data-view="metronome">{ICON_MET}<b>Metronome</b><span>Keep steady time at any tempo</span></button>
       <button type="button" class="launch-btn" data-view="midi">{ICON_MIDI}<b>MIDI Player</b><span>Play a tune and watch it on the fingerboard</span></button>
       <button type="button" class="launch-btn" data-view="fingering">{ICON_FING}<b>Fingerings</b><span>Marks the violin part with fingerings, exports a PDF</span></button>
-      <button type="button" class="launch-btn" data-view="symbols">{ICON_SYM}<b>Symbols</b><span>Look up music signs and what they mean</span></button>
 {PA_TILE}
+      <button type="button" class="launch-btn" data-view="symbols">{ICON_SYM}<b>Symbols</b><span>Look up music signs and what they mean</span></button>
     </div>
     <button type="button" class="launch-days" id="launchDays" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
   </div>
