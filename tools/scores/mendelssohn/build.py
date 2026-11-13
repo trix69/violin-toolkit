@@ -15,13 +15,14 @@ bars = {}
 for ln in open(D + '/tokens.txt'):
     ln = ln.split(';')[0].strip()
     if not ln: continue
-    m = re.match(r'P(\d) (\d+):(.*)', ln); bars[(int(m.group(1)), int(m.group(2)))] = m.group(3).strip()
+    m = re.match(r'P(\d+) (\d+):(.*)', ln); bars[(int(m.group(1)), int(m.group(2)))] = m.group(3).strip()
 def dur(d):
     q = d.rstrip('.tq'); v = BASE[q]
-    if '.' in d: v = v * 3 // 2
+    if '..' in d: v = v * 7 // 4
+    elif '.' in d: v = v * 3 // 2
     if 't' in d: v = v * 2 // 3
     if 'q' in d: v = v * 4 // 5
-    return v, TYPE[q], '.' in d, 't' if 't' in d else 'q' if 'q' in d else ''
+    return v, TYPE[q], d.count('.'), 't' if 't' in d else 'q' if 'q' in d else ''
 def pitch(p):
     m = re.match(r'([A-G])(##|bb|[#bn]?)(\d)$', p); assert m, p
     al = {'#': 1, 'b': -1, '##': 2, 'bb': -2}.get(m.group(2), 0)
@@ -74,7 +75,7 @@ for pn in range(1, len(NAMES) + 1):
                     key = (vi, q)
                     if key in tied: n += '<tie type="stop"/>'
                     if qt: n += '<tie type="start"/>'
-                    n += '<voice>%d</voice><type>%s</type>' % (vi + 1, ty) + ('<dot/>' if dot else '')
+                    n += '<voice>%d</voice><type>%s</type>' % (vi + 1, ty) + ('<dot/>' * dot if dot else '')
                     if tm: n += '<time-modification><actual-notes>%d</actual-notes><normal-notes>%d</normal-notes></time-modification>' % ((3, 2) if tm == 't' else (5, 4))
                     if not k and q != 'r': n += ''.join('<beam number="%d">%s</beam>' % (lv, beams[ti][lv]) for lv in (1, 2) if lv in beams[ti])
                     nt = ''
