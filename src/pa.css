@@ -1,0 +1,70 @@
+/* Play-along (跟音练习): the take bar over the pages or the live view, the headphone gate, the result */
+.pa { display: grid; gap: 8px; margin: 0 0 10px; }
+.pa-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pa-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--panel); }
+.pa-seg button { border: 0; background: none; color: var(--fg); font: 600 14px var(--font-body); padding: 8px 14px; min-height: 40px; cursor: pointer; }
+.pa-seg button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+.pa-seg button:focus-visible, .pa-rec:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* the record control: a dot to start, a square while recording; always with its label, so it reads without colour */
+.pa-rec { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 16px 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); font: 700 15px var(--font-body); cursor: pointer; }
+.pa-sym { width: 14px; height: 14px; border-radius: 50%; background: #d23b2f; flex: none; }
+.pa-rec.rec .pa-sym { border-radius: 2px; background: currentColor; }
+.pa-rec.rec { border-color: #d23b2f; }
+.pa-rec:disabled { opacity: .5; cursor: default; }
+.pa-time { font: 500 14px var(--font-mono); color: var(--muted); white-space: nowrap; }
+.pa-meter { position: relative; flex: 1 1 60px; min-width: 50px; max-width: 160px; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.pa-lvl { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); transition: width 60ms linear; }
+/* one bar for the whole piece, with a tick at each page */
+.pa-prog { position: relative; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.pa-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); }
+.pa-ticks i { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--panel); }
+.pa-info { display: flex; justify-content: space-between; gap: 10px; font: 500 13px var(--font-mono); color: var(--muted); }
+.pa-hp { display: flex; align-items: center; gap: 6px; margin: 0; font: 500 13px var(--font-body); color: var(--muted); }
+.pa-hp svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.pa-warn { margin: 0; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--t-bad, #c0392b) 14%, transparent); color: var(--fg); font: 600 14px var(--font-body); }
+/* live view: the note heard against the one due, a needle over ±50 cents */
+.pa-needle { display: flex; align-items: center; gap: 10px; font: 600 15px var(--font-mono); }
+.pa-nname { min-width: 3.5em; font: 700 18px var(--font-note); }
+.pa-gauge { position: relative; flex: 1; max-width: 220px; height: 18px; border-radius: 9px; background: var(--line); }
+.pa-zero { position: absolute; left: 50%; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--muted); }
+.pa-pin { position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--accent); transition: left 60ms linear; }
+.pa-needle.off .pa-pin { background: #d23b2f; }
+.pa-ncents { min-width: 4.5em; }
+/* the result */
+.pa-res { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: var(--panel); display: grid; gap: 6px; }
+.pa-res p { margin: 0; }
+.pa-partial { font: 700 15px var(--font-body); }
+.pa-stats { font: 600 15px var(--font-body); }
+.pa-temper, .pa-tap { font: 400 13px var(--font-body); color: var(--muted); }
+.pa-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 400 13px var(--font-body); }
+.pa-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; width: 22px; height: 14px; border-radius: 3px; flex: none; }
+.sw-amber { background: rgba(232, 164, 32, .45); }
+.sw-red { background: repeating-linear-gradient(135deg, rgba(214, 48, 39, .55) 0 3px, rgba(214, 48, 39, .18) 3px 6px); }
+.sw-time { height: 4px; background: #2f6fd6; }
+.sw-na { background: rgba(128, 128, 128, .25); }
+.pa-worst-h { font: 700 14px var(--font-body); margin-top: 4px !important; }
+.pa-worst { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; }
+.pa-worst button { border: 0; background: none; color: var(--accent); font: 600 14px var(--font-body); padding: 4px 0; cursor: pointer; text-align: left; }
+/* the tints: on the pages (SVG rects) and on the strip (divs); red is hatched so it does not rely on colour */
+.pa-t { cursor: pointer; }
+.pa-t.amber { fill: rgba(232, 164, 32, .32); background: rgba(232, 164, 32, .28); }
+.pa-t.red { fill: url(#paHatch); background: repeating-linear-gradient(135deg, rgba(214, 48, 39, .42) 0 4px, rgba(214, 48, 39, .12) 4px 8px); }
+.pa-t.na { fill: rgba(128, 128, 128, .16); background: rgba(128, 128, 128, .14); }
+.pa-t.ok { fill: rgba(0, 0, 0, 0); background: transparent; }
+.pa-te { fill: #2f6fd6; background: #2f6fd6; pointer-events: none; }
+.pa-tints { position: absolute; left: 0; top: 0; height: 100%; pointer-events: none; }
+.pa-tints > div { position: absolute; pointer-events: auto; }
+/* the gate: blocking, nothing behind it reachable */
+.pa-gate { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, .45); }
+.pa-gate[hidden] { display: none; }
+.pa-gate-card { box-sizing: border-box; width: min(100%, 440px); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 20px; padding: 20px; box-shadow: 0 18px 50px rgba(0, 0, 0, .3); outline: none; }
+.pa-gate-card h2 { margin: 0 0 10px; font: 700 22px var(--font-display); }
+.pa-gate-card p { margin: 0 0 16px; font: 400 15px/1.5 var(--font-body); }
+.pa-gate-btns { display: grid; gap: 8px; }
+.pa-gate-btns button { min-height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font: 600 15px var(--font-body); cursor: pointer; padding: 8px 12px; }
+.pa-gate-btns button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.pa-gate-btns button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* inside the tool: the player's and the pages' own playback controls are not used (the take drives them) */
+.shell[data-view="playalong"] #mpBar, .shell[data-view="playalong"] .fg-fitbar, .shell[data-view="playalong"] .fg-bar, .shell[data-view="playalong"] #mpFull { display: none !important; }
+@media (max-width: 380px) { .pa-seg button { padding: 8px 10px; } .pa-rec { padding: 8px 12px 8px 10px; } .pa-meter { min-width: 40px; } }

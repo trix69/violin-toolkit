@@ -1,0 +1,41 @@
+<div class="pa" id="pa">
+  <div class="pa-bar">
+    <div class="pa-seg" id="paSeg" role="radiogroup" aria-label="View">
+      <button type="button" role="radio" data-v="pages" aria-checked="true">Pages</button>
+      <button type="button" role="radio" data-v="live" aria-checked="false">Live</button>
+    </div>
+    <button type="button" class="pa-rec" id="paRec"><span class="pa-sym" aria-hidden="true"></span><span id="paRecTxt">Start</span></button>
+    <span class="pa-time" id="paTime" translate="no">0:00 / 0:00</span>
+    <span class="pa-meter" id="paMeter" role="meter" aria-label="Microphone level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="pa-lvl" id="paLvl"></span></span>
+  </div>
+  <div class="pa-prog" id="paProg" aria-hidden="true"><div class="pa-fill" id="paFill"></div><div class="pa-ticks" id="paTicks"></div></div>
+  <div class="pa-info"><span id="paPage"></span><span id="paBarNow"></span></div>
+  <p class="pa-hp" id="paHp" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg><span id="paHpTxt">Headphones only: the microphone is on.</span></p>
+  <p class="pa-warn" id="paWarn" role="status" hidden>The microphone can not hear the violin.</p>
+  <div class="pa-needle" id="paNeedle" aria-hidden="true" hidden><span class="pa-nname" id="paNName" translate="no"></span><span class="pa-gauge"><span class="pa-zero"></span><span class="pa-pin" id="paPin"></span></span><span class="pa-ncents" id="paNCents" translate="no"></span></div>
+  <div class="pa-res" id="paRes" hidden>
+    <p class="pa-partial" id="paPartial" hidden></p>
+    <p class="pa-stats" id="paStats"></p>
+    <p class="pa-temper" id="paTemper"></p>
+    <div class="pa-legend" id="paLegend">
+      <span><i class="sw sw-amber" aria-hidden="true"></i><span>10–25 ¢ off</span></span>
+      <span><i class="sw sw-red" aria-hidden="true"></i><span>more than 25 ¢ off</span></span>
+      <span><i class="sw sw-time" aria-hidden="true"></i><span>timing off by more than 25 ms</span></span>
+      <span><i class="sw sw-na" aria-hidden="true"></i><span>not assessed</span></span>
+    </div>
+    <p class="pa-worst-h" id="paWorstH">The five worst bars</p>
+    <ol class="pa-worst" id="paWorst"></ol>
+    <p class="pa-tap">Tap a bar to practise it in the MIDI player.</p>
+  </div>
+</div>
+<div class="pa-gate" id="paGate" role="dialog" aria-modal="true" aria-labelledby="paGateT" aria-describedby="paGateB" hidden>
+  <div class="pa-gate-card" tabindex="-1">
+    <h2 id="paGateT">Use headphones</h2>
+    <p id="paGateB">The microphone is on for the whole take. With the phone on speaker, any reference or click the app plays reaches it and is scored as your own playing. Put on headphones, or start without sound.</p>
+    <div class="pa-gate-btns">
+      <button type="button" class="primary" id="paGo">I'm using headphones — start</button>
+      <button type="button" id="paMute">Start without sound</button>
+      <button type="button" id="paCancel">Cancel</button>
+    </div>
+  </div>
+</div>

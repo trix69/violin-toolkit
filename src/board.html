@@ -1656,6 +1656,21 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     soloVolume: function (v) { soloVol = v; if (soloBus) soloBus.gain.setTargetAtTime(v, soloBus.context.currentTime, 0.03); },
     audio: function () { return ensureCtx() ? { ctx: ctx, out: master } : null; },   /* for the accompaniment */
     where: function (midi) { return midi >= STRINGS[0].midi && midi <= STRINGS[3].midi + PTOP; },
+    /* Play-along (Trix): the frequency a score note should sound at under Settings > Intonation (an open string at
+       the string's own tuning), and the pitch heard as Pitch Check's disc on the note's string, in the player too */
+    hz: function (midi, si, open) { var st = STRINGS[si]; return midiFreq(midi) * Math.pow(2, (open && st && st.midi === midi ? openCents(st) : stopCents(midi)) / 1200); },
+    heard: function (r) {   /* r: { m: midi (fractional), cents, si } or null */
+      Array.prototype.forEach.call(board.querySelectorAll('.pcm'), function (d, si) {
+        var n = r && (r.si === undefined || r.si < 0 || r.si === si) ? r.m - STRINGS[si].midi - openCents(STRINGS[si]) / 100 : -9;
+        var show = n >= -0.5 && n <= TOPN + 0.5;
+        n = Math.max(-0.02, Math.min(TOPN + 0.15, n));
+        d.classList.toggle('on', show);
+        if (show) {
+          d.style.top = 'calc(var(--head) + ' + mm(n).toFixed(2) + ' * var(--k))';
+          d.style.setProperty('--gp', Math.round(100 * Math.max(0, Math.min(1, (PC_GREY - Math.abs(r.cents)) / (PC_GREY - PC_TOL)))) + '%');
+        }
+      });
+    },
     name: function (midi) { return noteName(midi, true); }
   };
 
