@@ -173,6 +173,44 @@
       n.v = Math.max(8, Math.min(127, Math.round(v)));
     });
   }
+  /* tempo as played (Trix): a rit./rall./accel. eases to its tempo over the music up to the next tempo mark (two bars at
+     most) instead of stepping there; a rit. with no tempo slows by a fifth and "a tempo" / "Tempo I" restores; a fermata
+     holds its note (or rest) for up to two beats more. tp.shown keeps the tempo without the fermatas, for the ♩ readout */
+  var RAMP_W = /^((poco a poco|molto|poco|un poco)\s+)?(rit|rall|allarg|calando|smorz|accel|string)/i, TEMPO_W = /^((poco a poco|molto|poco|un poco)\s+)?(rit|rall|allarg|calando|smorz|accel|string)|^(a tempo|tempo i|tempo primo)\b/i;
+  function playedTempo(tempos, ferm, words, tpq, sig) {
+    function sort() { tempos.sort(function (a, b) { return a.tick - b.tick; }); }
+    function usAt(t) { var u = 500000; tempos.forEach(function (tp) { if (tp.tick <= t) u = tp.us; }); return u; }
+    var before = null;
+    words.sort(function (a, b) { return a.tick - b.tick; }).forEach(function (w) {
+      if (tempos.some(function (tp) { return tp.tick === w.tick; })) return;   /* a tempo of its own is there */
+      var cur = usAt(w.tick);
+      if (RAMP_W.test(w.text)) { if (before === null) before = cur; tempos.push({ tick: w.tick, us: /accel|string/i.test(w.text) ? cur / 1.2 : cur * 1.25, word: w.text }); }
+      else if (before !== null) { tempos.push({ tick: w.tick, us: before }); before = null; }
+      sort();
+    });
+    tempos.forEach(function (tp) { tp.us0 = tp.us; });
+    var barT = (sig ? sig.num * 4 / sig.den : 4) * tpq, add = [];
+    tempos.forEach(function (tp, i) {
+      if (!i || !tp.word || !RAMP_W.test(tp.word)) return;
+      var from = 60e6 / tempos[i - 1].us0, to = 60e6 / tp.us0, end = Math.min(tempos[i + 1] ? tempos[i + 1].tick : Infinity, tp.tick + 2 * barT);
+      if (Math.abs(from - to) < 0.5 || !(end > tp.tick)) return;
+      var N = Math.max(1, Math.round((end - tp.tick) / (tpq / 2))), step = (end - tp.tick) / N;   /* a step each quaver */
+      tp.us = 60e6 / (from + (to - from) / N);
+      for (var k = 2; k <= N; k++) add.push({ tick: Math.round(tp.tick + (k - 1) * step), us: 60e6 / (from + (to - from) * k / N) });
+    });
+    add.forEach(function (a) { tempos.push(a); }); sort();
+    tempos.forEach(function (tp) { tp.shown = tp.us; });
+    var F = {};
+    ferm.forEach(function (f) { if (f.t1 > f.t0 && !(F[f.t0] <= f.t1)) F[f.t0] = f.t1; });   /* notes on one beat: the shortest */
+    Object.keys(F).map(Number).sort(function (a, b) { return a - b; }).forEach(function (a) {
+      var b = F[a], f = 1 + Math.min(b - a, 2 * tpq) / (b - a), ua = usAt(a), ub = usAt(b), sa = ua, sb = ub;
+      tempos.forEach(function (tp) { if (tp.tick <= a) sa = tp.shown; if (tp.tick <= b) sb = tp.shown; });
+      tempos.forEach(function (tp) { if (tp.tick >= a && tp.tick < b) tp.us *= f; });
+      if (!tempos.some(function (tp) { return tp.tick === a; })) tempos.push({ tick: a, us: ua * f, shown: sa });
+      if (!tempos.some(function (tp) { return tp.tick === b; })) tempos.push({ tick: b, us: ub, shown: sb });
+      sort();
+    });
+  }
   function readXml(text) {
     var doc = new DOMParser().parseFromString(text, 'application/xml'), root = doc.documentElement;
     if (!root || doc.getElementsByTagName('parsererror').length) throw fail('This MusicXML file could not be read.');
@@ -187,11 +225,15 @@
     var parts = kids(root, 'part');
     if (!parts.length) throw fail('This file has no notes.');
     var modeKnown = false;   /* the score says major or minor (else the Fingerings pages name no key: Trix) */
-    var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [];   /* tick -> tempo entry */
+    var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [], ferm = [], tempoWords = [], tmarks = {};   /* tmarks: tick -> printed tempo change, for whichever part is the solo */   /* tick -> tempo entry; ferm: notes and rests under a fermata; tempoWords: rit./a tempo without a <sound> */
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
       var ms = kids(part, 'measure'), notes = [], tie = {}, chordTrem = 0, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
-      var ksw = [], kmw = [], kw0 = null, km0 = null;   /* the key in force in each written bar (a repeat back over a key change goes back to its key) */
+      var ksw = [], kmw = [], kw0 = null, km0 = null;
+      function wordMark(t, text) {   /* words on one beat share one mark ("Minuet I" and its ♩ = 120) */
+        var same = marks.filter(function (m) { return m.kind === 'words' && m.tick === t; })[0];
+        if (same) { if (same.text.indexOf(text) < 0) same.text += '  ' + text; } else marks.push({ tick: t, kind: 'words', text: text });
+      }   /* the key in force in each written bar (a repeat back over a key change goes back to its key) */
       ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); var ky = kid(a, 'key'); if (ky && txt(ky, 'fifths') !== '') { kw0 = +txt(ky, 'fifths'); km0 = /^(major|minor)$/.test(txt(ky, 'mode')) ? txt(ky, 'mode') : null; } }); ksw[k] = kw0; kmw[k] = km0; });
       order.forEach(function (k) {
         var m = ms[k]; if (!m) return;
@@ -210,15 +252,27 @@
           else if (nm === 'direction' || nm === 'sound') {
             var snd = nm === 'sound' ? el : kid(el, 'sound'), bpm = snd && +snd.getAttribute('tempo');
             if (snd && snd.getAttribute('pizzicato')) pz = snd.getAttribute('pizzicato') === 'yes';
+            var tw = [];   /* the words of a tempo change ("molto rall.", "a tempo"): printed with it (Trix) */
             if (nm === 'direction') kids(el, 'direction-type').forEach(function (dt) {   /* dynamics, hairpins and words, shown under the staff (Trix) */
               kids(dt).forEach(function (d) {
                 if (d.nodeName === 'dynamics') { var dn = kids(d).map(function (x) { return x.nodeName === 'other-dynamics' ? x.textContent.trim() : x.nodeName; }).join(''); if (dn) marks.push({ tick: tk(cur), kind: 'dyn', text: dn }); }
                 else if (d.nodeName === 'wedge' && /crescendo|diminuendo|stop/.test(d.getAttribute('type'))) marks.push({ tick: tk(cur), kind: 'wedge', text: d.getAttribute('type') });
                 else if (d.nodeName === 'words' && /^(pizz\.?|pizzicato|arco)$/i.test(d.textContent.trim())) { if (!(snd && snd.getAttribute('pizzicato'))) pz = !/^arco$/i.test(d.textContent.trim()); }   /* pizz. / arco: drawn once, above the notes where the playing changes, and played so even without a <sound> (Trix) */
-                else if (d.nodeName === 'words' && d.textContent.trim() && !(snd && snd.getAttribute('tempo'))) marks.push({ tick: tk(cur), kind: 'words', text: d.textContent.trim() });
+                else if (d.nodeName === 'words' && d.textContent.trim() && snd && snd.getAttribute('tempo')) tw.push(d.textContent.trim());
+                else if (d.nodeName === 'words' && d.textContent.trim()) {
+                  wordMark(tk(cur), d.textContent.trim());
+                  if (TEMPO_W.test(d.textContent.trim())) tempoWords.push({ tick: tk(cur), text: d.textContent.trim() });
+                }
               });
             });
-            if (bpm > 0) { var t = tk(cur); if (seenTempo[t]) seenTempo[t].us = 60e6 / bpm; else tempos.push(seenTempo[t] = { tick: t, us: 60e6 / bpm }); }   /* two marks on one beat ("Allegro" and ♩ = 140): the later wins, as in MuseScore */
+            if (bpm > 0) {
+              var t = tk(cur); if (seenTempo[t]) seenTempo[t].us = 60e6 / bpm; else tempos.push(seenTempo[t] = { tick: t, us: 60e6 / bpm });   /* two marks on one beat ("Allegro" and ♩ = 140): the later wins, as in MuseScore */
+              if (tw.length) seenTempo[t].word = tw.join(' ');
+              /* a change of tempo after the start is printed (Trix): its words, and the new ♩ unless it is a rit./rall./accel. */
+              var was = null; tempos.forEach(function (tp) { if (tp.tick < t && (was === null || tp.tick >= was.tick)) was = tp; });
+              var same = was && Math.round(60e6 / was.us) === Math.round(bpm);   /* a repeat back over the same tempo: nothing new to print */
+              if (t > 0 && !(same && !tw.length) && !tmarks[t]) tmarks[t] = (RAMP_W.test(tw.join(' ')) || same ? tw.join(' ') : (tw.length ? tw.join(' ') + ' ' : '') + '♩ = ' + Math.round(bpm));
+            }
           } else if (nm === 'note') {
             if (kid(el, 'cue')) return;   /* cue notes are not played */
             var gr = kid(el, 'grace');
@@ -232,7 +286,8 @@
             /* a breath mark (or caesura), on a note or a rest (MuseScore puts one after a rest on the rest): a mark at
                the end of it, drawn just before what follows (Trix) */
             if (!chord) kids(kid(kid(el, 'notations'), 'articulations')).forEach(function (a) { if (a.nodeName === 'breath-mark' || a.nodeName === 'caesura') marks.push({ tick: tk(from + dur), kind: 'breath', text: a.nodeName }); });
-            var pt = kid(el, 'pitch'); if (!pt) { graces = []; return; }   /* a rest, or unpitched (graces before a rest are dropped) */
+            var pt = kid(el, 'pitch');
+            if (!pt) { if (!chord && kid(kid(el, 'notations'), 'fermata')) ferm.push({ t0: tk(from), t1: tk(from + dur) }); graces = []; return; }   /* a rest, or unpitched (graces before a rest are dropped) */
             var mm = (+txt(pt, 'octave') + 1) * 12 + (STEP[txt(pt, 'step')] || 0) + Math.round(+txt(pt, 'alter') || 0);
             var t0 = tk(from), t1 = tk(from + dur), ties = kids(el, 'tie').map(function (t) { return t.getAttribute('type'); });
             if (chord && t0 === gFrom) t0 += gShift;   /* the rest of a chord moves with its first note */
@@ -263,7 +318,7 @@
             var art = [], nots = kid(el, 'notations');
             kids(kid(nots, 'articulations')).forEach(function (a) { if (a.nodeName !== 'breath-mark' && a.nodeName !== 'caesura') art.push(a.nodeName); });   /* breaths are marks (above) */
             kids(tech).forEach(function (a) { if (/^(up-bow|down-bow|stopped)$/.test(a.nodeName)) art.push(a.nodeName); });
-            if (kid(nots, 'fermata')) art.push('fermata');
+            if (kid(nots, 'fermata')) { art.push('fermata'); ferm.push(n); }   /* held when played (Trix); n.t1 grows with its ties */
             /* ornaments (Trix: tr was missing): trill, turns, mordents drawn above; a tremolo's slashes on the stem; an
                accidental written over the ornament beside it */
             kids(kid(nots, 'ornaments')).forEach(function (o) {
@@ -296,6 +351,7 @@
       }
     });
     tempos.sort(function (a, b) { return a.tick - b.tick; });
+    playedTempo(tempos, ferm, tempoWords, TPQ, sig);
     /* the composer (Trix: on the Fingerings pages): the credit printed on the score first, else the identification's
        creator; MuseScore's empty-template words ("Composer / arranger") are not a name */
     var composer = '', BLANK = /^(composer(\s*\/\s*arranger)?|arranger|subtitle|title)$/i;
@@ -308,7 +364,7 @@
       var w = c.textContent.trim().split(/\s*\n\s*/).join(', ');
       if (!composer && c.getAttribute('type') === 'composer' && w && !BLANK.test(w)) composer = w;
     });
-    return { tracks: tracks, tpq: TPQ, tempos: tempos, sig: sig, sf: sf, minor: minor, bars: bars, composer: composer, modeKnown: modeKnown };
+    return { tracks: tracks, tpq: TPQ, tempos: tempos, sig: sig, sf: sf, minor: minor, bars: bars, tmarks: tmarks, composer: composer, modeKnown: modeKnown };
   }
 
   /* ---------- reading a MIDI file ---------- */
@@ -318,7 +374,7 @@
     function u32(at) { return ((u8[at] << 24) | (u8[at + 1] << 16) | (u8[at + 2] << 8) | u8[at + 3]) >>> 0; }
     function u16(at) { return (u8[at] << 8) | u8[at + 1]; }
     function vlq() { var v = 0, b; do { b = u8[p++]; v = (v * 128) + (b & 0x7f); } while ((b & 0x80) && p < u8.length); return v; }
-    if (looksXml(u8)) { var x = readXml(new TextDecoder().decode(u8)), xs = assemble(x.tracks, x.tpq, x.tempos, x.sig, x.sf, x.minor, x.bars); xs.composer = x.composer; xs.modeKnown = x.modeKnown; return xs; }   /* MusicXML (Trix): the same parts, notes and timing, plus written fingerings */
+    if (looksXml(u8)) { var x = readXml(new TextDecoder().decode(u8)), xs = assemble(x.tracks, x.tpq, x.tempos, x.sig, x.sf, x.minor, x.bars, x.tmarks); xs.composer = x.composer; xs.modeKnown = x.modeKnown; return xs; }   /* MusicXML (Trix): the same parts, notes and timing, plus written fingerings */
     if (u8.length < 14 || str(0, 4) !== 'MThd') throw fail('This is not a MIDI or MusicXML file.');
     var ntr = u16(10), tpq = u16(12);
     if (tpq & 0x8000) throw fail('This MIDI file keeps time in a way the player can’t read.');
@@ -367,7 +423,7 @@
     var ms = assemble(tracks, tpq, tempos, sig, sf, minor); ms.composer = midiComposer; ms.modeKnown = modeKnown; return ms;
   }
   /* what both readers share: naming the parts, choosing the violin, the accompaniment */
-  function assemble(tracks, tpq, tempos, sig, sf, minor, bars) {   /* bars: MusicXML's bar numbers in play order [{tick, num}] */
+  function assemble(tracks, tpq, tempos, sig, sf, minor, bars, tmarks) {   /* bars: MusicXML's bar numbers in play order [{tick, num}] */
     if (!tracks.length) throw fail('This file has no notes.');
     /* several parts (Trix): the violin is the first track named as one (track or instrument name: violin, violino,
        violín, 小提琴), else the first set to General MIDI's Violin (program 40), else the first track with notes;
@@ -444,6 +500,13 @@
     /* the bar number at a beat, for the score's corner (Trix): MusicXML's own numbers (repeats show theirs again, a
        pickup is 0); a MIDI file's bars counted from its start */
     var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num, mi: b.mi, wr: b.wr, ts: b.ts, ks: b.ks, km: b.km }; }) : null;
+    soloMarks = (soloMarks || []).slice();
+    Object.keys(tmarks || {}).forEach(function (t) {   /* the tempo changes, with the solo's own words on that beat */
+      var same = soloMarks.filter(function (m) { return m.kind === 'words' && m.tick === +t; })[0];
+      if (same) { if (same.text.indexOf(tmarks[t]) < 0) soloMarks[soloMarks.indexOf(same)] = Object.assign({}, same, { text: same.text + '  ' + tmarks[t] }); }
+      else soloMarks.push({ tick: +t, kind: 'words', text: tmarks[t] });
+    });
+    soloMarks.sort(function (a, b) { return a.tick - b.tick; });
     sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text }; }).filter(function (m) { return m.beat > -1e-6; });
     /* the bars in playing order, for A–B (Trix): the score's numbers (a bar played twice is listed twice) or counted */
     var blist = [];
@@ -564,7 +627,12 @@
     return {
       velMid: velMid,
       notes: notes, sig: sig, sf: Math.max(-7, Math.min(7, sf)),
-      bpm: Math.round(60e6 / tempos.filter(function (tp) { return tp.tick <= skipB * tpq; }).pop().us),   /* crotchets a minute, where the song starts */
+      bpm: Math.round(60e6 / (function (tp) { return tp.shown || tp.us; })(tempos.filter(function (tp) { return tp.tick <= skipB * tpq; }).pop())),   /* crotchets a minute, where the song starts */
+      bpmAt: function (b) {   /* the tempo at a beat, as marked (a rit. as it eases, a fermata not counted): the ♩ readout, the count-in */
+        var t = (b + skipB) * tpq, tp = tempos[0];
+        for (var i = 1; i < tempos.length && tempos[i].tick <= t + 1e-6; i++) tp = tempos[i];
+        return 60e6 / (tp.shown || tp.us);
+      },
       end: Math.max.apply(null, notes.map(function (n) { return n.e; })), beats: lastN.b + lastN.len,
       toBeat: function (s) {   /* seconds to beats, for scrolling the score (both counted from the first bar kept) */
         s += skipT;
@@ -1171,7 +1239,7 @@
     bars.push({ beat: END, x: endX - 4, end: true });
     if (opts.barsOnly) return { X0: X0, bars: bars, nMax: nMax };   /* the pages' first pass: where the bars fall is all it needs */
     /* first pass: where each note sits; accidentals hold to the end of the bar */
-    var barNo = -1, inBar = {}, keyAcc = {}, inf = sg.notes.map(function (nt) {
+    var lowInk = [], barNo = -1, inBar = {}, keyAcc = {}, inf = sg.notes.map(function (nt) {
       var bn = bIdx(nt.b);
       if (bn !== barNo) { barNo = bn; inBar = {}; keyAcc = keyAccOf(sfAt(bStart(bn))); }
       var spl = sp[nt.m % 12], L = spl[0], acc = spl[1], oct = Math.floor(nt.m / 12) - 1;
@@ -1340,7 +1408,7 @@
       var fgBelow = !opts.paged && fg !== null && !chord && !(stem && up) && topY < 16;   /* the pages have room above: the numeral rises instead */
       if (fg !== null) {
         if (chord) g.push('<text class="fing side" x="' + (hx + (up ? -15 : 9)) + '" y="' + f.fy + '">' + fg + '</text>');   /* beside each note of a chord, spaced apart */
-        else g.push('<text class="fing" x="' + hx + '" y="' + Math.max(opts.paged ? -16 : 10, (stem && up) || fgBelow ? Math.max(y + 17, BOT + 13, nearN && !above ? ay + 9 : 0) : topY) + '">' + fg + '</text>');
+        else { var fgy = Math.max(opts.paged ? -16 : 10, (stem && up) || fgBelow ? Math.max(y + 17, BOT + 13, nearN && !above ? ay + 9 : 0) : topY); g.push('<text class="fing" x="' + hx + '" y="' + fgy + '">' + fg + '</text>'); if (fgy > BOT) lowInk.push([hx, fgy]); }
       }
       var upY = Math.min(stem && up ? (hd.beam >= 0 ? hd.tip : hd.yTop - 3.4 * S) : topY - (fg !== null && !chord && !fgBelow ? 12 : 0), Y0) - 7;
       arts.forEach(function (a) {   /* above the note and its fingering */
@@ -1449,7 +1517,12 @@
     var passages = [];
     items = items.concat(beams, slurItems, posMarks(sg, inf, xAt, bars, passages, !!opts.paged));
     /* dynamics, hairpins and words under the staff (MusicXML, Trix) */
-    var DY = BOT + 41, wedge = null, lastDynX = -99;   /* below any fingering under the notes */
+    var DY = BOT + 41, wedge = null, lastDynX = -99;
+    function wordY(x, text) {   /* the words row, lowered under a fingering that reaches it (Trix: "molto rall." on a 1) */
+      var w = text.length * 6.2, yy = DY - 1;
+      lowInk.forEach(function (f) { if (f[0] > x - 8 && f[0] < x + w + 4) yy = Math.max(yy, f[1] + 14); });
+      return yy;
+    }   /* below any fingering under the notes */
     (sg.marks || []).forEach(function (m) {
       var x = xAt(m.beat);
       if (m.kind === 'breath') {   /* a comma above the top line just before the next note; a caesura: two slanted strokes on it */
@@ -1461,7 +1534,7 @@
       }
       if (m.kind === 'dyn') { items.push([x, '<text class="mp-dyn" x="' + (x - 4) + '" y="' + DY + '">' + m.text + '</text>']); lastDynX = x; }
       else if (m.kind === 'words' && posWord(m.text)) return;   /* drawn as a position mark (posMarks) */
-      else if (m.kind === 'words') items.push([x, '<text class="mp-word" x="' + (Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4) + '" y="' + (DY - 1) + '">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);
+      else if (m.kind === 'words') items.push([x, '<text class="mp-word" x="' + (Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4) + '" y="' + wordY(Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4, m.text) + '">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);
       else if (m.text === 'stop') {
         if (!wedge) return;
         var x0 = wedge.x + (Math.abs(wedge.x - lastDynX) < 1 ? 18 : 0), x1 = Math.max(x0 + 16, x - 4), yc = DY - 5, op = wedge.cresc;
@@ -1532,6 +1605,7 @@
     var bo = song.barAt ? song.barAt(counting ? countBase : Math.max(beat, 0)) : null, bn = bo ? cornerBar(bo) : '';   /* counting in: the bar it leads into */   /* the bar under the playhead (Trix) */
     if (bn !== barNoEl.textContent) barNoEl.textContent = bn;
     headFollow(counting ? countBase : beat);
+    var bt = '♩ = ' + Math.round(curBpm() * speed); if (bpmEl.textContent !== bt) bpmEl.textContent = bt;
     if (song.keyAt && boardKey !== null) {   /* a new key under the playhead: the fingerboard's key notes change with it */
       var kn = song.keyAt(Math.max(0, counting ? countBase : beat));
       if (kn.sf + (kn.minor ? 'm' : '') !== boardKey) { boardBeat = Math.max(0, counting ? countBase : beat); fit(); return; }
@@ -1556,7 +1630,7 @@
     timeEl.textContent = fmt(pos / speed) + ' / ' + fmt(end / speed);
     if (!seekDrag) seek.value = end ? Math.round(pos / end * 1000) : 0;   /* not while a finger or the mouse holds it (Trix: after a drag it kept focus and stopped moving) */
     speedEl.textContent = Math.round(speed * 100) + '%';
-    bpmEl.textContent = song ? '♩ = ' + Math.round(song.bpm * speed) : '';
+    bpmEl.textContent = song ? '♩ = ' + Math.round(curBpm() * speed) : '';
     playBtn.setAttribute('aria-label', playing || counting ? 'Pause' : 'Play');
     playBtn.classList.toggle('on', playing || counting);
     var mpTab = document.querySelector('.tab[data-view="midi"]');
@@ -1623,10 +1697,12 @@
   /* count-in (Trix): one bar of the time signature counted down (3 2 1 in 3/4, 4 3 2 1 in 4/4) with a click
      on each beat, at the tune's tempo and the chosen speed; when starting from the beginning, and before each
      round of Loop; resuming after a pause plays straight on */
+  /* the tempo where the music is now, as marked (Trix: the readout follows a change of tempo) */
+  function curBpm() { return song.bpmAt ? song.bpmAt(Math.max(0, counting ? countBase : song.toBeat(pos))) : song.bpm; }
   var counting = false, countT = 0, countEl = $('mpCount'), countBeat = 0, countBase = 0;
   function countIn(then, base) {   /* base: the beat it leads into (A–B: bar A), else the start */
     base = base || 0; countBase = base;
-    var n = song.sig.num, k = n, step = 60 / song.bpm * 4 / song.sig.den / speed * 1000;
+    var n = song.sig.num, k = n, step = 60 / (song.bpmAt ? song.bpmAt(base) : song.bpm) * 4 / song.sig.den / speed * 1000;   /* at the tempo of where it leads (Trix: A–B in a slower passage) */
     var bar = n * 4 / song.sig.den, t0 = performance.now();
     counting = true; countBeat = base - bar; ui();
     (function slide() {   /* the score moves through the empty bar in time with the count */
@@ -2131,7 +2207,7 @@
     if (what === 'text') { el.textContent = n; el.hidden = true; void el.offsetWidth; el.hidden = false; flashT = setTimeout(function () { el.hidden = true; }, 1000); return; }   /* Loop / A–B on or off (Trix) */
     if (what === 'count') { el.textContent = n; el.hidden = true; void el.offsetWidth; el.hidden = false; flashT = setTimeout(function () { el.hidden = true; }, 1000); return; }
     el.innerHTML = what === 'play' ? '<svg viewBox="0 0 24 24"><path d="M8 5.5v13L19 12z"/></svg>' : what === 'pause' ? '<svg viewBox="0 0 24 24"><path d="M8 5.5v13M16 5.5v13"/></svg>'
-      : '♩ = ' + Math.round(song.bpm * speed) + ' · ' + Math.round(speed * 100) + '%';
+      : '♩ = ' + Math.round(curBpm() * speed) + ' · ' + Math.round(speed * 100) + '%';
     el.hidden = true; void el.offsetWidth; el.hidden = false;   /* restart the fade */
     flashT = setTimeout(function () { el.hidden = true; }, 1000);
   }
