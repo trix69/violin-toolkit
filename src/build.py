@@ -629,10 +629,27 @@ if not os.path.exists(SP + 'midi/hashes.json') or open(SP + 'midi/hashes.json').
 import importlib.util as _ilu
 _qs = _ilu.spec_from_file_location('vt_qr', SP + 'qr.py'); _qr = _ilu.module_from_spec(_qs); _qs.loader.exec_module(_qr)
 _qn, _qd = _qr.qr_svg_path('https://trix69.github.io/violin-toolkit/', 'Q')   # level Q (25 %): room for the app icon in the middle (Trix)
+# each built-in piece's own QR (Trix): its Fingerings page, the piece chosen. The codes are printed on paper, so they never
+# change and are never reused for another piece; a new built-in gets a new code. #t=xx keeps the address at 43 + 2
+# characters, so the QR stays version 4 (33 modules, as the default one) at level Q
+TUNE_CODES = {'twinkle.mxl': 'tw', 'ode.mxl': 'od', 'minuets.mxl': 'mn', 'minuet116.mxl': 'm6', 'gavotte.mxl': 'gv', 'air.mxl': 'ai',
+              'ave_maria.mxl': 'am', 'standchen.mxl': 'st', 'cygne.mxl': 'sw', 'meditation.mxl': 'me', 'humoresque.mxl': 'hu',
+              'habanera.mxl': 'hb', 'porunacabeza.mxl': 'pc', 'valse.mxl': 'va', 'mountain_king.mxl': 'mk', 'canon.mxl': 'cn',
+              'rv356.mxl': 'rv', 'romance.mxl': 'ro', 'mendelssohn.mxl': 'mc', 'tchaikovsky35.mxl': 'tc', 'beethoven61.mxl': 'bc',
+              'hungarian5.mxl': 'hd', 'csardas.mxl': 'cs', 'spring.mxl': 'sp', 'autumn.mxl': 'au', 'winter.mxl': 'wi',
+              'winter_largo.mxl': 'wl', 'summer.mxl': 'su', 'serenade.mxl': 'se'}
+assert set(TUNE_CODES) == set(f for f, t, c in MIDI_DEMOS), 'every built-in needs its QR code: ' + str(set(f for f, t, c in MIDI_DEMOS) ^ set(TUNE_CODES))
+assert len(set(TUNE_CODES.values())) == len(TUNE_CODES)
+_tune_qr = {}
+for _f, _c in TUNE_CODES.items():
+    _u = 'https://trix69.github.io/violin-toolkit/#t=' + _c
+    _n, _d = _qr.qr_svg_path(_u, 'Q')
+    assert _n == _qn, (_u, _n, _qn)   # the same size as the default code
+    _tune_qr[_f] = {'c': _c, 'd': _d}
 _icon = open(SP + 'icons/icon.svg').read()
 _icon = _icon[_icon.index('>', _icon.index('<svg')) + 1:_icon.rindex('</svg>')].replace('id="ink"', 'id="vtqr-ink"').replace('#ink"', '#vtqr-ink"').replace('#16201B', '#FFFFFF').replace('#E9EFEA', '#777777')   # light: grey ink on white, like the QR (Trix)
 assert 'id="ink"' not in _icon and midi_js.count('/*QR*/null') == 1
-midi_js = midi_js.replace('/*QR*/null', json.dumps({'n': _qn, 'd': _qd, 'icon': _icon}))
+midi_js = midi_js.replace('/*QR*/null', json.dumps({'n': _qn, 'd': _qd, 'icon': _icon, 'tunes': _tune_qr}))
 i18n_js = open(SP + 'i18n.js').read()
 coach_js = open(SP + 'coach.js').read()
 coach_css = open(SP + 'coach.css').read()
@@ -1356,6 +1373,7 @@ nav_js = """(function () {
 
   var h = (location.hash || '').replace('#', '').split(/[,&;]/).map(function (t) { return t.trim().toLowerCase(); })
     .filter(function (t) { return ['fingerboard', 'board', 'tuner', 'metronome', 'symbols', 'midi', 'fingering', 'fingerings'].indexOf(t) >= 0; })[0] || '';
+  if (!h && /(?:^|[#,&;])t=[a-z0-9]{2}(?=$|[,&;])/i.test(location.hash)) h = 'fingering';   /* a piece's QR (#t=cs): its Fingerings page, no start screen (Trix) */
   var map = { fingerboard: 'board', board: 'board', tuner: 'tuner', metronome: 'metronome', symbols: 'symbols', midi: 'midi', fingering: 'fingering', fingerings: 'fingering' };
   show(map[h] || 'board');
 

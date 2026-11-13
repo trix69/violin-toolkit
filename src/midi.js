@@ -2669,6 +2669,24 @@
   }
   /* the QR on page 1 (Trix): the app's address, drawn from src/qr.py at build time as vector squares */
   var QR = /*QR*/null;
+  /* the QR on page 1 (Trix): a built-in piece's own (its Fingerings page, the piece chosen); an imported one, the app's */
+  function fgQrCode() { var s0 = songs[+songSel.value], f = s0 && s0.demo && s0.demo.f; return QR && QR.tunes && f && QR.tunes[f] ? QR.tunes[f].c : null; }
+  function fgQrPath() { var c = fgQrCode(), s0 = songs[+songSel.value]; return c ? QR.tunes[s0.demo.f].d : QR.d; }
+  APP.fgQrCode = fgQrCode;   /* tests */
+  /* a piece's QR opens #t=xx: that piece, chosen in the list (built-ins only; the start screen is skipped by the page) */
+  function tuneFromHash() {
+    var m = (location.hash || '').match(/(?:^|[#,&;])t=([a-z0-9]{2})(?=$|[,&;])/i);
+    if (!m || !QR || !QR.tunes) return;
+    var c = m[1].toLowerCase(), f = null;
+    Object.keys(QR.tunes).forEach(function (k) { if (QR.tunes[k].c === c) f = k; });
+    for (var i = 0; f && i < songs.length; i++) if (songs[i].demo && songs[i].demo.f === f) {
+      if (+songSel.value !== i) { songSel.value = String(i); load(i); }
+      if (fgSel) fgOptions();
+      if (APP.show) APP.show('fingering');
+      return;
+    }
+  }
+  window.addEventListener('hashchange', function () { tuneFromHash(); });
   var KEY_MAJ = ['C♭', 'G♭', 'D♭', 'A♭', 'E♭', 'B♭', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'C♯'];
   var KEY_MIN = ['A♭', 'E♭', 'B♭', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'C♯', 'G♯', 'D♯', 'A♯'];   /* capitals before 'minor' (Winter: 'F minor') */
   /* a piece whose key changes is not named by one key (Trix) */
@@ -2721,7 +2739,7 @@
           var qx = PG_W - PG_M - QZ - QS, qy = PG_M + QT + QZ, u = QS / QR.n;
           o.push('<text class="fg-cap" x="' + (PG_W - PG_M) + '" y="' + (PG_M + 9) + '">' + (zh ? '小提琴工具箱' : 'Violin Toolkit') + '</text>');   /* right-aligned: wider than the QR, kept out of the margin */
           o.push('<rect class="fg-paper" x="' + (qx - QZ).toFixed(2) + '" y="' + (PG_M + QT) + '" width="' + (QS + 2 * QZ).toFixed(2) + '" height="' + (QS + 2 * QZ).toFixed(2) + '"/>');
-          o.push('<path class="fg-qr" transform="translate(' + qx.toFixed(2) + ' ' + qy.toFixed(2) + ') scale(' + u.toFixed(4) + ')" d="' + QR.d + '"/>');
+          o.push('<path class="fg-qr" transform="translate(' + qx.toFixed(2) + ' ' + qy.toFixed(2) + ') scale(' + u.toFixed(4) + ')" d="' + fgQrPath() + '"/>');
           if (QR.icon) {   /* the app icon in the middle (Trix): 7 modules on a white square 9 modules across; level Q corrects the cover */
             var im = 7 * u, ib = 9 * u, cx = qx + QS / 2, cy = qy + QS / 2;
             o.push('<rect class="fg-paper" x="' + (cx - ib / 2).toFixed(2) + '" y="' + (cy - ib / 2).toFixed(2) + '" width="' + ib.toFixed(2) + '" height="' + ib.toFixed(2) + '"/>');
@@ -3419,4 +3437,5 @@
     }
   };
   load(0);
+  tuneFromHash();   /* opened from a piece's QR */
 })();
