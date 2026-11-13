@@ -271,7 +271,7 @@
               /* a change of tempo after the start is printed (Trix): its words, and the new ♩ unless it is a rit./rall./accel. */
               var was = null; tempos.forEach(function (tp) { if (tp.tick < t && (was === null || tp.tick >= was.tick)) was = tp; });
               var same = was && Math.round(60e6 / was.us) === Math.round(bpm);   /* a repeat back over the same tempo: nothing new to print */
-              if (t > 0 && !(same && !tw.length) && !tmarks[t]) tmarks[t] = (RAMP_W.test(tw.join(' ')) || same ? tw.join(' ') : (tw.length ? tw.join(' ') + ' ' : '') + '♩ = ' + Math.round(bpm));
+              if (t > 0 && !(same && !tw.length) && !tmarks[t]) tmarks[t] = { w: tw.join(' '), bpm: RAMP_W.test(tw.join(' ')) || same ? null : Math.round(bpm) };
             }
           } else if (nm === 'note') {
             if (kid(el, 'cue')) return;   /* cue notes are not played */
@@ -503,11 +503,13 @@
     soloMarks = (soloMarks || []).slice();
     Object.keys(tmarks || {}).forEach(function (t) {   /* the tempo changes, with the solo's own words on that beat */
       var same = soloMarks.filter(function (m) { return m.kind === 'words' && m.tick === +t; })[0];
-      if (same) { if (same.text.indexOf(tmarks[t]) < 0) soloMarks[soloMarks.indexOf(same)] = Object.assign({}, same, { text: same.text + '  ' + tmarks[t] }); }
-      else soloMarks.push({ tick: +t, kind: 'words', text: tmarks[t] });
+      var tm = tmarks[t];
+      if (tm.bpm) soloMarks.push({ tick: +t, kind: 'tempo', text: tm.w, bpm: tm.bpm });   /* above the staff, as the opening's (Trix) */
+      else if (same) { if (same.text.indexOf(tm.w) < 0) soloMarks[soloMarks.indexOf(same)] = Object.assign({}, same, { text: same.text + '  ' + tm.w }); }
+      else soloMarks.push({ tick: +t, kind: 'words', text: tm.w });
     });
     soloMarks.sort(function (a, b) { return a.tick - b.tick; });
-    sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text }; }).filter(function (m) { return m.beat > -1e-6; });
+    sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text, bpm: m.bpm }; }).filter(function (m) { return m.beat > -1e-6; });
     /* the bars in playing order, for A–B (Trix): the score's numbers (a bar played twice is listed twice) or counted */
     var blist = [];
     /* to the end of the music, not just the solo's: a last bar where only the accompaniment plays is a bar too (Hermes F50) */
@@ -1517,7 +1519,7 @@
     var passages = [];
     items = items.concat(beams, slurItems, posMarks(sg, inf, xAt, bars, passages, !!opts.paged));
     /* dynamics, hairpins and words under the staff (MusicXML, Trix) */
-    var DY = BOT + 41, wedge = null, lastDynX = -99;
+    var DY = BOT + 41, wedge = null, lastDynX = -99, lastTempo = null;
     function wordY(x, text) {   /* the words row, lowered under a fingering that reaches it (Trix: "molto rall." on a 1) */
       var w = text.length * 6.2, yy = DY - 1;
       lowInk.forEach(function (f) { if (f[0] > x - 8 && f[0] < x + w + 4) yy = Math.max(yy, f[1] + 14); });
@@ -1530,6 +1532,16 @@
         items.push([bx, m.text === 'caesura'
           ? '<path class="art breath" d="M' + (bx - 4) + ' ' + (Y0 + 4) + 'l5 -12M' + (bx + 1) + ' ' + (Y0 + 4) + 'l5 -12"/>'
           : '<circle class="artd" cx="' + bx + '" cy="' + byy + '" r="2.6"/><path class="art breath" d="M' + (bx + 2.3) + ' ' + (byy + 0.4) + 'q0.4 3.8 -3.4 6.4"/>']);
+        return;
+      }
+      if (m.kind === 'tempo') {   /* a new tempo above the staff, like the opening's (Trix): over its notes' fingerings, bowings and position numerals */
+        var tw = (m.text ? m.text.length * 9 + 4 : 0) + 72, ty = Y0 - 24, tx = x - 4;   /* tw: the ink's width, measured: 9 a letter + ♩ = N */
+        inf.forEach(function (f) { if (f.hx > x - 10 && f.hx < x + tw && f.top !== undefined) ty = Math.min(ty, f.top - 6); });
+        passages.forEach(function (p) { if (p.x0 < x + tw && p.x1 > x - 10) ty = Math.min(ty, p.y - 22); });
+        ty = Math.max(opts.paged ? -22 : 6, ty);
+        if (lastTempo && tx < lastTempo.end + 10) { tx = lastTempo.end + 10; ty = Math.min(ty, lastTempo.y); }   /* two changes close together: the second after the first, on its line */
+        lastTempo = { end: tx + tw, y: ty };
+        items.push([x, '<text class="mp-tempo" data-w="' + tw + '" x="' + tx + '" y="' + ty + '">' + (m.text ? '<tspan class="tw">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</tspan> ' : '') + '♩ = ' + m.bpm + '</text>']);
         return;
       }
       if (m.kind === 'dyn') { items.push([x, '<text class="mp-dyn" x="' + (x - 4) + '" y="' + DY + '">' + m.text + '</text>']); lastDynX = x; }
@@ -2589,6 +2601,10 @@
       for (var k = lo; k < r.items.length && r.items[k][0] <= pb + 0.5; k++) {
         var it = r.items[k][1];
         if (si > 0 && pn === 0 && r.items[k][0] - pa < 30 && it.indexOf('class="kchg"') > 0) continue;   /* the new key is in this line's head */
+        if (last && it.indexOf('class="mp-tempo"') > 0) {   /* a tempo mark near the line's end ends at its edge instead of running off it */
+          var tw0 = +/data-w="([\d.]+)"/.exec(it)[1], tx0 = +/ x="(-?[\d.]+)"/.exec(it)[1];
+          if (tx0 + tw0 > pb + 4) it = it.replace(/ x="-?[\d.]+"/, ' x="' + (pb + 4 - tw0).toFixed(1) + '"');
+        }
         if (ceil !== undefined && it.indexOf('mp-pos') > 0) {   /* a numeral (or its line) that would print through the page header is left out (Hermes F36) */
           var yv = /y="(-?[\d.]+)"/.exec(it) || /d="M-?[\d.]+ (-?[\d.]+)/.exec(it);
           if (yv && +yv[1] + (it.indexOf('mp-posd') > 0 ? 5 : 0) < ceil) continue;
