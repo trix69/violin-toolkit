@@ -10,11 +10,14 @@ num, den = map(int, os.environ.get('TIME', '4/4').split('/'))
 BAR = num * 4 / den   # crotchets
 s = open(src).read()
 m = re.search(re.escape(var) + r'\s*=\s*\\relative\s+([a-g][a-z]*[\',]*)\s*\{', s)
+ABS = m is None   # absolute pitches (Beethoven's parts): c = C3, c' = C4
+if ABS: m = re.search(re.escape(var) + r'\s*=\s*()\{', s)
 start = m.end(); depth = 1; i = start
 while depth: depth += {'{': 1, '}': -1}.get(s[i], 0); i += 1
 body = s[start:i - 1]; ref0 = m.group(1)
 body = re.sub(r'%.*', '', body)
 body = re.sub(r'\\[<>!]', '', body)   # hairpins
+body = re.sub(r'<<\s*\{((?:[^{}]|\{[^{}]*\})*)\}\s*\\\\\s*\{(?:[^{}]|\{[^{}]*\})*\}\s*>>', r' \1 ', body)   # two voices: the upper one
 body = re.sub(r'\\markup\s*\{(?:[^{}]|\{[^{}]*\})*\}', '', body)
 body = re.sub(r'\\(set|override|once)\s+[^\n]*', '', body)
 body = re.sub(r'\\tempo\s+"[^"]*"\s*(\d+\s*=\s*\d+)?', '', body)
@@ -34,13 +37,14 @@ def name2(tok):
     return m.group(1), a, m.group(3).count("'") - m.group(3).count(',')
 def rel(prev, nm):   # prev: (step index, octave) absolute; nm: (letter, alter, marks)
     l, a, marks = nm; si = STEP.index(l); ps, po = prev
+    if ABS: return (si, 2 + marks), a
     best = None
     for o in (po - 1, po, po + 1):
         d = (o * 7 + si) - (po * 7 + ps)
         if abs(d) <= 3 and (best is None or abs(d) < abs(best[1])): best = (o, d)
     o = best[0] + marks
     return (si, o), a
-r0 = name2(ref0); ref = (STEP.index(r0[0]), 2 + r0[2])   # \relative c' = C4 (octave index 3 prints as 4); 'c' alone = C3
+r0 = name2(ref0) if not ABS else ('c', 0, 0); ref = (STEP.index(r0[0]), 2 + r0[2])   # \relative c' = C4 (octave index 3 prints as 4); 'c' alone = C3
 toks = re.findall(r"@[a-g][a-z]*[',]*|\\times\s*\d+/\d+|\\tuplet\s*\d+/\d+|<|>[0-9.~]*|\{|\}|[a-gsrR][a-z]*[',]*!?\??(?:\d+\.*)?(?:\*\d+)?~?|~", body)
 out = []; cur_dur = 1.0; trip = 0; stack = []; tie_pend = False; chord = None
 def pitch(si, o, a):

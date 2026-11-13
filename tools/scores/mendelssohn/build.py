@@ -4,6 +4,7 @@ COMPOSER, EXTRA_CREATORS [(type, name)], RIGHTS). Usage: build.py <dir with conf
 tokens.txt -> hungarian5.mxl. Line: 'P<n> <bar>: tok tok | tok' ; tok = PITCH[+PITCH]:DUR[~] or r:DUR
 PITCH = step [# b n] octave (absolute, alter written out); DUR = 1 2 4 8 16 32 [.] [t triplet | q quintuplet]; '|' = second voice."""
 import sys, zipfile, re
+from xml.sax.saxutils import escape as esc
 D = sys.argv[1]; out = sys.argv[2]
 DIV = 120; BASE = {'1': 480, '2': 240, '4': 120, '8': 60, '16': 30, '32': 15}
 TYPE = {'1': 'whole', '2': 'half', '4': 'quarter', '8': 'eighth', '16': '16th', '32': '32nd'}
@@ -95,8 +96,8 @@ for pn in range(1, len(NAMES) + 1):
         ms.append(x + '</measure>')
     parts.append('<part id="P%d">%s</part>' % (pn, ''.join(ms)))
 pl = ''.join('<score-part id="P%d"><part-name>%s</part-name><midi-instrument id="P%d-I1"><midi-channel>%d</midi-channel><midi-program>%d</midi-program></midi-instrument></score-part>' % (i + 1, NAMES[i], i + 1, i + 1, PROG[i]) for i in range(len(NAMES)))
-ident = '<identification><creator type="composer">%s</creator>%s<rights>%s</rights></identification>' % (C['COMPOSER'], ''.join('<creator type="%s">%s</creator>' % t for t in C.get('EXTRA_CREATORS', [])), C['RIGHTS'])
-xml = ('<?xml version="1.0" encoding="UTF-8"?>\n<score-partwise version="3.1"><work><work-title>%s</work-title></work>' % C['TITLE'] + ident +
+ident = '<identification><creator type="composer">%s</creator>%s<rights>%s</rights></identification>' % (esc(C['COMPOSER']), ''.join('<creator type="%s">%s</creator>' % (t[0], esc(t[1])) for t in C.get('EXTRA_CREATORS', [])), esc(C['RIGHTS']))
+xml = ('<?xml version="1.0" encoding="UTF-8"?>\n<score-partwise version="3.1"><work><work-title>%s</work-title></work>' % esc(C['TITLE']) + ident +
        '<part-list>' + pl + '</part-list>' + ''.join(parts) + '</score-partwise>')
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zo:
     zo.writestr('META-INF/container.xml', '<?xml version="1.0" encoding="UTF-8"?><container><rootfiles><rootfile full-path="score.xml"/></rootfiles></container>')
