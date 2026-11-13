@@ -1,0 +1,28 @@
+; Brahms Op. 77 / III, bars 1-9: violin from the 1879 violin part (Audiveris reading checked against the scan), piano from the 1879 score
+P1 1: D5+F#5:4 r:16 E5+G5:16 E5+G5:16 F#5+A5:16
+P1 2: D5+F#5:4 r:16 E5+G5:16 E5+G5:16 F#5+A5:16
+P1 3: D5+F#5:8 F#4+D5:8 D5+F#5:8 B3+F#4+D5+B5:8
+P1 4: D5+F#5:4 r:16 E5+G5:16 E5+G5:16 F#5+A5:16
+P1 5: C#5+E5:4 r:16 D5+F#5:16 D5+F#5:16 E5+G5:16
+P1 6: B4+D5:4 r:16 C#5+E5:16 C#5+E5:16 D5+F#5:16
+P1 7: E4+C#5:8 B4+G5:8 A#4+F#5:8 E4+A#4:8
+P1 8: D4+B4:4 r:4
+P1 9: r:2
+P2 1: r:8 A3:16t D4:16t F#4:16t D4+F#4+A4:8 r:8
+P2 2: r:8 A3:16t D4:16t F#4:16t D4+F#4+A4:8 r:8
+P2 3: r:8 A3+D4+F#4:8 r:8 F#4+B4+D5:8
+P2 4: r:8 A3:16t D4:16t F#4:16t D4+F#4+A4:8 r:8
+P2 5: r:8 A3:16t C#4:16t E4:16t E4+G4+C#5:8 r:8
+P2 6: r:8 B3:16t D4:16t F#4:16t D4+F#4+B4:8 B3+D4+F#4:8
+P2 7: r:8 B3+C#4+G4:8 r:8 A#3+C#4+F#4:8
+P2 8: r:8 r:32 F#4:32 G#4:32 A#4:32 B4:32 C#5:32 D5:32 E5:32 F#5:32 G#5:32 A#5:32 B5:32
+P2 9: D5+F#5:4 r:4
+P3 1: D2+A2:16t D3:16t F#3:16t r:8 r:8 A1+A2:8
+P3 2: D2+A2:16t D3:16t F#3:16t r:8 r:8 A1+A2:8
+P3 3: D2+D3:8 r:8 B1+B2:8 r:8
+P3 4: D2+A2:16t D3:16t F#3:16t r:8 r:8 A1+A2:8
+P3 5: A1+A2:16t C#3:16t E3:16t r:8 r:8 A1+A2:8
+P3 6: B1+B2:16t D3:16t F#3:16t r:8 r:8 F#2:8
+P3 7: E2+E3:8 r:8 F#2+F#3:8 r:8
+P3 8: B2+D3+F#3:4 r:4
+P3 9: D2+D3:4 r:4
