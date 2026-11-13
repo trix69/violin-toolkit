@@ -135,3 +135,14 @@ Harpsichord = `voicetwo`, `\tempo 4 = 96` (as before; the editions' MIDI says 14
 empty last measure python-ly leaves dropped and the repeat barlines written explicitly (1–16, 17–end): python-ly put the
 first backward repeat one bar late. Notes = the editions' MIDI (115: 118 + 81, 116: 166 + 144). 115's melody runs
 B♭3–B♭5 as written, 116's D4–A5.
+
+## Mendelssohn, Violin Concerto Op. 64, 1st movement, bars 1–48 (2026-11-13)
+
+The composer's own edition (Breitkopf & Härtel [1845], plate 7210, Public Domain): the violin part (IMSLP #913234) and the
+violin + piano score (IMSLP #872023), downloaded by Trix. No source file exists. Audiveris crashed on the score's first page
+and misread clefs and rhythms elsewhere, so every note was measured against the staff lines (pixel views of the 2800 px
+renders; Audiveris on single violin lines only as a cross-check) and written to `mendelssohn/tokens.txt` (violin, piano RH,
+piano LH). `mendelssohn/build.py` is the general token builder (a `conf.py` per piece: parts, clefs, key, time, tempo,
+repeats; it also rebuilds `hungarian5` byte for byte); triplets beam in threes and carry tuplet marks. Bars 1–46 the solo;
+47 the orchestra's entry (B7), 48 its E minor; minim = 100 (our choice; the score gives only Allegro molto appassionato).
+Not transcribed: dynamics, slurs, articulations, the cue notes in the violin part.

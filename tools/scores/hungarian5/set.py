@@ -1,5 +1,5 @@
 import sys,re
-p=sys.argv[1]+'/tokens.txt'; L=open(p).read().splitlines(); idx={re.match(r'(P\d \d+):',l).group(1):i for i,l in enumerate(L)}
+p=sys.argv[1]+'/tokens.txt'; L=open(p).read().splitlines(); idx={re.match(r'(P\d \d+):',l).group(1):i for i,l in enumerate(L) if re.match(r'P\d \d+:',l)}
 for ln in sys.stdin:
     ln=ln.strip()
     if not ln: continue

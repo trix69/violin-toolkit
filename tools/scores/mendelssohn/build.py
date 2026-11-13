@@ -45,7 +45,7 @@ for pn in range(1, len(NAMES) + 1):
             # beams: notes shorter than a crotchet inside one beat are beamed (level 2 for 16ths and shorter)
             info = []; pos = 0
             for t in toks:
-                p_, d_ = t.split(':'); v_ = dur(d_.rstrip('~'))[0]; info.append((pos, v_, p_ == 'r')); pos += v_
+                p_, d_ = t.split(':'); v_ = dur(d_.rstrip('~'))[0]; info.append((pos, v_, p_ == 'r', 't' in d_)); pos += v_
             beams = [{} for _ in toks]
             grp = []
             def flush(g):
@@ -58,9 +58,10 @@ for pn in range(1, len(NAMES) + 1):
                         for i2, jj in enumerate(run): beams[g[jj]][2] = 'begin' if i2 == 0 else 'end' if i2 == len(run) - 1 else 'continue'
                     elif len(run) == 1: beams[g[run[0]]][2] = 'forward hook' if run[0] == 0 else 'backward hook'
                     run = []
-            for k, (st, v_, rest) in enumerate(info):
+            for k, (st, v_, rest, trip) in enumerate(info):
                 if rest or v_ >= 120: flush(grp); grp = []; continue
-                if grp and st // BEAT != info[grp[0]][0] // BEAT: flush(grp); grp = []
+                unit = 120 if trip else BEAT   # triplets beam in threes (one crotchet), other notes by the beat
+                if grp and (st // unit != info[grp[0]][0] // unit or trip != info[grp[0]][3]): flush(grp); grp = []
                 grp.append(k)
             flush(grp)
             for ti, t in enumerate(toks):
@@ -76,6 +77,10 @@ for pn in range(1, len(NAMES) + 1):
                     if tm: n += '<time-modification><actual-notes>%d</actual-notes><normal-notes>%d</normal-notes></time-modification>' % ((3, 2) if tm == 't' else (5, 4))
                     if not k and q != 'r': n += ''.join('<beam number="%d">%s</beam>' % (lv, beams[ti][lv]) for lv in (1, 2) if lv in beams[ti])
                     nt = ''
+                    if tm == 't' and not k:   # a triplet: '3' over each crotchet's three (start on the first, stop on the last)
+                        st_ = info[ti][0]
+                        if st_ % 120 == 0: nt += '<tuplet type="start" bracket="no"/>'
+                        elif (st_ + 40) % 120 == 0: nt += '<tuplet type="stop"/>'
                     if key in tied: nt += '<tied type="stop"/>'
                     if qt: nt += '<tied type="start"/>'
                     if nt: n += '<notations>%s</notations>' % nt
