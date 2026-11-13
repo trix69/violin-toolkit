@@ -2197,34 +2197,41 @@
   var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '';
   var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.62, SYS_H = BOT + 46, FG_IND = 60;   /* FG_IND: the first system's indent, in score units (~10 mm) */   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
   function fgOptions() { if (!fgSel) return; fgSel.innerHTML = songSel.innerHTML; fgSel.value = songSel.value; }
-  /* the fingerings-shown drop-down in the Fingerings page's floating controls (Trix); Settings has the same choice */
+  /* the fingerings-shown drop-downs (Trix): in the Fingerings page's floating controls and in the MIDI player's bar
+     next to A–B; Settings has the same choice. All of them set APP.fgLevel and follow it */
   (function () {
-    var btn = $('fgLvBtn'), menu = $('fgLvMenu'); if (!btn || !menu) return;
-    var items = Array.prototype.slice.call(menu.querySelectorAll('button'));
-    var GLYPH = { full: '123', medium: '1·3', minimum: '1' };
-    APP.fgLvUi = function () {
-      var lv = APP.fgLevel(), nm = { full: 'Full', medium: 'Medium', minimum: 'Minimum' }[lv];
-      items.forEach(function (b) { b.setAttribute('aria-checked', b.dataset.lv === lv ? 'true' : 'false'); });
-      $('fgLvGlyph').textContent = GLYPH[lv];
-      var zh = window.I18N && I18N.lang === 'zh', lab = (zh ? '显示的指法：' : 'Fingerings shown: ') + (zh ? { full: '全部', medium: '中等', minimum: '最少' }[lv] : nm);
-      btn.setAttribute('aria-label', lab); btn.title = lab;
-    };
-    function open(on, focusIt) {
-      menu.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false');
-      if (on && focusIt) (items.filter(function (b) { return b.getAttribute('aria-checked') === 'true'; })[0] || items[0]).focus();
-    }
-    btn.addEventListener('click', function () { open(menu.hidden, true); });
-    items.forEach(function (b, i) {
-      b.addEventListener('click', function () { APP.fgLevel(b.dataset.lv); open(false); btn.focus(); });
-      b.addEventListener('keydown', function (e) {
-        var d = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
-        if (d) { e.preventDefault(); items[(i + d + items.length) % items.length].focus(); }
-        else if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); open(false); btn.focus(); }
+    var GLYPH = { full: '123', medium: '1·3', minimum: '1' }, uis = [];
+    function setup(btnId, menuId, glyphId) {
+      var btn = $(btnId), menu = $(menuId); if (!btn || !menu) return;
+      var items = Array.prototype.slice.call(menu.querySelectorAll('button'));
+      function ui() {
+        var lv = APP.fgLevel(), zh = window.I18N && I18N.lang === 'zh';
+        items.forEach(function (b) { b.setAttribute('aria-checked', b.dataset.lv === lv ? 'true' : 'false'); });
+        $(glyphId).textContent = GLYPH[lv];
+        var lab = (zh ? '显示的指法：' : 'Fingerings shown: ') + (zh ? { full: '全部', medium: '中等', minimum: '最少' } : { full: 'Full', medium: 'Medium', minimum: 'Minimum' })[lv];
+        btn.setAttribute('aria-label', lab); btn.title = lab;
+      }
+      function open(on, focusIt) {
+        menu.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+        if (on && focusIt) (items.filter(function (b) { return b.getAttribute('aria-checked') === 'true'; })[0] || items[0]).focus();
+      }
+      btn.addEventListener('click', function (e) { e.stopPropagation(); open(menu.hidden, true); });
+      items.forEach(function (b, i) {
+        b.addEventListener('click', function (e) { e.stopPropagation(); APP.fgLevel(b.dataset.lv); open(false); btn.focus(); });
+        b.addEventListener('keydown', function (e) {
+          var d = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+          if (d) { e.preventDefault(); e.stopPropagation(); items[(i + d + items.length) % items.length].focus(); }
+          else if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); open(false); btn.focus(); }
+          else if (e.key === ' ' || e.key === 'Enter') e.stopPropagation();   /* not the player's Space = play */
+        });
       });
-    });
-    document.addEventListener('pointerdown', function (e) { if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) open(false); }, true);
+      document.addEventListener('pointerdown', function (e) { if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) open(false); }, true);
+      uis.push(ui); ui();
+    }
+    APP.fgLvUi = function () { uis.forEach(function (f) { f(); }); };
+    setup('fgLvBtn', 'fgLvMenu', 'fgLvGlyph');
+    setup('mpLvBtn', 'mpLvMenu', 'mpLvGlyph');
     document.addEventListener('i18n', function () { APP.fgLvUi(); });
-    APP.fgLvUi();
   })();
   function fgSync() { fgOptions(); var cur = songs[+songSel.value]; $('fgDel').hidden = !(cur && cur.kept); fgDirty = true; if (APP.fgReset) APP.fgReset(); if (fgShown) fgRender(); }
   var fgT = 0;
@@ -2252,10 +2259,11 @@
     /* the bars printed (Trix: as the score writes them): each written bar once, at its first time through; the
        repeats are shown with repeat signs and ending brackets instead of the music twice. A MIDI file (no written
        bars) prints everything, as before */
-    var K = [], seenMi = {};
+    var K = [], seenMi = {}, lastKey = null;
     for (var k0 = 0; k0 < bars.length - 1; k0++) {
       var bo0 = sg.barAt ? sg.barAt(bars[k0].beat + 1e-3) : null, key = bo0 && bo0.mi !== undefined ? 'm' + bo0.mi : 'b' + k0;
-      if (!seenMi[key]) { seenMi[key] = 1; K.push(k0); }
+      if (!seenMi[key]) { seenMi[key] = 1; K.push(k0); lastKey = key; }
+      else if (K.length && K[K.length - 1] === k0 - 1 && key === lastKey) K.push(k0);   /* a second grid step inside the same printed bar (Hermes F63: it split the line there) */
     }
     var PW = [0]; K.forEach(function (k, i) { PW[i + 1] = PW[i] + bars[k + 1].x - bars[k].x; });
     function bw(i) { return bars[K[i] + 1].x - bars[K[i]].x; }
@@ -2348,6 +2356,7 @@
       out.push('<clipPath id="' + id + '_' + pn + '"><rect x="' + (hw + off - (pn ? 0 : 2)) + '" y="-40" width="' + (pb - pa + (last ? 8 : 1) + (pn ? 0 : 2)) + '" height="' + (SYS_H + 52) + '"/></clipPath>');   /* room above for a raised numeral */
       out.push('<g clip-path="url(#' + id + '_' + pn + ')"><g transform="translate(' + tx.toFixed(2) + ' 0)">' + body.join('') + '</g></g>');
       /* repeat signs and ending brackets, from the score's barlines (Trix) */
+      var ends = [];
       for (var bk = pc[0]; bk < pc[1]; bk++) {
         var bo2 = sg.barAt ? sg.barAt(r.bars[bk].beat + 1e-3) : null, rp = bo2 && bo2.wr;
         if (!rp) continue;
@@ -2355,14 +2364,16 @@
         if (bk === pc[0] && pn === 0 && si > 0 && bk === q[0]) X1 = hw;   /* at the start of a line: just after the clef and key */
         if (rp.fwd) out.push(repSign(X1 + 1, 1));
         if (rp.back) out.push(repSign(X2, -1));
-        if (rp.end) {
-          var prevB = bk > 0 && sg.barAt ? sg.barAt(r.bars[bk - 1].beat + 1e-3) : null, starts = !!rp.endStart || !(prevB && prevB.wr && prevB.wr.end) || bk === pc[0];
-          var EY = Y0 - 34, d = 'M' + (X1 + 3) + ' ' + EY + 'H' + (X2 - 3);
-          if (rp.endStart) d = 'M' + (X1 + 3) + ' ' + (EY + 12) + 'V' + EY + 'H' + (X2 - 3);
-          if (rp.endStop && rp.back) d += 'V' + (EY + 12);
-          out.push('<path class="fg-end" d="' + d + '"/>');
-          if (rp.endStart) out.push('<text class="fg-endn" x="' + (X1 + 7) + '" y="' + (EY + 11) + '">' + rp.endStart.join(', ') + '.</text>');
-        }
+        if (rp.end) ends.push({ bk: bk, X1: X1, X2: X2, rp: rp });
+      }
+      /* ending brackets: one per run of bars of the same ending on this piece of the line (Hermes F63) */
+      for (var ei = 0; ei < ends.length; ) {
+        var ej = ei; while (ej + 1 < ends.length && ends[ej + 1].bk === ends[ej].bk + 1 && !ends[ej + 1].rp.endStart && String(ends[ej + 1].rp.end) === String(ends[ei].rp.end)) ej++;
+        var A = ends[ei], Z = ends[ej], EY = Y0 - 34, d = A.rp.endStart ? 'M' + (A.X1 + 3) + ' ' + (EY + 12) + 'V' + EY : 'M' + A.X1 + ' ' + EY;
+        d += 'H' + (Z.X2 - 3); if (Z.rp.endStop && Z.rp.back) d += 'V' + (EY + 12);
+        out.push('<path class="fg-end" d="' + d + '"/>');
+        if (A.rp.endStart) out.push('<text class="fg-endn" x="' + (A.X1 + 7) + '" y="' + (EY + 11) + '">' + A.rp.endStart.join(', ') + '.</text>');
+        ei = ej + 1;
       }
       off += pb - pa;
     });

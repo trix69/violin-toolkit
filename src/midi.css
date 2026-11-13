@@ -214,3 +214,13 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
 .mp-score .fg-rpt { fill: var(--sc-ink); }
 .mp-score .fg-end { fill: none; stroke: var(--sc-ink); stroke-width: 1.2; }
 .mp-score .fg-endn { fill: var(--sc-ink); font: 600 12px 'Times New Roman', 'Noto Serif', Georgia, serif; }
+
+/* fingerings shown (Trix): the same drop-down as on the Fingerings page, next to A–B */
+.mp-lvwrap { position: relative; display: inline-flex; flex: none; }
+.mp-lvbtn { font-family: 'DM Mono', ui-monospace, monospace; font-size: 11px; }
+.mp-lvbtn[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.mp-lvmenu { position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 20; display: grid; min-width: 150px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+.mp-lvmenu[hidden] { display: none; }
+.mp-lvmenu button { text-align: left; min-height: 44px; padding: 0 12px 0 32px; border: 0; border-radius: 8px; background: none; color: var(--fg); font: 500 15px var(--font-body); cursor: pointer; position: relative; }
+.mp-lvmenu button[aria-checked="true"]::before { content: '✓'; position: absolute; left: 11px; color: var(--accent); font-weight: 700; }
+.mp-lvmenu button:hover, .mp-lvmenu button:focus-visible { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: none; }
