@@ -1840,7 +1840,7 @@
       svg.innerHTML = ''; keySvg.innerHTML = ''; noteEls = []; chunks = [];
       seekTo(0); flashParts(); mixUi();
       var s = songs[i];
-      if (s.failed) { s.failed = false; say(s.err || 'This tune downloads the first time you play it. Connect to the internet and choose it again.', true); }
+      if (s.failed) { autoPlay = -1; s.failed = false; say(s.err || 'This tune downloads the first time you play it. Connect to the internet and choose it again.', true); }
       else { say(s.have ? 'Opening the score…' : 'Downloading this tune…'); fetchDemo(i); }   /* a long score (Serenade) takes a few seconds on a phone */   /* choosing it again tries again; a built-in one is being read (a moment) */
       if (shown) fit();
       if (APP.fgSync) APP.fgSync();
@@ -1859,6 +1859,7 @@
     if (shown) fit();
     if (APP.fgSync) APP.fgSync();   /* the Fingerings pages follow the current tune */
     settle();   /* and once more when it has settled (an iPhone left the board short) */
+    if (autoPlay === i) { autoPlay = -1; if (shown && !paOn) setTimeout(function () { if (+songSel.value === i && !playing && !counting) play(); }, 60); }
   }
   function addSong(title, buf, kept) {   /* kept: an imported file, with its id in the saved list */
     var sg = parse(buf);
@@ -2021,7 +2022,10 @@
     askBack = back; ask.hidden = false; window.addEventListener('keydown', onAskKey, true); askCancel.focus();
   };
   delBtn.addEventListener('click', function () { APP.askDelete(songSel); });
-  songSel.addEventListener('change', function () { load(+songSel.value); });
+  /* a piece chosen from the player's list plays straight away, after the count-in (Trix); the sound engine is woken
+     inside the tap (iPhone), the playing waits until the score is in (a built-in still downloading on the phone apps) */
+  var autoPlay = -1;
+  songSel.addEventListener('change', function () { autoPlay = +songSel.value; APP.board.prime(); load(+songSel.value); });
   /* Trix (iPhone): a board left short, cut after two rows, after choosing Winter; not reproduced. Measure the board
      again once the list's picker has closed and the tune has settled, and when the visible area changes (sizes only) */
   var settleT = [];
