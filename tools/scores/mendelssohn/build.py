@@ -22,8 +22,8 @@ def dur(d):
     if 'q' in d: v = v * 4 // 5
     return v, TYPE[q], '.' in d, 't' if 't' in d else 'q' if 'q' in d else ''
 def pitch(p):
-    m = re.match(r'([A-G])([#bn]?)(\d)$', p); assert m, p
-    al = {'#': 1, 'b': -1}.get(m.group(2), 0)
+    m = re.match(r'([A-G])(##|bb|[#bn]?)(\d)$', p); assert m, p
+    al = {'#': 1, 'b': -1, '##': 2, 'bb': -2}.get(m.group(2), 0)
     return '<pitch><step>%s</step>%s<octave>%s</octave></pitch>' % (m.group(1), '<alter>%d</alter>' % al if al else '', m.group(3))
 bad = []; parts = []
 for pn in range(1, len(NAMES) + 1):
