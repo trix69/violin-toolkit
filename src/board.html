@@ -1657,7 +1657,6 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
         });
       } else paint();
     },
-    release: function () { Array.from(voices.keys()).forEach(function (id) { if (/^p/.test(id)) end(id); }); },   /* a swipe that began on a note (Trix): the note it started stops */
     on: pOn, off: pOff, allOff: pAllOff, hand: setHand, has: function (id) { return pvoices.has(id); },
     click: function (strong, vol) {   /* the MIDI player's count-in and metronome: a tick, the first one stronger; vol 0-1 (the Mixer) */
       if (!ensureCtx()) return;

@@ -3374,10 +3374,10 @@
   APP.paState = function () { return { take: paTake ? paTake.state : null, view: paView, result: paRes, mute: paMute }; };   /* tests */
   /* swipe between the two tools (Trix): the MIDI player is the left page, Fingerings the right one; a swipe left on the
      player opens Fingerings, a swipe right on Fingerings opens the player, sliding in like a page. From the fingerboard
-     too (Trix): a note pressed there stops as soon as the finger moves sideways. Not from a slider, a list, an open panel, full screen, zoomed pages that scroll
+     too (Trix; in the player it only shows notes, a press plays nothing). Not from a slider, a list, an open panel, full screen, zoomed pages that scroll
      sideways, or Play-along */
   (function () {
-    var sx = 0, sy = 0, st = 0, ok = false, freed = false;
+    var sx = 0, sy = 0, st = 0, ok = false;
     function from(t) {
       if (paOn || full || !(shown || fgShown)) return false;
       if (!t.closest) return true;
@@ -3388,13 +3388,9 @@
     document.addEventListener('touchstart', function (e) {
       ok = e.touches.length === 1 && from(e.target);
       if (!ok) return;
-      sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = performance.now(); freed = false;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = performance.now();
     }, { passive: true });
-    document.addEventListener('touchmove', function (e) {
-      if (!ok || freed || e.touches.length !== 1) return;
-      var dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
-      if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy) * 1.5) { freed = true; APP.board.release(); }   /* sideways: a swipe, not a note */
-    }, { passive: true });
+
     document.addEventListener('touchend', function (e) {
       if (!ok) return; ok = false;
       var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
