@@ -1702,6 +1702,7 @@
     if (s.have) { prepDemo(s); return; }
     s.fetching = true;
     fetch(DEMO_URL + encodeURIComponent(d.f), { cache: 'no-cache' }).then(function (r) {
+      if (r.status === 404 || r.status === 410) throw new Error('stale');   /* gone from the website: only an updated app has it (Hermes F73) */
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.arrayBuffer();
     }).then(function (buf) {

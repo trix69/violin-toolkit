@@ -1855,7 +1855,7 @@ markup = f"""
     <h2 id="ppTitle" tabindex="-1">Privacy policy</h2>
     <p class="pp-date" id="ppDate"></p>
     <div class="pp-body">
-      <p id="ppText">Violin Toolkit has no accounts and no cookies. Your settings, practice time and imported tunes stay on this device. The only time the app goes online is to check for a new version (it sends the app version, the kind of app and a random number made on this device, which we count) and, on the phone builds, to fetch a built-in tune the first time you play it. Links that leave the app, such as Report an issue, open your browser only after you confirm.</p>
+      <p id="ppText">Violin Toolkit has no accounts and no cookies. Your settings, practice time and imported tunes stay on this device. The only time the app goes online is to check for a new version (it sends the app version, the kind of app and a random number made on this device, which we count) and, on the phone builds, to fetch a built-in tune the first time you play it and to check that a saved one is still the version on the website. Links that leave the app, such as Report an issue, open your browser only after you confirm.</p>
       <p><a id="ppLink" href="https://trix69.github.io/violin-toolkit/docs/privacy.html" target="_blank" rel="noopener">Read the full policy</a></p>
       <p class="pp-msg" id="ppMsg" role="status" hidden></p>
     </div>
