@@ -68,3 +68,16 @@
 /* inside the tool: the player's and the pages' own playback controls are not used (the take drives them) */
 .shell[data-view="playalong"] #mpBar, .shell[data-view="playalong"] .fg-fitbar, .shell[data-view="playalong"] .fg-bar, .shell[data-view="playalong"] #mpFull { display: none !important; }
 @media (max-width: 380px) { .pa-seg button { padding: 8px 10px; } .pa-rec { padding: 8px 12px 8px 10px; } .pa-meter { min-width: 40px; } }
+
+/* Live: the board as the MIDI player shows it (its own key, intonation and position controls hidden; notes only shown) */
+.shell[data-view="playalong"] #view-board .controls, .shell[data-view="playalong"] #view-board .keyrows,
+.shell[data-view="playalong"] #view-board .keybar, .shell[data-view="playalong"] #view-board .posbar,
+.shell[data-view="playalong"] #view-board .ksig, .shell[data-view="playalong"] #view-board .forkhz { display: none !important; }
+.shell[data-view="playalong"] #view-board { margin-top: 10px; padding-bottom: 40px; }
+.shell[data-view="playalong"] #board .note { pointer-events: none; cursor: default; }
+.shell[data-view="playalong"] #view-board .app { position: relative; }
+/* the microphone's level: a small meter on the info line, with a microphone sign, so it does not read as a second progress bar */
+.pa-info { align-items: center; }
+.pa-mic { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 140px; }
+.pa-mic svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.pa-mic .pa-meter { flex: 1; min-width: 40px; max-width: none; height: 6px; }

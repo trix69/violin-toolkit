@@ -1,6 +1,6 @@
 """The two Petzold minuets as one piece (Trix, 2026-11-14): Minuet in G major (BWV Anh. 114, minuet.mxl, Mutopia #75)
 then Minuet in G minor (BWV Anh. 115, minuet115.mxl, Mutopia #76), then the first again, written out (the player has no
-da capo). Each section keeps its own divisions, key (with mode) and tempo; the key change is in the file, so the score
+da capo); a bar's rest between Minuet I and Minuet II (Trix). Each section keeps its own divisions, key (with mode) and tempo; the key change is in the file, so the score
 prints it. Usage: python3 -I minuet_pair.py minuet.mxl minuet115.mxl out.mxl"""
 import sys, copy, zipfile, xml.etree.ElementTree as ET
 
@@ -40,6 +40,14 @@ for pid in ('P1', 'P2'):
     po = out.find("part[@id='%s']" % pid)
     for m in list(po): po.remove(m)
     sec = [copy.deepcopy(m) for m in pa.findall('measure')], [copy.deepcopy(m) for m in pb.findall('measure')], [copy.deepcopy(m) for m in pa.findall('measure')]
+    # a bar's rest between the two minuets (Trix), after Minuet I's last bar; the double bar before the change of key comes after it
+    rest = ET.Element('measure'); div = None
+    for m in sec[0]:
+        at = m.find('attributes')
+        if at is not None and at.find('divisions') is not None: div = int(at.find('divisions').text)
+    n_ = ET.SubElement(rest, 'note'); ET.SubElement(n_, 'rest', {'measure': 'yes'}); ET.SubElement(n_, 'duration').text = str(3 * div)   # 3/4
+    ET.SubElement(n_, 'voice').text = '1'
+    sec[0].append(rest)
     barline(sec[0][-1], 'light-light')   # a double bar before the change of key
     barline(sec[2][-1], 'light-heavy')
     if pid == 'P1':

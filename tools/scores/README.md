@@ -159,3 +159,4 @@ words; double bar before the change. Title "Minuets in G major and G minor, BWV 
 Trix: the small note before bars 8 and 72 is a quick grace just before the beat. `minuet_grace.py minuets.mxl` marks the two
 violin `<grace/>` with `steal-time-previous="50"`; the player plays such graces (and every slashed grace) as a 32nd ending on the
 beat, taken from the note before (drawn at its written value).
+- 2026-11-14: Trix: a bar's rest between Minuet I and Minuet II (`minuet_pair.py` adds it after bar 32; rebuild = minuet_pair.py on the 68e5a7b sources, then minuet_grace.py). Minuet II now starts at bar 34.
