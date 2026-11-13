@@ -86,3 +86,6 @@
 .pa-needle { height: 30px; box-sizing: border-box; overflow: hidden; }
 .pa-nname, .pa-ncents { line-height: 30px; height: 30px; white-space: nowrap; }
 .pa-needle.quiet .pa-pin { opacity: .35; }
+
+/* Pages: a gap between the tune picker and the page (the Fingerings bar between them is hidden here; Trix) */
+.shell[data-view="playalong"] .fg-row { margin-bottom: 14px; }
