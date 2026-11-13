@@ -4,7 +4,7 @@
 # violin parts are swapped, so the violin played always has it.
 NAMES = ['Violin', 'Ripieno', 'Viola', 'Violoncello']; PROG = [41, 49, 49, 49]
 CLEF = [('G', 2), ('G', 2), ('C', 3), ('F', 4)]
-KEY = lambda b: -1 if b < 54 or 86 <= b < 100 else 2
+KEY = lambda b: -1 if b < 54 or 86 <= b < 100 else 2; MODE = lambda b: 'minor' if KEY(b) < 0 else 'major'   # D minor / D major (G minor / G major): the player's key note follows
 TIME = lambda b: (4, 4) if 5 <= b <= 21 else (2, 4)
 DIV = 840   # septuplet 32nds in bar 18
 TEMPO = {1: ('Adagio', 70), 12: ('molto rall.', 54), 14: ('a tempo', 70), 18: ('poco rall.', 58), 20: ('a tempo', 70),

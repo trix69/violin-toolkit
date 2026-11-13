@@ -38,7 +38,7 @@ for pn in range(1, len(NAMES) + 1):
         x = '<measure number="%d">' % b
         if b in FWD: x += '<barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>'
         if b == 1 or KEY(b) != KEY(b - 1) or newtime:
-            x += '<attributes>' + ('<divisions>%d</divisions>' % DIV if b == 1 else '') + ('<key><fifths>%d</fifths>%s</key>' % (KEY(b), '<mode>%s</mode>' % C['MODE'] if C.get('MODE') else '') if b == 1 or KEY(b) != KEY(b - 1) else '')
+            x += '<attributes>' + ('<divisions>%d</divisions>' % DIV if b == 1 else '') + ('<key><fifths>%d</fifths>%s</key>' % (KEY(b), '<mode>%s</mode>' % (C['MODE'](b) if callable(C['MODE']) else C['MODE']) if C.get('MODE') else '') if b == 1 or KEY(b) != KEY(b - 1) else '')
             if newtime: x += '<time><beats>%d</beats><beat-type>%d</beat-type></time>' % (BEATS, BTYPE)
             if b == 1: x += '<clef><sign>%s</sign><line>%d</line></clef>' % CLEF[pn - 1]
             x += '</attributes>'

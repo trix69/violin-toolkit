@@ -191,12 +191,12 @@
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
       var ms = kids(part, 'measure'), notes = [], tie = {}, chordTrem = 0, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
-      var ksw = [], kw0 = null;   /* the key in force in each written bar (a repeat back over a key change goes back to its key) */
-      ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); var ky = kid(a, 'key'); if (ky && txt(ky, 'fifths') !== '') kw0 = +txt(ky, 'fifths'); }); ksw[k] = kw0; });
+      var ksw = [], kmw = [], kw0 = null, km0 = null;   /* the key in force in each written bar (a repeat back over a key change goes back to its key) */
+      ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); var ky = kid(a, 'key'); if (ky && txt(ky, 'fifths') !== '') { kw0 = +txt(ky, 'fifths'); km0 = /^(major|minor)$/.test(txt(ky, 'mode')) ? txt(ky, 'mode') : null; } }); ksw[k] = kw0; kmw[k] = km0; });
       order.forEach(function (k) {
         var m = ms[k]; if (!m) return;
         var tmE = m.getElementsByTagName('time')[0];   /* a change of time signature (the Csárdás: 2/4, 4/4, 2/4) */
-        if (pi === 0) bars.push({ tick: at, num: m.getAttribute('number') || String(k + 1), mi: k, wr: order.info[k], ts: tmE && txt(tmE, 'beats') ? { num: parseInt(txt(tmE, 'beats'), 10) || 4, den: +txt(tmE, 'beat-type') || 4 } : null, ks: ksw[k] });
+        if (pi === 0) bars.push({ tick: at, num: m.getAttribute('number') || String(k + 1), mi: k, wr: order.info[k], ts: tmE && txt(tmE, 'beats') ? { num: parseInt(txt(tmE, 'beats'), 10) || 4, den: +txt(tmE, 'beat-type') || 4 } : null, ks: ksw[k], km: kmw[k] });
         var dv = divStart[k] || 1, cur = 0, len = 0, last = 0;
         function tk(d) { return at + Math.round(d * TPQ / dv); }
         kids(m).forEach(function (el) {
@@ -443,17 +443,24 @@
     var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick, minor);
     /* the bar number at a beat, for the score's corner (Trix): MusicXML's own numbers (repeats show theirs again, a
        pickup is 0); a MIDI file's bars counted from its start */
-    var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num, mi: b.mi, wr: b.wr, ts: b.ts, ks: b.ks }; }) : null;
+    var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num, mi: b.mi, wr: b.wr, ts: b.ts, ks: b.ks, km: b.km }; }) : null;
     sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text }; }).filter(function (m) { return m.beat > -1e-6; });
     /* the bars in playing order, for A–B (Trix): the score's numbers (a bar played twice is listed twice) or counted */
     var blist = [];
     /* to the end of the music, not just the solo's: a last bar where only the accompaniment plays is a bar too (Hermes F50) */
     var endBeat = acc.reduce(function (e, n) { return Math.max(e, n.t1 / tpq - sg.skipB); }, sg.beats);
-    if (bl) bl.forEach(function (b) { if (b.beat > -1e-6 && b.beat < endBeat - 1e-6) blist.push({ beat: b.beat, num: b.num, mi: b.mi, wr: b.wr, ts: b.ts, ks: b.ks }); });
+    if (bl) bl.forEach(function (b) { if (b.beat > -1e-6 && b.beat < endBeat - 1e-6) blist.push({ beat: b.beat, num: b.num, mi: b.mi, wr: b.wr, ts: b.ts, ks: b.ks, km: b.km }); });
     else for (var bb = 0; bb < endBeat - 1e-6; bb += barQ) blist.push({ beat: bb, num: String(Math.floor((bb + sg.skipB) / barQ + 1e-6) + 1) });
     var seenBar = {}; blist.forEach(function (b) { b.time = seenBar[b.num] = (seenBar[b.num] || 0) + 1; });
     blist.forEach(function (b) { b.rep = seenBar[b.num] > 1; });
     sg.bars = blist;
+    /* the key at a beat (the fingerboard's key notes follow a change of key: Hermes F75): fifths, and minor when
+       the score says so (a key without a mode: as the opening, if it is the opening's) */
+    sg.keyAt = function (b) {
+      var k = { sf: sg.sf, minor: !!sg.minor };
+      blist.forEach(function (q) { if (q.beat <= b + 1e-6 && q.ks !== null && q.ks !== undefined) k = { sf: q.ks, minor: q.km ? q.km === 'minor' : q.ks === sg.sf && !!sg.minor }; });
+      return k;
+    };
     /* a pickup (MusicXML's short first bar, Spring's quaver, the Gavotte's half bar): the score's bar grid starts
        that much before the first note, so its bar lines fall where the score's do (a MIDI file has none: 0) */
     sg.pick = bl && !sg.skipB && blist.length > 1 && blist[0].beat < 1e-6 && blist[1].beat < barQ - 1e-6 ? barQ - blist[1].beat : 0;
@@ -1019,11 +1026,12 @@
       });
     })();
     function sfAt(b) { var f = sg.sf; for (var j = 0; j < kChg.length && kChg[j].beat <= b + 1e-6; j++) f = kChg[j].sf; return f; }
-    /* a key signature at x as printed: each sign on its own line or space, about a space apart (Trix); naturals
-       first for the signs of prev the new key does not keep. Returns [markup, width] */
+    /* a key signature at x as printed: each sign on its own line or space, about a space apart (Trix). As modern
+       editions do, the new key alone (Trix: no naturals before the sharps); naturals only for a change to no sharps
+       or flats, where nothing else would show it. Returns [markup, width] */
     function keySig(f, prev, x) {
       var g = '', k = 0, sh = f >= 0, ps = prev >= 0, keep = keyAccOf(f), j;
-      for (j = 0; j < Math.abs(prev); j++) if (keep[(ps ? SHARP_K : FLAT_K)[j]] !== (ps ? 1 : -1)) g += APP.accSvg('n', x + 2 + 10.5 * k++, yOf((ps ? SHARP_P : FLAT_P)[j]), S);
+      if (!f) for (j = 0; j < Math.abs(prev); j++) if (keep[(ps ? SHARP_K : FLAT_K)[j]] !== (ps ? 1 : -1)) g += APP.accSvg('n', x + 2 + 10.5 * k++, yOf((ps ? SHARP_P : FLAT_P)[j]), S);
       if (k && f) k += 0.4;
       for (j = 0; j < Math.abs(f); j++) g += APP.accSvg(sh ? '#' : 'b', x + 2 + 10.5 * k++, yOf((sh ? SHARP_P : FLAT_P)[j]), S);
       return ['<g class="acc key">' + g + '</g>', k * 10.5];
@@ -1524,6 +1532,10 @@
     var bo = song.barAt ? song.barAt(counting ? countBase : Math.max(beat, 0)) : null, bn = bo ? cornerBar(bo) : '';   /* counting in: the bar it leads into */   /* the bar under the playhead (Trix) */
     if (bn !== barNoEl.textContent) barNoEl.textContent = bn;
     headFollow(counting ? countBase : beat);
+    if (song.keyAt && boardKey !== null) {   /* a new key under the playhead: the fingerboard's key notes change with it */
+      var kn = song.keyAt(Math.max(0, counting ? countBase : beat));
+      if (kn.sf + (kn.minor ? 'm' : '') !== boardKey) { boardBeat = Math.max(0, counting ? countBase : beat); fit(); return; }
+    }
     var w = scoreEl.clientWidth / z, x = xAt(beat), hx = full ? X0 + 50 : Math.max(w * 0.36, X0 + 50);   /* full screen: the playhead at the left, just after the clef and key (Trix) */
     headEl.style.left = hx * z + 'px';
     /* half a beat early, so a note glows while it passes through the playhead rather than after it */
@@ -1713,7 +1725,7 @@
   }
   function load(i) {
     pause();
-    song = songs[i].song;
+    song = songs[i].song; boardBeat = 0;
     if (song && !song.composer && songs[i].demo && songs[i].demo.c) song.composer = songs[i].demo.c;   /* a built-in MIDI names no composer: the list does */
     delBtn.hidden = !songs[i].kept;   /* the bin only for an imported file */
     /* the tune and its composer under the heading (Trix); the title is translated, the name never */
@@ -2192,18 +2204,20 @@
   }
   /* the tune's key from its key signature: a minor key has the notes of its relative major (natural minor), as on
      the fingerboard; those notes show pale in their string colour (Trix) */
+  var boardBeat = 0, boardKey = null;   /* the key the fingerboard shows: the one at the playhead */
+  function keyNow() { return song && song.keyAt ? song.keyAt(boardBeat) : { sf: song ? song.sf : 0, minor: !!(song && song.minor) }; }
   function keySet() {
     if (!song) return null;
-    var root = ((song.sf * 7) % 12 + 12) % 12, set = {};
+    var kn = keyNow(), root = ((kn.sf * 7) % 12 + 12) % 12, set = {};
     [0, 2, 4, 5, 7, 9, 11].forEach(function (i) { set[(root + i) % 12] = true; });
-    set.tonic = song.minor ? (root + 9) % 12 : root;   /* the key note, ringed as on the fingerboard */
-    set.minor = !!song.minor;   /* so Just intonation tunes to the tune's key, not the fingerboard's */
+    set.tonic = kn.minor ? (root + 9) % 12 : root;   /* the key note, ringed as on the fingerboard */
+    set.minor = kn.minor;   /* so Just intonation tunes to the tune's key, not the fingerboard's */
     /* colour key notes as high up the strings as the tune plays (Trix) */
     set.top = 7;   /* at least 1st position's 4th finger on every string; higher if the tune goes higher, the same on all four (Trix) */
     song.notes.forEach(function (n) { if (n.si >= 0) set.top = Math.max(set.top, n.m - OPEN[n.si]); });
     return set;
   }
-  function fit() { APP.board.player(true, topH, reach(), keySet(), song && song.sf < 0, full ? fsBox : null); scroll(); placeFull(); }
+  function fit() { var kn = keyNow(); boardKey = kn.sf + (kn.minor ? 'm' : ''); APP.board.player(true, topH, reach(), keySet(), kn.sf < 0, full ? fsBox : null); scroll(); placeFull(); }
   /* the Full screen button sits in the fingerboard's bottom-right corner (Trix): next to the board (not inside it,
      which scrolls and, in full screen, is turned), placed from the board's box */
   var stageEl = document.querySelector('#view-board .stage');
