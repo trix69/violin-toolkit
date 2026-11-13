@@ -89,3 +89,14 @@
 
 /* Pages: a gap between the tune picker and the page (the Fingerings bar between them is hidden here; Trix) */
 .shell[data-view="playalong"] .fg-row { margin-bottom: 14px; }
+
+/* per-note marks (Trix): a disc behind each notehead; the legend's swatches are discs too */
+.pa-nm { cursor: pointer; }
+.pa-nm.ok { fill: rgba(46, 160, 67, .38); }
+.pa-nm.amber { fill: rgba(232, 164, 32, .55); }
+.pa-nm.red { fill: url(#paHatch); }
+.pa-nm.miss, .pa-nm.na { fill: rgba(128, 128, 128, .35); }
+.pa-nm.late { stroke: #2f6fd6; stroke-width: 2.5; }
+.pa-legend .sw { width: 16px; height: 16px; border-radius: 50%; }
+.sw-ok { background: rgba(46, 160, 67, .45); }
+.pa-legend .sw-time { height: 16px; background: transparent; border: 2.5px solid #2f6fd6; box-sizing: border-box; }
