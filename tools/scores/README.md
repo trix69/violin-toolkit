@@ -146,3 +146,10 @@ piano LH). `mendelssohn/build.py` is the general token builder (a `conf.py` per 
 repeats; it also rebuilds `hungarian5` byte for byte); triplets beam in threes and carry tuplet marks. Bars 1–46 the solo;
 47 the orchestra's entry (B7), 48 its E minor; minim = 100 (our choice; the score gives only Allegro molto appassionato).
 Not transcribed: dynamics, slurs, articulations, the cue notes in the violin part.
+
+## Minuets BWV Anh. 114 + 115 joined (2026-11-14)
+
+Trix: "Merge them and give a new piece name". `minuet_pair.py minuet.mxl minuet115.mxl minuets.mxl` (run from the old files,
+now removed: `git show 68e5a7b:src/midi/minuet.mxl`): Anh. 114, Anh. 115 (its repeats), Anh. 114 again written out (no
+da capo in the player); each section keeps its divisions, key + mode and tempo (120 / 96 / 120); "Minuet II" / "Minuet I"
+words; double bar before the change. Title "Minuets in G major and G minor, BWV Anh. 114–115".

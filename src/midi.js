@@ -2488,7 +2488,7 @@
     var wide = hw + P.reduce(function (t, p) { return t + r.bars[p[1]].x - r.bars[p[0]].x; }, 0);
     for (var j = 0; j < 5; j++) lines += '<path class="sl" d="M0 ' + (Y0 + j * S) + 'H' + wide + '"/>';
     var bo = sg.barAt ? sg.barAt(r.bars[q[0]].beat + 1e-3) : null;
-    out.push(lines, CLEF, (si === 0 ? r.head : r.headAt(r.bars[q[0]].beat - 1e-3, false)).join(''));   /* the time signature on the first system only; a later one: the key in force (a change at its first bar is drawn after the bar line) */
+    out.push(lines, CLEF, (si === 0 ? r.head : r.headAt(r.bars[q[0]].beat + 1e-3, false)).join(''));   /* the time signature on the first system only; a later one: its first bar's key (a change there is shown here, as printed music does, not again after the bar line) */
     if (si === 0) {   /* the tempo over the middle of the first bar (Trix), above anything there: fingerings, bowings, a position numeral */
       var bEnd = r.bars[q[0] + 1] ? r.bars[q[0] + 1].x : xb, ty = Y0 - 24;
       r.tops.forEach(function (t) { if (t[0] > xa && t[0] < bEnd) ty = Math.min(ty, t[1] - 6); });
@@ -2512,6 +2512,7 @@
       for (var lo = 0, hi = r.items.length; lo < hi; ) { var mid = (lo + hi) >> 1; if (r.items[mid][0] <= pa + 0.5) lo = mid + 1; else hi = mid; }
       for (var k = lo; k < r.items.length && r.items[k][0] <= pb + 0.5; k++) {
         var it = r.items[k][1];
+        if (si > 0 && pn === 0 && r.items[k][0] - pa < 30 && it.indexOf('class="kchg"') > 0) continue;   /* the new key is in this line's head */
         if (ceil !== undefined && it.indexOf('mp-pos') > 0) {   /* a numeral (or its line) that would print through the page header is left out (Hermes F36) */
           var yv = /y="(-?[\d.]+)"/.exec(it) || /d="M-?[\d.]+ (-?[\d.]+)/.exec(it);
           if (yv && +yv[1] + (it.indexOf('mp-posd') > 0 ? 5 : 0) < ceil) continue;

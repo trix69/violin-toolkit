@@ -515,8 +515,7 @@ midi_html = open(SP + 'midi.html').read()
 # edition (source, typesetter), licence verbatim. Plain text: the store apps have no outside links.
 SCORE_CREDITS = [
     ('Twinkle, Twinkle, Little Star', 'Traditional', 'Engraved by Violin Toolkit, 2026', 'CC0 1.0'),
-    ('Minuet in G major, BWV Anh. 114', 'Christian Petzold (formerly attributed to J. S. Bach)', 'Mutopia Project no. 75 (Bach-Gesellschaft), typeset by Allen Garvin; MusicXML by Violin Toolkit', 'Public Domain'),
-    ('Minuet in G minor, BWV Anh. 115', 'Christian Petzold (formerly attributed to J. S. Bach)', 'Mutopia Project no. 76 (Bach-Gesellschaft), typeset by Allen Garvin; the keyboard original: the right hand played on the violin at its own pitch, the left hand as accompaniment; converted to MusicXML by Violin Toolkit (simple slurs added by Violin Toolkit)', 'Public Domain'),
+    ('Minuets in G major and G minor, BWV Anh. 114–115', 'Christian Petzold (formerly attributed to J. S. Bach)', 'Mutopia Project no. 75 (Anh. 114) and no. 76 (Anh. 115) (Bach-Gesellschaft), typeset by Allen Garvin; MusicXML by Violin Toolkit; Anh. 115 is the keyboard original: the right hand played on the violin at its own pitch, the left hand as accompaniment (simple slurs added by Violin Toolkit); joined into one piece (I, II, I) by Violin Toolkit', 'Public Domain'),
     ('Minuet in G major, BWV Anh. 116', 'Attributed to J. S. Bach', 'Mutopia Project no. 77 (Bach-Gesellschaft), typeset by Allen Garvin; the keyboard original: the right hand played on the violin at its own pitch, the left hand as accompaniment; converted to MusicXML by Violin Toolkit (simple slurs added by Violin Toolkit)', 'Public Domain'),
     ('Ode to Joy', 'Ludwig van Beethoven', 'Mutopia Project no. 528, typeset by Peter Chubb; violin line arranged by Violin Toolkit', 'Public Domain'),
     ('Gavotte by Martini', 'Giovanni Battista Martini', 'Mutopia Project no. 1785 (C. F. Peters, ca. 1891), typeset by Fabien Mirloup; converted to MusicXML by Violin Toolkit', 'Creative Commons Attribution-ShareAlike 3.0'),
@@ -550,8 +549,7 @@ CREDITS_HTML = ''.join('<li><b>%s</b><span translate="no">%s</span><span transla
 # the source line in the bottom-left footer of every Fingerings page (Trix): short form of the credits above
 SCORE_SOURCE = {
     'twinkle.mxl': 'Engraved by Violin Toolkit, 2026 · CC0 1.0',
-    'minuet.mxl': 'Mutopia Project #75 (typeset by Allen Garvin), MusicXML by Violin Toolkit · Public Domain',
-    'minuet115.mxl': 'Mutopia Project #76 (typeset by Allen Garvin), MusicXML by Violin Toolkit · Public Domain',
+    'minuets.mxl': 'Mutopia Project #75 and #76 (typeset by Allen Garvin), MusicXML by Violin Toolkit · Public Domain',
     'minuet116.mxl': 'Mutopia Project #77 (typeset by Allen Garvin), MusicXML by Violin Toolkit · Public Domain',
     'ode.mxl': 'Mutopia Project #528 (typeset by Peter Chubb), violin line arr. Violin Toolkit · Public Domain',
     'gavotte.mxl': 'Mutopia Project #1785 (typeset by Fabien Mirloup), MusicXML by Violin Toolkit · CC BY-SA 3.0',
@@ -582,8 +580,7 @@ SCORE_SOURCE = {
 }
 MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
               ('ode.mxl', 'Ode to Joy', 'Ludwig van Beethoven'),
-              ('minuet.mxl', 'Minuet in G major, BWV Anh. 114', 'Christian Petzold (formerly attributed to J. S. Bach)'),
-              ('minuet115.mxl', 'Minuet in G minor, BWV Anh. 115', 'Christian Petzold (formerly attributed to J. S. Bach)'),
+              ('minuets.mxl', 'Minuets in G major and G minor, BWV Anh. 114–115', 'Christian Petzold (formerly attributed to J. S. Bach)'),
               ('minuet116.mxl', 'Minuet in G major, BWV Anh. 116', 'Attributed to J. S. Bach'),
               ('gavotte.mxl', 'Gavotte by Martini', 'Giovanni Battista Martini'),
               ('air.mxl', 'Air (BWV 1068)', 'Johann Sebastian Bach'),
