@@ -3311,15 +3311,7 @@
       R.missed ? R.missed + ' missed' : '', R.extra ? R.extra + ' extra' : ''
     ].filter(Boolean).forEach(function (t, i) { if (i) st.appendChild(document.createTextNode(' · ')); var sp = document.createElement('span'); sp.textContent = t; st.appendChild(sp); });
     $('paTemper').textContent = R.empty ? '' : { equal: 'Measured against Equal temperament.', just: 'Measured against Just intonation.', pyth: 'Measured against Pythagorean tuning.' }[R.temper] || 'Measured against Equal temperament.';
-    $('paLegend').hidden = $('paWorstH').hidden = !!R.empty;
-    var ol = $('paWorst'); ol.textContent = '';
-    (R.worst || []).forEach(function (b) {
-      var li = document.createElement('li'), bt = document.createElement('button'); bt.type = 'button';
-      var w = b.worst, wtxt = w ? APP.board.name(w.m) + ' ' + (w.cents >= 0 ? '+' : '−') + Math.abs(Math.round(w.cents)) + ' ¢' : '';
-      bt.textContent = 'Bar ' + b.num + ': ' + Math.round(b.cents) + ' ¢' + (wtxt ? ' (' + wtxt + ')' : '');
-      bt.addEventListener('click', function () { paOpenBar(b.idx); });
-      li.appendChild(bt); ol.appendChild(li);
-    });
+    $('paLegend').hidden = !!R.empty;   /* no list of the worst bars (Trix): the tints show them, a tap opens one */
     paRetint();
   }
   /* a bar tapped (on the tints or in the list): A–B on that bar, and the player opens there */
