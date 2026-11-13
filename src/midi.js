@@ -3389,14 +3389,14 @@
     }
   };
   APP.paState = function () { return { take: paTake ? paTake.state : null, view: paView, result: paRes, mute: paMute }; };   /* tests */
-  /* swipe between the two tools (Trix): the MIDI player is the left page, Fingerings the right one; a swipe left on the
+  /* swipe between the tools (Trix): MIDI player, Fingerings and Play-along side by side, in that order; a swipe left on the
      player opens Fingerings, a swipe right on Fingerings opens the player, sliding in like a page. From the fingerboard
      too (Trix; in the player it only shows notes, a press plays nothing). Not from a slider, a list, an open panel, full screen, zoomed pages that scroll
      sideways, or Play-along */
   (function () {
     var sx = 0, sy = 0, st = 0, ok = false;
     function from(t) {
-      if (paOn || full || !(shown || fgShown)) return false;
+      if ((paOn && paTake) || full || !(shown || fgShown || paOn)) return false;   /* not while a Play-along take runs: leaving would end it */
       if (!t.closest) return true;
       if (t.closest('input, select, textarea, .mp-mixpop, .mp-abpop, .mp-lvmenu, [role="dialog"], .sheet')) return false;
       if (fgShown && fgPages.classList.contains('zoomed') && fgPages.scrollWidth > fgPages.clientWidth + 2) return false;
@@ -3412,8 +3412,10 @@
       if (!ok) return; ok = false;
       var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
       if (performance.now() - st > 700 || Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
-      var to = shown && dx < 0 ? 'fingering' : fgShown && dx > 0 ? 'midi' : null;
-      if (!to) return;
+      /* the row (Trix): MIDI player, Fingerings, Play-along (where the build shows its tile) */
+      var row = ['midi', 'fingering'].concat(document.querySelector('.launch-btn[data-view="playalong"]') ? ['playalong'] : []);
+      var at = row.indexOf(paOn ? 'playalong' : shown ? 'midi' : 'fingering'), to = row[at + (dx < 0 ? 1 : -1)];
+      if (!to || at < 0) return;
       APP.show(to);
       var sec = document.getElementById('view-' + to);
       if (sec && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
