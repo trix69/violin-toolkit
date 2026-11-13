@@ -3251,7 +3251,8 @@
   /* live: the note due (lit on the board by the player, on its string and finger) against the note heard (Pitch
      Check's disc on that string, and a needle over ±50 cents); a pitch with no note due: a disc alone */
   function paHeard(f, rms) {
-    if (!f || rms <= ASSESS.GATE) { APP.board.heard(null); paNeedle.classList.add('quiet'); paNName.textContent = ''; paNCents.textContent = ''; paPin.style.left = '50%'; return; }
+    if (!f || rms <= ASSESS.GATE) { APP.board.heard(null); paNeedle.classList.add('quiet'); paNName.textContent = '\u00a0'; paNCents.textContent = '\u00a0'; paPin.style.left = '50%'; return; }
+    paNeedle.classList.remove('quiet');
     var due = null, ns = song.notes;
     for (var k = Math.max(0, ni - 4); k < ns.length && ns[k].t <= pos + 0.02; k++) if (ns[k].e > pos - 0.05 && !ns[k].grace) due = ns[k];
     var m = 69 + 12 * Math.log(f / (APP.a4 || 440)) / Math.LN2;

@@ -81,3 +81,8 @@
 .pa-mic { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 140px; }
 .pa-mic svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .pa-mic .pa-meter { flex: 1; min-width: 40px; max-width: none; height: 6px; }
+
+/* the needle row keeps one height whether a pitch is heard or not (Trix: the page jumped up and down during a take) */
+.pa-needle { height: 30px; box-sizing: border-box; overflow: hidden; }
+.pa-nname, .pa-ncents { line-height: 30px; height: 30px; white-space: nowrap; }
+.pa-needle.quiet .pa-pin { opacity: .35; }
