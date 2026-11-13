@@ -301,16 +301,17 @@
               /* graces marked steal-time-previous, and slashed ones (Trix: the Minuets' bar 8, a quick grace just before the beat): about a
                  32nd each (at most that share of the note before), ending on the beat; the note before gives up the time */
               var prev = null; for (var pq = notes.length - 1; pq >= 0; pq--) if (!notes[pq].grace) { prev = notes[pq]; break; }
-              var cnt2 = graces.length, room = prev ? (t0 - prev.t0) * graces[0].steal / 100 : TPQ / 8, each2 = Math.max(1, Math.round(Math.min(TPQ / 8, room / cnt2))), g0 = t0 - cnt2 * each2;
+              var cnt2 = graces.length, room = prev ? (t0 - prev.t0) * graces[0].steal / 100 : TPQ / 8, each2 = Math.max(1, Math.round(Math.min(TPQ / 8, room / cnt2))), g0 = Math.max(0, t0 - cnt2 * each2);   /* nothing before the first beat (Hermes F80) */
+              if (g0 + cnt2 * each2 > t0) t0 = g0 + cnt2 * each2;   /* the file's first note: the grace takes its time from it instead */
               if (prev && prev.t1 > g0) { if (!prev.wl) prev.wl = (prev.t1 - prev.t0) / TPQ; prev.t1 = Math.max(prev.t0 + 1, g0); }   /* drawn at its written value, played a little shorter */
-              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: g0 + gi * each2, t1: g0 + (gi + 1) * each2, sb: t0 - (cnt2 - gi), gi: gi, gn: cnt2, ch: ch, v: 90, pz: pz, grace: 'acc' }); });
+              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: g0 + gi * each2, t1: g0 + (gi + 1) * each2, sb: Math.max(0, t0 - (cnt2 - gi)), gi: gi, gn: cnt2, ch: ch, v: 90, pz: pz, grace: 'acc' }); });
               gFrom = -1; gShift = 0; graces = [];
             }
             else if (!chord && graces.length) {
               /* graces not slashed (an appoggiatura, or a run): quick, about a 32nd each (Trix: a very quick grace), on the
                  beat, taking their time from the start of the note that follows */
               var main = t1 - t0, cnt = graces.length, each = Math.round(Math.min(TPQ / 8, main / (2 * cnt)));
-              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: t0 - (cnt - gi), gi: gi, gn: cnt, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
+              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: Math.max(0, t0 - (cnt - gi)), gi: gi, gn: cnt, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
               gFrom = t0; gShift = cnt * each; t0 += gShift; graces = [];
             } else if (!chord) { gFrom = -1; gShift = 0; }
             var slurs = kids(kid(el, 'notations'), 'slur').map(function (sl) { return { t: sl.getAttribute('type'), n: sl.getAttribute('number') || '1' }; });
@@ -588,7 +589,7 @@
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
     var barQ = sig.num * 4 / sig.den, firstB = Math.min(notes[0].b, isFinite(firstTick) ? firstTick / tpq : Infinity);
-    var skipB = Math.floor(firstB / barQ + 1e-6) * barQ, skipT = toSec(skipB * tpq);   /* with an accompaniment: bars where every part is silent */
+    var skipB = Math.max(0, Math.floor(firstB / barQ + 1e-6) * barQ), skipT = toSec(skipB * tpq);   /* with an accompaniment: bars where every part is silent */
     if (skipB > 0) notes.forEach(function (n) { n.b -= skipB; n.t -= skipT; n.e -= skipT; });
     /* how long each note looks on the score: until the next note starts (a short breath between notes is
        not a rest), else its own length; rounded to note values a beginner part uses */
@@ -644,7 +645,7 @@
     return {
       velMid: velMid,
       notes: notes, sig: sig, sf: Math.max(-7, Math.min(7, sf)),
-      bpm: Math.round(60e6 / (function (tp) { return tp.shown || tp.us; })(tempos.filter(function (tp) { return tp.tick <= skipB * tpq; }).pop())),   /* crotchets a minute, where the song starts */
+      bpm: Math.round(60e6 / (function (tp) { return tp.shown || tp.us; })(tempos.filter(function (tp) { return tp.tick <= skipB * tpq; }).pop() || tempos[0])),   /* crotchets a minute, where the song starts */
       bpmAt: function (b) {   /* the tempo at a beat, as marked (a rit. as it eases, a fermata not counted): the ♩ readout, the count-in */
         var t = (b + skipB) * tpq, tp = tempos[0];
         for (var i = 1; i < tempos.length && tempos[i].tick <= t + 1e-6; i++) tp = tempos[i];
