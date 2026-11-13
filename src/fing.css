@@ -1,6 +1,6 @@
 /* Fingerings (指法谱, Trix): the violin part on A4 pages, the same drawing as the MIDI player's score */
-#view-fingering .fg-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0 12px; }
-#view-fingering .fg-note { flex: 1 1 100%; margin: 0; font: 400 13px var(--font-body); color: var(--muted); }
+#view-fingering .fg-bar { display: flex; align-items: center; gap: 12px; margin: 10px 0 12px; }
+#view-fingering .fg-note { flex: 1; margin: 0; font: 400 13px var(--font-body); color: var(--muted); }
 #view-fingering .fg-pdf { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-note); cursor: pointer; }
 #view-fingering .fg-play { flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--fg); cursor: pointer; }
 #view-fingering .fg-play svg { width: 26px; height: 26px; fill: currentColor; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }   /* the MIDI player's triangle: same size, outline and centre (Trix) */
@@ -85,12 +85,13 @@ html.fg-shot #shell, html.fg-shot #main, html.fg-shot #view-fingering, html.fg-s
 html.fg-shot .fg-page { width: 595.28px !important; height: 841.89px !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
 .fg-page .fg-tempo.at-note { text-anchor: start; }   /* starts at the first note */
 
-/* the density control in the tune row (Trix): Full · Medium · Minimum */
-.fg-lv { display: inline-flex; flex: none; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
-.fg-lv button { font: 600 13px/1 'DM Sans', system-ui, sans-serif; color: var(--fg); background: none; border: 0; padding: 0 9px; min-height: 44px; cursor: pointer; }
-.fg-lv button + button { border-left: 1px solid var(--line); }
-.fg-lv button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
-.fg-lv button:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
-#view-fingering .fg-lv { margin-right: auto; }   /* the control on the left, Export on the right */
-@media (min-width: 760px) { #view-fingering .fg-note { flex: 1 1 200px; } #view-fingering .fg-lv { margin-right: 0; } }
-@media (max-width: 360px) { .fg-lv button { padding: 0 6px; font-size: 12.5px; } #view-fingering .fg-bar { column-gap: 8px; } }
+
+/* fingerings shown (Trix): a drop-down in the floating controls; the same setting is in Settings */
+#view-fingering .fg-lvwrap { position: relative; pointer-events: auto; }
+#view-fingering .fg-lvbtn { font: 700 11px/1 'DM Mono', ui-monospace, monospace; letter-spacing: -0.04em; }
+#view-fingering .fg-lvbtn[aria-expanded="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+#view-fingering .fg-lvmenu { position: absolute; top: 38px; right: 0; display: grid; min-width: 150px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+#view-fingering .fg-lvmenu[hidden] { display: none; }
+#view-fingering .fg-lvmenu button { text-align: left; min-height: 44px; padding: 0 12px 0 32px; border: 0; border-radius: 8px; background: none; color: var(--fg); font: 500 15px var(--font-body); cursor: pointer; position: relative; }
+#view-fingering .fg-lvmenu button[aria-checked="true"]::before { content: '✓'; position: absolute; left: 11px; color: var(--accent); font-weight: 700; }
+#view-fingering .fg-lvmenu button:hover, #view-fingering .fg-lvmenu button:focus-visible { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: none; }

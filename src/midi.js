@@ -844,6 +844,9 @@
         var against = prev && fg > 0 && prev.fg > 0 && prev.si === n.si && prev.hand === n.hand && ((n.m > prev.m && fg < prev.fg) || (n.m < prev.m && fg > prev.fg));
         show = !!(keep || phrase || deliberate || against);
       }
+      /* the same pitch again on the same string and finger says nothing new (Trix): hidden at Medium and Minimum, over
+         every other rule except a written fingering and a page's first note */
+      if (prev && n.m === prev.m && n.si === prev.si && fg === prev.fg && un.length === 1 && n.xfg === undefined && !forced[n.b.toFixed(3)]) show = false;
       un.forEach(function (x) { x._fs = show || x.xfg !== undefined; });
       if (show) shown = { si: n.si, fg: fg, bar: bar, m: n.m };
       prev = n; first = false;
@@ -853,6 +856,7 @@
     if (lv === undefined) return FG_LEVEL;
     if (FG_LEVELS.indexOf(lv) < 0 || lv === FG_LEVEL) return FG_LEVEL;
     FG_LEVEL = lv; try { localStorage.setItem('violin-fg-level', lv); } catch (e) {}
+    if (APP.fgLvUi) APP.fgLvUi();
     if (song) { var y = window.scrollY, sl = fgPages ? fgPages.scrollLeft : 0; drawScore(); scroll(); fgDirty = true; if (fgShown) fgRender(); window.scrollTo(0, y); if (fgPages) fgPages.scrollLeft = sl; }
     return FG_LEVEL;
   };
@@ -2193,20 +2197,34 @@
   var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '';
   var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.62, SYS_H = BOT + 46, FG_IND = 60;   /* FG_IND: the first system's indent, in score units (~10 mm) */   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
   function fgOptions() { if (!fgSel) return; fgSel.innerHTML = songSel.innerHTML; fgSel.value = songSel.value; }
-  /* the density control (Trix): three radios, arrows move between them as in a radio group */
+  /* the fingerings-shown drop-down in the Fingerings page's floating controls (Trix); Settings has the same choice */
   (function () {
-    var box = $('fgLv'); if (!box) return;
-    var bs = Array.prototype.slice.call(box.querySelectorAll('button'));
-    function ui() { var lv = APP.fgLevel(); bs.forEach(function (b) { var on = b.dataset.lv === lv; b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; }); }
-    bs.forEach(function (b, i) {
-      b.addEventListener('click', function () { APP.fgLevel(b.dataset.lv); ui(); });
+    var btn = $('fgLvBtn'), menu = $('fgLvMenu'); if (!btn || !menu) return;
+    var items = Array.prototype.slice.call(menu.querySelectorAll('button'));
+    var GLYPH = { full: '123', medium: '1·3', minimum: '1' };
+    APP.fgLvUi = function () {
+      var lv = APP.fgLevel(), nm = { full: 'Full', medium: 'Medium', minimum: 'Minimum' }[lv];
+      items.forEach(function (b) { b.setAttribute('aria-checked', b.dataset.lv === lv ? 'true' : 'false'); });
+      $('fgLvGlyph').textContent = GLYPH[lv];
+      var zh = window.I18N && I18N.lang === 'zh', lab = (zh ? '显示的指法：' : 'Fingerings shown: ') + (zh ? { full: '全部', medium: '中等', minimum: '最少' }[lv] : nm);
+      btn.setAttribute('aria-label', lab); btn.title = lab;
+    };
+    function open(on, focusIt) {
+      menu.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      if (on && focusIt) (items.filter(function (b) { return b.getAttribute('aria-checked') === 'true'; })[0] || items[0]).focus();
+    }
+    btn.addEventListener('click', function () { open(menu.hidden, true); });
+    items.forEach(function (b, i) {
+      b.addEventListener('click', function () { APP.fgLevel(b.dataset.lv); open(false); btn.focus(); });
       b.addEventListener('keydown', function (e) {
-        var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
-        if (!d) return; e.preventDefault(); e.stopPropagation();
-        var nb = bs[(i + d + bs.length) % bs.length]; APP.fgLevel(nb.dataset.lv); ui(); nb.focus();
+        var d = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+        if (d) { e.preventDefault(); items[(i + d + items.length) % items.length].focus(); }
+        else if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); open(false); btn.focus(); }
       });
     });
-    ui();
+    document.addEventListener('pointerdown', function (e) { if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) open(false); }, true);
+    document.addEventListener('i18n', function () { APP.fgLvUi(); });
+    APP.fgLvUi();
   })();
   function fgSync() { fgOptions(); var cur = songs[+songSel.value]; $('fgDel').hidden = !(cur && cur.kept); fgDirty = true; if (APP.fgReset) APP.fgReset(); if (fgShown) fgRender(); }
   var fgT = 0;

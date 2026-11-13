@@ -848,6 +848,7 @@ nav_js = """(function () {
     Array.prototype.forEach.call(segLang.children, function (b) { b.setAttribute('aria-checked', b.dataset.lang === I18N.lang ? 'true' : 'false'); });
     Array.prototype.forEach.call(segA4.children, function (b) { if (b.dataset.a4) b.setAttribute('aria-checked', +b.dataset.a4 === APP.a4 ? 'true' : 'false'); });
     APP.a4Ui();
+    Array.prototype.forEach.call(document.getElementById('segFgLv').children, function (b) { b.setAttribute('aria-checked', b.dataset.lv === (APP.fgLevel ? APP.fgLevel() : 'full') ? 'true' : 'false'); });
     Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', b.dataset.temper === (APP.temper ? APP.temper.id : 'equal') ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
@@ -1163,6 +1164,10 @@ nav_js = """(function () {
   segA4.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b || !b.dataset.a4) return;
     APP.setA4(+b.dataset.a4); syncSheet();
+  });
+  document.getElementById('segFgLv').addEventListener('click', function (e) {   /* fingerings shown: MIDI player and Fingerings (Trix) */
+    var b = e.target.closest('button'); if (!b || !APP.fgLevel) return;
+    APP.fgLevel(b.dataset.lv); syncSheet();
   });
   segTemper.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
@@ -1677,6 +1682,12 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-temper="equal">Equal</button>
       <button type="button" role="radio" aria-checked="false" data-temper="just">Just</button>
       <button type="button" role="radio" aria-checked="false" data-temper="pyth">Pythagorean</button>
+    </div>
+    <h3 id="lblFgLv">Fingerings shown</h3>
+    <div class="segc" role="radiogroup" aria-labelledby="lblFgLv" id="segFgLv">
+      <button type="button" role="radio" aria-checked="true" data-lv="full">Full</button>
+      <button type="button" role="radio" aria-checked="false" data-lv="medium">Medium</button>
+      <button type="button" role="radio" aria-checked="false" data-lv="minimum">Minimum</button>
     </div>
     <h3 id="lblKeys">Key list</h3>
     <div class="segc two" role="radiogroup" aria-labelledby="lblKeys" id="segKeys">
