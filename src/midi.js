@@ -307,9 +307,9 @@
               gFrom = -1; gShift = 0; graces = [];
             }
             else if (!chord && graces.length) {
-              /* a run of graces (not slashed): quick, about a 32nd each; a lone appoggiatura: half
-                 the note. They take their time from the start of the main note (on the beat) */
-              var main = t1 - t0, cnt = graces.length, each = cnt === 1 && !graces[0].slash ? Math.round(main / 2) : Math.round(Math.min(TPQ / 8, main / (2 * cnt)));
+              /* graces not slashed (an appoggiatura, or a run): quick, about a 32nd each (Trix: a very quick grace), on the
+                 beat, taking their time from the start of the note that follows */
+              var main = t1 - t0, cnt = graces.length, each = Math.round(Math.min(TPQ / 8, main / (2 * cnt)));
               graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: t0 - (cnt - gi), gi: gi, gn: cnt, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
               gFrom = t0; gShift = cnt * each; t0 += gShift; graces = [];
             } else if (!chord) { gFrom = -1; gShift = 0; }

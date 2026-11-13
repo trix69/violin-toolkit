@@ -1646,7 +1646,16 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     rekey: function (key, flat) {
       if (!playerOn) return;
       playerKey = key || null;
-      if (playerFlat !== !!flat) { playerFlat = !!flat; render(); layout(); } else paint();
+      if (playerFlat !== !!flat) {
+        playerFlat = !!flat; render(); layout();
+        pvoices.forEach(function (rec) {   /* the rebuilt keys: light again the notes sounding (Hermes F79) */
+          var i = rec.el ? +rec.el.dataset.i : -1, el = buttons[i], nt = notes[i];
+          if (!el || !nt) return;
+          rec.el = el; rec.fx = null;
+          el.classList.remove('off'); el.style.setProperty('--hue', 'var(' + nt.s.v + ')'); el.classList.add('down');
+          showWave(rec, nt, !rec.v);
+        });
+      } else paint();
     },
     on: pOn, off: pOff, allOff: pAllOff, hand: setHand, has: function (id) { return pvoices.has(id); },
     click: function (strong, vol) {   /* the MIDI player's count-in and metronome: a tick, the first one stronger; vol 0-1 (the Mixer) */
