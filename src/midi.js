@@ -2732,7 +2732,10 @@
     var html = pages.map(function (pg, pi) {
       var o = ['<svg class="fg-page" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + PG_W + ' ' + PG_H + '" width="' + PG_W + '" height="' + PG_H + '"><rect class="fg-paper" width="' + PG_W + '" height="' + PG_H + '"/>'];
       if (pi === 0) {
-        o.push('<text class="fg-title" x="' + PG_W / 2 + '" y="' + (PG_M + 22) + '">' + esc(title) + '</text>');   /* centred (Trix) */
+        /* centred (Trix); a title that would reach the QR's white square is set a little smaller, 8 units clear of it (Hermes F81) */
+        var tSize = 22, tMax = 2 * (PG_W - PG_M - 2 * QZ - QS - 8 - PG_W / 2);
+        try { var tcv = fgRender.cv || (fgRender.cv = document.createElement('canvas').getContext('2d')); tcv.font = '700 22px "Times New Roman", "Noto Serif", "Songti SC", serif'; var tw = tcv.measureText(title).width; if (tw > tMax) tSize = Math.max(14, +(22 * tMax / tw).toFixed(2)); } catch (e) {}
+        o.push('<text class="fg-title" x="' + PG_W / 2 + '" y="' + (PG_M + 22) + '"' + (tSize < 22 ? ' style="font-size:' + tSize + 'px"' : '') + '>' + esc(title) + '</text>');
         /* line 2 the composer (when the score names one), line 3 instrument and key (Trix) */
         if (sg.composer) o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + 44) + '">' + esc(sg.composer) + '</text>');
         o.push('<text class="fg-sub" x="' + PG_W / 2 + '" y="' + (PG_M + (sg.composer ? 63 : 44)) + '">' + esc(sg.modeKnown && !keyChanges(sg) ? part + ' · ' + fgKey(sg, zh) : part) + '</text>');
