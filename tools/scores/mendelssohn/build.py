@@ -96,7 +96,7 @@ for pn in range(1, len(NAMES) + 1):
         elif b == LAST: x += '<barline location="right"><bar-style>light-heavy</bar-style></barline>'
         ms.append(x + '</measure>')
     parts.append('<part id="P%d">%s</part>' % (pn, ''.join(ms)))
-pl = ''.join('<score-part id="P%d"><part-name>%s</part-name><midi-instrument id="P%d-I1"><midi-channel>%d</midi-channel><midi-program>%d</midi-program></midi-instrument></score-part>' % (i + 1, NAMES[i], i + 1, i + 1, PROG[i]) for i in range(len(NAMES)))
+pl = ''.join('<score-part id="P%d"><part-name>%s</part-name><midi-instrument id="P%d-I1"><midi-channel>%d</midi-channel><midi-program>%d</midi-program></midi-instrument></score-part>' % (i + 1, NAMES[i], i + 1, i + 1 if i < 9 else i + 2, PROG[i]) for i in range(len(NAMES)))   # channel 10 is percussion: skipped
 ident = '<identification><creator type="composer">%s</creator>%s<rights>%s</rights></identification>' % (esc(C['COMPOSER']), ''.join('<creator type="%s">%s</creator>' % (t[0], esc(t[1])) for t in C.get('EXTRA_CREATORS', [])), esc(C['RIGHTS']))
 xml = ('<?xml version="1.0" encoding="UTF-8"?>\n<score-partwise version="3.1"><work><work-title>%s</work-title></work>' % esc(C['TITLE']) + ident +
        '<part-list>' + pl + '</part-list>' + ''.join(parts) + '</score-partwise>')
