@@ -164,7 +164,7 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa-sb { display: grid; gap: 4px; }
 .pa-sb-h { display: flex; align-items: baseline; gap: 8px; }
 .pa-sb-h b { font: 700 15px var(--font-body); min-width: 4.5em; }
-.pa-sb-big { font: 700 22px var(--font-body); color: #23963a; }
+.pa-sb-big { font: 700 22px var(--font-body); color: var(--fg); }   /* the default text colour: green read as "good" even at 0 % (Trix) */
 .pa-sb-h small { font: 500 13px var(--font-body); color: var(--muted); }
 .pa-sb-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--line); }
 .pa-sb-bar > i { display: grid; place-items: center; min-width: 0; font: 700 11px var(--font-body); font-style: normal; color: #fff; overflow: hidden; white-space: nowrap; }

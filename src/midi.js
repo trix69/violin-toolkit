@@ -2310,7 +2310,11 @@
   if (APP.busy) APP.busy.push(function () { return playing || counting; });   /* playing along counts as practice time */
 
   /* the board fits below the app bar, the score and the controls */
-  function topH() { var a = document.querySelector('.appbar'); return (a ? a.offsetHeight + 10 : 0) + top.offsetHeight + 20 + Math.max(0, bar.offsetHeight - 64); }   /* + the board's own margin and padding */
+  function topH() {
+    var a = document.querySelector('.appbar'), h = (a ? a.offsetHeight + 10 : 0) + top.offsetHeight + 20 + Math.max(0, bar.offsetHeight - 64);
+    if (paOn && paView === 'live') { var v = document.getElementById('view-playalong'); if (v) h += v.offsetHeight + 12; }   /* Play-along's own bar above, the pill below: the board fits the window as in the player (Trix) */
+    return h;
+  }   /* + the board's own margin and padding */
   function reach() {   /* semitones above the open string, on the string the board plays each note on */
     /* the board ends at the highest finger the tune uses (Trix: Twinkle only needs the 3rd finger, so the 3rd
        finger sits near the bottom edge and the rows spread out): in 1st position the 1st finger is 1-2 semitones
@@ -3119,8 +3123,10 @@
     Array.prototype.forEach.call(paSeg.children, function (b) { b.setAttribute('aria-checked', b.dataset.v === paView ? 'true' : 'false'); });
     if (paView === 'live') { fgShown = false; shown = true; fit(); }
     else { shown = false; fgShown = true; fgOptions(); if (fgDirty) fgRender(); fgSys = -1; fgHead(true); }
-    paRetint(); paUi();
+    paRetint(); paUi(); paFitLive();
   }
+  var paLiveH = -1;
+  function paFitLive() { if (!paOn || paView !== 'live' || !shown) return; var h = $('view-playalong').offsetHeight; if (h !== paLiveH) { paLiveH = h; fit(); } }   /* the needle, a result: Play-along's top changes height, the board refits */
   paSeg.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b || b.dataset.v === paView) return;
     paView = b.dataset.v;   /* a change of view only: the take goes on */
@@ -3161,6 +3167,7 @@
     var sh = document.getElementById('shell'); if (sh) { sh.classList.toggle('pa-result', !!(paRes && !paRes.empty) && !rec); sh.classList.toggle('pa-sp', paShowMode !== 'time'); sh.classList.toggle('pa-st', paShowMode !== 'pitch'); }   /* fingerings hidden while a result shows; Pitch | Timing | Both */
     Array.prototype.forEach.call(paShowEl.children, function (b) { b.setAttribute('aria-checked', b.dataset.s === paShowMode ? 'true' : 'false'); });
     if (songSel) songSel.disabled = rec; if (fgSel) fgSel.disabled = rec;
+    paFitLive();
     paClock();
   }
   function paClock() {
