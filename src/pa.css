@@ -103,9 +103,6 @@
 
 /* pitch on the notehead, timing behind the note (Trix) */
 .mp-n.pa-p { cursor: pointer; }
-.mp-n.pa-ok .head { fill: #23963a; } .mp-n.pa-ok .head.hollow { fill: none; stroke: #23963a; }
-.mp-n.pa-amber .head { fill: #d68a00; } .mp-n.pa-amber .head.hollow { fill: none; stroke: #d68a00; }
-.mp-n.pa-red .head { fill: #d23b2f; } .mp-n.pa-red .head.hollow { fill: none; stroke: #d23b2f; }
 .mp-n.pa-miss .head { fill: #9a9a9a; } .mp-n.pa-miss .head.hollow { fill: none; stroke: #9a9a9a; }
 .pa-tr { cursor: pointer; }
 .pa-tr.ok { fill: rgba(46, 160, 67, .16); }
@@ -196,3 +193,14 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa.live .pa-info { display: none; }
 .pa-bar .pa-mic { flex: 0 1 90px; color: var(--muted); margin-left: auto; }
 .pa-bar .pa-mic + .pa-time { margin-left: 0; }
+/* the shadow notes (Trix): dot = pitch (height, colour), line = timing (ends, colour); the written note stays ink */
+.pa-sh { cursor: pointer; }
+.pa-sh .pa-hit { fill: transparent; }
+.pa-sd { opacity: .7; }
+.pa-sd.ok { fill: #23963a; } .pa-sd.amber { fill: #d68a00; } .pa-sd.red { fill: #d23b2f; }
+.pa-sk { stroke-width: 3.5; stroke-linecap: round; opacity: .8; }
+.pa-sk.ok { stroke: #23963a; } .pa-sk.amber { stroke: #e0a020; } .pa-sk.red { stroke: #d23b2f; }
+.shell.pa-result:not(.pa-st) .pa-sk, .shell.pa-result:not(.pa-sp) .pa-sd { display: none; }
+html.fg-printing .pa-sh { display: none !important; } @media print { .pa-sh { display: none !important; } }
+:is(.pa-legend, .pa-bars) .sw-tok, :is(.pa-legend, .pa-bars) .sw-tamber, :is(.pa-legend, .pa-bars) .sw-tred { width: 22px; height: 5px; border-radius: 3px; }
+:is(.pa-legend, .pa-bars) .sw-tok { background: #23963a; } :is(.pa-legend, .pa-bars) .sw-tamber { background: #e0a020; } :is(.pa-legend, .pa-bars) .sw-tred { background: #d23b2f; }

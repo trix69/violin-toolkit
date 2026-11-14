@@ -3151,7 +3151,7 @@
     paRec.setAttribute('aria-label', paRecTxt.textContent);
     paHp.hidden = !rec || busy;
     var hpTxt = $('paHpTxt'); if (hpTxt && paTake) hpTxt.textContent = paTake.sound ? 'Headphones only: the microphone is on.' : 'No sound: the microphone is on.';
-    paNeedle.hidden = true;   /* Live (Trix): the fingerboard below shows the pitch; no needle, no page / bar line */
+    paNeedle.hidden = !(rec && !busy && paView === 'live');   /* Live: the pitch needle stays (Trix); no page / bar line */
     var live = paView === 'live', mic = document.querySelector('#pa .pa-mic');
     $('pa').classList.toggle('live', live);
     if (live && mic.nextSibling !== $('paTime')) $('paTime').parentNode.insertBefore(mic, $('paTime'));   /* the microphone level beside the time */
@@ -3380,7 +3380,7 @@
     return g;
   }
   function paClearTints() {
-    Array.prototype.forEach.call(document.querySelectorAll('.pa-tint, .pa-nm, .pa-tr, .pa-wrong'), function (el) { el.remove(); });
+    Array.prototype.forEach.call(document.querySelectorAll('.pa-tint, .pa-nm, .pa-tr, .pa-wrong, .pa-sh'), function (el) { el.remove(); });
     Array.prototype.forEach.call(document.querySelectorAll('.mp-n.pa-p'), function (g) { g.classList.remove('pa-p', 'pa-ok', 'pa-amber', 'pa-red', 'pa-miss'); g.removeAttribute('data-pabar'); });
   }
   var PA_RANK = { ok: 0, na: 1, miss: 2, amber: 3, red: 4 };
@@ -3410,11 +3410,11 @@
     });
     var r1 = paResOf[list[0]];
     if (r1 && !r1.missed && !r1.chord && r1.cents !== undefined && n0.si >= 0) {
-      if (n0.fg === 0 && Math.abs(r1.cents) > ASSESS.IN_TUNE) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say');   /* no finger to move: the string's tuning */
+      if (n0.fg === 0 && Math.abs(r1.cents) > ASSESS.IN_TUNE && Math.abs(r1.cents) < PA_WRONG) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say');   /* no finger to move: the string's tuning */
       if (paView === 'pages') {   /* Pages only: Live has the big fingerboard (Trix); the board on the right of the text */
         var fb = paFingerSvg(n0, r1, k), txt = document.createElement('div'); txt.className = 'pa-fb-txt';
         while (box.firstChild) txt.appendChild(box.firstChild);
-        if (n0.fg !== 0) txt.appendChild(fb.say); box.appendChild(txt); box.appendChild(fb.svg); box.classList.add('has-fb');
+        if (n0.fg !== 0 && Math.abs(r1.cents) < PA_WRONG) txt.appendChild(fb.say);   /* a wrong note: 'Played B4 instead of A4' says it, the dot shows where */ box.appendChild(txt); box.appendChild(fb.svg); box.classList.add('has-fb');
       }
     }
     /* as the Symbols page does: in the half of the screen away from the note, so the note stays in sight */
@@ -3438,7 +3438,9 @@
   function paFingerSvg(n, r, k) {
     /* drawn like the MIDI player's board (Trix): all four strings, every note place from the open string up, the key's notes
        tinted, the written note lit in its string colour with its finger, and a disc where the played pitch puts the finger */
-    var si = n.si, open = PA_OPEN[si], ne = n.m - open, na = Math.max(-0.4, ne + r.cents / 100);
+    var si = n.si, open = PA_OPEN[si], ne = n.m - open, na = ne + r.cents / 100, sa = si;
+    while (na < -0.4 && sa > 0) { sa--; na = n.m + r.cents / 100 - PA_OPEN[sa]; }   /* lower than this open string: where it is played, a string down (Trix) */
+    na = Math.max(-0.4, na);
     function mm(x) { return PA_LEN * (1 - Math.pow(2, -x / 12)); }
     var top = Math.max(7, Math.ceil(Math.max(ne, na)) + 1), COL = ['#66AEE6', '#74C493', '#E3A24C', '#EE6A5E'];
     var W = 150, X0 = 22, DX = (W - 2 * X0) / 3, Y0 = 26, H = Math.max(210, 22 * top + 40), K = (H - Y0 - 14) / mm(top), R = Math.min(10, K * (mm(1) - mm(0)) / 2 - 1);
@@ -3460,7 +3462,7 @@
         if (R >= 7) o.push('<text x="' + x + '" y="' + (y + 3).toFixed(1) + '" class="pa-fb-t' + (lit ? ' lit' : '') + '">' + (lit && n.fg > 0 ? n.fg : nm) + '</text>');
       }
     }
-    if (Math.abs(r.cents) > ASSESS.IN_TUNE && n.fg !== 0) o.push('<circle cx="' + (X0 + si * DX) + '" cy="' + Y(na).toFixed(1) + '" r="' + (R * 0.62).toFixed(1) + '" fill="' + kind + '" class="pa-fb-got"/>');   /* in tune or open: the written place only (Trix) */
+    if (Math.abs(r.cents) > ASSESS.IN_TUNE && (n.fg !== 0 || Math.abs(r.cents) >= PA_WRONG)) o.push('<circle cx="' + (X0 + sa * DX) + '" cy="' + Y(na).toFixed(1) + '" r="' + (R * 0.62).toFixed(1) + '" fill="' + kind + '" class="pa-fb-got"/>');   /* in tune or open: the written place only (Trix) */
     o.push('</svg>');
     var w = document.createElement('div'); w.innerHTML = o.join('');
     var d = mm(na) - mm(ne), p0 = document.createElement('p'); p0.className = 'pa-fb-say';
@@ -3487,7 +3489,7 @@
         /* far off (Trix: C written, D played): the written note grey, the note played drawn in red where it sits */
         var played = kind === 'red' && Math.abs(r.cents) >= PA_WRONG ? r.m + Math.round(r.cents / 100) : null;
         if (played !== null && played === r.m) played = null;
-        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r), played: played }; barOf[k] = bi; paResOf[k] = r; });
+        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r), played: played, c: kind === 'na' || r.missed ? null : r.cents, t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
       });
     });
     function draw(root, merge) {
@@ -3497,15 +3499,27 @@
         var k = +g.getAttribute('data-k'), m = merge ? merge[k] || st[k] : st[k], head = g.querySelector('ellipse.head');
         if (!m || !head) return;
         var wrong = m.played !== null && m.played !== undefined;
-        g.classList.add('pa-p', m.kind === 'na' || wrong ? 'pa-miss' : 'pa-' + m.kind);
+        g.classList.add('pa-p'); if (m.kind === 'miss' || m.kind === 'na' || wrong) g.classList.add('pa-miss');   /* the written note stays ink; grey when missed */
         if (wrong) g.parentNode.insertBefore(paPlayedHead(m.played, +head.getAttribute('cx'), +head.getAttribute('cy'), song.notes[k].b), g.nextSibling);
         g.setAttribute('data-pabar', barOf[k]); g.setAttribute('data-pak', (merge ? 'p' : 's') + k);
-        if (m.time) {
-          var cx = +head.getAttribute('cx'), r = document.createElementNS(NS, 'rect');
-          r.setAttribute('class', 'pa-tr ' + m.time);
-          r.setAttribute('x', (cx - 10).toFixed(1)); r.setAttribute('y', Y0 - 10); r.setAttribute('width', 20); r.setAttribute('height', 4 * S + 20); r.setAttribute('rx', 4);
-          r.setAttribute('data-pabar', barOf[k]); r.setAttribute('data-pak', (merge ? 'p' : 's') + k);
-          g.parentNode.insertBefore(r, g);
+        /* the shadow note (Trix): a coloured note behind the written one. Up / down = pitch (half a space per 25 ¢, at most 1.5
+           spaces), head colour = pitch band; left / right = timing (the middle of start and end: left = early overall, 1 px per 7 ms,
+           at most 18 px), stem colour = timing band; wider head = held longer than written, narrower = shorter */
+        if (m.c !== null && m.c !== undefined) {
+          var cx = +head.getAttribute('cx'), cy = +head.getAttribute('cy'), rx = +head.getAttribute('rx') || S * 0.6, ry = +head.getAttribute('ry') || S * 0.45;
+          var t0 = m.t0 == null ? 0 : m.t0, t1 = m.t1 == null ? t0 : m.t1;
+          var dy = wrong ? 0 : -Math.max(-1.5 * S, Math.min(1.5 * S, m.c / 25 * S / 2)), dx = Math.max(-18, Math.min(18, (t0 + t1) / 2 / 7));
+          var wf = Math.max(0.55, Math.min(1.9, 1 + (t1 - t0) / 400)), hx = cx + dx, hy = cy + dy, HR = rx * 1.3 * wf, VR = ry * 1.3;
+          var up = true; Array.prototype.forEach.call(g.querySelectorAll('line'), function (l) {   /* the stem goes the way the written one does */
+            var x1 = +l.getAttribute('x1'), y1 = +l.getAttribute('y1'), y2 = +l.getAttribute('y2');
+            if (Math.abs(x1 - cx) <= rx + 2 && Math.abs(y2 - y1) > 2 * S) up = Math.min(y1, y2) < cy - S;
+          });
+          var sxS = up ? hx + HR - 1.2 : hx - HR + 1.2, sy2 = up ? hy - 3.4 * S : hy + 3.4 * S, sh = document.createElementNS(NS, 'g');
+          sh.setAttribute('class', 'pa-sh'); sh.setAttribute('data-pabar', barOf[k]); sh.setAttribute('data-pak', (merge ? 'p' : 's') + k);
+          sh.innerHTML = '<rect class="pa-hit" x="' + (Math.min(cx, hx) - HR - 4).toFixed(1) + '" y="' + (cy - 2.5 * S).toFixed(1) + '" width="' + (Math.abs(hx - cx) + 2 * HR + 8).toFixed(1) + '" height="' + (5 * S).toFixed(1) + '"/>' +
+            (m.time ? '<line class="pa-sk ' + m.time + '" x1="' + sxS.toFixed(1) + '" y1="' + hy.toFixed(1) + '" x2="' + sxS.toFixed(1) + '" y2="' + sy2.toFixed(1) + '"/>' : '') +
+            (wrong ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>');   /* a wrong note: the red played head says the pitch */
+          g.parentNode.insertBefore(sh, g);   /* behind the written note: its shadow */
         }
       });
     }
@@ -3518,7 +3532,9 @@
       (paPrinted[w] = paPrinted[w] || []).push(k);
       if (barOf[w] === undefined) barOf[w] = barOf[k];
       var cur = merged[w];
-      if (!cur) { merged[w] = { kind: s0.kind, time: s0.time, played: s0.played }; return; }
+      if (!cur) { merged[w] = { kind: s0.kind, time: s0.time, played: s0.played, c: s0.c, t0: s0.t0, t1: s0.t1 }; return; }
+      if (s0.c !== null && s0.c !== undefined && (cur.c === null || cur.c === undefined || Math.abs(s0.c) > Math.abs(cur.c))) cur.c = s0.c;   /* a repeat: the worse time round shows */
+      if (s0.time && (!cur.time || TR[s0.time] > TR[cur.time])) { cur.t0 = s0.t0; cur.t1 = s0.t1; }
       if (PA_RANK[s0.kind] > PA_RANK[cur.kind]) cur.kind = s0.kind;
       if (s0.played !== null && s0.played !== undefined && (cur.played === null || cur.played === undefined)) cur.played = s0.played;
       if (s0.time && (!cur.time || TR[s0.time] > TR[cur.time])) cur.time = s0.time;
