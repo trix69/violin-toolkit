@@ -22,7 +22,8 @@
       <button type="button" role="radio" data-s="time" aria-checked="false">Timing</button>
       <button type="button" role="radio" data-s="both" aria-checked="true">Both</button>
     </div>
-    <div class="pa-legend" id="paLegend">
+    <button type="button" class="pa-lgbtn" id="paLgBtn" aria-expanded="false" aria-controls="paLegend"><span>What the colours mean</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+    <div class="pa-legend" id="paLegend" hidden>
       <div class="pa-lg pa-lg-pitch">
         <span class="pa-lh">Shadow note head, pitch (higher = sharp, lower = flat):</span>
         <span><i class="sw sw-ok" aria-hidden="true"></i><span>within 10 ¢</span></span>

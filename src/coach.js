@@ -51,7 +51,7 @@
       { sel: '#paSeg', title: 'Pages or Live', text: 'Pages shows the Fingerings pages; Live shows the scrolling score and the fingerboard. You can switch during a take.' },
       { sel: '#paRec', title: 'Start a take', text: 'Tap Start, choose headphones or no sound, and play along after the count-in. Tap Stop when you are done.' },
       { sel: '#pa .pa-mic', title: 'Microphone', text: 'The bar shows the microphone hears you. During a take a needle shows the note you play and how far off it is.' },
-      { sel: '#paFloat', title: 'Listen first', text: 'Speed, Mixer, A–B and zoom, to listen and practise. A take always plays at the score’s own tempo.' }
+      { sel: '#paFloat', title: 'Listen first', text: 'Speed, Mixer, A–B and zoom, to listen and practise. A take plays at the speed set here.' }
     ],
     'playalong:result': [
       { sel: '#paStats', title: 'Your result', text: 'How many notes were in tune and on time. The bar shows the green, amber, red and missed share.' },

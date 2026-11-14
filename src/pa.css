@@ -169,8 +169,7 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa-sb-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--line); }
 .pa-sb-bar > i { display: grid; place-items: center; min-width: 0; font: 700 11px var(--font-body); font-style: normal; color: #fff; overflow: hidden; white-space: nowrap; }
 .pa-sb-bar .s-ok { background: #23963a; } .pa-sb-bar .s-amber { background: #d68a00; } .pa-sb-bar .s-red { background: #d23b2f; } .pa-sb-bar .s-miss { background: #9a9a9a; }
-.pa-sb-bar.time .s-ok { background: rgba(46, 160, 67, .55); color: #12401c; } .pa-sb-bar.time .s-amber { background: rgba(232, 164, 32, .75); color: #4a2f00; }
-.pa-sb-bar.time .s-red { background: repeating-linear-gradient(135deg, rgba(214, 48, 39, .85) 0 4px, rgba(214, 48, 39, .4) 4px 8px); }
+/* the timing bar in the same solid colours as the pitch bar (Trix: the striped red was from the old timing backgrounds) */
 
 /* the card's fingerboard picture (Trix): like the MIDI player's board, on the right of the text */
 .pa-tip-card:has(.has-fb) { width: min(100%, 420px); }
@@ -188,7 +187,13 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa-fb-got { stroke: #fff; stroke-width: 1.5; }
 .pa-tip-body .pa-fb-say { margin-top: 8px; font-weight: 600; }
 .pa-sb .pa-lg { margin-top: 4px; font-size: 13px; }
-.pa-bars { gap: 16px; }
+.pa-bars { gap: 16px; grid-template-columns: 1fr 1fr; }   /* Pitch left, Timing right (Trix) */
+.pa-bars .pa-sb-h { flex-wrap: wrap; column-gap: 6px; row-gap: 0; }
+.pa-bars .pa-sb-h b { min-width: 0; }
+.pa-lgbtn { display: inline-flex; align-items: center; gap: 4px; justify-self: start; padding: 4px 0; border: 0; background: none; color: var(--muted); font: 500 13px var(--font-body); cursor: pointer; }
+.pa-lgbtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+.pa-lgbtn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.pa-legend[hidden] { display: none !important; }
 /* Live (Trix): no page / bar line; the microphone level sits in the top bar beside the time */
 .pa .pa-info { display: none; }   /* no page / bar line in either view (Trix) */
 .pa-bar .pa-mic { flex: 0 1 90px; color: var(--muted); margin-left: auto; }

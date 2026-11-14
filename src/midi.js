@@ -2082,7 +2082,7 @@
   /* a piece chosen from the player's list plays straight away, after the count-in (Trix); the sound engine is woken
      inside the tap (iPhone), the playing waits until the score is in (a built-in still downloading on the phone apps) */
   var autoPlay = -1;
-  songSel.addEventListener('change', function () { autoPlay = +songSel.value; APP.board.prime(); load(+songSel.value); });
+  songSel.addEventListener('change', function () { fgNote = ''; autoPlay = +songSel.value; APP.board.prime(); load(+songSel.value); });
   ['touchend', 'pointerup', 'mousedown', 'keydown'].forEach(function (ev) {   /* the tap that opens the list wakes the sound: the choice itself isn't a tap on iPhone, so a tune it started played silently until the next tap (Trix) */
     songSel.addEventListener(ev, function () { APP.board.prime(); }, { passive: true });
   });
@@ -2318,7 +2318,8 @@
      the player shows, not while typing or with a window open; Space never also presses the focused button */
   var spaceKey = false;
   function keyOk(e) {
-    if (!(shown || fgShown) || paOn || e.ctrlKey || e.metaKey || e.altKey) return false;   /* Play-along: the take drives the player, not the keys */   /* Fingerings plays the same player (Trix) */
+    if (!(shown || fgShown || paOn) || e.ctrlKey || e.metaKey || e.altKey) return false;
+    if (paOn && (paTake || e.key === ' ' || e.code === 'Space')) return false;   /* Play-along: the speed keys outside a take (Trix); a take drives the player, and Space has no button there */   /* Fingerings plays the same player (Trix) */
     var t = e.target, tag = t && t.tagName;
     if (tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return false;
     if (tag === 'INPUT' && !/^(range|button|checkbox)$/i.test(t.type)) return false;
@@ -2538,7 +2539,7 @@
      Same tune list, reader, planner and drawing as the player (scoreItems): the long line is cut at bar lines
      into systems, each system justified by widening its note spacing (a second drawing pass, so nothing is
      stretched), systems stacked on pages. The preview is the PDF: printing shows these same pages. */
-  var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '';
+  var fgSel = $('fgSong'), fgPages = $('fgPages'), fgMsg = $('fgMsg'), fgPdf = $('fgPdf'), fgShown = false, fgDirty = true, fgHtml = '', fgNote = '';
   var PG_W = 794, PG_H = 1123, PG_M = 57, PG_K = 0.62, SYS_H = BOT + 46, FG_IND = 60;   /* FG_IND: the first system's indent, in score units (~10 mm) */   /* A4 at 96 px per inch, 15 mm margins; score at 64 % (a 5.8 mm staff) */
   function fgOptions() { if (!fgSel) return; fgSel.innerHTML = songSel.innerHTML; fgSel.value = songSel.value; }
   /* the fingerings-shown drop-downs (Trix): in the Fingerings page's floating controls and in the MIDI player's bar
@@ -2745,6 +2746,11 @@
     if (!m || !QR || !QR.tunes) return;
     var c = m[1].toLowerCase(), f = null;
     Object.keys(QR.tunes).forEach(function (k) { if (QR.tunes[k].c === c) f = k; });
+    if (!f) {   /* a piece added after this version (Trix: the QR opened the app but not the tune): say so, not nothing */
+      if (APP.show) APP.show('fingering');
+      fgNote = 'This piece is in a newer version of the app. Update the app to open it.'; fgDirty = true; if (APP.fgSync) APP.fgSync();
+      return;
+    }
     for (var i = 0; f && i < songs.length; i++) if (songs[i].demo && songs[i].demo.f === f) {
       if (+songSel.value !== i) { songSel.value = String(i); load(i); }
       if (fgSel) fgOptions();
@@ -2765,7 +2771,7 @@
     if (!fgPages) return;
     fgDirty = false;
     if (!song) { fgPages.innerHTML = ''; fgPdf.disabled = true; fgMsg.hidden = false; fgMsg.textContent = msg.hidden ? 'Opening the score…' : msg.textContent; return; }
-    fgMsg.hidden = true; fgPdf.disabled = false;
+    fgMsg.hidden = !fgNote; fgMsg.textContent = fgNote; fgMsg.classList.toggle('err', !!fgNote); fgPdf.disabled = false;   /* fgNote: a QR's piece this version lacks */
     var sg = song, r = fgLayout(sg), zh = window.I18N && I18N.lang === 'zh';
     /* page 1 opens with the title block (title, part, key and tempo; the QR on the right); later pages with a
        running header; no footer on any page, no watermark (Trix) */
@@ -2891,7 +2897,7 @@
     }
   }
   if (fgSel) {
-    fgSel.addEventListener('change', function () { songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
+    fgSel.addEventListener('change', function () { fgNote = ''; songSel.value = fgSel.value; load(+songSel.value); });   /* one current tune for both tools */
     $('fgImport').addEventListener('click', function () { $('mpImport').click(); });   /* the same import, the same list */
     $('fgDel').addEventListener('click', function () { APP.askDelete(fgSel); });   /* the player's delete, after asking: the same list (Trix) */
     /* a click or tap on a note jumps there (Trix), as on the MIDI player's score: paused, it shows lit with its fingering;
@@ -3187,6 +3193,7 @@
   paSeg.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b || b.dataset.v === paView) return;
     paView = b.dataset.v;   /* a change of view only: the take goes on */
+    if (paView === 'pages' && full) setFull(false);   /* full screen is Live's only: Pages leaves it (Trix; Hermes F94) */
     try { localStorage.setItem('violin-pa-view', paView); } catch (err) {}
     if (paOn) paLayout();
   });
@@ -3303,9 +3310,9 @@
     });
   }
   function paStartTake(T) {
-    /* the take: from the top, at the score's tempo, no loop or A–B; without sound nothing is scheduled at all */
-    paSaved = { speed: speed, loop: loop, ab: ab };
-    pause(); speed = 1; loop = false; ab = null; abUi(); seekTo(0);
+    /* the take: from the top at the speed chosen (Trix: practise slower), no loop or A–B; without sound nothing is scheduled at all */
+    paSaved = { speed: speed, loop: loop, ab: ab }; T.speed = speed;
+    pause(); loop = false; ab = null; abUi(); seekTo(0);
     if (paView === 'pages') fit();   /* the board plays the violin part, so it is in player mode even while the pages show */
     paMute = !T.sound;
     T.state = 'count';
@@ -3363,7 +3370,8 @@
     if (!started || T.f0 < 0) { paTake = null; paRes = { empty: true, bars: [], partial: 'Nothing was recorded.' }; paShowResult(); return; }
     /* the score on the take's clock: a note at song time t was due at frame time t + shift */
     var shift = T.ctxGo - T.f0 / T.ctx.sampleRate, cut = T.recEnd + 0.05;
-    var notes = song.notes.filter(function (n) { return n.t < cut; }).map(function (n) { return { t: n.t + shift, e: n.e + shift, m: n.m, b: n.b, grace: n.grace, si: n.si, fg: n.fg }; });
+    var sp = T.speed || 1; paTakeSpeed = sp;   /* score seconds -> the take's seconds at the speed it was played */
+    var notes = song.notes.filter(function (n) { return n.t < cut; }).map(function (n) { return { t: n.t / sp + shift, e: n.e / sp + shift, m: n.m, b: n.b, grace: n.grace, si: n.si, fg: n.fg }; });
     var job = ASSESS.job(T.fr, { notes: notes }, { hz: function (n) { return APP.board.hz(n.m, n.si, n.fg === 0); } }), t0 = performance.now();
     (function slice() {
       if (paTake !== T) return;
@@ -3374,6 +3382,9 @@
       paShowResult();
     })();
   }
+  $('paLgBtn').addEventListener('click', function () {   /* the colour key: folded until asked for (Trix) */
+    var open = this.getAttribute('aria-expanded') !== 'true'; this.setAttribute('aria-expanded', open ? 'true' : 'false'); $('paLegend').hidden = !open;
+  });
   APP.paAnalysisSecs = function () { return paRes && paRes.secs; };   /* tests */
   function paSummarise(an, recEnd) {
     var bars = song.bars || [], recBeat = song.toBeat(recEnd), recBars = bars.filter(function (b) { return b.beat < recBeat - 1e-6; });
@@ -3385,11 +3396,18 @@
     return sum;
   }
   function paShowResult() {
-    var R = paRes; paUi();
+    var R = paRes;
+    if (full) setFull(false);   /* the result shows above the score: out of full screen first */
+    paUi();
+    setTimeout(function () {   /* the take is over: up to the result, wherever the score had scrolled to (Trix) */
+      if (paRes !== R || !paOn) return;
+      var rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      try { window.scrollTo({ top: 0, behavior: rm ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+    }, 50);
     if (!R.empty && APP.coach) setTimeout(function () { if (paRes === R && paOn) APP.coach.maybe('playalong:result'); }, 300);   /* the result's own tips, once (Trix) */
     var part = $('paPartial'); part.textContent = R.partial || ''; part.hidden = !R.partial;
     var st = $('paStats'), lgP = document.querySelector('.pa-lg-pitch'), lgT = document.querySelector('.pa-lg-time');
-    $('paLegend').appendChild(lgP); $('paLegend').appendChild(lgT); st.textContent = '';   /* each legend goes under its own bar (Trix) */
+    $('paLegend').appendChild(lgP); $('paLegend').appendChild(lgT); st.textContent = '';   /* the key, folded under its button (Trix) */
     if (!R.empty) {   /* a bar each for pitch and timing (Trix): how many notes fell in each band, the green share large */
       var all = [], P = { ok: 0, amber: 0, red: 0, miss: 0 }, T = { ok: 0, amber: 0, red: 0, miss: 0 };
       R.bars.forEach(function (b) { b.notes.forEach(function (r) { all.push(r); }); });
@@ -3415,11 +3433,11 @@
           seg.textContent = pc >= 12 ? Math.round(pc) + '%' : ''; seg.title = C[k] + ' / ' + n; seg.setAttribute('translate', 'no');
           bar.appendChild(seg);
         });
-        box.appendChild(bar); box.appendChild(row[0] === 'Pitch' ? lgP : lgT); st.appendChild(box);
+        box.appendChild(bar); st.appendChild(box);   /* Pitch on the left, Timing on the right (Trix) */
       });
     }
     $('paTemper').textContent = R.empty ? '' : { equal: 'Measured against Equal temperament.', just: 'Measured against Just intonation.', pyth: 'Measured against Pythagorean tuning.' }[R.temper] || 'Measured against Equal temperament.';
-    $('paLegend').hidden = !!R.empty;   /* no list of the worst bars (Trix): the tints show them, a tap opens one */
+    $('paLegend').hidden = !!R.empty || $('paLgBtn').getAttribute('aria-expanded') !== 'true'; $('paLgBtn').hidden = !!R.empty;   /* the key stays as the button left it (Trix: folded) */   /* no list of the worst bars (Trix): the tints show them, a tap opens one */
     paRetint();
   }
 
@@ -3428,12 +3446,14 @@
      red more (hatched, so it does not rest on colour alone). On the pages a repeat is printed once: its marks show the
      worse of the times through. A tap on a note opens its card */
   /* timing by the beat (Trix: 25 ms was too strict for a slow piece, too loose for a fast one): on time within 1/16 of the beat
-     there (30 to 80 ms), clearly off past 1/8 of it (70 to 160 ms). A take is at the score's tempo, so the beat is the score's */
+     there (30 to 80 ms), clearly off past 1/8 of it (70 to 160 ms). The beat at the take's speed (Trix: takes follow the speed) */
+  var paTakeSpeed = 1;   /* the last take's speed: a slower take has a longer beat, so wider timing bands */
   function paTLim(r) {
     /* the beat the music is counted in: the quarter, or the dotted quarter in 6/8, 9/8, 12/8 (Hermes) */
     var sg = song.sig || { num: 4, den: 4 }, bq = sg.den === 8 && sg.num % 3 === 0 && sg.num > 3 ? 1.5 : 4 / (sg.den || 4);
     var q = 500 * bq; try { if (r.b !== undefined && r.b !== null) q = (song.beatSec(r.b + 0.25) - song.beatSec(r.b)) * 4000 * bq; } catch (e) {}
     if (!(q > 0)) q = 500 * bq;
+    q /= paTakeSpeed || 1;
     r.tOk = Math.round(Math.max(30, Math.min(80, q / 16))); r.tRed = Math.round(Math.max(70, Math.min(160, q / 8)));
   }
   var PA_WRONG = 75;   /* 75 cents or more off: a different note (Trix: "only if it's deviated too much") */
