@@ -3321,23 +3321,25 @@
     ab = { a: i, b: i }; abUi(); pause(); seekTo(abRange().aT);
     APP.show('midi');
   }
-  /* the marks (Trix: per note, not per bar): a disc behind each notehead, green within 10 cents, amber 10-25, red above
-     (hatched, not colour alone), grey missed or not assessed (a chord), with a blue ring where its timing is off by more
-     than 25 ms. On the pages a repeat is printed once: its marks show the worse of the times through. A tap opens the
-     note's bar in the player */
+  /* the marks (Trix): each notehead coloured by its pitch — green within 10 cents, amber 10-25, red more; grey if missed or
+     not assessed (a chord) — and a see-through rectangle behind the note for its timing: green within 25 ms, amber 25-60,
+     red more (hatched, so it does not rest on colour alone). On the pages a repeat is printed once: its marks show the
+     worse of the times through. A tap on a note opens its bar in the player */
+  var PA_TIME_RED = 60;
   function paClearTints() {
-    Array.prototype.forEach.call(document.querySelectorAll('.pa-tint, .pa-nm'), function (el) { el.remove(); });
+    Array.prototype.forEach.call(document.querySelectorAll('.pa-tint, .pa-nm, .pa-tr'), function (el) { el.remove(); });
+    Array.prototype.forEach.call(document.querySelectorAll('.mp-n.pa-p'), function (g) { g.classList.remove('pa-p', 'pa-ok', 'pa-amber', 'pa-red', 'pa-miss'); g.removeAttribute('data-pabar'); });
   }
   var PA_RANK = { ok: 0, na: 1, miss: 2, amber: 3, red: 4 };
   function paRetint() {
     paClearTints();
     if (!paRes || paRes.empty || !song) return;
     var bars = song.bars || [], ns = song.notes, st = {}, barOf = {};
+    function tk(r) { if (r.timing === null || r.timing === undefined) return null; var a = Math.abs(r.timing); return a <= ASSESS.IN_TIME ? 'ok' : a <= PA_TIME_RED ? 'amber' : 'red'; }
     paRes.bars.forEach(function (b, bi) {
       b.notes.forEach(function (r) {
         var kind = r.missed ? 'miss' : r.chord || r.cents === undefined ? 'na' : Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'ok' : Math.abs(r.cents) <= ASSESS.RED ? 'amber' : 'red';
-        var late = r.timing !== null && r.timing !== undefined && Math.abs(r.timing) > ASSESS.IN_TIME;
-        r.idx.forEach(function (k) { st[k] = { kind: kind, late: late }; barOf[k] = bi; });
+        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r) }; barOf[k] = bi; });
       });
     });
     function draw(root, merge) {
@@ -3346,24 +3348,28 @@
       Array.prototype.forEach.call(root.querySelectorAll('.mp-n[data-k]:not(.mp-grace)'), function (g) {
         var k = +g.getAttribute('data-k'), m = merge ? merge[k] || st[k] : st[k], head = g.querySelector('ellipse.head');
         if (!m || !head) return;
-        var c = document.createElementNS(NS, 'circle');
-        c.setAttribute('class', 'pa-nm ' + m.kind + (m.late ? ' late' : ''));
-        c.setAttribute('cx', head.getAttribute('cx')); c.setAttribute('cy', head.getAttribute('cy')); c.setAttribute('r', '9.5');
-        var tt = document.createElementNS(NS, 'title'); tt.textContent = 'Bar ' + (bars[barOf[k]] ? bars[barOf[k]].num : ''); c.appendChild(tt);
-        c.addEventListener('click', function (ev) { ev.stopPropagation(); paOpenBar(barOf[k]); });
-        g.parentNode.insertBefore(c, g);
+        g.classList.add('pa-p', m.kind === 'na' ? 'pa-miss' : 'pa-' + m.kind);
+        g.setAttribute('data-pabar', barOf[k]);
+        if (m.time) {
+          var cx = +head.getAttribute('cx'), r = document.createElementNS(NS, 'rect');
+          r.setAttribute('class', 'pa-tr ' + m.time);
+          r.setAttribute('x', (cx - 10).toFixed(1)); r.setAttribute('y', Y0 - 10); r.setAttribute('width', 20); r.setAttribute('height', 4 * S + 20); r.setAttribute('rx', 4);
+          r.setAttribute('data-pabar', barOf[k]);
+          g.parentNode.insertBefore(r, g);
+        }
       });
     }
     /* the pages: each played note onto its printed note (the same bar of the score, the same place in it, the same pitch) */
-    var first = {}, merged = {};
+    var first = {}, merged = {}, TR = { ok: 0, amber: 1, red: 2 };
     ns.forEach(function (n, k) {
       var bo = song.barAt ? song.barAt(n.b + 1e-6) : null, key = (bo && bo.mi !== undefined ? bo.mi : 'b') + ':' + (bo ? (n.b - bo.beat).toFixed(3) : n.b.toFixed(3)) + ':' + n.m;
       if (first[key] === undefined) first[key] = k;
       var w = first[key], s0 = st[k]; if (!s0) return;
       if (barOf[w] === undefined) barOf[w] = barOf[k];
       var cur = merged[w];
-      if (!cur || PA_RANK[s0.kind] > PA_RANK[cur.kind]) merged[w] = { kind: s0.kind, late: s0.late || (cur && cur.late) };
-      else if (s0.late) cur.late = true;
+      if (!cur) { merged[w] = { kind: s0.kind, time: s0.time }; return; }
+      if (PA_RANK[s0.kind] > PA_RANK[cur.kind]) cur.kind = s0.kind;
+      if (s0.time && (!cur.time || TR[s0.time] > TR[cur.time])) cur.time = s0.time;
     });
     draw(fgPages, merged);
     draw(svg, null);
@@ -3374,7 +3380,12 @@
   /* while the tool shows, a tap on the pages or the strip does not move the player (the take drives it) */
   [fgPages, scoreEl].forEach(function (el) {
     if (!el) return;
-    el.addEventListener('click', function (e) { if (paOn && !(e.target.closest && e.target.closest('.pa-nm'))) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+    el.addEventListener('click', function (e) {   /* a tap on a marked note (or its timing background) opens its bar; any other tap does nothing */
+      if (!paOn) return;
+      var t = e.target.closest && e.target.closest('[data-pabar]');
+      e.stopImmediatePropagation(); e.preventDefault();
+      if (t && !paTake) paOpenBar(+t.getAttribute('data-pabar'));
+    }, true);
   });
   document.addEventListener('visibilitychange', function () { if (document.hidden && paTake) paStop(); });   /* the phone locks or another app opens: the take ends there */
   document.addEventListener('i18n', function () { if (paOn) { paUi(); if (paRes) paShowResult(); } });
