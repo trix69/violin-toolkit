@@ -124,3 +124,20 @@ html.fg-printing .mp-n.pa-p .head:not(.hollow) { fill: currentColor !important; 
 
 /* a result on screen (Trix): no fingerings or position marks, so the coloured notes read easily */
 .shell.pa-result[data-view="playalong"] .fing, .shell.pa-result[data-view="playalong"] .mp-pos, .shell.pa-result[data-view="playalong"] .mp-posd { display: none; }
+
+/* a tapped note's details (Trix): the Symbols page's card — in the half of the screen away from the note, the page
+   dimmed a little behind it; a tap on the card or anywhere else closes it */
+.pa-tip { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; align-items: end; padding: 20px; pointer-events: none; }
+.pa-tip.up { align-items: start; padding-top: calc(env(safe-area-inset-top, 0px) + 20px); }
+.pa-tip[hidden] { display: none; }
+.pa-tip-card { pointer-events: auto; box-sizing: border-box; width: min(100%, 340px); overflow-y: auto; background: var(--panel); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 20px; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.35), 0 0 0 100vmax rgba(0,0,0,.12); outline: none;
+  animation: paTipIn .12s ease-out; }
+@keyframes paTipIn { from { opacity: 0; transform: scale(.97); } }
+@media (prefers-reduced-motion: reduce) { .pa-tip-card { animation: none; } }
+.pa-tip-head { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.pa-tip-head b { font: 700 40px/1.1 var(--font-note); }
+.pa-tip-head small { font: 500 14px var(--font-body); color: var(--muted); }
+.pa-tip-body p { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
+.pa-tip-body .pa-pass { margin-top: 14px; font: 700 13px var(--font-body); color: var(--muted); }
+.pa-tip-go { display: block; width: 100%; margin-top: 16px; min-height: 42px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-body); cursor: pointer; }

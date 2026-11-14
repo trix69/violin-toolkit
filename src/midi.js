@@ -3188,7 +3188,7 @@
     var au = APP.board.audio(), ctx = au && au.ctx;
     if (!ctx || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { paSay('The microphone is not available.'); return; }
     var T = paTake = { state: 'starting', sound: sound, ctx: ctx, f0: -1, next: -1, fr: ASSESS.framer(ctx.sampleRate, window.yin), quietSince: 0, warned: false, ctxGo: 0, recEnd: 0 };
-    paRes = null; paClearTints(); paSay(''); paUi();
+    paRes = null; paClearTints(); paSay(''); paCardClose(); paUi();
     APP.mic('pa', true);
     navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
       if (paTake !== T) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
@@ -3332,15 +3332,51 @@
     Array.prototype.forEach.call(document.querySelectorAll('.mp-n.pa-p'), function (g) { g.classList.remove('pa-p', 'pa-ok', 'pa-amber', 'pa-red', 'pa-miss'); g.removeAttribute('data-pabar'); });
   }
   var PA_RANK = { ok: 0, na: 1, miss: 2, amber: 3, red: 4 };
+  var paResOf = {}, paBarOf = {}, paPrinted = {}, paCardBar = -1, paCardEl = $('paCard');
+  /* a tapped note (Trix): how far its pitch was off, and how early or late it started and ended; each time through a repeat */
+  function paCardOpen(key, from) {
+    if (!key || !song) return;
+    var k = +key.slice(1), list = key[0] === 'p' ? (paPrinted[k] || [k]) : [k], bars = song.bars || [], n0 = song.notes[k];
+    paCardBar = paBarOf[list[0]];
+    $('paCardN').textContent = APP.board.name(n0.m);
+    $('paCardT').textContent = 'Bar ' + (bars[paCardBar] ? bars[paCardBar].num : '');
+    var box = $('paCardB'); box.textContent = '';
+    function line(t, cls) { var p0 = document.createElement('p'); p0.textContent = t; if (cls) p0.className = cls; box.appendChild(p0); }
+    function ms(v, what) { return Math.abs(v) <= ASSESS.IN_TIME ? what + ': on time (' + (v >= 0 ? '+' : '−') + Math.abs(v) + ' ms)' : what + ': ' + Math.abs(v) + ' ms ' + (v > 0 ? 'late' : 'early'); }
+    list.forEach(function (kk) {
+      var r = paResOf[kk], b = bars[paBarOf[kk]];
+      if (list.length > 1 && b) line(b.time + (['', 'st', 'nd', 'rd'][b.time] || 'th') + ' time', 'pa-pass');
+      if (!r) { line('Not recorded.'); return; }
+      if (r.missed) { line('Not heard.'); return; }
+      if (r.chord) { line('Double stop: not assessed.'); return; }
+      var c = Math.round(r.cents);
+      line(Math.abs(c) <= ASSESS.IN_TUNE ? 'Pitch: in tune (' + (c >= 0 ? '+' : '−') + Math.abs(c) + ' ¢)' : 'Pitch: ' + Math.abs(c) + ' ¢ ' + (c > 0 ? 'high' : 'low'));
+      if (r.spread) line('Vibrato range: ' + Math.round(r.spread) + ' ¢');
+      if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start'));
+      if (r.exit !== undefined) line(ms(r.exit, 'End'));
+    });
+    /* as the Symbols page does: in the half of the screen away from the note, so the note stays in sight */
+    var rr = from && from.getBoundingClientRect ? from.getBoundingClientRect() : null, up = rr ? rr.top + rr.height / 2 > window.innerHeight / 2 : false;
+    paCardEl.classList.toggle('up', up);
+    $('paCardC').style.maxHeight = rr ? Math.max(160, up ? rr.top - 30 : window.innerHeight - rr.bottom - 30) + 'px' : '';
+    paCardEl.hidden = false;
+    try { $('paCardC').focus({ preventScroll: true }); } catch (e) {}
+  }
+  function paCardClose() { paCardEl.hidden = true; }
+  $('paCardC').addEventListener('click', function (e) { if (!(e.target.closest && e.target.closest('#paCardGo'))) paCardClose(); });   /* a tap on the card closes it */
+  $('paCardGo').addEventListener('click', function (e) { e.stopPropagation(); paCardClose(); if (paCardBar >= 0) paOpenBar(paCardBar); });
+  document.addEventListener('pointerdown', function (e) { if (!paCardEl.hidden && !$('paCardC').contains(e.target)) paCardClose(); }, true);   /* and a tap anywhere else */
+  paCardEl.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); paCardClose(); } });
   function paRetint() {
     paClearTints();
     if (!paRes || paRes.empty || !song) return;
     var bars = song.bars || [], ns = song.notes, st = {}, barOf = {};
+    paResOf = {}; paBarOf = barOf; paPrinted = {};
     function tk(r) { if (r.timing === null || r.timing === undefined) return null; var a = Math.abs(r.timing); return a <= ASSESS.IN_TIME ? 'ok' : a <= PA_TIME_RED ? 'amber' : 'red'; }
     paRes.bars.forEach(function (b, bi) {
       b.notes.forEach(function (r) {
         var kind = r.missed ? 'miss' : r.chord || r.cents === undefined ? 'na' : Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'ok' : Math.abs(r.cents) <= ASSESS.RED ? 'amber' : 'red';
-        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r) }; barOf[k] = bi; });
+        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r) }; barOf[k] = bi; paResOf[k] = r; });
       });
     });
     function draw(root, merge) {
@@ -3350,12 +3386,12 @@
         var k = +g.getAttribute('data-k'), m = merge ? merge[k] || st[k] : st[k], head = g.querySelector('ellipse.head');
         if (!m || !head) return;
         g.classList.add('pa-p', m.kind === 'na' ? 'pa-miss' : 'pa-' + m.kind);
-        g.setAttribute('data-pabar', barOf[k]);
+        g.setAttribute('data-pabar', barOf[k]); g.setAttribute('data-pak', (merge ? 'p' : 's') + k);
         if (m.time) {
           var cx = +head.getAttribute('cx'), r = document.createElementNS(NS, 'rect');
           r.setAttribute('class', 'pa-tr ' + m.time);
           r.setAttribute('x', (cx - 10).toFixed(1)); r.setAttribute('y', Y0 - 10); r.setAttribute('width', 20); r.setAttribute('height', 4 * S + 20); r.setAttribute('rx', 4);
-          r.setAttribute('data-pabar', barOf[k]);
+          r.setAttribute('data-pabar', barOf[k]); r.setAttribute('data-pak', (merge ? 'p' : 's') + k);
           g.parentNode.insertBefore(r, g);
         }
       });
@@ -3366,6 +3402,7 @@
       var bo = song.barAt ? song.barAt(n.b + 1e-6) : null, key = (bo && bo.mi !== undefined ? bo.mi : 'b') + ':' + (bo ? (n.b - bo.beat).toFixed(3) : n.b.toFixed(3)) + ':' + n.m;
       if (first[key] === undefined) first[key] = k;
       var w = first[key], s0 = st[k]; if (!s0) return;
+      (paPrinted[w] = paPrinted[w] || []).push(k);
       if (barOf[w] === undefined) barOf[w] = barOf[k];
       var cur = merged[w];
       if (!cur) { merged[w] = { kind: s0.kind, time: s0.time }; return; }
@@ -3385,7 +3422,7 @@
       if (!paOn) return;
       var t = e.target.closest && e.target.closest('[data-pabar]');
       e.stopImmediatePropagation(); e.preventDefault();
-      if (t && !paTake) paOpenBar(+t.getAttribute('data-pabar'));
+      if (t && !paTake) paCardOpen(t.getAttribute('data-pak'), t);   /* what happened on that note (Trix) */
     }, true);
   });
   document.addEventListener('visibilitychange', function () { if (document.hidden && paTake) paStop(); });   /* the phone locks or another app opens: the take ends there */
@@ -3394,7 +3431,7 @@
     show: function () { paOn = true; bg = false; appCall('rotate', false); paLayout(); paTickMarks(); if (paRes) paShowResult(); },
     hide: function () {
       if (paTake) paStop();   /* leaving the tool ends the take (the analysis still runs) */
-      paOn = false; cancelAnimationFrame(paRaf); APP.board.heard(null); paClearTints();   /* the take's marks belong to Play-along: not on the Fingerings pages or their PDF (Hermes F84); back when it shows again */
+      paOn = false; cancelAnimationFrame(paRaf); APP.board.heard(null); paClearTints(); paCardClose();   /* the take's marks belong to Play-along: not on the Fingerings pages or their PDF (Hermes F84); back when it shows again */
       shown = false; fgShown = false; setMixOpen(false); setABOpen(false);
       if (APP.nextView !== 'midi' && APP.nextView !== 'fingering') { pause(); APP.board.player(false); }
       ['midi', 'board', 'fingering'].forEach(function (n) { var v = document.getElementById('view-' + n); if (v && APP.nextView !== n && !(APP.nextView === 'midi' && n === 'board')) v.hidden = true; });

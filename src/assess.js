@@ -115,6 +115,15 @@
      tuner's gate tests an attack); and, for slurred notes with no new attack, a settled change of pitch */
   function onsets(fr) { var j = onsetJob(fr); while (!j.done) j.step(1e9); return j.out; }
 
+  function soundEnd(fr, from, limit) {
+    var et = fr.et, e = fr.e, i = lowerBound(et, from), stop = limit === Infinity ? et.length : lowerBound(et, limit);
+    for (; i < stop; i++) {
+      if (e[i] >= GATE) continue;
+      var j = i; while (j < stop && j < i + 8 && e[j] < GATE) j++;
+      if (j - i >= 8 || j === et.length) return et[i];
+    }
+    return limit === Infinity ? null : limit;
+  }
   function lowerBound(a, x) { var lo = 0, hi = a.length; while (lo < hi) { var m = (lo + hi) >> 1; if (a[m] < x) lo = m + 1; else hi = m; } return lo; }
   /* the frames between two times whose window lies inside them, as cents from a frequency (octave slips folded) */
   function centsIn(fr, a, b, hz) {
@@ -233,6 +242,10 @@
       if (byE[j] === undefined) { r.missed = true; return r; }
       var o = O[byE[j]], nextT = byE[j] + 1 < O.length ? O[byE[j] + 1].t : Infinity;
       r.onset = o.t; r.timing = Math.round((o.t - (e.t + r.warp)) * 1000);
+      /* the end (Trix: early or late exit): where the level falls below the gate and stays there ~20 ms, or the next onset
+         when the note runs into it (a slur, legato); against the note's own end in the score, on the same clock */
+      var endT = soundEnd(fr, o.t + 0.05, nextT);
+      if (endT !== null) r.exit = Math.round((endT - (e.e + r.warp)) * 1000);
       if (e.chord) { r.skip = 'chord'; return r; }
       /* the window: from the onset to the next onset (an open string ringing on is not measured past it), and no
          longer than the note's own length allows; attack 80 ms and release 120 ms left out (less for short notes) */
