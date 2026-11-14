@@ -1847,7 +1847,7 @@
       seekTo(0); flashParts(); mixUi();
       var s = songs[i];
       if (s.failed) { autoPlay = -1; s.failed = false; say(s.err || 'This tune downloads the first time you play it. Connect to the internet and choose it again.', true); }
-      else { say(s.have ? 'Opening the score…' : 'Downloading this tune…'); fetchDemo(i); }   /* a long score (Serenade) takes a few seconds on a phone */   /* choosing it again tries again; a built-in one is being read (a moment) */
+      else { say(s.have ? 'Opening the score…' : 'Downloading the score…'); fetchDemo(i); }   /* a long score (Serenade) takes a few seconds on a phone */   /* choosing it again tries again; a built-in one is being read (a moment) */
       if (shown) fit();
       if (APP.fgSync) APP.fgSync();
       return;
@@ -1859,6 +1859,7 @@
     if (song.low) warn.push(song.low + (song.low > 1 ? ' notes are' : ' note is') + ' below the violin’s G string and left out.');
     if (song.high) warn.push(song.high + (song.high > 1 ? ' notes are' : ' note is') + ' above the fingerboard shown: heard, not lit.');
     flashParts();
+    if (songs[i].note) { warn.push(songs[i].note); songs[i].note = null; }   /* saved for offline, or no room: said once, after the download */
     say(warn);
     mixUi();
     APP.board.toTop();   /* a new tune opens at the open strings, whatever the last one scrolled to (Hermes F14) */
@@ -1907,16 +1908,36 @@
   function scoreBytes(buf) { return isZip(new Uint8Array(buf)) ? unzipScore(buf) : Promise.resolve(buf); }
   DEMOS.forEach(function (d) {
     var s = { title: d.title, song: null, kept: null, demo: d, have: d.b64 || null };
-    if (!s.have) { try { var c = JSON.parse(localStorage.getItem(DEMO_KEY + d.f) || 'null'); if (c && c.h === d.h) { s.have = c.b64; s.saved = true; } } catch (e) {} }
+    if (!s.have) {
+      try {
+        var c = JSON.parse(localStorage.getItem(DEMO_KEY + d.f) || 'null');
+        if (c && c.h === d.h) { s.have = c.b64; s.saved = true; }   /* kept, and this build's version: it opens with no network */
+        else if (c) localStorage.removeItem(DEMO_KEY + d.f);   /* kept from an older build: dropped, downloaded again when chosen */
+      } catch (e) {}
+    }
     songs.push(s);   /* read when first chosen (Serenade's score is 3.7 MB: not on every launch) */
   });
   options();
   function prepDemo(s) {   /* its bytes are here: read it */
     s.fetching = true;
+    var again = false;
     scoreBytes(fromB64(s.have)).then(function (b) { s.song = parse(b); })
-      .catch(function (e) { s.err = e && e.mine ? e.message : null; console.error('MIDI player: built-in tune', s.demo.f, e); })
-      .then(function () { s.fetching = false; var k = songs.indexOf(s); if (+songSel.value === k) { s.failed = !s.song; load(k); } });
+      .catch(function (e) {
+        if (s.saved && !s.retried) {   /* a kept copy that no longer reads: forget it and download it again, once */
+          again = true; s.retried = true; s.saved = false; s.have = null;
+          try { localStorage.removeItem(DEMO_KEY + s.demo.f); } catch (e2) {}
+          return;
+        }
+        s.err = e && e.mine ? e.message : 'This score could not be read.'; console.error('MIDI player: built-in tune', s.demo.f, e);
+      })
+      .then(function () { s.fetching = false; var k = songs.indexOf(s); if (again) { if (+songSel.value === k) load(k); return; } if (+songSel.value === k) { s.failed = !s.song; load(k); } });
   }
+  /* the phone apps keep tunes downloaded by an older version of the app and check them against the website's
+     fingerprints; the web page is always this build, so a kept copy with this build's fingerprint just opens */
+  var APP_BUILD = location.hostname === 'appassets.androidplatform.net' || !!window.VTiOSApp || !!window.VTPlay;
+  var OFFLINE = 'This tune needs the internet once. Choose it again when you are online.';
+  var SAVED = 'Saved on this device. It opens offline from now on.';
+  var NOROOM = 'This tune plays now but could not be saved for offline use.', noRoomSaid = false;
   /* a tune saved on the phone is checked against the website's fingerprints first (Trix): when the website's piece has
      changed, it does not play until the app is updated. Offline (or no list yet) the saved copy plays. One fetch per visit */
   var fpList = null;
@@ -1933,7 +1954,7 @@
   function fetchDemo(i) {
     var s = songs[i], d = s.demo;
     if (s.fetching) return;
-    if (s.have && s.saved && !s.checked) {
+    if (s.have && s.saved && APP_BUILD && !s.checked) {
       s.fetching = true;
       siteHashes().then(function (m) {
         s.fetching = false;
@@ -1944,8 +1965,11 @@
       return;
     }
     if (s.have) { prepDemo(s); return; }
+    if (navigator.onLine === false) { s.err = OFFLINE; s.failed = true; if (+songSel.value === i) load(i); return; }   /* no request that can only fail */
     s.fetching = true;
-    fetch(DEMO_URL + encodeURIComponent(d.f), { cache: 'no-cache' }).then(function (r) {
+    fetch(DEMO_URL + encodeURIComponent(d.f), { cache: 'no-cache' }).catch(function (e) {
+      var x = new Error(navigator.onLine === false ? 'offline' : 'network'); x.cause = e; throw x;
+    }).then(function (r) {
       if (r.status === 404 || r.status === 410) throw new Error('stale');   /* gone from the website: only an updated app has it (Hermes F73) */
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.arrayBuffer();
@@ -1959,14 +1983,20 @@
         if (hex.slice(0, d.h.length) !== d.h) throw new Error('stale');
       }) : Promise.resolve()).then(function () { return buf; });
     }).then(function (buf) {
-      return scoreBytes(buf).then(function (b) {
-        s.song = parse(b);
-        try { localStorage.setItem(DEMO_KEY + d.f, JSON.stringify({ h: d.h, b64: toB64(buf) })); } catch (e) {}   /* no room: it downloads again next time */
+      return scoreBytes(buf).catch(function (e) { var x = new Error('unreadable'); x.cause = e; throw x; }).then(function (b) {
+        var song = parse(b);   /* throws a message of its own (e.mine) when the score can't be used */
+        var b64 = toB64(buf);
+        try { localStorage.setItem(DEMO_KEY + d.f, JSON.stringify({ h: d.h, b64: b64 })); s.saved = true; s.note = SAVED; }
+        catch (e) { s.have = b64; if (!noRoomSaid) { noRoomSaid = true; s.note = NOROOM; } }   /* no room: it plays this visit, from memory */
+        s.song = song;
       });
     }).catch(function (e) {
       /* the website has a newer version of this tune than this app knows (Trix: one version of each piece only):
          ask for the app update rather than offering an old copy */
-      s.err = e && e.message === 'stale' ? STALE : e && e.mine ? e.message : null;
+      var m = e && e.message;
+      s.err = m === 'stale' ? STALE : m === 'offline' ? OFFLINE : m === 'network' ? 'The download failed: no answer from the website. Choose the tune again to retry.'
+        : /^HTTP \d+$/.test(m || '') ? 'The download failed: the website returned an error. Choose the tune again to retry.'
+        : e && e.mine ? e.message : 'The downloaded score could not be read. Choose the tune again to retry.';
       console.error('MIDI tune download', d.f, e);
     }).then(function () {
       s.fetching = false;

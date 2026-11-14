@@ -639,10 +639,17 @@ midi_js = open(SP + 'midi.js').read()
 assert midi_js.count('/*DEMOS*/[]') == 1
 # each tune: title, file name, a short hash of its bytes, and the bytes last ("b64"), so the Android app's build
 # (Android/wrapper/build.sh) can drop the bytes and fetch the tune from the website the first time it is played (Trix)
+# Only these two tunes are inside every build (web page, standalone, artifact, phone apps): the first tune works offline
+# and in store review (Trix). Every other built-in is downloaded from the website the first time it is chosen
+# (src/midi.js fetchDemo, DEMO_URL) and kept on the device. Android/wrapper/build.sh and iOS/prepare_web.sh assert this.
+BUNDLED = {'twinkle.mxl', 'ode.mxl'}
 def _demo(f, t, c):
     raw = open(SP + 'midi/' + f, 'rb').read()
-    return {'title': t, 'c': c, 's': SCORE_SOURCE[f], 'f': f, 'h': hashlib.sha1(raw).hexdigest()[:10], 'b64': base64.b64encode(raw).decode()}   # c before f: the phone builds' strip pattern expects f, h, b64 in a row
+    d = {'title': t, 'c': c, 's': SCORE_SOURCE[f], 'f': f, 'h': hashlib.sha1(raw).hexdigest()[:10]}   # c before f: the phone builds' check expects f, h, b64 in a row
+    if f in BUNDLED: d['b64'] = base64.b64encode(raw).decode()
+    return d
 _demos = [_demo(f, t, c) for f, t, c in MIDI_DEMOS]
+assert BUNDLED <= {f for f, t, c in MIDI_DEMOS} and sum('b64' in d for d in _demos) == len(BUNDLED)
 midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps(_demos))
 # the website's fingerprints of the built-in tunes (Trix): phone apps check a saved tune against this before playing it,
 # and ask for the app update when the website's piece has changed. Committed with the tunes; live once shipped.

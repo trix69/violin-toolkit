@@ -58,6 +58,17 @@ if TEST:
         src = pat.sub(lambda m: m.group(1) + k + '-test' + m.group(1), src)
         if pat.search(src):
             raise SystemExit('test build: %s still used under the live name' % k)
+    # built-in tunes (Trix: only Twinkle and Ode are in the page): the test page downloads them from the test site, which
+    # carries its own copy of src/midi (the dev versions, unknown to the live site), and keeps them under its own key
+    LIVE_MIDI, TEST_MIDI = "'https://trix69.github.io/violin-toolkit/src/midi/'", "'https://trix69.github.io/violin-toolkit-test/src/midi/'"
+    if src.count(LIVE_MIDI) != 1 or src.count("'violin-midi-demo:'") != 1:
+        raise SystemExit('test build: DEMO_URL or the tune key is no longer in the page as expected')
+    src = src.replace(LIVE_MIDI, TEST_MIDI).replace("'violin-midi-demo:'", "'violin-midi-demo-test:'")
+    os.makedirs(OUT + 'src/midi', exist_ok=True)
+    for f in os.listdir(OUT + 'src/midi'):
+        os.remove(OUT + 'src/midi/' + f)
+    for f in sorted(os.listdir(SRC + 'midi')):
+        if f.endswith(('.mxl', '.mid', '.json')): shutil.copy(SRC + 'midi/' + f, OUT + 'src/midi/' + f)
     # Every other quoted violin-* / vt-* key must be one that is meant to be shared. A new key fails
     # the build here until it is added to SHARED (a setting) or to the rename list above (once-only).
     # Any case, - or _; a bare 'violin-' fragment means a key built by concatenation, also flagged.
@@ -162,6 +173,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (url.origin !== location.origin && !fonts) return;
+  /* a built-in tune (src/midi/): always from the network, never from this cache; once downloaded the page keeps it itself */
+  if (url.origin === location.origin && url.pathname.indexOf('/src/midi/') >= 0) return;
   /* only the app's own address opens the app; other pages on the site (docs/privacy.html) come from the network */
   const scope = new URL(self.registration.scope).pathname;
   if (req.mode === 'navigate' && url.origin === location.origin && url.pathname !== scope && url.pathname !== scope + 'index.html') return;
