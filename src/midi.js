@@ -236,6 +236,7 @@
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
       var ms = kids(part, 'measure'), notes = [], tie = {}, chordTrem = 0, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
       var ksw = [], kmw = [], kw0 = null, km0 = null;
+      function graceCap(t) { var us = 500000; tempos.forEach(function (tp) { if (tp.tick <= t) us = tp.us; }); return TPQ * 70000 / us; }   /* ticks in about 70 ms at the tempo there */
       function wordMark(t, text) {   /* words on one beat share one mark ("Minuet I" and its ♩ = 120) */
         var same = marks.filter(function (m) { return m.kind === 'words' && m.tick === t; })[0];
         if (same) { if (same.text.indexOf(text) < 0) same.text += '  ' + text; } else marks.push({ tick: t, kind: 'words', text: text });
@@ -301,7 +302,7 @@
               /* graces marked steal-time-previous, and slashed ones (Trix: the Minuets' bar 8, a quick grace just before the beat): about a
                  32nd each (at most that share of the note before), ending on the beat; the note before gives up the time */
               var prev = null; for (var pq = notes.length - 1; pq >= 0; pq--) if (!notes[pq].grace) { prev = notes[pq]; break; }
-              var cnt2 = graces.length, room = prev ? (t0 - prev.t0) * graces[0].steal / 100 : TPQ / 8, each2 = Math.max(1, Math.round(Math.min(TPQ / 8, room / cnt2))), g0 = Math.max(0, t0 - cnt2 * each2);   /* nothing before the first beat (Hermes F80) */
+              var cnt2 = graces.length, room = prev ? (t0 - prev.t0) * graces[0].steal / 100 : TPQ / 8, each2 = Math.max(1, Math.round(Math.min(TPQ / 8, room / cnt2, graceCap(t0)))), g0 = Math.max(0, t0 - cnt2 * each2);   /* nothing before the first beat (Hermes F80) */
               if (g0 + cnt2 * each2 > t0) t0 = g0 + cnt2 * each2;   /* the file's first note: the grace takes its time from it instead */
               if (prev && prev.t1 > g0) { if (!prev.wl) prev.wl = (prev.t1 - prev.t0) / TPQ; prev.t1 = Math.max(prev.t0 + 1, g0); }   /* drawn at its written value, played a little shorter */
               graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: g0 + gi * each2, t1: g0 + (gi + 1) * each2, sb: Math.max(0, t0 - (cnt2 - gi)), gi: gi, gn: cnt2, ch: ch, v: 90, pz: pz, grace: 'acc' }); });
@@ -310,7 +311,7 @@
             else if (!chord && graces.length) {
               /* graces not slashed (an appoggiatura, or a run): quick, about a 32nd each (Trix: a very quick grace), on the
                  beat, taking their time from the start of the note that follows */
-              var main = t1 - t0, cnt = graces.length, each = Math.round(Math.min(TPQ / 8, main / (2 * cnt)));
+              var main = t1 - t0, cnt = graces.length, each = Math.max(1, Math.round(Math.min(TPQ / 8, main / (2 * cnt), graceCap(t0))));   /* never longer than about 70 ms: a slow tune (Air, ♩ = 30) made a 32nd last a quarter of a second (Trix) */
               graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: Math.max(0, t0 - (cnt - gi)), gi: gi, gn: cnt, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
               gFrom = t0; gShift = cnt * each; t0 += gShift; graces = [];
             } else if (!chord) { gFrom = -1; gShift = 0; }
@@ -1830,6 +1831,7 @@
   }
   function load(i) {
     pause();
+    if (APP.paForget) APP.paForget();   /* another tune: the last tune's Play-along result goes (Trix) */
     song = songs[i].song; boardBeat = 0;
     if (song && !song.composer && songs[i].demo && songs[i].demo.c) song.composer = songs[i].demo.c;   /* a built-in MIDI names no composer: the list does */
     delBtn.hidden = !songs[i].kept;   /* the bin only for an imported file */
@@ -2238,7 +2240,8 @@
   /* d: +-0.05 = the buttons and - / + keys, to the next multiple of 5 % (83 -> 85 or 80); +-0.01 = the arrow keys, 1 % (Trix) */
   var flashT = 0;
   function fgFlash(what, n) {   /* Fingerings only (Trix): 'play' / 'pause' icon, 'speed' = the new tempo and percentage, 'count' = the count-in's n */
-    var el = $('fgFlash'); if (!el || !fgShown || !song) return;
+    var el = $('fgFlash'); if (!el || !song || !(fgShown || (what === 'zoom' && paOn))) return;   /* the zoom % in Play-along's pages too */
+    if (what === 'zoom') what = 'text';
     clearTimeout(flashT);
     el.classList.toggle('txt', what === 'speed' || what === 'text');
     el.classList.toggle('cnt', what === 'count');
@@ -2899,25 +2902,11 @@
       e.preventDefault();
       setZoom(fgZoom * Math.exp(-e.deltaY * (e.deltaMode ? 0.05 : 0.002)), e.clientX, e.clientY);
     }, { passive: false });
-    /* the button at the top right of the pages (Trix): straight to the browser's full width, and back to the normal size */
-    var fgFit = $('fgFit');
-    function zoomUi() {
-      var big = Math.abs(fgZoom - 1) > 0.01;
-      /* only where full width gains something (Trix): not on an upright phone; always while zoomed, to come back */
-      var col = fgPages.classList.contains('zoomed') ? parseFloat(getComputedStyle(fgPages).getPropertyValue('--fgw')) || fgPages.clientWidth : fgPages.clientWidth;
-      fgFit.hidden = !big && !(col > 0 && (document.documentElement.clientWidth - 32) / col > 1.1);
-      fgFit.classList.toggle('back', big);
-      fgFit.setAttribute('aria-label', big ? 'Back to normal size' : 'Full width');
-      fgFit.title = big ? 'Back to normal size' : 'Full width';
-    }
-    fgFit.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var cx = window.innerWidth / 2, cy = Math.min(window.innerHeight / 2, Math.max(0, fgPages.getBoundingClientRect().top + 40));
-      if (Math.abs(fgZoom - 1) > 0.01) { setZoom(1, cx, cy); return; }
-      var col = fgPages.clientWidth, full = document.documentElement.clientWidth - 32;   /* a 16 px margin each side */
-      setZoom(Math.min(3, full / col), cx, cy);
-      if (fgZoom <= 1.001) zoomUi();   /* a window no wider than the column: nothing to gain */
-    });
+    /* zoom out / in on the floating pill (Trix), as in Play-along; each step shows the new size for a moment */
+    var fgZOut = $('fgZoomOut'), fgZIn = $('fgZoomIn');
+    function zoomUi() { var r = APP.fgZoomStep && APP.fgZoomStep(); if (!r) return; fgZIn.disabled = r.z >= r.top - 0.01; fgZOut.disabled = r.z <= 0.51; }
+    fgZIn.addEventListener('click', function (e) { e.stopPropagation(); APP.fgZoomStep(true); zoomUi(); });
+    fgZOut.addEventListener('click', function (e) { e.stopPropagation(); APP.fgZoomStep(false); zoomUi(); });
     zoomUi(); APP.fgZoomUi = zoomUi;
     /* Play-along's floating zoom (Trix): steps of 25 %, from 50 % up to the window's width (a phone, where that gains nothing: 300 %) */
     APP.fgZoomStep = function (up) {
@@ -2927,12 +2916,12 @@
       var z = up ? Math.min(top, fgZoom * 1.25) : Math.max(0.5, fgZoom / 1.25);
       if (Math.abs(z - 1) < 0.06) z = 1;
       setZoom(z, window.innerWidth / 2, Math.min(window.innerHeight / 2, Math.max(0, fgPages.getBoundingClientRect().top + 40)));
+      fgFlash('zoom', Math.round(fgZoom * 100) + '%');   /* the new size, fading (Trix) */
       return { z: fgZoom, top: top };
     };
     /* more controls (Trix): each one presses the MIDI player's own button; the Mixer and A–B panels move under the
        floating buttons while open from here, and back to the player's bar when opened there */
-    var fgMore = $('fgMore'), fgx = $('fgx'), fgx2 = $('fgx2'), mpBarEl = $('mpBar'), fitBar = fgPages.parentNode.querySelector('.fg-fitbar');
-    fgMore.addEventListener('click', function () { fgx.hidden = !fgx.hidden; fgx2.hidden = fgx.hidden; fgMore.setAttribute('aria-expanded', fgx.hidden ? 'false' : 'true'); if (fgx.hidden) { setMixOpen(false); setABOpen(false); } });   /* the player's order: back to start, −, play, +, mixer; then loop, A–B (Trix) */
+    var mpBarEl = $('mpBar'), fitBar = fgPages.parentNode.querySelector('.fg-fitbar');
     Array.prototype.forEach.call(fgPages.parentNode.querySelectorAll('.fg-fitbar [data-for]'), function (b) {
       b.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -3481,6 +3470,7 @@
     p0.textContent = Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'Finger in place.' : 'Finger about ' + Math.max(0.1, Math.abs(d)).toFixed(1) + ' mm too close to the ' + (d > 0 ? 'bridge' : 'scroll') + '.';
     return { svg: w.firstChild, say: p0 };
   }
+  APP.paForget = function () { if (paTake || !paRes) return; paRes = null; paBrowse = null; paClearTints(); paSay(''); paCardClose(); paUi(); };
   function paCardClose() { if (paCardEl.hidden) return; paCardEl.hidden = true; APP.board.off('pa-card'); APP.board.heard(null); }
   $('paCardC').addEventListener('click', paCardClose);   /* a tap on the card closes it */
   document.addEventListener('pointerdown', function (e) { if (!paCardEl.hidden && !$('paCardC').contains(e.target)) paCardClose(); }, true);   /* and a tap anywhere else */
@@ -3693,6 +3683,7 @@
       ['midi', 'board', 'fingering'].forEach(function (n) { var v = document.getElementById('view-' + n); if (v && APP.nextView !== n && !(APP.nextView === 'midi' && n === 'board')) v.hidden = true; });
     }
   };
+  APP.mpNotes = function () { return song ? song.notes : null; };   /* tests */
   APP.paState = function () { return { take: paTake ? paTake.state : null, view: paView, result: paRes, mute: paMute }; };   /* tests */
   /* swipe between the tools (Trix): MIDI player, Fingerings and Play-along side by side, in that order; a swipe left on the
      player opens Fingerings, a swipe right on Fingerings opens the player, sliding in like a page. From the fingerboard
