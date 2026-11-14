@@ -171,3 +171,13 @@ clarinets in A, double bass), Oboe I dropped (all tune), Violin I emptied in bar
 instrument name must not say Violin, or the player takes "Violin I" as the solo); piccolo, brass and timpani (only the
 last chord) dropped; key mode set to minor (F♯ minor; Dorico wrote major); tempo ♩ = 120 from the piccolo's first bar,
 the words "Allegro moderato" left out (they ran into bar 2's *p*). 38 bars, 1:15, 245 violin notes.
+
+## Six OpenScore built-ins (2026-11-15)
+
+Sparse clones of https://github.com/OpenScore/Lieder and https://github.com/OpenScore/StringQuartets (both CC0 1.0; see the
+paths in `docs/score-credits.md`). Songs (Brahms Wiegenlied, Fauré Après un rêve): `pack_os.py` (voice → Violin) then
+`pack.py plain.musicxml out.mxl - - -`, as Ave Maria. Quartets: `slice_mvt.py in.mxl out.mxl FIRST LAST "Title"` keeps measures
+FIRST..LAST of every part (positions in the file, found from the movement headings and final barlines), carries the attributes
+in force, numbers the bars from 1 (an upbeat is 0), and asserts each part's note count is unchanged. Ranges used: Haydn Op. 76/3
+129–149 (theme only: Var. I–III give the tune to the 2nd violin, cello and viola), Tchaikovsky Op. 11 184–367, Dvořák Op. 96
+179–275, Borodin No. 2 604–783. Part names stay as published ("Violin 1" is the solo).
