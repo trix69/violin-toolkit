@@ -3393,7 +3393,7 @@
     show: function () { paOn = true; bg = false; appCall('rotate', false); paLayout(); paTickMarks(); if (paRes) paShowResult(); },
     hide: function () {
       if (paTake) paStop();   /* leaving the tool ends the take (the analysis still runs) */
-      paOn = false; cancelAnimationFrame(paRaf); APP.board.heard(null);
+      paOn = false; cancelAnimationFrame(paRaf); APP.board.heard(null); paClearTints();   /* the take's marks belong to Play-along: not on the Fingerings pages or their PDF (Hermes F84); back when it shows again */
       shown = false; fgShown = false; setMixOpen(false); setABOpen(false);
       if (APP.nextView !== 'midi' && APP.nextView !== 'fingering') { pause(); APP.board.player(false); }
       ['midi', 'board', 'fingering'].forEach(function (n) { var v = document.getElementById('view-' + n); if (v && APP.nextView !== n && !(APP.nextView === 'midi' && n === 'board')) v.hidden = true; });

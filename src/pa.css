@@ -116,3 +116,8 @@
 .pa-legend .sw-tok, .pa-legend .sw-tamber, .pa-legend .sw-tred { width: 14px; height: 22px; border-radius: 3px; }
 .sw-tok { background: rgba(46, 160, 67, .28); } .sw-tamber { background: rgba(232, 164, 32, .45); }
 .sw-tred { background: repeating-linear-gradient(135deg, rgba(214, 48, 39, .55) 0 3px, rgba(214, 48, 39, .18) 3px 6px); }
+
+/* never on paper (Hermes F84): the marks are cleared when Play-along closes; this is the backstop */
+html.fg-printing .pa-tr, html.fg-printing .pa-nm, html.fg-printing .pa-tint { display: none !important; }
+html.fg-printing .mp-n.pa-p .head:not(.hollow) { fill: currentColor !important; } html.fg-printing .mp-n.pa-p .head.hollow { stroke: currentColor !important; }
+@media print { .pa-tr, .pa-nm, .pa-tint { display: none !important; } .mp-n.pa-p .head:not(.hollow) { fill: currentColor !important; } .mp-n.pa-p .head.hollow { stroke: currentColor !important; } }
