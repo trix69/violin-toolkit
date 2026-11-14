@@ -1792,9 +1792,9 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-upd="off">Off</button>
     </div>
     <h3 id="lblHelp">Help</h3>
-    <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <button type="button" class="howto-btn" id="ppShow" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 2.6v5.4c0 4.2-2.9 7.8-7 9-4.1-1.2-7-4.8-7-9V6.1z"/><path d="M9 12l2 2 4-4"/></svg><span>Privacy policy</span></button>
     <button type="button" class="howto-btn" id="openCredits" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2"/></svg><span>Score credits</span></button>
+    <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <a class="howto-btn" id="reportIssue" href="https://github.com/trix69/violin-toolkit/issues/new" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span>Report an issue</span></a>
     <div class="pair" id="linkPair">
       <div>
