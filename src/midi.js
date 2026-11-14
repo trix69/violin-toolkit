@@ -1627,7 +1627,7 @@
     if (!song) return;
     if (fgShown) fgHead();
     var bar = song.sig.num * 4 / song.sig.den;
-    var beat = counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar */
+    var beat = paBrowse != null ? paBrowse : counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar; Play-along's result: where the strip was dragged to */
     var z = full ? (fsShort ? 0.8 : 1.4) : 1;   /* full screen: the score larger, easier to read (Trix); a phone on its side: smaller, for room; positions below are in score units */
     keySvg.style.transform = z !== 1 ? 'scale(' + z + ')' : '';
     var bo = song.barAt ? song.barAt(counting ? countBase : Math.max(beat, 0)) : null, bn = bo ? cornerBar(bo) : '';   /* counting in: the bar it leads into */   /* the bar under the playhead (Trix) */
@@ -3101,6 +3101,7 @@
      (with sound only after the player says they wear headphones) while the microphone is turned into numbers (assess.js
      framer: a pitch and a level every 512 samples; the audio itself is never kept). Stop ends a take for good; the
      analysis runs after it, in slices, and tints each bar. */
+  var paBrowse = null, paDrag = null, paDragMoved = false;   /* Live, a result showing: the strip dragged by hand (Trix) */
   var paView = 'pages', paRes = null, paSaved = null, paRaf = 0, paShowMode = 'both', paShowEl = $('paShow');
   try { var psm = localStorage.getItem('violin-pa-show'); if (psm === 'pitch' || psm === 'time') paShowMode = psm; } catch (e) {}
   try { paView = localStorage.getItem('violin-pa-view') === 'live' ? 'live' : 'pages'; } catch (e) {}
@@ -3195,7 +3196,7 @@
     var au = APP.board.audio(), ctx = au && au.ctx;
     if (!ctx || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { paSay('The microphone is not available.'); return; }
     var T = paTake = { state: 'starting', sound: sound, ctx: ctx, f0: -1, next: -1, fr: ASSESS.framer(ctx.sampleRate, window.yin), quietSince: 0, warned: false, ctxGo: 0, recEnd: 0 };
-    paRes = null; paClearTints(); paSay(''); paCardClose(); paUi();
+    paRes = null; paBrowse = null; paClearTints(); paSay(''); paCardClose(); paUi();
     APP.mic('pa', true);
     navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
       if (paTake !== T) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
@@ -3314,11 +3315,34 @@
     var R = paRes; paUi();
     var part = $('paPartial'); part.textContent = R.partial || ''; part.hidden = !R.partial;
     var st = $('paStats'); st.textContent = '';
-    if (!R.empty) [
-      R.inTune === null ? '' : 'Pitch: ' + R.inTune + ' % of notes within 10 ¢',   /* labelled, so the ms figure is not read as pitch (Trix) */
-      R.inTime === null ? '' : 'Timing: ' + R.inTime + ' % within 25 ms',
-      R.missed ? R.missed + ' missed' : '', R.extra ? R.extra + ' extra' : ''
-    ].filter(Boolean).forEach(function (t, i) { if (i) st.appendChild(document.createTextNode(' · ')); var sp = document.createElement('span'); sp.textContent = t; st.appendChild(sp); });
+    if (!R.empty) {   /* a bar each for pitch and timing (Trix): how many notes fell in each band, the green share large */
+      var all = [], P = { ok: 0, amber: 0, red: 0, miss: 0 }, T = { ok: 0, amber: 0, red: 0, miss: 0 };
+      R.bars.forEach(function (b) { b.notes.forEach(function (r) { all.push(r); }); });
+      all.forEach(function (r) {
+        if (r.missed || r.chord || r.cents === undefined) { P.miss++; T.miss++; return; }
+        var c = Math.abs(r.cents); P[c <= ASSESS.IN_TUNE ? 'ok' : c <= ASSESS.RED ? 'amber' : 'red']++;
+        if (r.timing === null || r.timing === undefined) { T.miss++; return; }
+        var t = Math.abs(r.timing); T[t <= ASSESS.IN_TIME ? 'ok' : t <= PA_TIME_RED ? 'amber' : 'red']++;
+      });
+      [['Pitch', 'in tune', P, ''], ['Timing', 'on time', T, ' time']].forEach(function (row) {
+        var C = row[2], n = C.ok + C.amber + C.red + C.miss; if (!n) return;
+        var box = document.createElement('div'); box.className = 'pa-sb';
+        var h = document.createElement('div'); h.className = 'pa-sb-h';
+        var b = document.createElement('b'); b.textContent = row[0]; h.appendChild(b);
+        var big = document.createElement('span'); big.className = 'pa-sb-big'; big.setAttribute('translate', 'no'); big.textContent = Math.round(100 * C.ok / n) + '%'; h.appendChild(big);
+        var sm = document.createElement('small'); sm.textContent = row[1]; h.appendChild(sm);
+        box.appendChild(h);
+        var bar = document.createElement('div'); bar.className = 'pa-sb-bar' + row[3]; bar.setAttribute('role', 'img');
+        bar.setAttribute('aria-label', row[0] + ': ' + ['ok', 'amber', 'red', 'miss'].map(function (k) { return Math.round(100 * C[k] / n) + '%'; }).join(', '));
+        ['ok', 'amber', 'red', 'miss'].forEach(function (k) {
+          if (!C[k]) return;
+          var seg = document.createElement('i'), pc = 100 * C[k] / n; seg.className = 's-' + k; seg.style.flex = '0 0 ' + pc.toFixed(2) + '%';
+          seg.textContent = pc >= 12 ? Math.round(pc) + '%' : ''; seg.title = C[k] + ' / ' + n; seg.setAttribute('translate', 'no');
+          bar.appendChild(seg);
+        });
+        box.appendChild(bar); st.appendChild(box);
+      });
+    }
     $('paTemper').textContent = R.empty ? '' : { equal: 'Measured against Equal temperament.', just: 'Measured against Just intonation.', pyth: 'Measured against Pythagorean tuning.' }[R.temper] || 'Measured against Equal temperament.';
     $('paLegend').hidden = !!R.empty;   /* no list of the worst bars (Trix): the tints show them, a tap opens one */
     paRetint();
@@ -3383,8 +3407,15 @@
     $('paCardC').style.maxHeight = rr ? Math.max(160, up ? rr.top - 30 : window.innerHeight - rr.bottom - 30) + 'px' : '';
     paCardEl.hidden = false;
     try { $('paCardC').focus({ preventScroll: true }); } catch (e) {}
+    /* Live (Trix): the note on the fingerboard too, the one written (lit on its string and finger) and the one played
+       (Pitch Check's disc, as far above or below it as it was off) */
+    if (paView === 'live') {
+      var r0 = paResOf[list[0]];
+      APP.board.allOff(); APP.board.hand(n0.hand); APP.board.on(n0.m, 'pa-card', false, n0.si, n0.b, true);
+      APP.board.heard(r0 && r0.cents !== undefined && !r0.missed ? { m: n0.m + r0.cents / 100, cents: r0.cents, si: Math.abs(r0.cents) >= PA_WRONG ? -1 : n0.si } : null);
+    }
   }
-  function paCardClose() { paCardEl.hidden = true; }
+  function paCardClose() { if (paCardEl.hidden) return; paCardEl.hidden = true; APP.board.off('pa-card'); APP.board.heard(null); }
   $('paCardC').addEventListener('click', paCardClose);   /* a tap on the card closes it */
   document.addEventListener('pointerdown', function (e) { if (!paCardEl.hidden && !$('paCardC').contains(e.target)) paCardClose(); }, true);   /* and a tap anywhere else */
   paCardEl.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); paCardClose(); } });
@@ -3447,11 +3478,48 @@
     if (!el) return;
     el.addEventListener('click', function (e) {   /* a tap on a marked note (or its timing background) opens its bar; any other tap does nothing */
       if (!paOn) return;
+      if (paDragMoved) { paDragMoved = false; e.stopImmediatePropagation(); e.preventDefault(); return; }   /* the end of a drag is not a tap */
       var t = e.target.closest && e.target.closest('[data-pabar]');
+      if (!t && el === scoreEl && paRes) {   /* the strip's notes take no pointer: the marked note nearest the tap, within 24 px */
+        var best = null, bd = 24;
+        Array.prototype.forEach.call(svg.querySelectorAll('.mp-n.pa-p'), function (g) {
+          var r = g.getBoundingClientRect(); if (!r.width) return;
+          var d = Math.abs(e.clientX - (r.left + r.right) / 2); if (d < bd && e.clientY > r.top - 30 && e.clientY < r.bottom + 30) { bd = d; best = g; }
+        });
+        t = best;
+      }
       e.stopImmediatePropagation(); e.preventDefault();
       if (t && !paTake) paCardOpen(t.getAttribute('data-pak'), t);   /* what happened on that note (Trix) */
     }, true);
   });
+  /* Live with a result (Trix): drag the strip to go through the notes; a tap on one opens its card */
+  function paBeatAtX(x) {   /* the beat drawn at x on the strip: xAt runs one way, so halve the range */
+    var lo = -4, hi = song.beats + 4;
+    for (var i = 0; i < 40; i++) { var mid = (lo + hi) / 2; if (xAt(mid) < x) lo = mid; else hi = mid; }
+    return (lo + hi) / 2;
+  }
+  function paCanBrowse() { return paOn && paRes && !paRes.empty && !paTake && paView === 'live' && song && xAt; }
+  scoreEl.addEventListener('pointerdown', function (e) {
+    if (!paCanBrowse()) return;
+    paDrag = { x: e.clientX, beat: paBrowse != null ? paBrowse : song.toBeat(pos), id: e.pointerId }; paDragMoved = false;
+    try { scoreEl.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  scoreEl.addEventListener('pointermove', function (e) {
+    if (!paDrag || e.pointerId !== paDrag.id) return;
+    var dx = e.clientX - paDrag.x, z = full ? (fsShort ? 0.8 : 1.4) : 1;
+    if (!paDragMoved && Math.abs(dx) < 6) return;
+    paDragMoved = true;
+    paBrowse = Math.max(-1, Math.min(song.beats, paBeatAtX(xAt(paDrag.beat) - dx / z)));
+    scroll();
+  });
+  ['pointerup', 'pointercancel'].forEach(function (ev) { window.addEventListener(ev, function () { if (!paDrag) return; paDrag = null; if (paDragMoved) setTimeout(function () { paDragMoved = false; }, 0); }, true); });   /* released anywhere (off the strip too); only the click that ends this drag is swallowed */
+  scoreEl.addEventListener('wheel', function (e) {   /* a trackpad or a mouse wheel: the same */
+    if (!paCanBrowse() || Math.abs(e.deltaX) + Math.abs(e.deltaY) < 1) return;
+    e.preventDefault();
+    var b0 = paBrowse != null ? paBrowse : song.toBeat(pos);
+    paBrowse = Math.max(-1, Math.min(song.beats, paBeatAtX(xAt(b0) + (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY))));
+    scroll();
+  }, { passive: false });
   document.addEventListener('visibilitychange', function () { if (document.hidden && paTake) paStop(); });   /* the phone locks or another app opens: the take ends there */
   document.addEventListener('i18n', function () { if (paOn) { paUi(); if (paRes) paShowResult(); } });
   APP.views.playalong = {
@@ -3474,6 +3542,7 @@
     function from(t) {
       if ((paOn && paTake) || full || !(shown || fgShown || paOn)) return false;   /* not while a Play-along take runs: leaving would end it */
       if (!t.closest) return true;
+      if (paOn && paRes && t.closest('#mpScore')) return false;   /* dragging the result's strip (Trix) */
       if (t.closest('input, select, textarea, .mp-mixpop, .mp-abpop, .mp-lvmenu, [role="dialog"], .sheet')) return false;
       if (fgShown && fgPages.classList.contains('zoomed') && fgPages.scrollWidth > fgPages.clientWidth + 2) return false;
       return true;

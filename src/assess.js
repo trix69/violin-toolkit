@@ -258,6 +258,27 @@
       if (cs.length >= 8) r.spread = Math.round((pct(cs, 0.95) - pct(cs, 0.05)) * 10) / 10;   /* vibrato: the 5th-95th percentile, beside the median */
       return r;
     }
+    function repeats() {
+      var et = fr.et, e = fr.e, added = 0;
+      for (var j = 1; j < E.length; j++) {
+        if (byE[j] !== undefined || byE[j - 1] === undefined || E[j].chord || E[j - 1].chord || Math.abs(E[j].m - E[j - 1].m) > 0.01) continue;
+        var t0 = O[byE[j - 1]].t, gap = E[j].t - E[j - 1].t, due = t0 + gap;
+        var nx = null; for (var q = j + 1; q < E.length && nx === null; q++) if (byE[q] !== undefined) nx = O[byE[q]].t - (E[q].t - E[j].t);   /* where the next found note puts it */
+        if (nx !== null && Math.abs(nx - due) < 0.35 * gap) due = (due + nx) / 2;
+        var a = Math.max(t0 + 0.25 * gap, due - 0.35 * gap), b = due + 0.35 * gap, i0 = lowerBound(et, a), i1 = lowerBound(et, b);
+        if (i1 - i0 < 4) continue;
+        var lo = Infinity, li = -1, k;
+        for (k = i0; k < i1; k++) { var v = (e[Math.max(0, k - 1)] + e[k] + e[Math.min(e.length - 1, k + 1)]) / 3; if (v < lo) { lo = v; li = k; } }
+        if (li < 0 || lo < GATE * 0.3) continue;   /* silence there: a real gap the level onsets would have found */
+        var before = 0, after = 0, win = Math.round(0.05 * fr.sr / BLK);
+        for (k = Math.max(0, li - win * 2); k < li - win / 2; k++) before = Math.max(before, e[k]);
+        for (k = li + 1; k < Math.min(e.length, li + win * 2); k++) after = Math.max(after, e[k]);
+        if (lo > 0.85 * Math.min(before, after)) continue;   /* no dip to speak of */
+        O.push({ t: et[li], how: 'dip' }); added++;
+      }
+      if (added) O.sort(function (x, y) { return x.t - y.t; });
+      return added > 0;
+    }
     J.step = function (ms) {
       var t0 = now();
       while (!J.done && now() - t0 < ms) {
@@ -270,7 +291,17 @@
           }
           if (oi >= O.length) { AL = aligner(O, E); J.stage = 2; }
         }
-        else if (J.stage === 2) { AL.rows(Math.max(1, Math.floor(40000 / (E.length + 1)))); if (AL.done()) { A = AL.result(); byE = {}; A.pairs.forEach(function (pr) { byE[pr[1]] = pr[0]; }); lags = E.map(function (e, j) { return byE[j] !== undefined ? O[byE[j]].t - e.t : null; }); J.stage = 3; } }
+        else if (J.stage === 2) {
+          AL.rows(Math.max(1, Math.floor(40000 / (E.length + 1))));
+          if (AL.done()) {
+            A = AL.result(); byE = {}; A.pairs.forEach(function (pr) { byE[pr[1]] = pr[0]; });
+            /* a repeated note played with a smooth bow change makes no attack and no change of pitch, so it was not found
+               (Trix: "two notes with the same pitch"). Once: for each such note the score says is there, look for the bow
+               change where it was due (the deepest dip in the level, between the notes around it) and align again */
+            if (!J.again && repeats()) { J.again = true; oi = 0; J.stage = 1; continue; }
+            lags = E.map(function (e, j) { return byE[j] !== undefined ? O[byE[j]].t - e.t : null; }); J.stage = 3;
+          }
+        }
         else if (J.stage === 3) { G = clock(); J.stage = 4; }
         else if (J.stage === 4) { for (var k = 0; k < 32 && ej < E.length; k++, ej++) res.push(note(E[ej], ej)); if (ej >= E.length) J.stage = 5; }
         else { J.result = { notes: res, extra: A.extra.map(function (k2) { return { t: O[k2].t, m: O[k2].m }; }), onsets: O.length, clock: G }; J.done = true; }

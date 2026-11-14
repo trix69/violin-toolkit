@@ -159,3 +159,19 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .shell.pa-result:not(.pa-sp) .pa-lg-pitch, .shell.pa-result:not(.pa-sp) .pa-wrong { display: none; }
 .shell.pa-result:not(.pa-sp) .mp-n.pa-p .head:not(.hollow) { fill: currentColor; }
 .shell.pa-result:not(.pa-sp) .mp-n.pa-p .head.hollow { stroke: currentColor; }
+
+/* Live with a result: the strip can be dragged sideways (Trix) */
+.shell.pa-result[data-view="playalong"] #mpScore { touch-action: pan-y; cursor: grab; }
+
+/* the result at a glance (Trix): a bar each for pitch and timing, left to right green, amber, red, grey, with the green share large */
+.pa-bars { display: grid; gap: 10px; }
+.pa-sb { display: grid; gap: 4px; }
+.pa-sb-h { display: flex; align-items: baseline; gap: 8px; }
+.pa-sb-h b { font: 700 15px var(--font-body); min-width: 4.5em; }
+.pa-sb-big { font: 700 22px var(--font-body); color: #23963a; }
+.pa-sb-h small { font: 500 13px var(--font-body); color: var(--muted); }
+.pa-sb-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--line); }
+.pa-sb-bar > i { display: grid; place-items: center; min-width: 0; font: 700 11px var(--font-body); font-style: normal; color: #fff; overflow: hidden; white-space: nowrap; }
+.pa-sb-bar .s-ok { background: #23963a; } .pa-sb-bar .s-amber { background: #d68a00; } .pa-sb-bar .s-red { background: #d23b2f; } .pa-sb-bar .s-miss { background: #9a9a9a; }
+.pa-sb-bar.time .s-ok { background: rgba(46, 160, 67, .55); color: #12401c; } .pa-sb-bar.time .s-amber { background: rgba(232, 164, 32, .75); color: #4a2f00; }
+.pa-sb-bar.time .s-red { background: repeating-linear-gradient(135deg, rgba(214, 48, 39, .85) 0 4px, rgba(214, 48, 39, .4) 4px 8px); }
