@@ -505,7 +505,7 @@ import base64, json
 midi_css = open(SP + 'midi.css').read()
 fing_css = open(SP + 'fing.css').read()   # Fingerings (指法谱): pages + PDF from the MIDI player's drawing
 fing_html = open(SP + 'fing.html').read()
-PA_ON = os.environ.get('VT_PA') == '1'   # Play-along is still being built: its tile and tab only in a build made with VT_PA=1
+PA_ON = os.environ.get('VT_PA', '1') != '0'   # Play-along ships from 1.47 (Trix); VT_PA=0 builds without it
 pa_html = open(SP + 'pa.html').read()   # Play-along (跟音练习): the take bar and the headphone gate
 pa_css = open(SP + 'pa.css').read()
 if PA_ON:   # the header button beside Switch tool (Trix): MIDI player -> Play-along, Fingerings -> MIDI player, Play-along -> Fingerings
@@ -1894,7 +1894,7 @@ markup = f"""
     <h2 id="ppTitle" tabindex="-1">Privacy policy</h2>
     <p class="pp-date" id="ppDate"></p>
     <div class="pp-body">
-      <p id="ppText">Violin Toolkit has no accounts and no cookies. Your settings, practice time and imported tunes stay on this device. The only time the app goes online is to check for a new version (it sends the app version, the kind of app and a random number made on this device, which we count) and, on the phone builds, to fetch a built-in tune the first time you play it and to check that a saved one is still the version on the website. Links that leave the app, such as Report an issue, open your browser only after you confirm.</p>
+      <p id="ppText">Violin Toolkit has no accounts and no cookies. Your settings, practice time and imported tunes stay on this device. The microphone (tuner, Pitch Check, Play-along) is analysed on this device as you play and never recorded. The only time the app goes online is to check for a new version (it sends the app version, the kind of app and a random number made on this device, which we count) and, on the phone builds, to fetch a built-in tune the first time you play it and to check that a saved one is still the version on the website. Links that leave the app, such as Report an issue, open your browser only after you confirm.</p>
       <p><a id="ppLink" href="https://trix69.github.io/violin-toolkit/docs/privacy.html" target="_blank" rel="noopener">Read the full policy</a></p>
       <p class="pp-msg" id="ppMsg" role="status" hidden></p>
     </div>

@@ -236,7 +236,7 @@
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
       var ms = kids(part, 'measure'), notes = [], tie = {}, chordTrem = 0, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
       var ksw = [], kmw = [], kw0 = null, km0 = null;
-      function graceCap(t) { var us = 500000; tempos.forEach(function (tp) { if (tp.tick <= t) us = tp.us; }); return TPQ * 70000 / us; }   /* ticks in about 70 ms at the tempo there */
+      function graceCap(t) { var us = 500000; tempos.forEach(function (tp) { if (tp.tick <= t) us = tp.us; }); return TPQ * Math.max(40000, Math.min(120000, us / 16)) / us; }   /* a 16th of the beat at the tempo there (Trix: by the BPM), 40 to 120 ms */
       function wordMark(t, text) {   /* words on one beat share one mark ("Minuet I" and its ♩ = 120) */
         var same = marks.filter(function (m) { return m.kind === 'words' && m.tick === t; })[0];
         if (same) { if (same.text.indexOf(text) < 0) same.text += '  ' + text; } else marks.push({ tick: t, kind: 'words', text: text });
@@ -311,7 +311,7 @@
             else if (!chord && graces.length) {
               /* graces not slashed (an appoggiatura, or a run): quick, about a 32nd each (Trix: a very quick grace), on the
                  beat, taking their time from the start of the note that follows */
-              var main = t1 - t0, cnt = graces.length, each = Math.max(1, Math.round(Math.min(TPQ / 8, main / (2 * cnt), graceCap(t0))));   /* never longer than about 70 ms: a slow tune (Air, ♩ = 30) made a 32nd last a quarter of a second (Trix) */
+              var main = t1 - t0, cnt = graces.length, each = Math.max(1, Math.round(Math.min(TPQ / 8, main / (2 * cnt), graceCap(t0))));   /* a 16th of the beat, 40-120 ms: a slow tune (Air, ♩ = 30) made a 32nd last a quarter of a second (Trix) */
               graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: Math.max(0, t0 - (cnt - gi)), gi: gi, gn: cnt, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
               gFrom = t0; gShift = cnt * each; t0 += gShift; graces = [];
             } else if (!chord) { gFrom = -1; gShift = 0; }
