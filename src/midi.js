@@ -3418,7 +3418,11 @@
   function paCardClose() { if (paCardEl.hidden) return; paCardEl.hidden = true; APP.board.off('pa-card'); APP.board.heard(null); }
   $('paCardC').addEventListener('click', paCardClose);   /* a tap on the card closes it */
   document.addEventListener('pointerdown', function (e) { if (!paCardEl.hidden && !$('paCardC').contains(e.target)) paCardClose(); }, true);   /* and a tap anywhere else */
-  paCardEl.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); paCardClose(); } });
+  paCardEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.stopPropagation(); paCardClose(); }
+    else if (e.key === 'Tab') { e.preventDefault(); $('paCardC').focus(); }   /* one stop, the card itself (Hermes F86) */
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !paCardEl.hidden) { e.stopPropagation(); paCardClose(); } }, true);   /* Esc closes it from anywhere */
   function paRetint() {
     paClearTints();
     if (!paOn || !paRes || paRes.empty || !song) return;   /* only while Play-along shows (Hermes: an analysis ending after the tool was left) */
