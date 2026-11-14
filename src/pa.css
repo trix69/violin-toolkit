@@ -199,7 +199,7 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa-sd.ok { fill: #23963a; } .pa-sd.amber { fill: #d68a00; } .pa-sd.red { fill: #d23b2f; }
 .pa-sk { stroke-width: 1.3; stroke-linecap: butt; }   /* as thin as the written stem (Trix) */
 .pa-sk.ok { stroke: #23963a; } .pa-sk.amber { stroke: #e0a020; } .pa-sk.red { stroke: #d23b2f; }
-.shell.pa-result:not(.pa-st) .pa-sk, .shell.pa-result:not(.pa-sp) .pa-sd { display: none; }
+.shell.pa-result:not(.pa-st) .pa-sk, .shell.pa-result:not(.pa-sp) .pa-sd, .shell.pa-result:not(.pa-sp) .pa-sdt { display: none; }   /* the dot goes with its head (Hermes F97) */
 html.fg-printing .pa-sh { display: none !important; } @media print { .pa-sh { display: none !important; } }
 :is(.pa-legend, .pa-bars) .sw-tok, :is(.pa-legend, .pa-bars) .sw-tamber, :is(.pa-legend, .pa-bars) .sw-tred { width: 22px; height: 5px; border-radius: 3px; }
 :is(.pa-legend, .pa-bars) .sw-tok { background: #23963a; } :is(.pa-legend, .pa-bars) .sw-tamber { background: #e0a020; } :is(.pa-legend, .pa-bars) .sw-tred { background: #d23b2f; }
