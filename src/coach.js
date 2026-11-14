@@ -54,10 +54,10 @@
       { sel: '#paFloat', title: 'Listen first', text: 'Speed, Mixer, A–B and zoom, to listen and practise. A take always plays at the score’s own tempo.' }
     ],
     'playalong:result': [
-      { sel: '#paStats', title: 'Your result', text: 'How many notes were in tune and on time. The big number is the green share.' },
+      { sel: '#paStats', title: 'Your result', text: 'How many notes were in tune and on time. The bar shows the green, amber, red and missed share.' },
       { sel: '#fgPages .pa-sh', one: true, mid: true, when: function () { return APP.paState && APP.paState().view === 'pages'; }, title: 'Shadow notes', text: 'Each note you played is drawn as a coloured shadow: higher or lower when sharp or flat, moved left or right when early or late. Each bar gets a light green, amber or red background.' },
-      { sel: '#mpSvg .pa-sh', one: true, mid: true, when: function () { return APP.paState && APP.paState().view === 'live'; }, title: 'Shadow notes', text: 'Each note you played is drawn as a coloured shadow: higher or lower when sharp or flat, moved left or right when early or late. Each bar gets a light green, amber or red background.' },
-      { sel: '#fgPages .pa-sh, #mpSvg .pa-sh', one: true, mid: true, title: 'Tap a note', text: 'Tap a note for its card: how many cents off, how early or late, and on the fingerboard where your finger landed and how far to move it.' },
+      { sel: '#mpSvg .pa-sh', one: true, mid: true, fall: '#mpScore', when: function () { return APP.paState && APP.paState().view === 'live'; }, title: 'Shadow notes', text: 'Each note you played is drawn as a coloured shadow: higher or lower when sharp or flat, moved left or right when early or late. Each bar gets a light green, amber or red background.' },
+      { sel: '#fgPages .pa-sh, #mpSvg .pa-sh', one: true, mid: true, fall: '#mpScore', title: 'Tap a note', text: 'Tap a note for its card: how many cents off, how early or late, and on the fingerboard where your finger landed and how far to move it.' },
       { sel: '#paShow', title: 'Pitch, Timing or Both', text: 'Show only the pitch marks, only the timing marks, or both.' }
     ]
   };
@@ -94,6 +94,8 @@
 
   /* Put the bubble next to the spotlight without covering it: below, above, scrolled so it fits
      below, beside (wide screens), and only when none of those can work, over the lower part. */
+  function fallEl(sel) { var el = sel && document.querySelector(sel); return el && el.getClientRects().length ? el : null; }   /* only one that shows (Pages hides the strip) */
+  function midNow() { return !!(tour && tour[idx] && tour[idx].mid); }   /* the current step's mid (Hermes F102: s is step()'s own) */
   function place() {
     if (!tour || !target) return;
     var vw = document.documentElement.clientWidth, vh = window.innerHeight, g = 16, gap = 12, pad = 6;
@@ -102,7 +104,7 @@
     var h = tip.offsetHeight;
     var r = targetRect();
     if (r.bottom <= 0 || r.top >= vh) {   /* scrolled away anyway (e.g. the browser bar resized): bring it back */
-      target.scrollIntoView({ block: s.mid ? 'center' : 'nearest', inline: 'nearest' });   /* mid: a note under a floating bar is brought to the middle */
+      target.scrollIntoView({ block: midNow() ? 'center' : 'nearest', inline: 'nearest' });   /* mid: a note under a floating bar is brought to the middle */
       r = targetRect();
     }
     /* clamp both ends of each pair so they can't cross when the target is partly off screen */
@@ -167,7 +169,7 @@
   function onResize() {
     if (!target) return;
     scrolled = false;
-    target.scrollIntoView({ block: s.mid ? 'center' : 'nearest', inline: 'nearest' });   /* mid: a note under a floating bar is brought to the middle */
+    target.scrollIntoView({ block: midNow() ? 'center' : 'nearest', inline: 'nearest' });   /* mid: a note under a floating bar is brought to the middle */
     place();
   }
 
@@ -178,9 +180,10 @@
     target = Array.prototype.filter.call(targets, function (el) { return el.getClientRects().length; })[0] || targets[0];   /* #keyrows or #keyFold, whichever shows */
     if (!target || !target.getClientRects().length) { if (i + 1 < tour.length) step(i + 1); else close(); return; }
     if (s.one) {   /* one note, not all of them: the key note if it is on screen, else the first note that is (Trix: the box ran off the screen in 3rd position) */
-      var bar = document.getElementById('posbar'), lim = bar ? bar.getBoundingClientRect().top : window.innerHeight;
-      var seen = Array.prototype.filter.call(targets, function (el) { var b = el.getBoundingClientRect(); return b.height && b.top >= 0 && b.bottom <= lim; });
-      target = seen.filter(function (el) { return el.classList.contains('root'); })[0] || seen[0] || target;
+      var bar = document.getElementById('posbar'), lim = bar && bar.getClientRects().length ? bar.getBoundingClientRect().top : window.innerHeight;   /* #posbar has no box outside the fingerboard (Hermes F103) */
+      var vw = document.documentElement.clientWidth;
+      var seen = Array.prototype.filter.call(targets, function (el) { var b = el.getBoundingClientRect(); return b.height && b.top >= 0 && b.bottom <= lim && b.left >= 0 && b.right <= vw; });
+      target = seen.filter(function (el) { return el.classList.contains('root'); })[0] || seen[0] || fallEl(s.fall) || target;   /* fall: none on screen (Live's strip has moved on): spotlight the strip */
       targets = [target];
     }
     scrolled = false;

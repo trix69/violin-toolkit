@@ -1865,7 +1865,14 @@
     if (shown) fit();
     if (APP.fgSync) APP.fgSync();   /* the Fingerings pages follow the current tune */
     settle();   /* and once more when it has settled (an iPhone left the board short) */
-    if (autoPlay === i) { autoPlay = -1; if (shown && !paOn) setTimeout(function () { if (+songSel.value === i && !playing && !counting) play(); }, 60); }
+    if (autoPlay === i) { autoPlay = -1; if (shown && !paOn) setTimeout(function () {
+      if (+songSel.value !== i || playing || counting) return;
+      APP.board.prime();
+      setTimeout(function () {   /* start only with sound: choosing from the list isn't a tap on iPhone, so the sound may still be asleep (Trix) */
+        if (+songSel.value !== i || playing || counting) return;
+        if (APP.board.live()) play(); else say(['Tap ▶ to play.']);
+      }, 250);
+    }, 60); }
   }
   function addSong(title, buf, kept) {   /* kept: an imported file, with its id in the saved list */
     var sg = parse(buf);
@@ -2032,6 +2039,9 @@
      inside the tap (iPhone), the playing waits until the score is in (a built-in still downloading on the phone apps) */
   var autoPlay = -1;
   songSel.addEventListener('change', function () { autoPlay = +songSel.value; APP.board.prime(); load(+songSel.value); });
+  ['touchend', 'pointerup', 'mousedown', 'keydown'].forEach(function (ev) {   /* the tap that opens the list wakes the sound: the choice itself isn't a tap on iPhone, so a tune it started played silently until the next tap (Trix) */
+    songSel.addEventListener(ev, function () { APP.board.prime(); }, { passive: true });
+  });
   /* Trix (iPhone): a board left short, cut after two rows, after choosing Winter; not reproduced. Measure the board
      again once the list's picker has closed and the tune has settled, and when the visible area changes (sizes only) */
   var settleT = [];

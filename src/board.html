@@ -1668,6 +1668,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.09);
     },
     prime: function () { if (window.APP && APP.playThroughSilent) APP.playThroughSilent(); return !!ensureCtx(); },
+    live: function () { return !!ctx && ctx.state === 'running'; },   /* the sound engine is really running (a picker choice doesn't start it on iPhone) */
     playerVib: function (on) { playerVibOn = !!on; pvoices.forEach(function (r) { if (!r.v) return; applyVib(r); }); },
     soloVolume: function (v) { soloVol = v; if (soloBus) soloBus.gain.setTargetAtTime(v, soloBus.context.currentTime, 0.03); },
     audio: function () { return ensureCtx() ? { ctx: ctx, out: master } : null; },   /* for the accompaniment */
