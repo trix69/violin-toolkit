@@ -228,6 +228,10 @@ html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { di
 .shell[data-view="playalong"] #paFloat #mpFull { position: static !important; display: none !important; }
 .shell[data-view="playalong"] #paFloat.live #mpFull { display: grid !important; }
 .shell[data-view="playalong"] #main { padding-bottom: 76px; }   /* room under the floating controls */
+/* Pages (Trix): the same pill at the top of the pages, staying at the top of the screen while they scroll; menus open downwards */
+.pa-float.top { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 8px); left: auto; bottom: auto; transform: none; width: fit-content; margin: 0 auto 12px; }
+.pa-float.top .mp-mixpop, .pa-float.top .mp-abpop { bottom: auto; top: calc(100% + 10px); }
+.shell:not([data-view="playalong"]) #paFloat { display: none !important; }   /* it waits among the Fingerings pages when Play-along is left */
 .shell[data-view="playalong"] #mpTop > .mp-row { display: none; }   /* one tune row: the one at the top (Trix) */
 .pa-float .pa-zoom svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .pa-float.live .pa-zoom { display: none; }   /* the pages only */

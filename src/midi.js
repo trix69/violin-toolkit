@@ -3149,7 +3149,7 @@
      framer: a pitch and a level every 512 samples; the audio itself is never kept). Stop ends a take for good; the
      analysis runs after it, in slices, and tints each bar. */
   var paBrowse = null, paDrag = null, paDragMoved = false;   /* Live, a result showing: the strip dragged by hand (Trix) */
-  var paFloatEl = $('paFloat'), paLent;
+  var paFloatEl = $('paFloat'), paLent, paFloatHome = paFloatEl.parentNode, paFloatNext = paFloatEl.nextSibling;
   var paView = 'pages', paRes = null, paSaved = null, paRaf = 0, paShowMode = 'both', paShowEl = $('paShow');
   try { var psm = localStorage.getItem('violin-pa-show'); if (psm === 'pitch' || psm === 'time') paShowMode = psm; } catch (e) {}
   try { paView = localStorage.getItem('violin-pa-view') === 'live' ? 'live' : 'pages'; } catch (e) {}
@@ -3204,6 +3204,10 @@
     paNeedle.hidden = !(rec && !busy);   /* the pitch needle during a take, in both views (Trix); Live has no page / bar line */
     var live = paView === 'live', mic = document.querySelector('#pa .pa-mic');
     $('pa').classList.toggle('live', live); paFloatEl.classList.toggle('live', live); paFloatEl.hidden = !!(rec || busy) || full;   /* not during a take: the speed must stay put */
+    /* Pages: the controls sit at the top of the pages and stay there while they scroll (Trix); Live keeps the pill at the bottom */
+    if (!live) { if (paFloatEl.nextSibling !== fgPages) fgPages.parentNode.insertBefore(paFloatEl, fgPages); }
+    else if (paFloatEl.parentNode !== paFloatHome) paFloatHome.insertBefore(paFloatEl, paFloatNext);
+    paFloatEl.classList.toggle('top', !live);
     var pbar = paRec.parentNode;   /* one top bar in both views (Trix): Pages | Live, Start / Stop, the time, the pitch needle, the microphone level */
     if (pbar.lastElementChild !== mic || paNeedle.parentNode !== pbar) { pbar.appendChild(paTime); pbar.appendChild(paNeedle); pbar.appendChild(mic); }
     paResEl.hidden = !paRes || rec;
@@ -3739,7 +3743,7 @@
   APP.mpNotes = function () { return song ? song.notes : null; };   /* tests */
   APP.paState = function () { return { take: paTake ? paTake.state : null, view: paView, result: paRes, mute: paMute }; };   /* tests */
   /* swipe between the tools (Trix): MIDI player, Fingerings and Play-along side by side, in that order; a swipe left on the
-     player opens Fingerings, a swipe right on Fingerings opens the player, sliding in like a page. From the fingerboard
+     player opens Fingerings, a swipe right on Fingerings opens the player, sliding in like a page, round in a loop. From the fingerboard
      too (Trix; in the player it only shows notes, a press plays nothing). Not from a slider, a list, an open panel, full screen, zoomed pages that scroll
      sideways, or Play-along */
   (function () {
@@ -3764,8 +3768,11 @@
       if (performance.now() - st > 700 || Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
       /* the row (Trix): MIDI player, Fingerings, Play-along (where the build shows its tile) */
       var row = ['midi', 'fingering'].concat(document.querySelector('.launch-btn[data-view="playalong"]') ? ['playalong'] : []);
-      var at = row.indexOf(paOn ? 'playalong' : shown ? 'midi' : 'fingering'), to = row[at + (dx < 0 ? 1 : -1)];
-      if (!to || at < 0) return;
+      /* a loop (Trix): past the last tool comes the first again, so a swipe left on Play-along opens the player, and a swipe
+         right on the player opens Play-along; never while a take is being recorded (from() above) */
+      var at = row.indexOf(paOn ? 'playalong' : shown ? 'midi' : 'fingering');
+      if (at < 0 || row.length < 2) return;
+      var to = row[(at + (dx < 0 ? 1 : -1) + row.length) % row.length];
       APP.show(to);
       var sec = document.getElementById('view-' + to);
       if (sec && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
