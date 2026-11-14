@@ -192,3 +192,7 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa-tip-body .pa-fb-say { margin-top: 8px; font-weight: 600; }
 .pa-sb .pa-lg { margin-top: 4px; font-size: 13px; }
 .pa-bars { gap: 16px; }
+/* Live (Trix): no page / bar line; the microphone level sits in the top bar beside the time */
+.pa.live .pa-info { display: none; }
+.pa-bar .pa-mic { flex: 0 1 90px; color: var(--muted); margin-left: auto; }
+.pa-bar .pa-mic + .pa-time { margin-left: 0; }

@@ -3151,7 +3151,11 @@
     paRec.setAttribute('aria-label', paRecTxt.textContent);
     paHp.hidden = !rec || busy;
     var hpTxt = $('paHpTxt'); if (hpTxt && paTake) hpTxt.textContent = paTake.sound ? 'Headphones only: the microphone is on.' : 'No sound: the microphone is on.';
-    paNeedle.hidden = !(rec && !busy && paView === 'live');
+    paNeedle.hidden = true;   /* Live (Trix): the fingerboard below shows the pitch; no needle, no page / bar line */
+    var live = paView === 'live', mic = document.querySelector('#pa .pa-mic');
+    $('pa').classList.toggle('live', live);
+    if (live && mic.nextSibling !== $('paTime')) $('paTime').parentNode.insertBefore(mic, $('paTime'));   /* the microphone level beside the time */
+    else if (!live && mic.parentNode !== $('paBarNow').parentNode) $('paBarNow').parentNode.insertBefore(mic, $('paBarNow'));
     paResEl.hidden = !paRes || rec;
     var sh = document.getElementById('shell'); if (sh) { sh.classList.toggle('pa-result', !!(paRes && !paRes.empty) && !rec); sh.classList.toggle('pa-sp', paShowMode !== 'time'); sh.classList.toggle('pa-st', paShowMode !== 'pitch'); }   /* fingerings hidden while a result shows; Pitch | Timing | Both */
     Array.prototype.forEach.call(paShowEl.children, function (b) { b.setAttribute('aria-checked', b.dataset.s === paShowMode ? 'true' : 'false'); });
