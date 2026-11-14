@@ -102,3 +102,12 @@ html.fg-shot .fg-page { width: 595.28px !important; height: 841.89px !important;
   #view-fingering .fg-fitbar .fg-play { width: 33px; height: 33px; }
 }
 #view-fingering .fg-lvmenu button, .mp-lvmenu button { white-space: nowrap; }   /* "Minimum fingerings" on one line (Trix) */
+@media (max-width: 367px) {   /* ten buttons in 296 px (Hermes F98): 8 x 25 + 31 + 30 + 9 x 2 gap + 12 padding = 291 */
+  #view-fingering .fg-fitbar, #view-fingering .fg-fitbar .fgx { gap: 2px; }
+  #view-fingering .fg-fitbar { padding: 5px 6px; }
+  #view-fingering .fg-fitbar .fg-mini { width: 25px; height: 25px; font-size: 15px; }
+  #view-fingering .fg-fitbar .fg-mini.fgx-ab { width: 31px; }
+  #view-fingering .fg-fitbar .fg-zoom svg { width: 17px; height: 17px; }
+  #view-fingering .fg-fitbar .fg-play { width: 30px; height: 30px; }
+}
+#view-fingering .fg-fitbar .fg-mini, #view-fingering .fg-fitbar .fg-play { flex: 0 0 auto; }   /* no squeezing below the set size */

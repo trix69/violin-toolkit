@@ -42,7 +42,7 @@
       { sel: '#fgSong', title: 'Pick a tune', text: 'The same tunes as the MIDI player, laid out on pages.' },
       { sel: '#fgPages .fg-page:first-child', title: 'Fingers and positions', text: 'Each note shows its finger in its string’s colour; Roman numerals mark the position. Tap a note to play from there.' },
       { sel: '#fgPlay', title: 'Play', text: 'Plays the tune; a line follows along on the pages.' },
-      { sel: '#fgMore', title: 'More controls', text: 'Back to start, speed, Mixer, Loop and A–B.' },
+      { sel: '#view-fingering .fg-fitbar', title: 'More controls', text: 'Back to start, speed, Mixer, Loop and A–B.' },   /* the pill (Hermes F99) */
       { sel: '#fgPdf', title: 'Export', text: 'Save the pages as a PDF to print or share.' }
     ]
   };
