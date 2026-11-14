@@ -230,3 +230,6 @@ html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { di
 .shell[data-view="playalong"] #paFloat.live #mpFull { display: grid !important; }
 .shell[data-view="playalong"] #main { padding-bottom: 76px; }   /* room under the floating controls */
 .shell[data-view="playalong"] #mpTop > .mp-row { display: none; }   /* one tune row: the one at the top (Trix) */
+.pa-float .pa-zoom svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.pa-float.live .pa-zoom { display: none; }   /* the pages only */
+.pa-float .pa-zoom:disabled { opacity: .35; }

@@ -2918,6 +2918,15 @@
       if (fgZoom <= 1.001) zoomUi();   /* a window no wider than the column: nothing to gain */
     });
     zoomUi(); APP.fgZoomUi = zoomUi;
+    /* Play-along's floating zoom (Trix): steps of 25 %, from 50 % up to the window's width (a phone, where that gains nothing: 300 %) */
+    APP.fgZoomStep = function (up) {
+      var col = fgPages.classList.contains('zoomed') ? parseFloat(getComputedStyle(fgPages).getPropertyValue('--fgw')) || fgPages.clientWidth : fgPages.clientWidth;
+      var fit = (document.documentElement.clientWidth - 32) / col, top = fit > 1.1 ? Math.min(3, fit) : 3;
+      var z = up ? Math.min(top, fgZoom * 1.25) : Math.max(0.5, fgZoom / 1.25);
+      if (Math.abs(z - 1) < 0.06) z = 1;
+      setZoom(z, window.innerWidth / 2, Math.min(window.innerHeight / 2, Math.max(0, fgPages.getBoundingClientRect().top + 40)));
+      return { z: fgZoom, top: top };
+    };
     /* more controls (Trix): each one presses the MIDI player's own button; the Mixer and A–B panels move under the
        floating buttons while open from here, and back to the player's bar when opened there */
     var fgMore = $('fgMore'), fgx = $('fgx'), fgx2 = $('fgx2'), mpBarEl = $('mpBar'), fitBar = fgPages.parentNode.querySelector('.fg-fitbar');
@@ -3641,6 +3650,9 @@
     if (el) el.parentNode.insertBefore(home, el);
     return { el: el, home: home };
   });
+  function paZoomUi(r) { if (!r) return; $('paZoomIn').disabled = r.z >= r.top - 0.01; $('paZoomOut').disabled = r.z <= 0.51; }
+  $('paZoomIn').addEventListener('click', function () { paZoomUi(APP.fgZoomStep(true)); });
+  $('paZoomOut').addEventListener('click', function () { paZoomUi(APP.fgZoomStep(false)); });
   function paLend(on) {
     paLent.forEach(function (x) {
       if (!x.el) return;
