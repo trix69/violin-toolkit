@@ -1477,7 +1477,7 @@
         inf[k].top = Math.min(inf[k].top, wy - 13);   /* a position numeral goes above it */
       }
       if (dotted) g.push('<circle class="dot" cx="' + (hx + 9) + '" cy="' + (step % 2 === 0 ? y - S / 2 : y) + '" r="1.7"/>');
-      items.push([hx, '<g class="mp-n" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
+      items.push([hx, '<g class="mp-n" data-k="' + k + '" data-len="' + len + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
       /* the rest of a long note: tied heads at their beats (no fingering or marks), each tie on the side away from the stem */
       if (nt.pcs) {
         var px = hx;
@@ -3550,11 +3550,18 @@
             if (Math.abs(x1 - cx) <= rx + 2 && Math.abs(y2 - y1) > 2 * S) up = Math.min(y1, y2) < cy - S;
           });
           var sxS = (up ? cx + rx : cx - rx) + dx, sy2 = up ? hy - 3.4 * S : hy + 3.4 * S, sh = document.createElementNS(NS, 'g');   /* the stem where the written one is, moved by the timing */
-          hx = up ? sxS - HR + 1.2 : sxS + HR - 1.2;   /* the head hangs on the stem and grows away from it (Trix) */
+          hx = up ? sxS - HR + 1.2 : sxS + HR - 1.2;
+          /* drawn as the written note's value (Trix): hollow from a minim, no stem on a semibreve, flags for quavers and shorter
+             (a beamed note gets its flags here, since the shadow stands alone) */
+          var nLen = +g.getAttribute('data-len') || 1, nHollow = nLen >= 2, nStem = nLen < 4, nFl = nLen <= 0.125 ? 3 : nLen <= 0.25 ? 2 : nLen < 1 ? 1 : 0, flagsSvg = '';
+          for (var fq = 0; fq < nFl && m.time; fq++) {
+            var fy = sy2 + (up ? 1 : -1) * fq * 7, fd = up ? 1 : -1;
+            flagsSvg += '<path class="pa-sf ' + m.time + '" d="M' + sxS.toFixed(1) + ' ' + fy.toFixed(1) + 'c1 ' + (5 * fd) + ' 8 ' + (7 * fd) + ' 6 ' + (15 * fd) + 'c1 ' + (-6 * fd) + ' -3 ' + (-9 * fd) + ' -6 ' + (-10 * fd) + 'z"/>';
+          }   /* the head hangs on the stem and grows away from it (Trix) */
           sh.setAttribute('class', 'pa-sh'); sh.setAttribute('data-pabar', barOf[k]); sh.setAttribute('data-pak', (merge ? 'p' : 's') + k);
           sh.innerHTML = '<rect class="pa-hit" x="' + (Math.min(cx, hx) - HR - 4).toFixed(1) + '" y="' + (cy - 2.5 * S).toFixed(1) + '" width="' + (Math.abs(hx - cx) + 2 * HR + 8).toFixed(1) + '" height="' + (5 * S).toFixed(1) + '"/>' +
-            (m.time ? '<line class="pa-sk ' + m.time + '" x1="' + sxS.toFixed(1) + '" y1="' + hy.toFixed(1) + '" x2="' + sxS.toFixed(1) + '" y2="' + sy2.toFixed(1) + '"/>' : '') +
-            (wrong ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>');   /* a wrong note: the red played head says the pitch */
+            (m.time && nStem ? '<line class="pa-sk ' + m.time + '" x1="' + sxS.toFixed(1) + '" y1="' + hy.toFixed(1) + '" x2="' + sxS.toFixed(1) + '" y2="' + sy2.toFixed(1) + '"/>' + flagsSvg : '') +
+            (wrong ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + (nHollow ? ' hollow' : '') + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>');   /* a wrong note: the red played head says the pitch */
           g.parentNode.insertBefore(sh, g);   /* behind the written note: its shadow */
         }
       });

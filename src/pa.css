@@ -233,3 +233,8 @@ html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { di
 .pa-float .pa-zoom svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .pa-float.live .pa-zoom { display: none; }   /* the pages only */
 .pa-float .pa-zoom:disabled { opacity: .35; }
+/* the shadow drawn as the written note's value (Trix): hollow heads, flags in the timing colour */
+.pa-sd.hollow { fill: none !important; stroke-width: 2.4; opacity: .85; }
+.pa-sd.hollow.ok { stroke: #23963a; } .pa-sd.hollow.amber { stroke: #d68a00; } .pa-sd.hollow.red { stroke: #d23b2f; }
+.pa-sf.ok { fill: #23963a; } .pa-sf.amber { fill: #e0a020; } .pa-sf.red { fill: #d23b2f; }
+.shell.pa-result:not(.pa-st) .pa-sf { display: none; }
