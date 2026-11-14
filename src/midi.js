@@ -3380,7 +3380,7 @@
     return g;
   }
   function paClearTints() {
-    Array.prototype.forEach.call(document.querySelectorAll('.pa-tint, .pa-nm, .pa-tr, .pa-wrong, .pa-sh'), function (el) { el.remove(); });
+    Array.prototype.forEach.call(document.querySelectorAll('.pa-tint, .pa-nm, .pa-tr, .pa-wrong, .pa-sh, .pa-bt'), function (el) { el.remove(); });
     Array.prototype.forEach.call(document.querySelectorAll('.mp-n.pa-p'), function (g) { g.classList.remove('pa-p', 'pa-ok', 'pa-amber', 'pa-red', 'pa-miss'); g.removeAttribute('data-pabar'); });
   }
   var PA_RANK = { ok: 0, na: 1, miss: 2, amber: 3, red: 4 };
@@ -3492,9 +3492,23 @@
         r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r), played: played, c: kind === 'na' || r.missed ? null : r.cents, t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
       });
     });
+    /* each bar's grade (Trix): green when generally good, amber so-so, red many problems. A note is good with pitch and start both
+       green, a problem when missed, red in pitch or in time (or a wrong note); red from a third of the notes, green with no problem
+       and at least three quarters good */
+    var grade = {}, GR = { ok: 0, amber: 1, red: 2 };
+    paRes.bars.forEach(function (b, bi) {
+      var n = 0, good = 0, bad = 0;
+      b.notes.forEach(function (r) {
+        if (r.chord) return; n++;
+        if (r.missed || r.cents === undefined) { bad++; return; }
+        var c = Math.abs(r.cents), t = r.timing == null ? 0 : Math.abs(r.timing);
+        if (c > ASSESS.RED || t > PA_TIME_RED) bad++; else if (c <= ASSESS.IN_TUNE && t <= ASSESS.IN_TIME) good++;
+      });
+      if (n) grade[bi] = bad >= n / 3 ? 'red' : !bad && good >= n * 0.75 ? 'ok' : 'amber';
+    });
     function draw(root, merge) {
       if (!root) return;
-      var NS = 'http://www.w3.org/2000/svg';
+      var NS = 'http://www.w3.org/2000/svg', spans = [];
       Array.prototype.forEach.call(root.querySelectorAll('.mp-n[data-k]:not(.mp-grace)'), function (g) {
         var k = +g.getAttribute('data-k'), m = merge ? merge[k] || st[k] : st[k], head = g.querySelector('ellipse.head');
         if (!m || !head) return;
@@ -3502,6 +3516,12 @@
         g.classList.add('pa-p'); if (m.kind === 'miss' || m.kind === 'na' || wrong) g.classList.add('pa-miss');   /* the written note stays ink; grey when missed */
         if (wrong) g.parentNode.insertBefore(paPlayedHead(m.played, +head.getAttribute('cx'), +head.getAttribute('cy'), song.notes[k].b), g.nextSibling);
         g.setAttribute('data-pabar', barOf[k]); g.setAttribute('data-pak', (merge ? 'p' : 's') + k);
+        var gr = null; (merge ? paPrinted[k] || [k] : [k]).forEach(function (kk) { var gg = grade[barOf[kk]]; if (gg && (gr === null || GR[gg] > GR[gr])) gr = gg; });   /* repeats: the worse time round */
+        if (gr) {
+          var hx0 = +head.getAttribute('cx'), par = g.parentNode, sp = null;
+          for (var q = 0; q < spans.length; q++) if (spans[q].par === par && spans[q].bar === barOf[k]) { sp = spans[q]; break; }
+          if (!sp) spans.push(sp = { par: par, bar: barOf[k], a: hx0, b: hx0, gr: gr }); sp.a = Math.min(sp.a, hx0); sp.b = Math.max(sp.b, hx0);
+        }
         /* the shadow note (Trix): a coloured note behind the written one. Up / down = pitch (half a space per 25 ¢, at most 1.5
            spaces), head colour = pitch band; left / right = timing (the middle of start and end: left = early overall, 1 px per 7 ms,
            at most 18 px), stem colour = timing band; wider head = held longer than written, narrower = shorter */
@@ -3522,6 +3542,12 @@
             (wrong ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>');   /* a wrong note: the red played head says the pitch */
           g.parentNode.insertBefore(sh, g);   /* behind the written note: its shadow */
         }
+      });
+      spans.forEach(function (sp) {   /* behind everything in its system / section */
+        var r = document.createElementNS(NS, 'rect');
+        r.setAttribute('class', 'pa-bt ' + sp.gr); r.setAttribute('x', (sp.a - 16).toFixed(1)); r.setAttribute('y', Y0 - 3 * S);
+        r.setAttribute('width', (sp.b - sp.a + 40).toFixed(1)); r.setAttribute('height', 10 * S); r.setAttribute('rx', 6);
+        sp.par.insertBefore(r, sp.par.firstChild);
       });
     }
     /* the pages: each played note onto its printed note (the same bar of the score, the same place in it, the same pitch) */

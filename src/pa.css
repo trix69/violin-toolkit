@@ -213,3 +213,7 @@ html.fg-printing .pa-sh { display: none !important; } @media print { .pa-sh { di
   .pa-tip-body p { margin: 4px 0 0; font-size: 13px; line-height: 1.35; }
   .pa-tip-card { padding: 12px; }
 }
+/* each bar's grade, a light background (Trix) */
+.pa-bt { pointer-events: none; }
+.pa-bt.ok { fill: rgba(46, 160, 67, .10); } .pa-bt.amber { fill: rgba(232, 164, 32, .14); } .pa-bt.red { fill: rgba(214, 48, 39, .11); }
+html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { display: none !important; } }
