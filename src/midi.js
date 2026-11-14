@@ -2935,7 +2935,7 @@
       });
     });
     [mixBtn, abBtn].forEach(function (b) {   /* opened in the player: the panels go home to its bar first */
-      b.addEventListener('click', function () { if (mixPop.parentNode !== mpBarEl) { mpBarEl.insertBefore(abPop, mpBarEl.firstChild); mpBarEl.insertBefore(mixPop, abPop); } }, true);
+      b.addEventListener('click', function () { var home = paOn ? paFloatEl : mpBarEl; if (mixPop.parentNode !== home) { if (paOn) { home.appendChild(mixPop); home.appendChild(abPop); return; } mpBarEl.insertBefore(abPop, mpBarEl.firstChild); mpBarEl.insertBefore(mixPop, abPop); } }, true);
     });
     APP.fgxSync = function () {
       Array.prototype.forEach.call(fgPages.parentNode.querySelectorAll('.fg-fitbar [data-for]'), function (b) {
@@ -3102,6 +3102,7 @@
      framer: a pitch and a level every 512 samples; the audio itself is never kept). Stop ends a take for good; the
      analysis runs after it, in slices, and tints each bar. */
   var paBrowse = null, paDrag = null, paDragMoved = false;   /* Live, a result showing: the strip dragged by hand (Trix) */
+  var paFloatEl = $('paFloat'), paLent;
   var paView = 'pages', paRes = null, paSaved = null, paRaf = 0, paShowMode = 'both', paShowEl = $('paShow');
   try { var psm = localStorage.getItem('violin-pa-show'); if (psm === 'pitch' || psm === 'time') paShowMode = psm; } catch (e) {}
   try { paView = localStorage.getItem('violin-pa-view') === 'live' ? 'live' : 'pages'; } catch (e) {}
@@ -3153,7 +3154,7 @@
     var hpTxt = $('paHpTxt'); if (hpTxt && paTake) hpTxt.textContent = paTake.sound ? 'Headphones only: the microphone is on.' : 'No sound: the microphone is on.';
     paNeedle.hidden = !(rec && !busy);   /* the pitch needle during a take, in both views (Trix); Live has no page / bar line */
     var live = paView === 'live', mic = document.querySelector('#pa .pa-mic');
-    $('pa').classList.toggle('live', live);
+    $('pa').classList.toggle('live', live); paFloatEl.classList.toggle('live', live); paFloatEl.hidden = !!(rec || busy) || full;   /* not during a take: the speed must stay put */
     if (live && mic.nextSibling !== $('paTime')) $('paTime').parentNode.insertBefore(mic, $('paTime'));   /* the microphone level beside the time */
     else if (!live && mic.parentNode !== $('paBarNow').parentNode) $('paBarNow').parentNode.insertBefore(mic, $('paBarNow'));
     paResEl.hidden = !paRes || rec;
@@ -3624,7 +3625,23 @@
   /* the tune row (picker + Import) sits at the top of Play-along, above Pages | Live (Trix); back in Fingerings when it is left */
   var fgRowEl = document.querySelector('#view-fingering .fg-row'), fgRowHome = document.createComment('fg-row');
   if (fgRowEl) fgRowEl.parentNode.insertBefore(fgRowHome, fgRowEl);
+  /* the floating controls (Trix): slower / faster, the Mixer (no vibrato switch), A–B, fingerings shown, full screen (Live), lent by
+     the player while Play-along shows and given back when it is left; each keeps a placeholder where it lives */
+  paLent = ['mpSlower', '.mp-speed', 'mpFaster', 'mpMix', 'mpMixPop', 'mpAB', 'mpABPop', '.mp-lvwrap', 'mpFull'].map(function (q) {
+    var el = q[0] === '.' ? bar.querySelector(q) || document.querySelector(q) : $(q), home = document.createComment('lent');
+    if (el) el.parentNode.insertBefore(home, el);
+    return { el: el, home: home };
+  });
+  function paLend(on) {
+    paLent.forEach(function (x) {
+      if (!x.el) return;
+      if (on) paFloatEl.appendChild(x.el); else x.home.parentNode.insertBefore(x.el, x.home.nextSibling);
+    });
+    if (on) { var f = $('mpFull'); f.style.left = f.style.top = ''; }
+    else placeFull();
+  }
   function paRowUp(on) {
+    paLend(on);
     if (!fgRowEl) return;
     if (on) $('view-playalong').insertBefore(fgRowEl, $('pa')); else fgRowHome.parentNode.insertBefore(fgRowEl, fgRowHome.nextSibling);
   }

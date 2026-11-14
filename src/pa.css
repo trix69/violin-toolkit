@@ -217,3 +217,16 @@ html.fg-printing .pa-sh { display: none !important; } @media print { .pa-sh { di
 .pa-bt { pointer-events: none; }
 .pa-bt.ok { fill: rgba(46, 160, 67, .10); } .pa-bt.amber { fill: rgba(232, 164, 32, .14); } .pa-bt.red { fill: rgba(214, 48, 39, .11); }
 html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { display: none !important; } }
+/* the floating controls (Trix): a pill at the bottom, the player's own buttons lent while Play-along shows */
+.pa-float { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); transform: translateX(-50%); z-index: 30;
+  display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .18); max-width: calc(100vw - 24px); box-sizing: border-box; }
+.pa-float[hidden] { display: none; }
+.pa-float .mp-speed { min-width: 3.2em; text-align: center; }
+.pa-float .mp-vibrow { display: none; }   /* no vibrato switch here (Trix) */
+.pa-float .mp-mixpop, .pa-float .mp-abpop { bottom: calc(100% + 10px); }
+.shell[data-view="playalong"] #paFloat #mpFull { position: static !important; display: none !important; }
+.shell[data-view="playalong"] #paFloat.live #mpFull { display: grid !important; }
+.shell[data-view="playalong"] #main { padding-bottom: 76px; }   /* room under the floating controls */
+.shell[data-view="playalong"] #mpTop > .mp-row { display: none; }   /* one tune row: the one at the top (Trix) */
