@@ -3369,7 +3369,7 @@
   paCardEl.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); paCardClose(); } });
   function paRetint() {
     paClearTints();
-    if (!paRes || paRes.empty || !song) return;
+    if (!paOn || !paRes || paRes.empty || !song) return;   /* only while Play-along shows (Hermes: an analysis ending after the tool was left) */
     var bars = song.bars || [], ns = song.notes, st = {}, barOf = {};
     paResOf = {}; paBarOf = barOf; paPrinted = {};
     function tk(r) { if (r.timing === null || r.timing === undefined) return null; var a = Math.abs(r.timing); return a <= ASSESS.IN_TIME ? 'ok' : a <= PA_TIME_RED ? 'amber' : 'red'; }
