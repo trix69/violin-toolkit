@@ -3320,7 +3320,7 @@
     var total = bars.length ? bars[bars.length - 1].num : '', lastRec = recBars.length ? recBars[recBars.length - 1].num : '';
     if (recBars.length && recBars.length < bars.length) sum.partial = bars[0].num === lastRec ? 'Only bar ' + lastRec + ' of ' + total + ' was recorded.' : 'Only bars ' + bars[0].num + '–' + lastRec + ' of ' + total + ' were recorded.';   /* one bar: singular (Hermes F82) */
     sum.temper = APP.temper ? APP.temper.id : 'equal';
-    sum.bars.forEach(function (b, i) { b.idx = i; });
+    sum.bars.forEach(function (b, i) { b.idx = i; b.notes.forEach(paTLim); });
     return sum;
   }
   function paShowResult() {
@@ -3335,7 +3335,7 @@
         if (r.missed || r.chord || r.cents === undefined) { P.miss++; T.miss++; return; }
         var c = Math.abs(r.cents); P[c <= ASSESS.IN_TUNE ? 'ok' : c <= ASSESS.RED ? 'amber' : 'red']++;
         if (r.timing === null || r.timing === undefined) { T.miss++; return; }
-        var t = Math.abs(r.timing); T[t <= ASSESS.IN_TIME ? 'ok' : t <= PA_TIME_RED ? 'amber' : 'red']++;
+        var t = Math.abs(r.timing); T[t <= r.tOk ? 'ok' : t <= r.tRed ? 'amber' : 'red']++;
       });
       [['Pitch', 'in tune', P, ''], ['Timing', 'on time', T, ' time']].forEach(function (row) {
         var C = row[2], n = C.ok + C.amber + C.red + C.miss; if (!n) return;
@@ -3362,10 +3362,17 @@
   }
 
   /* the marks (Trix): each notehead coloured by its pitch — green within 10 cents, amber 10-25, red more; grey if missed or
-     not assessed (a chord) — and a see-through rectangle behind the note for its timing: green within 25 ms, amber 25-60,
+     not assessed (a chord) — and a see-through rectangle behind the note for its timing: green within 1/16 of a beat (30-80 ms), amber to 1/8 (70-160 ms),
      red more (hatched, so it does not rest on colour alone). On the pages a repeat is printed once: its marks show the
      worse of the times through. A tap on a note opens its card */
-  var PA_TIME_RED = 60, PA_WRONG = 75;   /* 75 cents or more off: a different note (Trix: "only if it's deviated too much") */
+  /* timing by the beat (Trix: 25 ms was too strict for a slow piece, too loose for a fast one): on time within 1/16 of the beat
+     there (30 to 80 ms), clearly off past 1/8 of it (70 to 160 ms). A take is at the score's tempo, so the beat is the score's */
+  function paTLim(r) {
+    var q = 500; try { if (r.b !== undefined && r.b !== null) q = (song.beatSec(r.b + 0.25) - song.beatSec(r.b)) * 4000; } catch (e) {}
+    if (!(q > 0)) q = 500;
+    r.tOk = Math.round(Math.max(30, Math.min(80, q / 16))); r.tRed = Math.round(Math.max(70, Math.min(160, q / 8)));
+  }
+  var PA_WRONG = 75;   /* 75 cents or more off: a different note (Trix: "only if it's deviated too much") */
   /* the note played, as a red head on its line or space (its accidental against the key, ledger lines) beside the written one */
   function paPlayedHead(m, cx, cy, beat) {
     var NS = 'http://www.w3.org/2000/svg', g = document.createElementNS(NS, 'g'), kn = song.keyAt ? song.keyAt(beat) : { sf: song.sf };
@@ -3395,7 +3402,7 @@
     $('paCardT').textContent = 'Bar ' + (bars[paCardBar] ? bars[paCardBar].num : '');
     var box = $('paCardB'); box.textContent = ''; box.classList.remove('has-fb');
     function line(t, cls) { var p0 = document.createElement('p'); p0.textContent = t; if (cls) p0.className = cls; box.appendChild(p0); }
-    function ms(v, what) { return Math.abs(v) <= ASSESS.IN_TIME ? what + ': on time (' + (v >= 0 ? '+' : '−') + Math.abs(v) + ' ms)' : what + ': ' + Math.abs(v) + ' ms ' + (v > 0 ? 'late' : 'early'); }
+    function ms(v, what, r) { return Math.abs(v) <= r.tOk ? what + ': on time (' + (v >= 0 ? '+' : '−') + Math.abs(v) + ' ms)' : what + ': ' + Math.abs(v) + ' ms ' + (v > 0 ? 'late' : 'early'); }
     list.forEach(function (kk) {
       var r = paResOf[kk], b = bars[paBarOf[kk]];
       if (list.length > 1 && b) line(b.time + (['', 'st', 'nd', 'rd'][b.time] || 'th') + ' time', 'pa-pass');
@@ -3406,8 +3413,8 @@
       if (Math.abs(c) >= PA_WRONG && Math.round(c / 100) !== 0) line('Played ' + APP.board.name(r.m + Math.round(c / 100)) + ' instead of ' + APP.board.name(r.m) + ' (' + (c >= 0 ? '+' : '−') + Math.abs(c) + ' ¢)');
       else line(Math.abs(c) <= ASSESS.IN_TUNE ? 'Pitch: in tune (' + (c >= 0 ? '+' : '−') + Math.abs(c) + ' ¢)' : 'Pitch: ' + Math.abs(c) + ' ¢ ' + (c > 0 ? 'high' : 'low'));
       if (r.spread) line('Vibrato range: ' + Math.round(r.spread) + ' ¢');
-      if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start'));
-      if (r.exit !== undefined) line(ms(r.exit, 'End'));
+      if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r));
+      if (r.exit !== undefined) line(ms(r.exit, 'End', r));
     });
     var r1 = paResOf[list[0]];
     if (r1 && !r1.missed && !r1.chord && r1.cents !== undefined && n0.si >= 0) {
@@ -3484,7 +3491,7 @@
     if (!paOn || !paRes || paRes.empty || !song) return;   /* only while Play-along shows (Hermes: an analysis ending after the tool was left) */
     var bars = song.bars || [], ns = song.notes, st = {}, barOf = {};
     paResOf = {}; paBarOf = barOf; paPrinted = {};
-    function tk(r) { if (r.timing === null || r.timing === undefined) return null; var a = Math.abs(r.timing); return a <= ASSESS.IN_TIME ? 'ok' : a <= PA_TIME_RED ? 'amber' : 'red'; }
+    function tk(r) { if (r.timing === null || r.timing === undefined) return null; var a = Math.abs(r.timing); return a <= r.tOk ? 'ok' : a <= r.tRed ? 'amber' : 'red'; }
     paRes.bars.forEach(function (b, bi) {
       b.notes.forEach(function (r) {
         var kind = r.missed ? 'miss' : r.chord || r.cents === undefined ? 'na' : Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'ok' : Math.abs(r.cents) <= ASSESS.RED ? 'amber' : 'red';
@@ -3504,7 +3511,7 @@
         if (r.chord) return; n++;
         if (r.missed || r.cents === undefined) { bad++; return; }
         var c = Math.abs(r.cents), t = r.timing == null ? 0 : Math.abs(r.timing);
-        if (c > ASSESS.RED || t > PA_TIME_RED) bad++; else if (c <= ASSESS.IN_TUNE && t <= ASSESS.IN_TIME) good++;
+        if (c > ASSESS.RED || t > r.tRed) bad++; else if (c <= ASSESS.IN_TUNE && t <= r.tOk) good++;
       });
       if (n) grade[bi] = bad >= Math.max(2, Math.ceil(n / 3)) ? 'red' : !bad && good >= n * 0.75 ? 'ok' : 'amber';
     });
