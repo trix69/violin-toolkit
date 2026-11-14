@@ -653,7 +653,10 @@ def _demo(f, t, c):
     return d
 _demos = [_demo(f, t, c) for f, t, c in MIDI_DEMOS]
 assert BUNDLED <= {f for f, t, c in MIDI_DEMOS} and sum('b64' in d for d in _demos) == len(BUNDLED)
-midi_js = midi_js.replace('/*DEMOS*/[]', json.dumps(_demos))
+_DEMOS_LEAN = json.dumps(_demos)
+# the claude.ai artifact may fetch only from its own origin (Hermes F106), so its page keeps every tune's bytes
+_DEMOS_FULL = json.dumps([dict(d, b64=d.get('b64') or base64.b64encode(open(SP + 'midi/' + d['f'], 'rb').read()).decode()) for d in _demos])
+midi_js = midi_js.replace('/*DEMOS*/[]', _DEMOS_LEAN)
 # the website's fingerprints of the built-in tunes (Trix): phone apps check a saved tune against this before playing it,
 # and ask for the app update when the website's piece has changed. Committed with the tunes; live once shipped.
 _fp = json.dumps({d['f']: d['h'] for d in _demos}, indent=0, sort_keys=True) + '\n'
@@ -1636,7 +1639,7 @@ ICON_SWITCH = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5"
 ICON_SET = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
 ICON_SYM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.2 6-1 8.5.8 2.5-1.8 5.5-2 8.5-.8v13.2c-3-1.2-6-1-8.5.8-2.5-1.8-5.5-2-8.5-.8z"/><path d="M12 6.3v13.2"/><path d="M16.2 9v5.2"/><ellipse cx="15.2" cy="14.4" rx="1.3" ry="1" fill="currentColor"/></svg>'
 ICON_PA = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5v4"/><path d="M8.5 21.5h7"/></svg>'
-ICON_FING = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8.5l3.5 3.5v13.5H6z"/><path d="M14.5 3.5V7H18"/><path d="M8.5 12.5h7M8.5 15.5h7"/><text x="9" y="10.4" font-size="5.5" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">1 3</text></svg>'
+ICON_FING = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8.5l3.5 3.5v13.5H6z"/><path d="M14.5 3.5V7H18"/><path d="M8.5 14h7M8.5 17h7"/><text x="8.3" y="11.6" font-size="5" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">1 3</text></svg>'
 ICON_MIDI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V5.5l10-2v12"/><ellipse cx="6.6" cy="17.6" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="16.6" cy="15.6" rx="2.6" ry="2" fill="currentColor"/><path d="M9 9.5l10-2"/></svg>'
 ICON_TUNER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0"/><path d="M12 17.5l3.6-7"/><circle cx="12" cy="17.5" r="1.2"/><path d="M12 5.8v1.8M5.6 9l1.3 1.2M18.4 9l-1.3 1.2"/></svg>'
 
@@ -1988,7 +1991,8 @@ doc = (head + '<style>\n' + b_tokens.strip() + '\n\n/* Tuner tokens, prefixed --
        + '\n' + init_js + markup
        + '\n<script>\n' + app_js + '</script>\n<script>\n' + dsp + '</script>\n<script>' + t_js + '</script>\n<script>' + b_js + '</script>\n<script>\n' + met_js + '</script>\n<script>\n' + sym_js + '</script>\n<script>\n' + assess_js + '</script>\n<script>\n' + midi_js + '</script>\n<script>\n' + nav_js + '</script>\n<script>\n' + coach_js + '</script>\n<script>\n' + i18n_js + '</script>\n')
 
-open(DIST + 'violin-fingerboard.html', 'w', encoding='utf-8').write(doc)
+assert doc.count(_DEMOS_LEAN) == 1
+open(DIST + 'violin-fingerboard.html', 'w', encoding='utf-8').write(doc.replace(_DEMOS_LEAN, _DEMOS_FULL))   # the artifact: all tunes inside
 
 i = doc.index('<div class="shell"')
 h, b = doc[:i], doc[i:]

@@ -149,12 +149,14 @@
   function dynamics(notes, marks) {
     var base = [], accent = {}, ramps = [], dyn = marks.filter(function (m) { return m.kind === 'dyn'; }).sort(function (a, b) { return a.tick - b.tick; });
     dyn.forEach(function (m) {
-      var t = m.text.toLowerCase();
-      if (VEL[t]) base.push({ tick: m.tick, v: VEL[t] });
-      else if (/^(sf|sfz|sffz|fz|rfz|rf|sfp|sfpp|fp)$/.test(t)) {
-        accent[m.tick] = t === 'fp' ? 96 : 112;
-        if (/p$/.test(t)) base.push({ tick: m.tick + 1, v: t === 'sfpp' ? 33 : 49 });   /* then soft */
-      }
+      (m.glyphs || [m.text]).forEach(function (g, gi) {   /* "fz p": the accent, then the new level */
+        var t = g.toLowerCase(), at = m.tick + (gi ? 1 : 0);
+        if (VEL[t]) base.push({ tick: at, v: VEL[t] });
+        else if (/^(sf|sfz|sffz|fz|rfz|rf|sfp|sfpp|fp)$/.test(t)) {
+          accent[m.tick] = t === 'fp' ? 96 : 112;
+          if (/p$/.test(t)) base.push({ tick: m.tick + 1, v: t === 'sfpp' ? 33 : 49 });   /* then soft */
+        }
+      });
     });
     function vAt(tick) { var v = 80; for (var i = 0; i < base.length && base[i].tick <= tick; i++) v = base[i].v; return v; }
     function nextDyn(tick) { for (var i = 0; i < base.length; i++) if (base[i].tick >= tick) return base[i]; return null; }
@@ -265,7 +267,16 @@
             var tw = [];   /* the words of a tempo change ("molto rall.", "a tempo"): printed with it (Trix) */
             if (nm === 'direction') kids(el, 'direction-type').forEach(function (dt) {   /* dynamics, hairpins and words, shown under the staff (Trix) */
               kids(dt).forEach(function (d) {
-                if (d.nodeName === 'dynamics') { var dn = kids(d).map(function (x) { return x.nodeName === 'other-dynamics' ? x.textContent.trim() : x.nodeName; }).join(''); if (dn) marks.push({ tick: tk(cur), kind: 'dyn', text: dn }); }
+                if (d.nodeName === 'dynamics') {   /* the signs (p, fz…) and any words with them ("p dolce") kept apart (Hermes F105) */
+                  var gl = [], ex = [];
+                  kids(d).forEach(function (x) {
+                    if (x.nodeName !== 'other-dynamics') { gl.push(x.nodeName); return; }
+                    var w = x.textContent.trim(), dm = /^(sfz|sffz|sfp|sf|rfz|rf|fz|fp)?(pppp|ppp|pp|p|mp|mf|ffff|fff|ff|f)?$/.exec(w);   /* "fzp" typed as text: the signs it spells */
+                    if (w && dm && dm[0]) { if (dm[1]) gl.push(dm[1]); if (dm[2]) gl.push(dm[2]); } else if (w) ex.push(w);
+                  });
+                  if (gl.length) marks.push({ tick: tk(cur), kind: 'dyn', text: gl.join(' '), glyphs: gl, word: ex.join(' ') });
+                  else if (ex.length) marks.push({ tick: tk(cur), kind: 'words', text: ex.join(' ') });
+                }
                 else if (d.nodeName === 'wedge' && /crescendo|diminuendo|stop/.test(d.getAttribute('type'))) marks.push({ tick: tk(cur), kind: 'wedge', text: d.getAttribute('type') });
                 else if (d.nodeName === 'words' && /^(pizz\.?|pizzicato|arco)$/i.test(d.textContent.trim())) { if (!(snd && snd.getAttribute('pizzicato'))) pz = !/^arco$/i.test(d.textContent.trim()); }   /* pizz. / arco: drawn once, above the notes where the playing changes, and played so even without a <sound> (Trix) */
                 else if (d.nodeName === 'words' && d.textContent.trim() && snd && snd.getAttribute('tempo')) tw.push(d.textContent.trim());
@@ -529,7 +540,7 @@
       else soloMarks.push({ tick: +t, kind: 'words', text: tm.w });
     });
     soloMarks.sort(function (a, b) { return a.tick - b.tick; });
-    sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text, bpm: m.bpm }; }).filter(function (m) { return m.beat > -1e-6; });
+    sg.marks = (soloMarks || []).map(function (m) { return { beat: m.tick / tpq - sg.skipB, kind: m.kind, text: m.text, bpm: m.bpm, word: m.word }; }).filter(function (m) { return m.beat > -1e-6; });
     /* the bars in playing order, for A–B (Trix): the score's numbers (a bar played twice is listed twice) or counted */
     var blist = [];
     /* to the end of the music, not just the solo's: a last bar where only the accompaniment plays is a bar too (Hermes F50) */
@@ -1564,7 +1575,10 @@
         items.push([x, '<text class="mp-tempo" data-w="' + tw + '" x="' + tx + '" y="' + ty + '">' + (m.text ? '<tspan class="tw">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</tspan> ' : '') + '♩ = ' + m.bpm + '</text>']);
         return;
       }
-      if (m.kind === 'dyn') { items.push([x, '<text class="mp-dyn" x="' + (x - 4) + '" y="' + DY + '">' + m.text + '</text>']); lastDynX = x; }
+      if (m.kind === 'dyn') {
+        items.push([x, '<text class="mp-dyn" x="' + (x - 4) + '" y="' + DY + '">' + m.text + '</text>']); lastDynX = x;
+        if (m.word) items.push([x, '<text class="mp-word" x="' + (x - 4 + m.text.length * 8 + 6) + '" y="' + DY + '">' + m.word.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);   /* "p dolce": the word after the sign (Hermes F105) */
+      }
       else if (m.kind === 'words' && posWord(m.text)) return;   /* drawn as a position mark (posMarks) */
       else if (m.kind === 'words') items.push([x, '<text class="mp-word" x="' + (Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4) + '" y="' + wordY(Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4, m.text) + '">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);
       else if (m.text === 'stop') {
