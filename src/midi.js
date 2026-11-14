@@ -3139,6 +3139,7 @@
     var hpTxt = $('paHpTxt'); if (hpTxt && paTake) hpTxt.textContent = paTake.sound ? 'Headphones only: the microphone is on.' : 'No sound: the microphone is on.';
     paNeedle.hidden = !(rec && !busy && paView === 'live');
     paResEl.hidden = !paRes || rec;
+    var sh = document.getElementById('shell'); if (sh) sh.classList.toggle('pa-result', !!(paRes && !paRes.empty) && !rec);   /* fingerings hidden while a result shows */
     if (songSel) songSel.disabled = rec; if (fgSel) fgSel.disabled = rec;
     paClock();
   }

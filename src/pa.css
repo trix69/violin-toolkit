@@ -121,3 +121,6 @@
 html.fg-printing .pa-tr, html.fg-printing .pa-nm, html.fg-printing .pa-tint { display: none !important; }
 html.fg-printing .mp-n.pa-p .head:not(.hollow) { fill: currentColor !important; } html.fg-printing .mp-n.pa-p .head.hollow { stroke: currentColor !important; }
 @media print { .pa-tr, .pa-nm, .pa-tint { display: none !important; } .mp-n.pa-p .head:not(.hollow) { fill: currentColor !important; } .mp-n.pa-p .head.hollow { stroke: currentColor !important; } }
+
+/* a result on screen (Trix): no fingerings or position marks, so the coloured notes read easily */
+.shell.pa-result[data-view="playalong"] .fing, .shell.pa-result[data-view="playalong"] .mp-pos, .shell.pa-result[data-view="playalong"] .mp-posd { display: none; }
