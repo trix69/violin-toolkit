@@ -44,6 +44,21 @@
       { sel: '#fgPlay', title: 'Play', text: 'Plays the tune; a line follows along on the pages.' },
       { sel: '#view-fingering .fg-fitbar', title: 'More controls', text: 'Back to start, speed, Mixer, Loop and A–B.' },   /* the pill (Hermes F99) */
       { sel: '#fgPdf', title: 'Export', text: 'Save the pages as a PDF to print or share.' }
+    ],
+    /* Play-along (Trix): the first visit, then a second tour after the first result ("view:part" keys run in that view) */
+    playalong: [
+      { sel: '#view-playalong #fgSong', title: 'Pick a tune', text: 'Choose the piece to play: the same tunes as the MIDI player and Fingerings.' },
+      { sel: '#paSeg', title: 'Pages or Live', text: 'Pages shows the Fingerings pages; Live shows the scrolling score and the fingerboard. You can switch during a take.' },
+      { sel: '#paRec', title: 'Start a take', text: 'Tap Start, choose headphones or no sound, and play along after the count-in. Tap Stop when you are done.' },
+      { sel: '#pa .pa-mic', title: 'Microphone', text: 'The bar shows the microphone hears you. During a take a needle shows the note you play and how far off it is.' },
+      { sel: '#paFloat', title: 'Listen first', text: 'Speed, Mixer, A–B and zoom, to listen and practise. A take always plays at the score’s own tempo.' }
+    ],
+    'playalong:result': [
+      { sel: '#paStats', title: 'Your result', text: 'How many notes were in tune and on time. The big number is the green share.' },
+      { sel: '#fgPages .pa-sh', one: true, mid: true, when: function () { return APP.paState && APP.paState().view === 'pages'; }, title: 'Shadow notes', text: 'Each note you played is drawn as a coloured shadow: higher or lower when sharp or flat, moved left or right when early or late. Each bar gets a light green, amber or red background.' },
+      { sel: '#mpSvg .pa-sh', one: true, mid: true, when: function () { return APP.paState && APP.paState().view === 'live'; }, title: 'Shadow notes', text: 'Each note you played is drawn as a coloured shadow: higher or lower when sharp or flat, moved left or right when early or late. Each bar gets a light green, amber or red background.' },
+      { sel: '#fgPages .pa-sh, #mpSvg .pa-sh', one: true, mid: true, title: 'Tap a note', text: 'Tap a note for its card: how many cents off, how early or late, and on the fingerboard where your finger landed and how far to move it.' },
+      { sel: '#paShow', title: 'Pitch, Timing or Both', text: 'Show only the pitch marks, only the timing marks, or both.' }
     ]
   };
   /* a small picture of the board for the Pitch Check tip: F on the E string in C major (low 1st finger),
@@ -87,7 +102,7 @@
     var h = tip.offsetHeight;
     var r = targetRect();
     if (r.bottom <= 0 || r.top >= vh) {   /* scrolled away anyway (e.g. the browser bar resized): bring it back */
-      target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      target.scrollIntoView({ block: s.mid ? 'center' : 'nearest', inline: 'nearest' });   /* mid: a note under a floating bar is brought to the middle */
       r = targetRect();
     }
     /* clamp both ends of each pair so they can't cross when the target is partly off screen */
@@ -152,7 +167,7 @@
   function onResize() {
     if (!target) return;
     scrolled = false;
-    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    target.scrollIntoView({ block: s.mid ? 'center' : 'nearest', inline: 'nearest' });   /* mid: a note under a floating bar is brought to the middle */
     place();
   }
 
@@ -169,7 +184,7 @@
       targets = [target];
     }
     scrolled = false;
-    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    target.scrollIntoView({ block: s.mid ? 'center' : 'nearest', inline: 'nearest' });   /* mid: a note under a floating bar is brought to the middle */
     stepEl.textContent = (i + 1) + ' / ' + tour.length;
     titleEl.textContent = s.title;
     textEl.textContent = (target.id === 'keyFold' && s.fold) || s.text;
@@ -240,7 +255,7 @@
       var quiet = function () { return v !== 'fingering' || !(APP.midiPlaying && APP.midiPlaying()); };
       if (!quiet()) return;
       timer = setTimeout(function () {
-        if (document.body.getAttribute('data-view') === v && !isSeen(v) && quiet()) start(v);
+        if (document.body.getAttribute('data-view') === v.split(':')[0] && !isSeen(v) && quiet()) start(v);
       }, 500);
     },
     /* show() calls this first: a tour for the old tool closes without counting as seen */

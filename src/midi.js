@@ -3328,6 +3328,7 @@
   }
   function paShowResult() {
     var R = paRes; paUi();
+    if (!R.empty && APP.coach) setTimeout(function () { if (paRes === R && paOn) APP.coach.maybe('playalong:result'); }, 300);   /* the result's own tips, once (Trix) */
     var part = $('paPartial'); part.textContent = R.partial || ''; part.hidden = !R.partial;
     var st = $('paStats'), lgP = document.querySelector('.pa-lg-pitch'), lgT = document.querySelector('.pa-lg-time');
     $('paLegend').appendChild(lgP); $('paLegend').appendChild(lgT); st.textContent = '';   /* each legend goes under its own bar (Trix) */
