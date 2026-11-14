@@ -237,9 +237,9 @@
       var ms = kids(part, 'measure'), notes = [], tie = {}, chordTrem = 0, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
       var ksw = [], kmw = [], kw0 = null, km0 = null;
       /* a grace's length by the tempo there (Trix, after the research: short graces stay about the same length in ms at any tempo,
-         a little longer when slow): 60 ms at ♩ = 120 and faster, rising evenly with the beat's length to 90 ms at ♩ = 30 and slower;
+         a little longer when slow): 60 ms at ♩ = 120 and faster, rising evenly with the beat's length to 120 ms at ♩ = 30 and slower;
          the callers also keep it to half the main note at most. Returns ticks */
-      function graceCap(t) { var us = 500000; tempos.forEach(function (tp) { if (tp.tick <= t) us = tp.us; }); var ms = Math.max(60, Math.min(90, 60 + (us / 1000 - 500) / 50)); return TPQ * ms * 1000 / us; }
+      function graceCap(t) { var us = 500000; tempos.forEach(function (tp) { if (tp.tick <= t) us = tp.us; }); var ms = Math.max(60, Math.min(120, 60 + (us / 1000 - 500) / 25)); return TPQ * ms * 1000 / us; }
       function wordMark(t, text) {   /* words on one beat share one mark ("Minuet I" and its ♩ = 120) */
         var same = marks.filter(function (m) { return m.kind === 'words' && m.tick === t; })[0];
         if (same) { if (same.text.indexOf(text) < 0) same.text += '  ' + text; } else marks.push({ tick: t, kind: 'words', text: text });
@@ -314,7 +314,7 @@
             else if (!chord && graces.length) {
               /* graces not slashed (an appoggiatura, or a run): quick, about a 32nd each (Trix: a very quick grace), on the
                  beat, taking their time from the start of the note that follows */
-              var main = t1 - t0, cnt = graces.length, each = Math.max(1, Math.round(Math.min(main / (2 * cnt), graceCap(t0))));   /* 60-90 ms by the tempo, at most half the main note (Trix) */
+              var main = t1 - t0, cnt = graces.length, each = Math.max(1, Math.round(Math.min(main / (2 * cnt), graceCap(t0))));   /* 60-120 ms by the tempo, at most half the main note (Trix) */
               graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: Math.max(0, t0 - (cnt - gi)), gi: gi, gn: cnt, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
               gFrom = t0; gShift = cnt * each; t0 += gShift; graces = [];
             } else if (!chord) { gFrom = -1; gShift = 0; }
@@ -3371,8 +3371,10 @@
   /* timing by the beat (Trix: 25 ms was too strict for a slow piece, too loose for a fast one): on time within 1/16 of the beat
      there (30 to 80 ms), clearly off past 1/8 of it (70 to 160 ms). A take is at the score's tempo, so the beat is the score's */
   function paTLim(r) {
-    var q = 500; try { if (r.b !== undefined && r.b !== null) q = (song.beatSec(r.b + 0.25) - song.beatSec(r.b)) * 4000; } catch (e) {}
-    if (!(q > 0)) q = 500;
+    /* the beat the music is counted in: the quarter, or the dotted quarter in 6/8, 9/8, 12/8 (Hermes) */
+    var sg = song.sig || { num: 4, den: 4 }, bq = sg.den === 8 && sg.num % 3 === 0 && sg.num > 3 ? 1.5 : 4 / (sg.den || 4);
+    var q = 500 * bq; try { if (r.b !== undefined && r.b !== null) q = (song.beatSec(r.b + 0.25) - song.beatSec(r.b)) * 4000 * bq; } catch (e) {}
+    if (!(q > 0)) q = 500 * bq;
     r.tOk = Math.round(Math.max(30, Math.min(80, q / 16))); r.tRed = Math.round(Math.max(70, Math.min(160, q / 8)));
   }
   var PA_WRONG = 75;   /* 75 cents or more off: a different note (Trix: "only if it's deviated too much") */
@@ -3405,7 +3407,7 @@
     $('paCardT').textContent = 'Bar ' + (bars[paCardBar] ? bars[paCardBar].num : '');
     var box = $('paCardB'); box.textContent = ''; box.classList.remove('has-fb');
     function line(t, cls) { var p0 = document.createElement('p'); p0.textContent = t; if (cls) p0.className = cls; box.appendChild(p0); }
-    function ms(v, what, r) { return Math.abs(v) <= r.tOk ? what + ': on time (' + (v >= 0 ? '+' : '−') + Math.abs(v) + ' ms)' : what + ': ' + Math.abs(v) + ' ms ' + (v > 0 ? 'late' : 'early'); }
+    function ms(v, what, r) { return Math.abs(v) <= r.tOk ? what + ': on time (' + (v >= 0 ? '+' : '−') + Math.abs(v) + ' ms, within ' + r.tOk + ' ms)' : what + ': ' + Math.abs(v) + ' ms ' + (v > 0 ? 'late' : 'early'); }
     list.forEach(function (kk) {
       var r = paResOf[kk], b = bars[paBarOf[kk]];
       if (list.length > 1 && b) line(b.time + (['', 'st', 'nd', 'rd'][b.time] || 'th') + ' time', 'pa-pass');
