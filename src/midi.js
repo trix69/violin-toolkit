@@ -2438,6 +2438,7 @@
     fsCheck();
     scroll();
     if (shown) refitSoon();
+    if (paOn) paFullSwap();   /* Play-along: the pill steps aside, Exit stays on the board (Hermes F94) */
   }
   function fsCheck() {
     if (upRot && (innerWidth <= innerHeight || full)) setUp(0);   /* turned upright (or full screen again): the real upright page */
@@ -2922,6 +2923,7 @@
     APP.fgZoomStep = function (up) {
       var col = fgPages.classList.contains('zoomed') ? parseFloat(getComputedStyle(fgPages).getPropertyValue('--fgw')) || fgPages.clientWidth : fgPages.clientWidth;
       var fit = (document.documentElement.clientWidth - 32) / col, top = fit > 1.1 ? Math.min(3, fit) : 3;
+      if (up === undefined) return { z: fgZoom, top: top };   /* where it stands, for the buttons (Hermes F95) */
       var z = up ? Math.min(top, fgZoom * 1.25) : Math.max(0.5, fgZoom / 1.25);
       if (Math.abs(z - 1) < 0.06) z = 1;
       setZoom(z, window.innerWidth / 2, Math.min(window.innerHeight / 2, Math.max(0, fgPages.getBoundingClientRect().top + 40)));
@@ -3553,7 +3555,7 @@
           hx = up ? sxS - HR + 1.2 : sxS + HR - 1.2;
           /* drawn as the written note's value (Trix): hollow from a minim, no stem on a semibreve, flags for quavers and shorter
              (a beamed note gets its flags here, since the shadow stands alone) */
-          var nLen = +g.getAttribute('data-len') || 1, nHollow = nLen >= 2, nStem = nLen < 4, nFl = nLen <= 0.125 ? 3 : nLen <= 0.25 ? 2 : nLen < 1 ? 1 : 0, flagsSvg = '';
+          var nLen = +g.getAttribute('data-len') || 1, nDotted = nLen === 3 || nLen === 1.5 || nLen === 0.75 || nLen === 0.375 || nLen === 6, wd = g.querySelector('circle.dot'), ddy = wd ? +wd.getAttribute('cy') - cy : -S / 2, nHollow = nLen >= 2, nStem = nLen < 4, nFl = nLen <= 0.125 ? 3 : nLen <= 0.25 ? 2 : nLen < 1 ? 1 : 0, flagsSvg = '';
           for (var fq = 0; fq < nFl && m.time; fq++) {
             var fy = sy2 + (up ? 1 : -1) * fq * 7, fd = up ? 1 : -1;
             flagsSvg += '<path class="pa-sf ' + m.time + '" d="M' + sxS.toFixed(1) + ' ' + fy.toFixed(1) + 'c1 ' + (5 * fd) + ' 8 ' + (7 * fd) + ' 6 ' + (15 * fd) + 'c1 ' + (-6 * fd) + ' -3 ' + (-9 * fd) + ' -6 ' + (-10 * fd) + 'z"/>';
@@ -3561,7 +3563,8 @@
           sh.setAttribute('class', 'pa-sh'); sh.setAttribute('data-pabar', barOf[k]); sh.setAttribute('data-pak', (merge ? 'p' : 's') + k);
           sh.innerHTML = '<rect class="pa-hit" x="' + (Math.min(cx, hx) - HR - 4).toFixed(1) + '" y="' + (cy - 2.5 * S).toFixed(1) + '" width="' + (Math.abs(hx - cx) + 2 * HR + 8).toFixed(1) + '" height="' + (5 * S).toFixed(1) + '"/>' +
             (m.time && nStem ? '<line class="pa-sk ' + m.time + '" x1="' + sxS.toFixed(1) + '" y1="' + hy.toFixed(1) + '" x2="' + sxS.toFixed(1) + '" y2="' + sy2.toFixed(1) + '"/>' + flagsSvg : '') +
-            (wrong ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + (nHollow ? ' hollow' : '') + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>');   /* a wrong note: the red played head says the pitch */
+            (wrong ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + (nHollow ? ' hollow' : '') + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>' +
+              (nDotted ? '<circle class="pa-sdt ' + (m.kind === 'na' ? 'ok' : m.kind) + '" cx="' + (hx + HR + 4.5).toFixed(1) + '" cy="' + (hy + ddy).toFixed(1) + '" r="1.9"/>' : ''));   /* a dotted value keeps its dot (Hermes F96) */   /* a wrong note: the red played head says the pitch */
           g.parentNode.insertBefore(sh, g);   /* behind the written note: its shadow */
         }
       });
@@ -3660,6 +3663,12 @@
   function paZoomUi(r) { if (!r) return; $('paZoomIn').disabled = r.z >= r.top - 0.01; $('paZoomOut').disabled = r.z <= 0.51; }
   $('paZoomIn').addEventListener('click', function () { paZoomUi(APP.fgZoomStep(true)); });
   $('paZoomOut').addEventListener('click', function () { paZoomUi(APP.fgZoomStep(false)); });
+  function paFullSwap() {   /* in full screen the full-screen button lives at the board's corner as in the player; the pill hides */
+    var f = $('mpFull'), x = paLent[paLent.length - 1];
+    if (full) { if (f.parentNode === paFloatEl) x.home.parentNode.insertBefore(f, x.home.nextSibling); placeFull(); }
+    else if (f.parentNode !== paFloatEl) { paFloatEl.appendChild(f); f.style.left = f.style.top = ''; }
+    paUi();
+  }
   function paLend(on) {
     paLent.forEach(function (x) {
       if (!x.el) return;
@@ -3674,7 +3683,7 @@
     if (on) $('view-playalong').insertBefore(fgRowEl, $('pa')); else fgRowHome.parentNode.insertBefore(fgRowEl, fgRowHome.nextSibling);
   }
   APP.views.playalong = {
-    show: function () { paRowUp(true); paOn = true; bg = false; appCall('rotate', false); paLayout(); paTickMarks(); if (paRes) paShowResult(); },
+    show: function () { paRowUp(true); if (APP.fgZoomStep) paZoomUi(APP.fgZoomStep()); paOn = true; bg = false; appCall('rotate', false); paLayout(); paTickMarks(); if (paRes) paShowResult(); },
     hide: function () {
       if (paTake) paStop();   /* leaving the tool ends the take (the analysis still runs) */
       paRowUp(false); paOn = false; paBrowse = null; cancelAnimationFrame(paRaf); APP.board.heard(null); paClearTints(); paCardClose();   /* the browsed place is let go: the player follows the music again (Hermes F87) */

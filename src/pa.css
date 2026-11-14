@@ -238,3 +238,12 @@ html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { di
 .pa-sd.hollow.ok { stroke: #23963a; } .pa-sd.hollow.amber { stroke: #d68a00; } .pa-sd.hollow.red { stroke: #d23b2f; }
 .pa-sf.ok { fill: #23963a; } .pa-sf.amber { fill: #e0a020; } .pa-sf.red { fill: #d23b2f; }
 .shell.pa-result:not(.pa-st) .pa-sf { display: none; }
+.pa-sdt.ok { fill: #23963a; } .pa-sdt.amber { fill: #e0a020; } .pa-sdt.red { fill: #d23b2f; }
+@media (max-width: 380px) {   /* the pill fits small phones (Hermes F93) */
+  #paFloat { gap: 2px; padding: 5px 4px; }
+  #paFloat .mp-btn, #paFloat .mp-loop, #paFloat .mp-lvbtn { width: 34px; height: 34px; min-width: 0; padding: 0; }
+  #paFloat .mp-ab { font-size: 12px; }
+  #paFloat .mp-speed { min-width: 2.6em; font-size: 12px; }
+  #paFloat .mp-speed small { display: none; }
+}
+.shell.mp-fs[data-view="playalong"] #mpFull { display: grid !important; }   /* full screen: Exit at the board's corner (Hermes F94) */
