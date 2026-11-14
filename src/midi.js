@@ -3126,6 +3126,13 @@
     try { localStorage.setItem('violin-pa-view', paView); } catch (err) {}
     if (paOn) paLayout();
   });
+  paShowEl.addEventListener('keydown', function (e) {   /* arrows move the choice, as in the View group (Hermes F89) */
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    var o = ['pitch', 'time', 'both'], i = o.indexOf(paShowMode);
+    paShowEl.querySelector('[data-s="' + o[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3] + '"]').click();
+    paShowEl.querySelector('[aria-checked="true"]').focus();
+  });
   paShowEl.addEventListener('click', function (e) {   /* what the result shows (Trix): pitch, timing, or both; remembered */
     var b = e.target.closest('button'); if (!b) return;
     paShowMode = b.dataset.s; try { localStorage.setItem('violin-pa-show', paShowMode); } catch (err) {}
@@ -3314,7 +3321,8 @@
   function paShowResult() {
     var R = paRes; paUi();
     var part = $('paPartial'); part.textContent = R.partial || ''; part.hidden = !R.partial;
-    var st = $('paStats'); st.textContent = '';
+    var st = $('paStats'), lgP = document.querySelector('.pa-lg-pitch'), lgT = document.querySelector('.pa-lg-time');
+    $('paLegend').appendChild(lgP); $('paLegend').appendChild(lgT); st.textContent = '';   /* each legend goes under its own bar (Trix) */
     if (!R.empty) {   /* a bar each for pitch and timing (Trix): how many notes fell in each band, the green share large */
       var all = [], P = { ok: 0, amber: 0, red: 0, miss: 0 }, T = { ok: 0, amber: 0, red: 0, miss: 0 };
       R.bars.forEach(function (b) { b.notes.forEach(function (r) { all.push(r); }); });
@@ -3340,19 +3348,14 @@
           seg.textContent = pc >= 12 ? Math.round(pc) + '%' : ''; seg.title = C[k] + ' / ' + n; seg.setAttribute('translate', 'no');
           bar.appendChild(seg);
         });
-        box.appendChild(bar); st.appendChild(box);
+        box.appendChild(bar); box.appendChild(row[0] === 'Pitch' ? lgP : lgT); st.appendChild(box);
       });
     }
     $('paTemper').textContent = R.empty ? '' : { equal: 'Measured against Equal temperament.', just: 'Measured against Just intonation.', pyth: 'Measured against Pythagorean tuning.' }[R.temper] || 'Measured against Equal temperament.';
     $('paLegend').hidden = !!R.empty;   /* no list of the worst bars (Trix): the tints show them, a tap opens one */
     paRetint();
   }
-  /* a bar tapped (on the tints or in the list): A–B on that bar, and the player opens there */
-  function paOpenBar(i) {
-    if (!song || !song.bars[i]) return;
-    ab = { a: i, b: i }; abUi(); pause(); seekTo(abRange().aT);
-    APP.show('midi');
-  }
+
   /* the marks (Trix): each notehead coloured by its pitch — green within 10 cents, amber 10-25, red more; grey if missed or
      not assessed (a chord) — and a see-through rectangle behind the note for its timing: green within 25 ms, amber 25-60,
      red more (hatched, so it does not rest on colour alone). On the pages a repeat is printed once: its marks show the
@@ -3403,11 +3406,11 @@
     });
     var r1 = paResOf[list[0]];
     if (r1 && !r1.missed && !r1.chord && r1.cents !== undefined && n0.si >= 0) {
-      if (n0.fg === 0) { if (Math.abs(r1.cents) > ASSESS.IN_TUNE) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say'); }   /* no finger to move: the string's tuning */
-      else if (paView === 'pages') {   /* Pages only: Live has the big fingerboard (Trix); the board on the right of the text */
+      if (n0.fg === 0 && Math.abs(r1.cents) > ASSESS.IN_TUNE) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say');   /* no finger to move: the string's tuning */
+      if (paView === 'pages') {   /* Pages only: Live has the big fingerboard (Trix); the board on the right of the text */
         var fb = paFingerSvg(n0, r1, k), txt = document.createElement('div'); txt.className = 'pa-fb-txt';
         while (box.firstChild) txt.appendChild(box.firstChild);
-        txt.appendChild(fb.say); box.appendChild(txt); box.appendChild(fb.svg); box.classList.add('has-fb');
+        if (n0.fg !== 0) txt.appendChild(fb.say); box.appendChild(txt); box.appendChild(fb.svg); box.classList.add('has-fb');
       }
     }
     /* as the Symbols page does: in the half of the screen away from the note, so the note stays in sight */
@@ -3453,7 +3456,7 @@
         if (R >= 7) o.push('<text x="' + x + '" y="' + (y + 3).toFixed(1) + '" class="pa-fb-t' + (lit ? ' lit' : '') + '">' + (lit && n.fg > 0 ? n.fg : nm) + '</text>');
       }
     }
-    o.push('<circle cx="' + (X0 + si * DX) + '" cy="' + Y(na).toFixed(1) + '" r="' + (R * 0.62).toFixed(1) + '" fill="' + kind + '" class="pa-fb-got"/>');
+    if (Math.abs(r.cents) > ASSESS.IN_TUNE && n.fg !== 0) o.push('<circle cx="' + (X0 + si * DX) + '" cy="' + Y(na).toFixed(1) + '" r="' + (R * 0.62).toFixed(1) + '" fill="' + kind + '" class="pa-fb-got"/>');   /* in tune or open: the written place only (Trix) */
     o.push('</svg>');
     var w = document.createElement('div'); w.innerHTML = o.join('');
     var d = mm(na) - mm(ne), p0 = document.createElement('p'); p0.className = 'pa-fb-say';
@@ -3525,7 +3528,7 @@
   /* while the tool shows, a tap on the pages or the strip does not move the player (the take drives it) */
   [fgPages, scoreEl].forEach(function (el) {
     if (!el) return;
-    el.addEventListener('click', function (e) {   /* a tap on a marked note (or its timing background) opens its bar; any other tap does nothing */
+    el.addEventListener('click', function (e) {   /* a tap on a marked note (or its timing background) opens its card; any other tap does nothing */
       if (!paOn) return;
       if (paDragMoved) { paDragMoved = false; e.stopImmediatePropagation(); e.preventDefault(); return; }   /* the end of a drag is not a tap */
       var t = e.target.closest && e.target.closest('[data-pabar]');

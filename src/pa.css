@@ -97,9 +97,9 @@
 .pa-nm.red { fill: url(#paHatch); }
 .pa-nm.miss, .pa-nm.na { fill: rgba(128, 128, 128, .35); }
 .pa-nm.late { stroke: #2f6fd6; stroke-width: 2.5; }
-.pa-legend .sw { width: 16px; height: 16px; border-radius: 50%; }
+:is(.pa-legend, .pa-bars) .sw { width: 16px; height: 16px; border-radius: 50%; }
 .sw-ok { background: rgba(46, 160, 67, .45); }
-.pa-legend .sw-time { height: 16px; background: transparent; border: 2.5px solid #2f6fd6; box-sizing: border-box; }
+:is(.pa-legend, .pa-bars) .sw-time { height: 16px; background: transparent; border: 2.5px solid #2f6fd6; box-sizing: border-box; }
 
 /* pitch on the notehead, timing behind the note (Trix) */
 .mp-n.pa-p { cursor: pointer; }
@@ -112,8 +112,8 @@
 .pa-tr.amber { fill: rgba(232, 164, 32, .3); }
 .pa-tr.red { fill: url(#paHatch); }
 .pa-legend .pa-lh { flex-basis: 100%; font-weight: 700; margin-top: 2px; }
-.pa-legend .sw-ok { background: #23963a; } .pa-legend .sw-amber { background: #d68a00; } .pa-legend .sw-red { background: #d23b2f; } .pa-legend .sw-na { background: #9a9a9a; }
-.pa-legend .sw-tok, .pa-legend .sw-tamber, .pa-legend .sw-tred { width: 14px; height: 22px; border-radius: 3px; }
+:is(.pa-legend, .pa-bars) .sw-ok { background: #23963a; } :is(.pa-legend, .pa-bars) .sw-amber { background: #d68a00; } :is(.pa-legend, .pa-bars) .sw-red { background: #d23b2f; } :is(.pa-legend, .pa-bars) .sw-na { background: #9a9a9a; }
+:is(.pa-legend, .pa-bars) .sw-tok, :is(.pa-legend, .pa-bars) .sw-tamber, :is(.pa-legend, .pa-bars) .sw-tred { width: 14px; height: 22px; border-radius: 3px; }
 .sw-tok { background: rgba(46, 160, 67, .28); } .sw-tamber { background: rgba(232, 164, 32, .45); }
 .sw-tred { background: repeating-linear-gradient(135deg, rgba(214, 48, 39, .55) 0 3px, rgba(214, 48, 39, .18) 3px 6px); }
 
@@ -140,14 +140,13 @@ html.fg-printing .mp-n.pa-p .head:not(.hollow) { fill: currentColor !important; 
 .pa-tip-head small { font: 500 14px var(--font-body); color: var(--muted); }
 .pa-tip-body p { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
 .pa-tip-body .pa-pass { margin-top: 14px; font: 700 13px var(--font-body); color: var(--muted); }
-.pa-tip-go { display: block; width: 100%; margin-top: 16px; min-height: 42px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-body); cursor: pointer; }
 
 /* a wrong note (Trix): the note played, a red head on its own line or space; the written one grey */
 .pa-wrong { pointer-events: none; }
 .pa-wrong .pa-whead { fill: #d23b2f; }
 .pa-wrong .ledger { stroke: #d23b2f; }
 .pa-wrong .pa-wacc, .pa-wrong .pa-wacc * { fill: #d23b2f; stroke: #d23b2f; }
-.pa-legend .sw-wrong { background: #d23b2f; box-shadow: -7px 4px 0 -2px #9a9a9a; }
+:is(.pa-legend, .pa-bars) .sw-wrong { background: #d23b2f; box-shadow: -7px 4px 0 -2px #9a9a9a; }
 html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wrong { display: none !important; } }
 
 /* Pitch | Timing | Both (Trix): which marks the result shows */
@@ -191,3 +190,5 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa-fb-t.lit { fill: #10201a; font-size: 10px; font-weight: 800; }
 .pa-fb-got { stroke: #fff; stroke-width: 1.5; }
 .pa-tip-body .pa-fb-say { margin-top: 8px; font-weight: 600; }
+.pa-sb .pa-lg { margin-top: 4px; font-size: 13px; }
+.pa-bars { gap: 16px; }
