@@ -3151,7 +3151,7 @@
     paRec.setAttribute('aria-label', paRecTxt.textContent);
     paHp.hidden = !rec || busy;
     var hpTxt = $('paHpTxt'); if (hpTxt && paTake) hpTxt.textContent = paTake.sound ? 'Headphones only: the microphone is on.' : 'No sound: the microphone is on.';
-    paNeedle.hidden = !(rec && !busy && paView === 'live');   /* Live: the pitch needle stays (Trix); no page / bar line */
+    paNeedle.hidden = !(rec && !busy);   /* the pitch needle during a take, in both views (Trix); Live has no page / bar line */
     var live = paView === 'live', mic = document.querySelector('#pa .pa-mic');
     $('pa').classList.toggle('live', live);
     if (live && mic.nextSibling !== $('paTime')) $('paTime').parentNode.insertBefore(mic, $('paTime'));   /* the microphone level beside the time */
@@ -3363,7 +3363,7 @@
   /* the marks (Trix): each notehead coloured by its pitch — green within 10 cents, amber 10-25, red more; grey if missed or
      not assessed (a chord) — and a see-through rectangle behind the note for its timing: green within 25 ms, amber 25-60,
      red more (hatched, so it does not rest on colour alone). On the pages a repeat is printed once: its marks show the
-     worse of the times through. A tap on a note opens its bar in the player */
+     worse of the times through. A tap on a note opens its card */
   var PA_TIME_RED = 60, PA_WRONG = 75;   /* 75 cents or more off: a different note (Trix: "only if it's deviated too much") */
   /* the note played, as a red head on its line or space (its accidental against the key, ledger lines) beside the written one */
   function paPlayedHead(m, cx, cy, beat) {
@@ -3509,12 +3509,13 @@
           var cx = +head.getAttribute('cx'), cy = +head.getAttribute('cy'), rx = +head.getAttribute('rx') || S * 0.6, ry = +head.getAttribute('ry') || S * 0.45;
           var t0 = m.t0 == null ? 0 : m.t0, t1 = m.t1 == null ? t0 : m.t1;
           var dy = wrong ? 0 : -Math.max(-1.5 * S, Math.min(1.5 * S, m.c / 25 * S / 2)), dx = Math.max(-18, Math.min(18, (t0 + t1) / 2 / 7));
-          var wf = Math.max(0.55, Math.min(1.9, 1 + (t1 - t0) / 400)), hx = cx + dx, hy = cy + dy, HR = rx * 1.3 * wf, VR = ry * 1.3;
+          var wf = Math.max(0.55, Math.min(1.9, 1 + (t1 - t0) / 400)), hy = cy + dy, HR = rx * 1.3 * wf, VR = ry * 1.3, hx;
           var up = true; Array.prototype.forEach.call(g.querySelectorAll('line'), function (l) {   /* the stem goes the way the written one does */
             var x1 = +l.getAttribute('x1'), y1 = +l.getAttribute('y1'), y2 = +l.getAttribute('y2');
             if (Math.abs(x1 - cx) <= rx + 2 && Math.abs(y2 - y1) > 2 * S) up = Math.min(y1, y2) < cy - S;
           });
-          var sxS = up ? hx + HR - 1.2 : hx - HR + 1.2, sy2 = up ? hy - 3.4 * S : hy + 3.4 * S, sh = document.createElementNS(NS, 'g');
+          var sxS = (up ? cx + rx : cx - rx) + dx, sy2 = up ? hy - 3.4 * S : hy + 3.4 * S, sh = document.createElementNS(NS, 'g');   /* the stem where the written one is, moved by the timing */
+          hx = up ? sxS - HR + 1.2 : sxS + HR - 1.2;   /* the head hangs on the stem and grows away from it (Trix) */
           sh.setAttribute('class', 'pa-sh'); sh.setAttribute('data-pabar', barOf[k]); sh.setAttribute('data-pak', (merge ? 'p' : 's') + k);
           sh.innerHTML = '<rect class="pa-hit" x="' + (Math.min(cx, hx) - HR - 4).toFixed(1) + '" y="' + (cy - 2.5 * S).toFixed(1) + '" width="' + (Math.abs(hx - cx) + 2 * HR + 8).toFixed(1) + '" height="' + (5 * S).toFixed(1) + '"/>' +
             (m.time ? '<line class="pa-sk ' + m.time + '" x1="' + sxS.toFixed(1) + '" y1="' + hy.toFixed(1) + '" x2="' + sxS.toFixed(1) + '" y2="' + sy2.toFixed(1) + '"/>' : '') +

@@ -204,3 +204,12 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 html.fg-printing .pa-sh { display: none !important; } @media print { .pa-sh { display: none !important; } }
 :is(.pa-legend, .pa-bars) .sw-tok, :is(.pa-legend, .pa-bars) .sw-tamber, :is(.pa-legend, .pa-bars) .sw-tred { width: 22px; height: 5px; border-radius: 3px; }
 :is(.pa-legend, .pa-bars) .sw-tok { background: #23963a; } :is(.pa-legend, .pa-bars) .sw-tamber { background: #e0a020; } :is(.pa-legend, .pa-bars) .sw-tred { background: #d23b2f; }
+@media (max-width: 380px), (max-height: 620px) {   /* the card is capped by the note's position (Hermes F91) */
+  .pa-tip-body.has-fb { grid-template-columns: minmax(0, 1fr) 84px; gap: 8px; }
+  .pa-fb { max-width: 84px; width: auto; }
+  .pa-fb-t { font-size: 6px; }
+  .pa-tip-head { gap: 2px; }
+  .pa-tip-head b { font-size: 26px; }
+  .pa-tip-body p { margin: 4px 0 0; font-size: 13px; line-height: 1.35; }
+  .pa-tip-card { padding: 12px; }
+}
