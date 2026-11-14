@@ -101,3 +101,4 @@ html.fg-shot .fg-page { width: 595.28px !important; height: 841.89px !important;
   #view-fingering .fg-fitbar .fg-mini.fgx-ab { width: 36px; }
   #view-fingering .fg-fitbar .fg-play { width: 33px; height: 33px; }
 }
+#view-fingering .fg-lvmenu button, .mp-lvmenu button { white-space: nowrap; }   /* "Minimum fingerings" on one line (Trix) */
