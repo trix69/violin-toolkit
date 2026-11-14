@@ -103,7 +103,7 @@ for f in ('icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'og-image.png'
     shutil.copy(SRC + 'icons/' + f, OUT + f)
 open(OUT + 'index.html', 'w', encoding='utf-8').write(out)
 # read by the Settings version button to see whether a newer release is online
-json.dump({'version': app_version, 'build': ver, 'pp': open(SRC + 'PP_VERSION').read().strip()}, open(OUT + 'version.json', 'w'))   # pp: the privacy policy's date (the app re-asks when it is newer)
+json.dump({'version': app_version, 'build': ver, 'pp': open(SRC + 'PP_VERSION').read().strip(), 'play': open(SRC + 'PLAY_VERSION').read().strip()}, open(OUT + 'version.json', 'w'))   # play: the version Google Play offers (src/PLAY_VERSION, raised when Trix says Play approved a release); the Play app compares with it, not with the website's   # pp: the privacy policy's date (the app re-asks when it is newer)
 json.dump({
   "name": NAME, "short_name": "VT Test" if TEST else "Violin Toolkit", "description": "Violin tuner, fingerboard chart, metronome, MIDI player and music symbols.",
   "id": "/violin-toolkit-test/" if TEST else "/violin-toolkit/", "lang": "en", "dir": "ltr", "categories": ["music", "education", "utilities"],

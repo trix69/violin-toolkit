@@ -1280,6 +1280,7 @@ nav_js = """(function () {
     function newer() {
       return versionJson().then(function (j) {
         if (j && j.pp && APP.ppRemote) APP.ppRemote(j.pp);   /* the policy's date on the site (no extra request) */
+        if (PLAY && j.play) j = { version: j.play, build: 'play-' + j.play, pp: j.pp };   /* the Play app: what Google Play offers, not the website's release, which Play may not have yet (Trix) */
         if (APK || IOSAPP) return num(j.version) > num(btn.dataset.version) ? j : null;   /* the app: only a higher version number */
         /* a different build stamp means a new release (test builds keep the same version number) */
         return (j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version)) ? j : null;
