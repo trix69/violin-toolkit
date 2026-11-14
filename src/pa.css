@@ -141,3 +141,21 @@ html.fg-printing .mp-n.pa-p .head:not(.hollow) { fill: currentColor !important; 
 .pa-tip-body p { margin: 8px 0 0; font: 400 15px/1.5 var(--font-note); }
 .pa-tip-body .pa-pass { margin-top: 14px; font: 700 13px var(--font-body); color: var(--muted); }
 .pa-tip-go { display: block; width: 100%; margin-top: 16px; min-height: 42px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-body); cursor: pointer; }
+
+/* a wrong note (Trix): the note played, a red head on its own line or space; the written one grey */
+.pa-wrong { pointer-events: none; }
+.pa-wrong .pa-whead { fill: #d23b2f; }
+.pa-wrong .ledger { stroke: #d23b2f; }
+.pa-wrong .pa-wacc, .pa-wrong .pa-wacc * { fill: #d23b2f; stroke: #d23b2f; }
+.pa-legend .sw-wrong { background: #d23b2f; box-shadow: -7px 4px 0 -2px #9a9a9a; }
+html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wrong { display: none !important; } }
+
+/* Pitch | Timing | Both (Trix): which marks the result shows */
+.pa-show { justify-self: start; }
+.pa-legend { display: grid; gap: 6px; }
+.pa-lg { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.pa-lg > span { display: inline-flex; align-items: center; gap: 6px; }
+.shell.pa-result:not(.pa-st) .pa-tr, .shell.pa-result:not(.pa-st) .pa-lg-time { display: none; }
+.shell.pa-result:not(.pa-sp) .pa-lg-pitch, .shell.pa-result:not(.pa-sp) .pa-wrong { display: none; }
+.shell.pa-result:not(.pa-sp) .mp-n.pa-p .head:not(.hollow) { fill: currentColor; }
+.shell.pa-result:not(.pa-sp) .mp-n.pa-p .head.hollow { stroke: currentColor; }

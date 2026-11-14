@@ -17,16 +17,26 @@
     <p class="pa-partial" id="paPartial" hidden></p>
     <p class="pa-stats" id="paStats"></p>
     <p class="pa-temper" id="paTemper"></p>
+    <div class="pa-seg pa-show" id="paShow" role="radiogroup" aria-label="Show">
+      <button type="button" role="radio" data-s="pitch" aria-checked="false">Pitch</button>
+      <button type="button" role="radio" data-s="time" aria-checked="false">Timing</button>
+      <button type="button" role="radio" data-s="both" aria-checked="true">Both</button>
+    </div>
     <div class="pa-legend" id="paLegend">
-      <span class="pa-lh">Note colour, pitch:</span>
-      <span><i class="sw sw-ok" aria-hidden="true"></i><span>within 10 ¢</span></span>
-      <span><i class="sw sw-amber" aria-hidden="true"></i><span>10–25 ¢ off</span></span>
-      <span><i class="sw sw-red" aria-hidden="true"></i><span>more than 25 ¢ off</span></span>
-      <span><i class="sw sw-na" aria-hidden="true"></i><span>missed or not assessed</span></span>
-      <span class="pa-lh">Background, timing:</span>
-      <span><i class="sw sw-tok" aria-hidden="true"></i><span>within 25 ms</span></span>
-      <span><i class="sw sw-tamber" aria-hidden="true"></i><span>25–60 ms off</span></span>
-      <span><i class="sw sw-tred" aria-hidden="true"></i><span>more than 60 ms off</span></span>
+      <div class="pa-lg pa-lg-pitch">
+        <span class="pa-lh">Note colour, pitch:</span>
+        <span><i class="sw sw-ok" aria-hidden="true"></i><span>within 10 ¢</span></span>
+        <span><i class="sw sw-amber" aria-hidden="true"></i><span>10–25 ¢ off</span></span>
+        <span><i class="sw sw-red" aria-hidden="true"></i><span>more than 25 ¢ off</span></span>
+        <span><i class="sw sw-na" aria-hidden="true"></i><span>missed or not assessed</span></span>
+        <span><i class="sw sw-wrong" aria-hidden="true"></i><span>red head beside it: the note you played instead</span></span>
+      </div>
+      <div class="pa-lg pa-lg-time">
+        <span class="pa-lh">Background, timing:</span>
+        <span><i class="sw sw-tok" aria-hidden="true"></i><span>within 25 ms</span></span>
+        <span><i class="sw sw-tamber" aria-hidden="true"></i><span>25–60 ms off</span></span>
+        <span><i class="sw sw-tred" aria-hidden="true"></i><span>more than 60 ms off</span></span>
+      </div>
     </div>
   </div>
 </div>
@@ -34,7 +44,6 @@
   <div class="pa-tip-card" id="paCardC" tabindex="-1">
     <div class="pa-tip-head"><b id="paCardN" translate="no"></b><small id="paCardT"></small></div>
     <div class="pa-tip-body" id="paCardB"></div>
-    <button type="button" class="pa-tip-go" id="paCardGo">Practise this bar</button>
   </div>
 </div>
 <div class="pa-gate" id="paGate" role="dialog" aria-modal="true" aria-labelledby="paGateT" aria-describedby="paGateB" hidden>
