@@ -181,3 +181,15 @@ FIRST..LAST of every part (positions in the file, found from the movement headin
 in force, numbers the bars from 1 (an upbeat is 0), and asserts each part's note count is unchanged. Ranges used: Haydn Op. 76/3
 129–149 (theme only: Var. I–III give the tune to the 2nd violin, cello and viola), Tchaikovsky Op. 11 184–367, Dvořák Op. 96
 179–275, Borodin No. 2 604–783. Part names stay as published ("Violin 1" is the solo).
+
+## Offenbach, Orpheus in the Underworld (Can-Can) (2026-11-15)
+
+Galop infernal (No. 15b) from the Bote & Bock vocal score, ca. 1880, plate 10779 (IMSLP #26815, PD; Trix downloaded it into
+`~/Downloads/vt-scores/cancan/`). Pages rendered at 2600 px (`pdfpng.swift`), Audiveris drafts → `mendelssohn/omr2tokens.py`,
+then every bar checked against the scan; chord heads read with `pitchguide.swift` (labels every line and space of a staff
+crop; staff positions from `stafflines.swift`). `cancan/tokens.txt` + `cancan/conf.py`, built by `mendelssohn/build.py`, which
+now also takes grace notes (`DUR` ending in `g`), an upbeat bar (`PICKUP`) and volta brackets (`ENDINGS`); the earlier
+pieces it builds come out byte for byte the same. 103 bars, repeats 1–8 / 11–18 / 27–42 / 66–81 with 1st and 2nd endings,
+2:00. Violin: the piano's top line where the piano plays alone, the voice where it sings, the piano's top line again in the
+closing chords. The piano RH 8va (bars 68–81) is written at pitch. Bars 55–64 (left-hand chords over the A pedal on the
+faintest page) follow the draft's chromatic line; the place to look first if a chord sounds wrong.

@@ -550,6 +550,7 @@ SCORE_CREDITS = [
     ('Violin Concerto in D major, Op. 35, 1st movement (opening)', 'Pyotr Ilyich Tchaikovsky', "Mutopia Project no. 466 (Eulenburg, 1920); the solo's entry and first theme (bars 23–41) with the string parts as accompaniment (winds, horns, trumpets and timpani left out); converted to MusicXML by Violin Toolkit", 'Public Domain'),
     ('Violin Concerto in D major, Op. 61, 1st movement (opening)', 'Ludwig van Beethoven', "Mutopia Project no. 990 (Breitkopf & Härtel, 1862–1865); the solo's entry and first dolce theme (bars 89–109) with the string parts as accompaniment (winds, brass, timpani and double bass left out); converted to MusicXML by Violin Toolkit", 'Public Domain'),
     ('Hungarian Dance No. 5', 'Johannes Brahms', "Arranged for 2 violins, 2 violas and cello by Hans Erblich, 2012 (IMSLP #205345, PDF typeset by the arranger); transcribed to MusicXML from that PDF by Violin Toolkit, 2026 (first violin played, the others as accompaniment; the ad lib. 8va played as written)", 'Creative Commons Attribution Share Alike 3.0'),
+    ('Orpheus in the Underworld (Can-Can)', 'Jacques Offenbach', "Galop infernal, No. 15b of Orphée aux enfers (Orpheus in der Unterwelt); from the vocal score, Berlin: Bote & Bock, n.d. [ca. 1880], plate 10779 (IMSLP #26815); engraved by Violin Toolkit, 2026: the violin plays the piano's top line in the piano passages and the sung tune elsewhere, the piano as accompaniment (the chorus parts left out)", 'Public Domain (edition); our engraving CC0 1.0'),
     ('Csárdás', 'Vittorio Monti', "Arranged for string quartet by Tolga Karaca, 2011 (IMSLP #157169, PDF typeset by the arranger); transcribed to MusicXML from that PDF by Violin Toolkit, 2026 (first violin played, the others as accompaniment; where the second violin has the tune, bars 38–53 and 86–99, the two violin parts swapped; grace notes, bowings and dynamics left out)", 'Creative Commons Attribution 3.0'),
     ('Spring (La primavera), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 301 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit", 'Creative Commons Attribution-ShareAlike 3.0'),
     ('Autumn (L\'autunno), 1st movement', 'Antonio Vivaldi', "Mutopia Project no. 350 (Performers' Facsimiles), typeset by smailliw; converted to MusicXML by Violin Toolkit, bar 2 made like bar 1", 'Creative Commons Attribution-ShareAlike 3.0'),
@@ -592,6 +593,7 @@ SCORE_SOURCE = {
     'tchaikovsky_cantabile.mxl': 'OpenScore String Quartets (transcribed by mooing and mozbadel), 2nd movement · CC0 1.0',
     'dvorak_american.mxl': 'OpenScore String Quartets (transcribed by flutemouse), 2nd movement · CC0 1.0',
     'borodin_nocturne.mxl': 'OpenScore String Quartets (transcribed by markpearse), 3rd movement · CC0 1.0',
+    'cancan.mxl': 'Bote & Bock vocal score (ca. 1880, IMSLP #26815, public domain), engraved by Violin Toolkit · CC0 1.0',
     'csardas.mxl': 'Arr. Tolga Karaca (2011, IMSLP #157169), transcribed by Violin Toolkit · CC BY 3.0',
     'spring.mxl': 'Mutopia Project #301 (typeset by smailliw), MusicXML by Violin Toolkit · CC BY-SA 3.0',
     'autumn.mxl': 'Mutopia Project #350 (typeset by smailliw), MusicXML by Violin Toolkit · CC BY-SA 3.0',
@@ -628,6 +630,7 @@ MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
               ('tchaikovsky35.mxl', 'Violin Concerto in D major, Op. 35, 1st movement (opening)', 'Pyotr Ilyich Tchaikovsky'),
               ('beethoven61.mxl', 'Violin Concerto in D major, Op. 61, 1st movement (opening)', 'Ludwig van Beethoven'),
               ('hungarian5.mxl', 'Hungarian Dance No. 5', 'Johannes Brahms'),
+              ('cancan.mxl', 'Orpheus in the Underworld (Can-Can)', 'Jacques Offenbach'),
               ('csardas.mxl', 'Csárdás', 'Vittorio Monti'),
               ('spring.mxl', 'Spring (La primavera), 1st movement', 'Antonio Vivaldi'),
               ('autumn.mxl', 'Autumn (L\'autunno), 1st movement', 'Antonio Vivaldi'),
@@ -667,7 +670,7 @@ TUNE_CODES = {'twinkle.mxl': 'tw', 'ode.mxl': 'od', 'minuets.mxl': 'mn', 'minuet
               'ave_maria.mxl': 'am', 'standchen.mxl': 'st', 'cygne.mxl': 'sw', 'meditation.mxl': 'me', 'humoresque.mxl': 'hu',
               'habanera.mxl': 'hb', 'porunacabeza.mxl': 'pc', 'valse.mxl': 'va', 'mountain_king.mxl': 'mk', 'little_swans.mxl': 'ls', 'brahms_wiegenlied.mxl': 'wg', 'faure_reve.mxl': 'ar', 'haydn_emperor.mxl': 'he', 'tchaikovsky_cantabile.mxl': 'tq', 'dvorak_american.mxl': 'da', 'borodin_nocturne.mxl': 'bn', 'canon.mxl': 'cn',
               'rv356.mxl': 'rv', 'romance.mxl': 'ro', 'mendelssohn.mxl': 'mc', 'tchaikovsky35.mxl': 'tc', 'beethoven61.mxl': 'bc',
-              'hungarian5.mxl': 'hd', 'csardas.mxl': 'cs', 'spring.mxl': 'sp', 'autumn.mxl': 'au', 'winter.mxl': 'wi',
+              'hungarian5.mxl': 'hd', 'csardas.mxl': 'cs', 'cancan.mxl': 'cc', 'spring.mxl': 'sp', 'autumn.mxl': 'au', 'winter.mxl': 'wi',
               'winter_largo.mxl': 'wl', 'summer.mxl': 'su', 'serenade.mxl': 'se'}
 assert set(TUNE_CODES) == set(f for f, t, c in MIDI_DEMOS), 'every built-in needs its QR code: ' + str(set(f for f, t, c in MIDI_DEMOS) ^ set(TUNE_CODES))
 assert len(set(TUNE_CODES.values())) == len(TUNE_CODES)
