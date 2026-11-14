@@ -3544,10 +3544,14 @@
           g.parentNode.insertBefore(sh, g);   /* behind the written note: its shadow */
         }
       });
-      spans.forEach(function (sp) {   /* behind everything in its system / section */
+      spans.forEach(function (sp) {   /* behind everything in its system / section, barline to barline (Trix) */
+        if (!sp.par.paBl) sp.par.paBl = Array.prototype.map.call(sp.par.querySelectorAll('path.bl'), function (pth) { var mm = /^M\s*(-?[\d.]+)/.exec(pth.getAttribute('d') || ''); return mm ? +mm[1] : null; }).filter(function (x) { return x !== null; }).sort(function (u, v) { return u - v; });
+        var L = sp.a - 16, R = sp.b + 24, pb = sp.par.paBl.filter(function (x) { return x < sp.a - 2; }).pop();
+        if (pb !== undefined && pb > sp.a - 120) L = pb;   /* the bar's own opening barline; the first bar of a line starts just before its first note */
+        var nb = sp.par.paBl.filter(function (x) { return x > sp.b + 2; })[0]; if (nb !== undefined && nb < sp.b + 120) R = nb;
         var r = document.createElementNS(NS, 'rect');
-        r.setAttribute('class', 'pa-bt ' + sp.gr); r.setAttribute('x', (sp.a - 16).toFixed(1)); r.setAttribute('y', Y0 - 3 * S);
-        r.setAttribute('width', (sp.b - sp.a + 40).toFixed(1)); r.setAttribute('height', 10 * S); r.setAttribute('rx', 6);
+        r.setAttribute('class', 'pa-bt ' + sp.gr); r.setAttribute('x', L.toFixed(1)); r.setAttribute('y', Y0 - 3 * S);
+        r.setAttribute('width', (R - L).toFixed(1)); r.setAttribute('height', 10 * S); r.setAttribute('rx', 0);
         sp.par.insertBefore(r, sp.par.firstChild);
       });
     }
