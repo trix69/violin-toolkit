@@ -783,7 +783,7 @@ APP.digitRatio = function (font) {
 };
 APP.TS_FONT = "'Times New Roman', 'Noto Serif', 'DejaVu Serif', Georgia, serif";
 try { APP.flash = localStorage.getItem('violin-flash') !== 'off'; } catch (e) { APP.flash = true; }   /* beat flash is on unless turned off */
-try { APP.keysAll = localStorage.getItem('violin-keys') === 'all'; } catch (e) { APP.keysAll = false; }
+APP.keysAll = false;   /* the key list is always folded: one button opens the 24 keys (Trix: no longer a setting) */
 try { APP.autoUpd = localStorage.getItem('violin-autoupdate') !== 'off'; } catch (e) { APP.autoUpd = true; }   /* look for a new version on opening unless turned off */   /* fingerboard keys folded into one button unless set to All */
 /* iPhones and iPads on silent (the ring/silent switch) mute a page's sound. iOS 16.4+ lets it play like a
    music app instead (Audio Session API). Asked for just before the first sound, not at load, so opening the
@@ -910,7 +910,7 @@ nav_js = """(function () {
   var segNames = document.getElementById('segNames');
   var segA4 = document.getElementById('segA4'), segTemper = document.getElementById('segTemper');
   var segApp = document.getElementById('segApp'), swatches = document.getElementById('swatches');
-  var segFlash = document.getElementById('segFlash'), segKeys = document.getElementById('segKeys');
+  var segFlash = document.getElementById('segFlash');
   var segUpd = document.getElementById('segUpd');
   var openBtn = document.getElementById('openSettings');
   function syncSheet() {
@@ -922,7 +922,6 @@ nav_js = """(function () {
     Array.prototype.forEach.call(segTemper.children, function (b) { b.setAttribute('aria-checked', b.dataset.temper === (APP.temper ? APP.temper.id : 'equal') ? 'true' : 'false'); });
     Array.prototype.forEach.call(segApp.children, function (b) { b.setAttribute('aria-checked', b.dataset.mode === THEME.mode ? 'true' : 'false'); });
     Array.prototype.forEach.call(swatches.children, function (b) { b.setAttribute('aria-checked', b.dataset.accent === THEME.accent ? 'true' : 'false'); });
-    Array.prototype.forEach.call(segKeys.children, function (b) { b.setAttribute('aria-checked', (b.dataset.keys === 'all') === APP.keysAll ? 'true' : 'false'); });
     Array.prototype.forEach.call(segFlash.children, function (b) { b.setAttribute('aria-checked', (b.dataset.flash === 'on') === APP.flash ? 'true' : 'false'); });
     Array.prototype.forEach.call(segUpd.children, function (b) { b.setAttribute('aria-checked', (b.dataset.upd === 'on') === APP.autoUpd ? 'true' : 'false'); });
   }
@@ -1222,13 +1221,6 @@ nav_js = """(function () {
     var b = e.target.closest('button'); if (!b) return;
     APP.autoUpd = b.dataset.upd === 'on';
     try { localStorage.setItem('violin-autoupdate', APP.autoUpd ? 'on' : 'off'); } catch (err) {}
-    syncSheet();
-  });
-  segKeys.addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b) return;
-    APP.keysAll = b.dataset.keys === 'all';
-    try { localStorage.setItem('violin-keys', APP.keysAll ? 'all' : 'fold'); } catch (err) {}
-    if (APP.setKeysAll) APP.setKeysAll();
     syncSheet();
   });
   segA4.addEventListener('click', function (e) {
@@ -1779,11 +1771,13 @@ markup = f"""
       <button type="button" role="radio" aria-checked="false" data-lv="medium">Medium</button>
       <button type="button" role="radio" aria-checked="false" data-lv="minimum">Minimum</button>
     </div>
-    <h3 id="lblKeys">Key list</h3>
-    <div class="segc two" role="radiogroup" aria-labelledby="lblKeys" id="segKeys">
-      <button type="button" role="radio" aria-checked="false" data-keys="fold">Folded</button>
-      <button type="button" role="radio" aria-checked="false" data-keys="all">All keys</button>
+    <h3 id="lblFlash">Beat flash</h3>
+    <div class="segc two" role="radiogroup" aria-labelledby="lblFlash" id="segFlash">
+      <button type="button" role="radio" aria-checked="false" data-flash="on">On</button>
+      <button type="button" role="radio" aria-checked="false" data-flash="off">Off</button>
     </div>
+    <h3 id="lblUse">Practice time</h3>
+    <button type="button" class="howto-btn" id="openUsage" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
     <h3 id="lblApp">Appearance</h3>
     <div class="segc" role="radiogroup" aria-labelledby="lblApp" id="segApp">
       <button type="button" role="radio" aria-checked="false" data-mode="light">Light</button>
@@ -1792,18 +1786,11 @@ markup = f"""
     </div>
     <h3 id="lblCol">Colour</h3>
     <div class="swatches" role="radiogroup" aria-labelledby="lblCol" id="swatches">{swatch_html}</div>
-    <h3 id="lblFlash">Beat flash</h3>
-    <div class="segc two" role="radiogroup" aria-labelledby="lblFlash" id="segFlash">
-      <button type="button" role="radio" aria-checked="false" data-flash="on">On</button>
-      <button type="button" role="radio" aria-checked="false" data-flash="off">Off</button>
-    </div>
     <h3 id="lblUpd">Automatic update check</h3>
     <div class="segc two" role="radiogroup" aria-labelledby="lblUpd" id="segUpd">
       <button type="button" role="radio" aria-checked="false" data-upd="on">On</button>
       <button type="button" role="radio" aria-checked="false" data-upd="off">Off</button>
     </div>
-    <h3 id="lblUse">Practice time</h3>
-    <button type="button" class="howto-btn" id="openUsage" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V7"/><path d="M17 16v-6"/></svg><span class="use-days">Practised on 0 days</span></button>
     <h3 id="lblHelp">Help</h3>
     <button type="button" class="howto-btn" id="showTips"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.8h.01"/></svg><span>Show tips again</span></button>
     <button type="button" class="howto-btn" id="ppShow" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 2.6v5.4c0 4.2-2.9 7.8-7 9-4.1-1.2-7-4.8-7-9V6.1z"/><path d="M9 12l2 2 4-4"/></svg><span>Privacy policy</span></button>
