@@ -99,7 +99,7 @@ os.makedirs(OUT + 'screenshots', exist_ok=True)
 for f in ('fingerboard.png', 'tuner.png', 'metronome.png'):
     if os.path.exists(SRC + 'screenshots/' + f):
         shutil.copy(SRC + 'screenshots/' + f, OUT + 'screenshots/' + f)
-for f in ('icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'og-image.png'):
+for f in ('icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png'):
     shutil.copy(SRC + 'icons/' + f, OUT + f)
 open(OUT + 'index.html', 'w', encoding='utf-8').write(out)
 # read by the Settings version button to see whether a newer release is online
@@ -110,9 +110,9 @@ json.dump({
   "start_url": "./", "scope": "./", "display": "standalone", "orientation": "portrait",
   "background_color": "#16201b", "theme_color": "#2f7679",
   "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},   # rounded corners, transparent outside (Trix: Chrome on a computer shows "any" icons as they are); the maskable one stays square for Android to shape
     {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
   "screenshots": [
     {"src": "screenshots/fingerboard.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Fingerboard: press and hold any note"},
@@ -127,7 +127,7 @@ const VERSION = '%(prefix)s%(ver)s';
 const PREFIX = '%(prefix)s', META = PREFIX + 'meta';
 /* only this site's saved copies: production and test share trix69.github.io, so never touch the other's */
 const MINE = k => /^%(prefix)s\\d{8}-\\d{6}$/.test(k);
-const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(async c => {
     /* index.html is essential; the rest is best effort so one failure cannot block the install */
