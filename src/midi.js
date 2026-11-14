@@ -1627,7 +1627,7 @@
     if (!song) return;
     if (fgShown) fgHead();
     var bar = song.sig.num * 4 / song.sig.den;
-    var beat = paBrowse != null ? paBrowse : counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar; Play-along's result: where the strip was dragged to */
+    var beat = paBrowse != null && paCanBrowse() ? paBrowse : counting ? countBeat : pos < 0.01 && !playing ? -bar : song.toBeat(pos);   /* at the very start: the empty count-in bar; Play-along's result: where the strip was dragged to */
     var z = full ? (fsShort ? 0.8 : 1.4) : 1;   /* full screen: the score larger, easier to read (Trix); a phone on its side: smaller, for room; positions below are in score units */
     keySvg.style.transform = z !== 1 ? 'scale(' + z + ')' : '';
     var bo = song.barAt ? song.barAt(counting ? countBase : Math.max(beat, 0)) : null, bn = bo ? cornerBar(bo) : '';   /* counting in: the bar it leads into */   /* the bar under the playhead (Trix) */
@@ -3385,7 +3385,7 @@
     paCardBar = paBarOf[list[0]];
     $('paCardN').textContent = APP.board.name(n0.m);
     $('paCardT').textContent = 'Bar ' + (bars[paCardBar] ? bars[paCardBar].num : '');
-    var box = $('paCardB'); box.textContent = '';
+    var box = $('paCardB'); box.textContent = ''; box.classList.remove('has-fb');
     function line(t, cls) { var p0 = document.createElement('p'); p0.textContent = t; if (cls) p0.className = cls; box.appendChild(p0); }
     function ms(v, what) { return Math.abs(v) <= ASSESS.IN_TIME ? what + ': on time (' + (v >= 0 ? '+' : '−') + Math.abs(v) + ' ms)' : what + ': ' + Math.abs(v) + ' ms ' + (v > 0 ? 'late' : 'early'); }
     list.forEach(function (kk) {
@@ -3404,7 +3404,11 @@
     var r1 = paResOf[list[0]];
     if (r1 && !r1.missed && !r1.chord && r1.cents !== undefined && n0.si >= 0) {
       if (n0.fg === 0) { if (Math.abs(r1.cents) > ASSESS.IN_TUNE) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say'); }   /* no finger to move: the string's tuning */
-      else if (paView === 'pages') box.appendChild(paFingerSvg(n0, r1));   /* Pages only: Live has the big fingerboard (Trix) */
+      else if (paView === 'pages') {   /* Pages only: Live has the big fingerboard (Trix); the board on the right of the text */
+        var fb = paFingerSvg(n0, r1, k), txt = document.createElement('div'); txt.className = 'pa-fb-txt';
+        while (box.firstChild) txt.appendChild(box.firstChild);
+        txt.appendChild(fb.say); box.appendChild(txt); box.appendChild(fb.svg); box.classList.add('has-fb');
+      }
     }
     /* as the Symbols page does: in the half of the screen away from the note, so the note stays in sight */
     var rr = from && from.getBoundingClientRect ? from.getBoundingClientRect() : null, up = rr ? rr.top + rr.height / 2 > window.innerHeight / 2 : false;
@@ -3424,31 +3428,37 @@
      the finger should be (the written note, with its finger), a disc where it was (from the pitch played), and how far apart
      they are on a real violin (328 mm string) */
   var PA_OPEN = [55, 62, 69, 76], PA_SNAME = ['G', 'D', 'A', 'E'], PA_LEN = 328;
-  function paFingerSvg(n, r) {
-    var open = PA_OPEN[n.si], ne = n.m - open, na = ne + r.cents / 100;
+  function paFingerSvg(n, r, k) {
+    /* drawn like the MIDI player's board (Trix): all four strings, every note place from the open string up, the key's notes
+       tinted, the written note lit in its string colour with its finger, and a disc where the played pitch puts the finger */
+    var si = n.si, open = PA_OPEN[si], ne = n.m - open, na = Math.max(-0.4, ne + r.cents / 100);
     function mm(x) { return PA_LEN * (1 - Math.pow(2, -x / 12)); }
-    var lo = Math.max(-0.5, Math.min(ne, na) - 1.2), hi = Math.max(ne, na) + 1.2, W = 280, H = 96, L = 18, R = W - 18;
-    function X(x) { return L + (mm(x) - mm(lo)) / (mm(hi) - mm(lo)) * (R - L); }
+    var top = Math.max(7, Math.ceil(Math.max(ne, na)) + 1), COL = ['#66AEE6', '#74C493', '#E3A24C', '#EE6A5E'];
+    var W = 150, X0 = 22, DX = (W - 2 * X0) / 3, Y0 = 26, H = Math.max(210, 22 * top + 40), K = (H - Y0 - 14) / mm(top), R = Math.min(10, K * (mm(1) - mm(0)) / 2 - 1);
+    function Y(x) { return Y0 + K * mm(x); }
+    var kn = song.keyAt ? song.keyAt(n.b || 0) : { sf: song.sf || 0 }, root = ((kn.sf * 7) % 12 + 12) % 12, inKey = {};
+    [0, 2, 4, 5, 7, 9, 11].forEach(function (i) { inKey[(root + i) % 12] = true; });
     var kind = Math.abs(r.cents) <= ASSESS.IN_TUNE ? '#23963a' : Math.abs(r.cents) <= ASSESS.RED ? '#d68a00' : '#d23b2f';
-    var o = ['<svg class="pa-fb" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Fingerboard">'];
-    o.push('<rect x="4" y="30" width="' + (W - 8) + '" height="22" rx="6" class="pa-fb-wood"/>');
-    o.push('<line x1="4" y1="41" x2="' + (W - 4) + '" y2="41" class="pa-fb-str"/>');
-    for (var k = Math.ceil(lo); k <= Math.floor(hi); k++) {   /* a tick at each semitone, the note named above it */
-      var x = X(k);
-      o.push('<line x1="' + x.toFixed(1) + '" y1="30" x2="' + x.toFixed(1) + '" y2="52" class="pa-fb-tick"/>');
-      o.push('<text x="' + x.toFixed(1) + '" y="22" class="pa-fb-lab">' + (k === 0 ? PA_SNAME[n.si] : APP.board.name(open + k).replace(/\d+$/, '')) + '</text>');
+    var o = ['<svg class="pa-fb" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" role="img" aria-label="Fingerboard">'];
+    o.push('<rect x="4" y="' + (Y0 - 8) + '" width="' + (W - 8) + '" height="' + (H - Y0 + 4) + '" rx="8" class="pa-fb-wood"/>');
+    o.push('<rect x="4" y="' + (Y0 - 10) + '" width="' + (W - 8) + '" height="4" rx="2" class="pa-fb-nut"/>');
+    for (var s4 = 0; s4 < 4; s4++) {
+      var x = X0 + s4 * DX;
+      o.push('<text x="' + x + '" y="12" class="pa-fb-lab" fill="' + COL[s4] + '">' + PA_SNAME[s4] + '</text>');
+      o.push('<line x1="' + x + '" y1="' + (Y0 - 6) + '" x2="' + x + '" y2="' + (H - 6) + '" stroke="' + COL[s4] + '" class="pa-fb-str"/>');
+      for (var j = 0; j <= top; j++) {
+        var m = PA_OPEN[s4] + j, y = Y(j), lit = s4 === si && j === ne, key = inKey[m % 12];
+        var nm = APP.board.name(m).replace(/-?\d+$/, '');
+        o.push('<circle cx="' + x + '" cy="' + y.toFixed(1) + '" r="' + R.toFixed(1) + '" class="pa-fb-n' + (lit ? ' lit' : key ? ' key' : '') + '" style="--c:' + COL[s4] + '"/>');
+        if (R >= 7) o.push('<text x="' + x + '" y="' + (y + 3).toFixed(1) + '" class="pa-fb-t' + (lit ? ' lit' : '') + '">' + (lit && n.fg > 0 ? n.fg : nm) + '</text>');
+      }
     }
-    var xe = X(ne), xa = X(na);
-    o.push('<circle cx="' + xe.toFixed(1) + '" cy="41" r="10" class="pa-fb-want"/>');
-    o.push('<text x="' + xe.toFixed(1) + '" y="45" class="pa-fb-fg">' + (n.fg >= 0 ? n.fg : '') + '</text>');
-    o.push('<circle cx="' + xa.toFixed(1) + '" cy="41" r="6.5" fill="' + kind + '" class="pa-fb-got"/>');
-    o.push('<text x="' + L + '" y="' + (H - 18) + '" class="pa-fb-end" text-anchor="start">← scroll</text><text x="' + R + '" y="' + (H - 18) + '" class="pa-fb-end" text-anchor="end">bridge →</text>');
+    o.push('<circle cx="' + (X0 + si * DX) + '" cy="' + Y(na).toFixed(1) + '" r="' + (R * 0.62).toFixed(1) + '" fill="' + kind + '" class="pa-fb-got"/>');
     o.push('</svg>');
-    var wrap = document.createElement('div'); wrap.className = 'pa-fbw'; wrap.innerHTML = o.join('');
+    var w = document.createElement('div'); w.innerHTML = o.join('');
     var d = mm(na) - mm(ne), p0 = document.createElement('p'); p0.className = 'pa-fb-say';
     p0.textContent = Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'Finger in place.' : 'Finger about ' + Math.max(0.1, Math.abs(d)).toFixed(1) + ' mm too close to the ' + (d > 0 ? 'bridge' : 'scroll') + '.';
-    wrap.appendChild(p0);
-    return wrap;
+    return { svg: w.firstChild, say: p0 };
   }
   function paCardClose() { if (paCardEl.hidden) return; paCardEl.hidden = true; APP.board.off('pa-card'); APP.board.heard(null); }
   $('paCardC').addEventListener('click', paCardClose);   /* a tap on the card closes it */
@@ -3565,7 +3575,8 @@
     show: function () { paOn = true; bg = false; appCall('rotate', false); paLayout(); paTickMarks(); if (paRes) paShowResult(); },
     hide: function () {
       if (paTake) paStop();   /* leaving the tool ends the take (the analysis still runs) */
-      paOn = false; cancelAnimationFrame(paRaf); APP.board.heard(null); paClearTints(); paCardClose();   /* the take's marks belong to Play-along: not on the Fingerings pages or their PDF (Hermes F84); back when it shows again */
+      paOn = false; paBrowse = null; cancelAnimationFrame(paRaf); APP.board.heard(null); paClearTints(); paCardClose();   /* the browsed place is let go: the player follows the music again (Hermes F87) */
+        /* the take's marks belong to Play-along: not on the Fingerings pages or their PDF (Hermes F84); back when it shows again */
       shown = false; fgShown = false; setMixOpen(false); setABOpen(false);
       if (APP.nextView !== 'midi' && APP.nextView !== 'fingering') { pause(); APP.board.player(false); }
       ['midi', 'board', 'fingering'].forEach(function (n) { var v = document.getElementById('view-' + n); if (v && APP.nextView !== n && !(APP.nextView === 'midi' && n === 'board')) v.hidden = true; });

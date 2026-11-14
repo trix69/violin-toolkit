@@ -302,6 +302,7 @@
     [/^(Start|End): on time \(([+−]\d+) ms\)$/, function (m, w, v) { return (w === 'Start' ? '起音' : '收音') + '：准时（' + v + ' 毫秒）'; }],
     [/^(Start|End): (\d+) ms (late|early)$/, function (m, w, v, d) { return (w === 'Start' ? '起音' : '收音') + '：' + (d === 'late' ? '晚了 ' : '早了 ') + v + ' 毫秒'; }],
     [/^Played (\S+) instead of (\S+) \(([+−])(\d+) ¢\)$/, function (m, p, w, sg, v) { return '拉成了 ' + p + '（应为 ' + w + '，偏' + (sg === '+' ? '高 ' : '低 ') + v + ' 音分）'; }],
+    [/^(Pitch|Timing): ([\d%, ]+)$/, function (m, w, v) { return (w === 'Pitch' ? '音准' : '节奏') + '：' + v; }],   /* the result bars' labels (Hermes F88) */
     [/^Open string: tune the ([GDAE]) string (up|down) by (\d+) ¢\.$/, function (m, st, d, v) { return '空弦：把 ' + st + ' 弦调' + (d === 'up' ? '高 ' : '低 ') + v + ' 音分。'; }],
     [/^Finger about ([\d.]+) mm too close to the (bridge|scroll)\.$/, function (m, v, w) { return '手指离' + (w === 'bridge' ? '琴马' : '琴头') + '近了约 ' + v + ' 毫米。'; }],
     [/^(\d+)(?:st|nd|rd|th) time$/, function (m, n) { return '第 ' + n + ' 遍'; }],
