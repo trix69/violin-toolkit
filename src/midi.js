@@ -3166,8 +3166,8 @@
     paNeedle.hidden = !(rec && !busy);   /* the pitch needle during a take, in both views (Trix); Live has no page / bar line */
     var live = paView === 'live', mic = document.querySelector('#pa .pa-mic');
     $('pa').classList.toggle('live', live); paFloatEl.classList.toggle('live', live); paFloatEl.hidden = !!(rec || busy) || full;   /* not during a take: the speed must stay put */
-    if (live && mic.nextSibling !== $('paTime')) $('paTime').parentNode.insertBefore(mic, $('paTime'));   /* the microphone level beside the time */
-    else if (!live && mic.parentNode !== $('paBarNow').parentNode) $('paBarNow').parentNode.insertBefore(mic, $('paBarNow'));
+    var pbar = paRec.parentNode;   /* one top bar in both views (Trix): Pages | Live, Start / Stop, the time, the pitch needle, the microphone level */
+    if (pbar.lastElementChild !== mic || paNeedle.parentNode !== pbar) { pbar.appendChild(paTime); pbar.appendChild(paNeedle); pbar.appendChild(mic); }
     paResEl.hidden = !paRes || rec;
     var sh = document.getElementById('shell'); if (sh) { sh.classList.toggle('pa-result', !!(paRes && !paRes.empty) && !rec); sh.classList.toggle('pa-sp', paShowMode !== 'time'); sh.classList.toggle('pa-st', paShowMode !== 'pitch'); }   /* fingerings hidden while a result shows; Pitch | Timing | Both */
     Array.prototype.forEach.call(paShowEl.children, function (b) { b.setAttribute('aria-checked', b.dataset.s === paShowMode ? 'true' : 'false'); });

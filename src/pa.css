@@ -190,9 +190,8 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa-sb .pa-lg { margin-top: 4px; font-size: 13px; }
 .pa-bars { gap: 16px; }
 /* Live (Trix): no page / bar line; the microphone level sits in the top bar beside the time */
-.pa.live .pa-info { display: none; }
+.pa .pa-info { display: none; }   /* no page / bar line in either view (Trix) */
 .pa-bar .pa-mic { flex: 0 1 90px; color: var(--muted); margin-left: auto; }
-.pa-bar .pa-mic + .pa-time { margin-left: 0; }
 /* the shadow notes (Trix): dot = pitch (height, colour), line = timing (ends, colour); the written note stays ink */
 .pa-sh { cursor: pointer; }
 .pa-sh .pa-hit { fill: transparent; }
@@ -247,3 +246,10 @@ html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { di
   #paFloat .mp-speed small { display: none; }
 }
 .shell.mp-fs[data-view="playalong"] #mpFull { display: grid !important; }   /* full screen: Exit at the board's corner (Hermes F94) */
+/* the pitch needle in the top bar, between Stop and the microphone level (Trix) */
+.pa-bar .pa-needle { flex: 1 1 140px; min-width: 120px; gap: 6px; font-size: 13px; }
+.pa-bar .pa-needle .pa-gauge { max-width: none; }
+.pa-bar .pa-needle[hidden] { display: none; }
+.pa-bar .pa-time { flex: none; }
+.pa-bar .pa-needle { order: 0; }
+.pa-bar .pa-mic { margin-left: auto; }
