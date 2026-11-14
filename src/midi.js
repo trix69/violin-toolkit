@@ -3264,7 +3264,7 @@
         if (!T.warned && T.quietSince && nowT - T.quietSince > 2000) { T.warned = true; paSay('The microphone can not hear the violin.'); }
         if (rms > ASSESS.GATE * 2 && T.warned && !paWarn.hidden) paSay('');
       }
-      if (paView === 'live') paHeard(f, rms);
+      paHeard(f, rms);   /* the needle in both views (Trix); the board disc only shows in Live */
       paClock();
       paLoop();
     });
@@ -3505,7 +3505,7 @@
         var c = Math.abs(r.cents), t = r.timing == null ? 0 : Math.abs(r.timing);
         if (c > ASSESS.RED || t > PA_TIME_RED) bad++; else if (c <= ASSESS.IN_TUNE && t <= ASSESS.IN_TIME) good++;
       });
-      if (n) grade[bi] = bad >= n / 3 ? 'red' : !bad && good >= n * 0.75 ? 'ok' : 'amber';
+      if (n) grade[bi] = bad >= Math.max(2, Math.ceil(n / 3)) ? 'red' : !bad && good >= n * 0.75 ? 'ok' : 'amber';
     });
     function draw(root, merge) {
       if (!root) return;
@@ -3531,7 +3531,12 @@
           var t0 = m.t0 == null ? 0 : m.t0, t1 = m.t1 == null ? t0 : m.t1;
           var dy = wrong ? 0 : -Math.max(-1.5 * S, Math.min(1.5 * S, m.c / 25 * S / 2)), dx = Math.max(-18, Math.min(18, (t0 + t1) / 2 / 7));
           var wf = Math.max(0.55, Math.min(1.9, 1 + (t1 - t0) / 400)), hy = cy + dy, HR = rx * 1.3 * wf, VR = ry * 1.3, hx;
-          var up = true; Array.prototype.forEach.call(g.querySelectorAll('line'), function (l) {   /* the stem goes the way the written one does */
+          var up = true; Array.prototype.forEach.call(g.querySelectorAll('line, path.stem'), function (l) {   /* the stem goes the way the written one does (Hermes F92: stems are paths) */
+            if (l.nodeName === 'path') {
+              var md = (l.getAttribute('d') || '').match(/^M(-?[\d.]+) (-?[\d.]+)V(-?[\d.]+)/);
+              if (md && Math.abs(+md[1] - cx) <= rx + 2 && Math.abs(+md[3] - +md[2]) > 2 * S) up = +md[3] < +md[2];
+              return;
+            }
             var x1 = +l.getAttribute('x1'), y1 = +l.getAttribute('y1'), y2 = +l.getAttribute('y2');
             if (Math.abs(x1 - cx) <= rx + 2 && Math.abs(y2 - y1) > 2 * S) up = Math.min(y1, y2) < cy - S;
           });
