@@ -3181,15 +3181,8 @@
     var nPg = fgMap.length ? fgMap[fgMap.length - 1].pi + 1 : 0;
     paPage.textContent = nPg && pg !== null ? 'Page ' + (pg + 1) + ' of ' + nPg : '';
   }
-  function paTickMarks() {   /* a tick where each page starts */
-    paTicks.textContent = '';
-    if (!song || !fgMap.length) return;
-    var seen = {};
-    fgMap.forEach(function (m) {
-      if (!m.pi || seen[m.pi]) return; seen[m.pi] = 1;
-      var i = document.createElement('i'); i.style.left = (100 * song.beatSec(m.b0) / song.end).toFixed(2) + '%'; paTicks.appendChild(i);
-    });
-  }
+  function paTickMarks() { paTicks.textContent = ''; }   /* no page ticks on the progress bar (Trix) */
+
   /* the gate: before the microphone is even asked for (Cancel opens nothing), every take, never remembered */
   var paGateFrom = null;
   function paGateOpen() { paGateFrom = document.activeElement; paGate.hidden = false; $('paGo').focus(); }
