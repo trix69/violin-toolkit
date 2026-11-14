@@ -160,3 +160,14 @@ Trix: the small note before bars 8 and 72 is a quick grace just before the beat.
 violin `<grace/>` with `steal-time-previous="50"`; the player plays such graces (and every slashed grace) as a 32nd ending on the
 beat, taken from the note before (drawn at its written value).
 - 2026-11-14: Trix: a bar's rest between Minuet I and Minuet II (`minuet_pair.py` adds it after bar 32; rebuild = minuet_pair.py on the 68e5a7b sources, then minuet_grace.py). Minuet II now starts at bar 34.
+
+## Tchaikovsky, Swan Lake: Dance of the Little Swans (2026-11-15)
+
+Eugene Gajewski's Dorico engraving of the Op. 20a suite (2024, CC0, IMSLP #917974; Trix downloaded the zip with the
+MusicXML export, kept in `~/Downloads/vt-scores/swan/`). `swan/build.py "…Full score - 03 Flow 3.xml" little_swans.mxl`
+(the `.xml` inside the flow's `.mxl`): Violin = the tune (Oboe I bars 1–9 and 26–38, Violin I bars 10–25; bars 10 and 26
+joined at the hand-over), the other woodwinds and strings as the accompaniment at sounding pitch (`<transpose>` applied:
+clarinets in A, double bass), Oboe I dropped (all tune), Violin I emptied in bars 10–26 and renamed Ripieno 1 (its
+instrument name must not say Violin, or the player takes "Violin I" as the solo); piccolo, brass and timpani (only the
+last chord) dropped; key mode set to minor (F♯ minor; Dorico wrote major); tempo ♩ = 120 from the piccolo's first bar,
+the words "Allegro moderato" left out (they ran into bar 2's *p*). 38 bars, 1:15, 245 violin notes.
