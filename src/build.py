@@ -508,6 +508,9 @@ fing_html = open(SP + 'fing.html').read()
 PA_ON = os.environ.get('VT_PA') == '1'   # Play-along is still being built: its tile and tab only in a build made with VT_PA=1
 pa_html = open(SP + 'pa.html').read()   # Play-along (跟音练习): the take bar and the headphone gate
 pa_css = open(SP + 'pa.css').read()
+if PA_ON:   # the header button beside Switch tool (Trix): MIDI player -> Play-along, Fingerings -> MIDI player, Play-along -> Fingerings
+    pa_css += ('\n.shell[data-view="midi"] .tabs .tab.tab[data-view="fingering"] { display: none; }'
+               '\n.shell[data-view="midi"] .tabs .tab[data-view="playalong"], .shell[data-view="playalong"] .tabs .tab[data-view="fingering"] { display: grid; }\n')
 assess_js = open(SP + 'assess.js').read()   # Play-along's measurement: framer, onsets, alignment, per-note numbers
 midi_html = open(SP + 'midi.html').read()
 # the built-in tunes (eleven, growing to twenty), easy to hard (Trix, 2026-11-10; Ave Maria added the same day): every one from an edition we may redistribute, recorded

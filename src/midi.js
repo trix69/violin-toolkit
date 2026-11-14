@@ -3401,6 +3401,11 @@
       if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start'));
       if (r.exit !== undefined) line(ms(r.exit, 'End'));
     });
+    var r1 = paResOf[list[0]];
+    if (r1 && !r1.missed && !r1.chord && r1.cents !== undefined && n0.si >= 0) {
+      if (n0.fg === 0) { if (Math.abs(r1.cents) > ASSESS.IN_TUNE) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say'); }   /* no finger to move: the string's tuning */
+      else if (paView === 'pages') box.appendChild(paFingerSvg(n0, r1));   /* Pages only: Live has the big fingerboard (Trix) */
+    }
     /* as the Symbols page does: in the half of the screen away from the note, so the note stays in sight */
     var rr = from && from.getBoundingClientRect ? from.getBoundingClientRect() : null, up = rr ? rr.top + rr.height / 2 > window.innerHeight / 2 : false;
     paCardEl.classList.toggle('up', up);
@@ -3414,6 +3419,36 @@
       APP.board.allOff(); APP.board.hand(n0.hand); APP.board.on(n0.m, 'pa-card', false, n0.si, n0.b, true);
       APP.board.heard(r0 && r0.cents !== undefined && !r0.missed ? { m: n0.m + r0.cents / 100, cents: r0.cents, si: Math.abs(r0.cents) >= PA_WRONG ? -1 : n0.si } : null);
     }
+  }
+  /* the card's picture (Trix): the note's string, from the scroll side to the bridge side, zoomed round the note; a ring where
+     the finger should be (the written note, with its finger), a disc where it was (from the pitch played), and how far apart
+     they are on a real violin (328 mm string) */
+  var PA_OPEN = [55, 62, 69, 76], PA_SNAME = ['G', 'D', 'A', 'E'], PA_LEN = 328;
+  function paFingerSvg(n, r) {
+    var open = PA_OPEN[n.si], ne = n.m - open, na = ne + r.cents / 100;
+    function mm(x) { return PA_LEN * (1 - Math.pow(2, -x / 12)); }
+    var lo = Math.max(-0.5, Math.min(ne, na) - 1.2), hi = Math.max(ne, na) + 1.2, W = 280, H = 96, L = 18, R = W - 18;
+    function X(x) { return L + (mm(x) - mm(lo)) / (mm(hi) - mm(lo)) * (R - L); }
+    var kind = Math.abs(r.cents) <= ASSESS.IN_TUNE ? '#23963a' : Math.abs(r.cents) <= ASSESS.RED ? '#d68a00' : '#d23b2f';
+    var o = ['<svg class="pa-fb" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Fingerboard">'];
+    o.push('<rect x="4" y="30" width="' + (W - 8) + '" height="22" rx="6" class="pa-fb-wood"/>');
+    o.push('<line x1="4" y1="41" x2="' + (W - 4) + '" y2="41" class="pa-fb-str"/>');
+    for (var k = Math.ceil(lo); k <= Math.floor(hi); k++) {   /* a tick at each semitone, the note named above it */
+      var x = X(k);
+      o.push('<line x1="' + x.toFixed(1) + '" y1="30" x2="' + x.toFixed(1) + '" y2="52" class="pa-fb-tick"/>');
+      o.push('<text x="' + x.toFixed(1) + '" y="22" class="pa-fb-lab">' + (k === 0 ? PA_SNAME[n.si] : APP.board.name(open + k).replace(/\d+$/, '')) + '</text>');
+    }
+    var xe = X(ne), xa = X(na);
+    o.push('<circle cx="' + xe.toFixed(1) + '" cy="41" r="10" class="pa-fb-want"/>');
+    o.push('<text x="' + xe.toFixed(1) + '" y="45" class="pa-fb-fg">' + (n.fg >= 0 ? n.fg : '') + '</text>');
+    o.push('<circle cx="' + xa.toFixed(1) + '" cy="41" r="6.5" fill="' + kind + '" class="pa-fb-got"/>');
+    o.push('<text x="' + L + '" y="' + (H - 18) + '" class="pa-fb-end" text-anchor="start">← scroll</text><text x="' + R + '" y="' + (H - 18) + '" class="pa-fb-end" text-anchor="end">bridge →</text>');
+    o.push('</svg>');
+    var wrap = document.createElement('div'); wrap.className = 'pa-fbw'; wrap.innerHTML = o.join('');
+    var d = mm(na) - mm(ne), p0 = document.createElement('p'); p0.className = 'pa-fb-say';
+    p0.textContent = Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'Finger in place.' : 'Finger about ' + Math.max(0.1, Math.abs(d)).toFixed(1) + ' mm too close to the ' + (d > 0 ? 'bridge' : 'scroll') + '.';
+    wrap.appendChild(p0);
+    return wrap;
   }
   function paCardClose() { if (paCardEl.hidden) return; paCardEl.hidden = true; APP.board.off('pa-card'); APP.board.heard(null); }
   $('paCardC').addEventListener('click', paCardClose);   /* a tap on the card closes it */
