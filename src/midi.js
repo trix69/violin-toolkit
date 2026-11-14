@@ -3621,11 +3621,18 @@
   }, { passive: false });
   document.addEventListener('visibilitychange', function () { if (document.hidden && paTake) paStop(); });   /* the phone locks or another app opens: the take ends there */
   document.addEventListener('i18n', function () { if (paOn) { paUi(); if (paRes) paShowResult(); } });
+  /* the tune row (picker + Import) sits at the top of Play-along, above Pages | Live (Trix); back in Fingerings when it is left */
+  var fgRowEl = document.querySelector('#view-fingering .fg-row'), fgRowHome = document.createComment('fg-row');
+  if (fgRowEl) fgRowEl.parentNode.insertBefore(fgRowHome, fgRowEl);
+  function paRowUp(on) {
+    if (!fgRowEl) return;
+    if (on) $('view-playalong').insertBefore(fgRowEl, $('pa')); else fgRowHome.parentNode.insertBefore(fgRowEl, fgRowHome.nextSibling);
+  }
   APP.views.playalong = {
-    show: function () { paOn = true; bg = false; appCall('rotate', false); paLayout(); paTickMarks(); if (paRes) paShowResult(); },
+    show: function () { paRowUp(true); paOn = true; bg = false; appCall('rotate', false); paLayout(); paTickMarks(); if (paRes) paShowResult(); },
     hide: function () {
       if (paTake) paStop();   /* leaving the tool ends the take (the analysis still runs) */
-      paOn = false; paBrowse = null; cancelAnimationFrame(paRaf); APP.board.heard(null); paClearTints(); paCardClose();   /* the browsed place is let go: the player follows the music again (Hermes F87) */
+      paRowUp(false); paOn = false; paBrowse = null; cancelAnimationFrame(paRaf); APP.board.heard(null); paClearTints(); paCardClose();   /* the browsed place is let go: the player follows the music again (Hermes F87) */
         /* the take's marks belong to Play-along: not on the Fingerings pages or their PDF (Hermes F84); back when it shows again */
       shown = false; fgShown = false; setMixOpen(false); setABOpen(false);
       if (APP.nextView !== 'midi' && APP.nextView !== 'fingering') { pause(); APP.board.player(false); }

@@ -88,7 +88,7 @@
 .pa-needle.quiet .pa-pin { opacity: .35; }
 
 /* Pages: a gap between the tune picker and the page (the Fingerings bar between them is hidden here; Trix) */
-.shell[data-view="playalong"] .fg-row { margin-bottom: 14px; }
+#view-playalong > .fg-row { margin-bottom: 12px; }
 
 /* per-note marks (Trix): a disc behind each notehead; the legend's swatches are discs too */
 .pa-nm { cursor: pointer; }
