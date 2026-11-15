@@ -239,6 +239,7 @@
             var pc = 0;
             if (p.m !== null) { pc = Infinity; e.ms.forEach(function (em) { var d = Math.abs(p.m - em); d = Math.min(d, Math.abs(d - 12), Math.abs(d - 24)) + (d > 6 ? 0.5 : 0); pc = Math.min(pc, d < 0.5 ? 0 : Math.min(d, 4) * 0.6); }); }   /* a double stop: the nearer of its notes */
             else pc = e.chord ? 0.3 : 0.5;
+            if (has[k] && pc > 1.2 && Math.abs(L - lag[k]) > 0.1) step = INF;   /* far in time and in pitch at once: not this note (Hermes F116) */
             if (cost[k] + step + pc < best) { best = cost[k] + step + pc; bf = 3; bl = L; be = e.t; bh = 1; }
           }
         }

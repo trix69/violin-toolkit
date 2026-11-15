@@ -3428,7 +3428,7 @@
           return;
         }
         if (r.noPitch) { if (r.timing === null || r.timing === undefined) T.miss++; else { var t0 = Math.abs(r.timing); T[t0 <= r.tOk ? 'ok' : t0 <= r.tRed ? 'amber' : 'red']++; } return; }   /* a double stop with no pitch to read: timing only */
-        if (r.missed || r.cents === undefined) { P.miss++; T.miss++; return; }
+        if (r.missed || r.cents === undefined) { var mm = r.chord && r.idx ? r.idx.length : 1; P.miss += mm; T.miss++; return; }   /* a missed chord: each of its notes (Hermes F115) */
         var c = Math.abs(r.cents); P[c <= ASSESS.IN_TUNE ? 'ok' : c <= ASSESS.RED ? 'amber' : 'red']++;
         if (r.timing === null || r.timing === undefined) { T.miss++; return; }
         var t = Math.abs(r.timing); T[t <= r.tOk ? 'ok' : t <= r.tRed ? 'amber' : 'red']++;
@@ -3644,7 +3644,7 @@
       var sum = 0, n = 0;
       function tPart(r) { return r.timing == null ? 1 : Math.min(2, Math.abs(r.timing) / r.tRed); }
       b.notes.forEach(function (r) {
-        if (r.missed) { sum += 4; n++; return; }
+        if (r.missed) { var mc = r.chord && r.idx ? r.idx.length : 1; sum += 4 * mc; n += mc; return; }   /* a missed chord: each note (Hermes F115) */
         heard = true;
         if (r.noPitch) { sum += 2 * tPart(r); n++; return; }
         if (r.each) { r.each.forEach(function (o) { sum += (o.cents === undefined ? 2 : Math.min(2, Math.abs(o.cents) / ASSESS.RED)) + tPart(r); n++; }); return; }
