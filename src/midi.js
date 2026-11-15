@@ -668,9 +668,10 @@
       n.asi = n.si; n.afg = n.fg;   /* the automatic choice, kept for checking it against written fingerings */
       var s0 = -1;
       if (n.xs) { s0 = 4 - n.xs; if (n.m < OPEN[s0] || n.m > OPEN[s0] + 19) s0 = -1; }   /* string 1 = E ... 4 = G */
+      else if (n.xfg !== undefined && n.afg === n.xfg && n.asi >= 0) s0 = -2;   /* the planner already met the written finger: keep its string, which goes with its hand (Hermes F124) */
       else if (n.xfg !== undefined) s0 = strForFinger(n.m, n.xfg);
       if (s0 >= 0) n.si = s0;
-      else if (n.harm) { s0 = [3, 2, 1, 0].filter(function (q) { return n.m - OPEN[q] === 12; })[0]; if (s0 === undefined) s0 = -1; }   /* a harmonic with nothing written: the octave harmonic, half way along the string */
+      else if (n.harm && s0 === -1) { s0 = [3, 2, 1, 0].filter(function (q) { return n.m - OPEN[q] === 12; })[0]; if (s0 === undefined) s0 = -1; }   /* a harmonic with nothing written: the octave harmonic, half way along the string */
       if (s0 >= 0) n.si = s0;
       if (n.xfg !== undefined) n.fg = n.xfg;
       else if (s0 >= 0) fingers([n]);
@@ -826,7 +827,7 @@
         var d = k - POS_S[p];
         if (d < -1 || d > 7) continue;
         var fg = d <= 0 ? 1 : d <= 2 ? 2 : d <= 4 ? 3 : 4;
-        if (!blind && n.xfg !== undefined && (n.xfg !== fg || (fg === 1 && d < 0))) continue;   /* a written 1 only where that finger stops the note (Hermes F123) */   /* a written finger */
+        if (!blind && n.xfg !== undefined && (n.xfg !== fg || (fg === 1 && d < 0))) continue;   /* a written finger; a written 1 only where that finger stops the note (Hermes F123) */
         var c = FG_COST.pos[p] + (fg === 4 ? FG_COST.four : 0) + (d === 6 ? FG_COST.high4 : 0) + (d === 7 ? FG_COST.ext : 0);
         if (si <= 1 && p > 2) c += FG_COST.lowHigh;
         out.push({ si: si, p: p, fg: fg, c: c });
