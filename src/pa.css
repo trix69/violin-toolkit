@@ -223,6 +223,7 @@ html.fg-printing .pa-sh { display: none !important; } @media print { .pa-sh { di
 }
 /* each bar's grade, a light background (Trix) */
 .pa-bt { pointer-events: none; }
+:is(.pa-legend, .pa-bars) .sw.sw-heat { width: 44px; height: 14px; border-radius: 3px; background: linear-gradient(90deg, rgba(46,160,67,.55), rgba(232,164,32,.6), rgba(214,48,39,.55)); }   /* the bar heat map (Trix) */
 .pa-bt.ok { fill: rgba(46, 160, 67, .10); } .pa-bt.amber { fill: rgba(232, 164, 32, .14); } .pa-bt.red { fill: rgba(214, 48, 39, .11); }
 html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { display: none !important; } }
 /* the floating controls (Trix): a pill at the bottom, the player's own buttons lent while Play-along shows */

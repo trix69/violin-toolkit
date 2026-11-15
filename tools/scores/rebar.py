@@ -2,11 +2,12 @@
 Beethoven's Romance Op. 50). python-ly fills bars wrongly around long triplet runs and grace notes, but each note's own
 duration is right, so the notes are poured back into bars of the time signature's length. Parts with a <backup>
 (two voices) are left alone. A note that would cross a barline stops the script (it would need a tie).
-Usage: rebar.py in.musicxml out.musicxml"""
+Usage: rebar.py in.musicxml out.musicxml [upbeat in crotchets: the first bar that long]"""
 import sys
 import xml.etree.ElementTree as ET
 
 tree = ET.parse(sys.argv[1]); root = tree.getroot()
+PICK = float(sys.argv[3]) if len(sys.argv) > 3 else 0
 
 
 def dur(e):
@@ -28,6 +29,7 @@ for part in root.findall('part'):
     items = [e for m in ms for e in m]
     for m in ms:
         for e in list(m): m.remove(e)
+    lim = lambda i: int(PICK * div) if (i == 0 and PICK) else full
     mi, pos, done = 0, 0, False
     for e in items:
         keep = (e.tag == 'note' and e.find('chord') is not None) or (e.tag == 'barline' and e.get('location', 'right') == 'right')
@@ -36,8 +38,8 @@ for part in root.findall('part'):
             if mi == len(ms):
                 ms.append(ET.SubElement(part, 'measure')); ms[-1].set('number', str(mi + 1))
         ms[mi].append(e); pos += dur(e)
-        if pos >= full: done = True
-        assert pos <= full, ('a note crosses a barline', part.get('id'), mi + 1, pos, full)
+        if pos >= lim(mi): done = True
+        assert pos <= lim(mi), ('a note crosses a barline', part.get('id'), mi + 1, pos, lim(mi))
     for m in ms[mi + 1:]:
         if not len(m): part.remove(m)
     print(part.get('id'), 're-barred:', mi + 1, 'bars')

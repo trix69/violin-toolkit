@@ -232,3 +232,17 @@ Trix: bars 13 on drew unbeamed flags. The source writes the bariolage as two voi
 MusicXML beam stays within a voice. `join_voices.py in.mxl out.musicxml` joins the voices of every measure where they never
 sound together (32 bars of the Preludio; none in the Gavotte, Andante, Adagio), then `pack.py out.musicxml bach1006_preludio.mxl - - -`
 beams them by the beat (96 groups). Pitches per bar unchanged. Use it after `merge_voices.py` from now on.
+
+## Five more built-ins (2026-11-15): Ave Maria (Bach–Gounod), Massenet Élégie, BWV 1043, BWV 1041, Rieding Op. 35
+
+- Gounod (Mutopia #2167): the violin part is in Italian note names inside `\relative` → cut out, `ly "translate nederlands"`,
+  joined back; the `\header` (copyright markup) and the markup macros (`\II`, `\sulA`, `\piuF`, `\tutta_forza`) removed (python-ly
+  drops the whole violin part otherwise); the piano's `\transpose c c'` baked in with `ly "transpose c c'"` (python-ly ignores it);
+  `pack.py`. Massenet: `pack_os.py` + `pack.py`, as the other songs.
+- BWV 1043 (Mutopia #3): the six 1st-movement files, `lyclean.py`, a wrapper (Violin I solo; Violin II, ripieni, viola,
+  continuo as accompaniment), crotchet = 96; clean. BWV 1041 (Mutopia #2051, solo part only): `\afterGrace X {g}` → `X \grace {g}`,
+  fingerings and macros stripped, `rebar.py b41.musicxml out 0.5` (new optional upbeat argument). Rieding (Mutopia #1781): violin +
+  piano, clean.
+- Not yet: Beethoven Romance Op. 40, BWV 1042, Paganini Caprice 24 — two-voice writing; `lysplit.py` (new) splits
+  `<< {A} \\ {B} >>` into two single-voice files (the other voice as marked rests, tuplets of rests flattened) for
+  `merge_voices.py`; `rebar.py` still assumes one time signature (Caprice 24 changes 2/4 ↔ 3/4).

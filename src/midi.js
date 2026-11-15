@@ -1310,6 +1310,7 @@
         if (inf[k].len >= 1 - 1e-6) bt = 'none';   /* a crotchet or longer never takes a beam (a crotchet in a triplet) */
         if (bt === 'begin') { cur = [k]; groups.push(cur); }
         else if ((bt === 'continue' || bt === 'end') && cur) { cur.push(k); if (bt === 'end') cur = null; }
+        else if (bt === 'continue') { cur = [k]; groups.push(cur); }   /* the group's first note was tied over and is drawn as a tied head: the rest still beam (Trix: BWV 1043) */
         else cur = null;
         return;
       }
@@ -3634,27 +3635,29 @@
           st[k] = { kind: kind, time: r.missed ? null : tk(r), played: r.chord && r.pick !== k ? null : played, c: kind === 'np' ? 0 : kind === 'na' || r.missed ? null : r.cents,   /* a double stop with no pitch: its timing stem, at the written height, no head */ t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
       });
     });
-    /* each bar's grade (Trix): green when generally good, amber so-so, red many problems. A note is good with pitch and start both
-       green, a problem when missed, red in pitch or in time (or a wrong note); red from a third of the notes, green with no problem
-       and at least three quarters good */
-    var grade = {}, GR = { ok: 0, amber: 1, red: 2 };
+    /* each bar's colour as a heat map (Trix): every note's deviation — pitch in red-band units (|cents| / 25) plus start in
+       red-band units (|ms| / its red limit), each capped at 2; a missed note 4; a double stop with no pitch its start twice; a
+       chord's notes each with the chord's start — averaged per bar; then within this take the worst bar is red, the best green
+       and the rest shade through amber by where they fall. Nothing heard: no colours at all */
+    var grade = {}, heard = false, lo = Infinity, hi = -Infinity;
     paRes.bars.forEach(function (b, bi) {
-      var n = 0, good = 0, bad = 0;
+      var sum = 0, n = 0;
+      function tPart(r) { return r.timing == null ? 1 : Math.min(2, Math.abs(r.timing) / r.tRed); }
       b.notes.forEach(function (r) {
-        n++;
-        if (r.noPitch) { var tn = r.timing == null ? Infinity : Math.abs(r.timing); if (tn > r.tRed) bad++; else if (tn <= r.tOk) good++; return; }   /* timing only */
-        if (r.each && !r.missed) {   /* a chord: each note counts, with the chord's start (Hermes F114) */
-          var tc = r.timing == null ? 0 : Math.abs(r.timing);
-          n--; r.each.forEach(function (o) { n++; if (o.cents === undefined || Math.abs(o.cents) > ASSESS.RED || tc > r.tRed) bad++; else if (Math.abs(o.cents) <= ASSESS.IN_TUNE && tc <= r.tOk) good++; });
-          return;
-        }
-        if (r.missed || r.cents === undefined) { bad++; return; }
-        var c = Math.abs(r.cents), t = r.timing == null ? 0 : Math.abs(r.timing);
-        if (c > ASSESS.RED || t > r.tRed) bad++; else if (c <= ASSESS.IN_TUNE && t <= r.tOk) good++;
+        if (r.missed) { sum += 4; n++; return; }
+        heard = true;
+        if (r.noPitch) { sum += 2 * tPart(r); n++; return; }
+        if (r.each) { r.each.forEach(function (o) { sum += (o.cents === undefined ? 2 : Math.min(2, Math.abs(o.cents) / ASSESS.RED)) + tPart(r); n++; }); return; }
+        sum += (r.cents === undefined ? 2 : Math.min(2, Math.abs(r.cents) / ASSESS.RED)) + tPart(r); n++;
       });
-      /* a bar with every note missed or wrong is red even with one note (Trix: a one-note bar went amber) */
-      if (n) grade[bi] = bad === n || bad >= Math.max(2, Math.ceil(n / 3)) ? 'red' : !bad && good >= n * 0.75 ? 'ok' : 'amber';
+      if (n) { grade[bi] = sum / n; lo = Math.min(lo, grade[bi]); hi = Math.max(hi, grade[bi]); }
     });
+    if (!heard) grade = {};
+    else Object.keys(grade).forEach(function (bi) { grade[bi] = hi - lo > 1e-9 ? (grade[bi] - lo) / (hi - lo) : 0.5; });
+    function heatFill(h) {   /* 0 green, 0.5 amber, 1 red */
+      var G = [46, 160, 67], A = [232, 164, 32], R = [214, 48, 39], u = h <= 0.5 ? h * 2 : (h - 0.5) * 2, x = h <= 0.5 ? G : A, y = h <= 0.5 ? A : R;
+      return 'rgba(' + [0, 1, 2].map(function (i) { return Math.round(x[i] + (y[i] - x[i]) * u); }).join(',') + ',' + (0.11 + 0.04 * (1 - Math.abs(h - 0.5) * 2)).toFixed(3) + ')';
+    }
     function draw(root, merge) {
       if (!root) return;
       var NS = 'http://www.w3.org/2000/svg', spans = [];
@@ -3665,8 +3668,8 @@
         g.classList.add('pa-p'); if (m.kind === 'miss' || m.kind === 'na' || wrong) g.classList.add('pa-miss');   /* the written note stays ink; grey when missed */
         if (wrong) g.parentNode.insertBefore(paPlayedHead(m.played, +head.getAttribute('cx'), +head.getAttribute('cy'), song.notes[k].b), g.nextSibling);
         g.setAttribute('data-pabar', barOf[k]); g.setAttribute('data-pak', (merge ? 'p' : 's') + k);
-        var gr = null; (merge ? paPrinted[k] || [k] : [k]).forEach(function (kk) { var gg = grade[barOf[kk]]; if (gg && (gr === null || GR[gg] > GR[gr])) gr = gg; });   /* repeats: the worse time round */
-        if (gr) {
+        var gr = null; (merge ? paPrinted[k] || [k] : [k]).forEach(function (kk) { var gg = grade[barOf[kk]]; if (gg !== undefined && (gr === null || gg > gr)) gr = gg; });   /* repeats: the worse time round */
+        if (gr !== null) {
           var hx0 = +head.getAttribute('cx'), par = g.parentNode, sp = null;
           for (var q = 0; q < spans.length; q++) if (spans[q].par === par && spans[q].bar === barOf[k]) { sp = spans[q]; break; }
           if (!sp) spans.push(sp = { par: par, bar: barOf[k], a: hx0, b: hx0, gr: gr }); sp.a = Math.min(sp.a, hx0); sp.b = Math.max(sp.b, hx0);
@@ -3712,7 +3715,7 @@
         if (pb !== undefined && pb > sp.a - 120) L = pb;   /* the bar's own opening barline; the first bar of a line starts just before its first note */
         var nb = sp.par.paBl.filter(function (x) { return x > sp.b + 2; })[0]; if (nb !== undefined && nb < sp.b + 120) R = nb;
         var r = document.createElementNS(NS, 'rect');
-        r.setAttribute('class', 'pa-bt ' + sp.gr); r.setAttribute('x', L.toFixed(1)); r.setAttribute('y', Y0 - 3 * S);
+        r.setAttribute('class', 'pa-bt'); r.setAttribute('fill', heatFill(sp.gr)); r.setAttribute('data-heat', sp.gr.toFixed(2)); r.setAttribute('x', L.toFixed(1)); r.setAttribute('y', Y0 - 3 * S);
         r.setAttribute('width', (R - L).toFixed(1)); r.setAttribute('height', 10 * S); r.setAttribute('rx', 0);
         sp.par.insertBefore(r, sp.par.firstChild);
       });
