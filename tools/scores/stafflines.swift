@@ -20,7 +20,7 @@ for y in 0..<h {
 // group into staves: five lines with even spacing
 var staves: [[Int]] = []; var cur: [Int] = []
 for y in lines {
-    if let l = cur.last, y - l > 40 { if cur.count >= 5 { staves.append(cur) }; cur = [] }
+    if let l = cur.last, y - l > Int(Double(w) / 60) { if cur.count >= 5 { staves.append(cur) }; cur = [] }
     cur.append(y)
 }
 if cur.count >= 5 { staves.append(cur) }

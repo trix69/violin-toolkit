@@ -36,6 +36,16 @@ while true {
     }
     k += 1
 }
+if ProcessInfo.processInfo.environment["XTICKS"] != nil {   // vertical ticks every 50 px of the page, labelled every 100
+    var xx = (x0 / 50 + 1) * 50
+    while xx < x1 {
+        let px = Double(60 + xx - x0)
+        NSColor(calibratedRed: 0, green: 0.6, blue: 0, alpha: xx % 100 == 0 ? 0.5 : 0.2).setStroke()
+        let p = NSBezierPath(); p.move(to: NSPoint(x: px, y: 0)); p.line(to: NSPoint(x: px, y: Double(h))); p.lineWidth = 1; p.stroke()
+        if xx % 100 == 0 { (String(xx) as NSString).draw(at: NSPoint(x: px + 2, y: 4), withAttributes: [.font: NSFont.systemFont(ofSize: 14), .foregroundColor: NSColor(calibratedRed: 0, green: 0.5, blue: 0, alpha: 1)]) }
+        xx += 50
+    }
+}
 NSGraphicsContext.restoreGraphicsState()
 try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: a[2]))
 print("wrote", a[2], w + 120, "x", h)

@@ -215,3 +215,8 @@ finds noteheads on a staff and names their pitch from the line positions (`staff
 lines and spaces with names over a crop for the rhythm, graces and chords. `campanella/tokens.txt` + `conf.py` (upbeat via
 `PICKUP`, slashed graces `:8g`), built by `mendelssohn/build.py`: the upbeat and bars 1–16 (solo theme, tutti, to the B minor
 chord before "A"). In the tutti the violin plays the tune, as the violin part prints it; the piano doubles it.
+- 2026-11-15: extended to bar 42 (Trix: 25 s too short): the first solo episode ("A", bars 16–33 with the harmonics of 31–33 written
+  as their top notes at written pitch, the piano's bell octaves at sounding pitch), the theme's return (34–41) and the tutti's first
+  chord (42); 1:06. Violin pitches from `heads2.swift` (shape-based notehead finder, works on ledger lines) on a 5200 px render,
+  rhythms read from `pitchguide.swift` crops with `XTICKS=1`; piano chords from `pitchguide2.swift` (both staves labelled) on a
+  10400 px render. Least certain: the inner voices of some piano chords (bars 21–30) and bar 39–40's harmony.
