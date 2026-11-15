@@ -17,12 +17,14 @@
     <p class="pa-partial" id="paPartial" hidden></p>
     <div class="pa-bars" id="paStats"></div>
     <p class="pa-temper" id="paTemper"></p>
+    <div class="pa-showrow">
     <div class="pa-seg pa-show" id="paShow" role="radiogroup" aria-label="Show">
       <button type="button" role="radio" data-s="pitch" aria-checked="false">Pitch</button>
       <button type="button" role="radio" data-s="time" aria-checked="false">Timing</button>
       <button type="button" role="radio" data-s="both" aria-checked="true">Both</button>
     </div>
-    <button type="button" class="pa-lgbtn" id="paLgBtn" aria-expanded="false" aria-controls="paLegend"><span>What the colours mean</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+    <button type="button" class="pa-lgbtn" id="paLgBtn" aria-expanded="false" aria-controls="paLegend"><span>Colour key</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+    </div>
     <div class="pa-legend" id="paLegend" hidden>
       <div class="pa-lg pa-lg-pitch">
         <span class="pa-lh">Shadow note head, pitch (higher = sharp, lower = flat):</span>

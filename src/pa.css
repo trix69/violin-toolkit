@@ -148,6 +148,7 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 
 /* Pitch | Timing | Both (Trix): which marks the result shows */
 .pa-show { justify-self: start; }
+.pa-showrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }   /* the colour key beside Pitch / Timing / Both (Trix) */
 .pa-legend { display: grid; gap: 6px; }
 .pa-lg { display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .pa-lg > span { display: inline-flex; align-items: center; gap: 6px; }
