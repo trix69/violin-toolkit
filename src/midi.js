@@ -3198,6 +3198,7 @@
     APP.views.fingering = {
       show: function () { fgShown = true; fgOptions(); if (fgDirty) fgRender(); fgSys = -1; fgHead(true); if (APP.fgZoomUi) APP.fgZoomUi(); },
       hide: function () {
+        partsOff();   /* the Violin/Accompaniment note leaves with its tool (Hermes F122: it lay over the Tuner) */
         fgShown = false;
         if (bg && APP.nextView !== 'midi') { bg = false; pause(); APP.board.player(false); }   /* playing on from the player: it stops when neither tool shows */
       }
@@ -3860,6 +3861,7 @@
   APP.views.playalong = {
     show: function () { paRowUp(true); if (APP.fgZoomStep) paZoomUi(APP.fgZoomStep()); paOn = true; bg = false; appCall('rotate', false); paLayout(); paTickMarks(); if (paRes) paShowResult(); },
     hide: function () {
+      partsOff();   /* the Violin/Accompaniment note leaves with its tool (Hermes F122: it lay over the Tuner) */
       if (paTake) paStop();   /* leaving the tool ends the take (the analysis still runs) */
       paRowUp(false); paOn = false; paBrowse = null; cancelAnimationFrame(paRaf); APP.board.heard(null); paClearTints(); paCardClose();   /* the browsed place is let go: the player follows the music again (Hermes F87) */
         /* the take's marks belong to Play-along: not on the Fingerings pages or their PDF (Hermes F84); back when it shows again */
@@ -3913,6 +3915,7 @@
   APP.views.midi = {
     show: function () { bg = false; appCall('rotate', true); shown = true; fit(); if (phone() && innerWidth > innerHeight && !full) setFull(true, true); },   /* the phone apps turn only in the MIDI player (Trix) */   /* opened on a phone held sideways: full screen (Trix) */
     hide: function () {
+      partsOff();   /* the Violin/Accompaniment note leaves with its tool (Hermes F122: it lay over the Tuner) */
       setFull(false); appCall('rotate', false); shown = false; setMixOpen(false); setABOpen(false);   /* A–B too (Hermes F47) */
       if (APP.nextView === 'fingering') { bg = true; return; }   /* the music goes on into Fingerings, playing or paused where it is (Trix) */
       pause(); APP.board.player(false);
