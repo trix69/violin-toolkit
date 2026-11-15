@@ -6,7 +6,7 @@ PITCH = step [# b n] octave (absolute, alter written out); DUR = 1 2 4 8 16 32 [
 Optional: a DUR ending in 'g' is a grace note (slashed, takes no time; 'G' unslashed); PICKUP (crotchets) makes bar 0 an upbeat;
 ENDINGS [(first bar, last bar, '1', 'stop' or 'discontinue')] volta brackets. Passages under an 8va line are written at pitch.
 MARKS [(part, bar, crotchets into the bar, kind, value)]: kind 'dyn' (p, f, ff ...), 'cresc' / 'dim' (a hairpin from there; value = where it
-ends, in crotchets into the same bar), 'bow' ('down' / 'up', on the note starting there) (Trix: the scan's f, ff and bowings)."""
+ends, in crotchets into the same bar), 'bow' ('down' / 'up', on the note starting there), 'fing' (the printed fingering '0'-'4' on the note starting there) (Trix: the scan's f, ff and bowings)."""
 import sys, zipfile, re
 from xml.sax.saxutils import escape as esc
 D = sys.argv[1]; out = sys.argv[2]
@@ -38,7 +38,7 @@ def marks_at(pn, b, upto):
     """the dynamics and hairpin starts/stops of part pn, bar b, due at or before `upto` divisions, each once"""
     out = ''
     for i, (mp, mb, mo, kind, val) in enumerate(MARKS):
-        if mp != pn or mb != b or kind == 'bow': continue
+        if mp != pn or mb != b or kind in ('bow', 'fing'): continue
         evs = [(round(mo * DIV), 'start')] + ([(round(val * DIV), 'stop')] if kind in ('cresc', 'dim') else [])
         for j, (at, what) in enumerate(evs):
             if (i, j) in DONE or at > upto: continue
@@ -54,6 +54,7 @@ for pn in range(1, len(NAMES) + 1):
     for b in range(FIRST, LAST + 1):
         src = bars.get((pn, b), '')
         BEATS, BTYPE = TIMEF(b); FULL = DIV * 4 * BEATS // BTYPE; BEAT = DIV * 4 // BTYPE   # a beat in divisions (beams group by it)
+        if BTYPE == 8 and BEATS % 3 == 0: BEAT = DIV * 3 // 2   # 6/8, 9/8, 12/8: beamed by the dotted crotchet (Trix: La Campanella's quavers stood alone)
         if b == 0: FULL = int(PICK * DIV)
         newtime = b == FIRST or TIMEF(b) != TIMEF(b - 1)
         x = '<measure number="%d"%s>' % (b, ' implicit="yes"' if b == 0 else '')
@@ -101,10 +102,11 @@ for pn in range(1, len(NAMES) + 1):
                 gr = d[-1] if d[-1] in 'gG' else ''
                 v, ty, dot, tm = dur(d)
                 if gr: v = 0
-                bow = ''
+                bow = ''; fing = ''
                 if vi == 0 and not gr:
                     x += marks_at(pn, b, tot)
                     bow = next((val for (mp, mb, mo, kind, val) in MARKS if kind == 'bow' and mp == pn and mb == b and round(mo * DIV) == tot and p != 'r'), '')
+                    fing = next((val for (mp, mb, mo, kind, val) in MARKS if kind == 'fing' and mp == pn and mb == b and round(mo * DIV) == tot and p != 'r'), '')
                 tot += v
                 for k, q in enumerate(p.split('+')):
                     qt = tie or q.endswith('~'); q = q.rstrip('~')
@@ -120,7 +122,7 @@ for pn in range(1, len(NAMES) + 1):
                         st_ = info[ti][0]
                         if st_ % DIV == 0: nt += '<tuplet type="start" bracket="no"/>'
                         elif (st_ + DIV // 3) % DIV == 0: nt += '<tuplet type="stop"/>'
-                    if bow and not k: nt += '<technical><%s-bow/></technical>' % bow
+                    if (bow or fing) and not k: nt += '<technical>%s%s</technical>' % ('<%s-bow/>' % bow if bow else '', '<fingering>%s</fingering>' % fing if fing else '')
                     if key in tied: nt += '<tied type="stop"/>'
                     if qt: nt += '<tied type="start"/>'
                     if nt: n += '<notations>%s</notations>' % nt
