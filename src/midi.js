@@ -3593,7 +3593,7 @@
         /* far off (Trix: C written, D played): the written note grey, the note played drawn in red where it sits */
         var played = kind === 'red' && Math.abs(r.cents) >= PA_WRONG ? r.m + Math.round(r.cents / 100) : null;
         if (played !== null && played === r.m) played = null;
-        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r), played: r.chord && r.pick !== k ? null : played, c: kind === 'na' || r.missed ? null : r.cents, t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
+        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r), played: r.chord && r.pick !== k ? null : played, c: kind === 'np' ? 0 : kind === 'na' || r.missed ? null : r.cents,   /* a double stop with no pitch: its timing stem, at the written height, no head */ t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
       });
     });
     /* each bar's grade (Trix): green when generally good, amber so-so, red many problems. A note is good with pitch and start both
