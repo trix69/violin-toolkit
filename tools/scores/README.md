@@ -292,3 +292,4 @@ keeps `\repeat volta 3` as `times="3"`, and warns when a tie has no note to end 
 
 Bars 32, 65 and 97 wrote the keyboard chord G4 over D4 + B3 (B-flat 3 in 65), two notes on the G string. Trix chose to drop the
 D4 (G4 + B3, a sixth on the D and G strings): `minuet_thin.py minuets.mxl`, after `minuet_pair.py` and `minuet_grace.py`.
+- 2026-11-16: dynamics, hairpins and bowings (Trix: the scan's f, ff and down-bows were missing): `mendelssohn/build.py` reads `MARKS` from conf.py; `campanella/conf.py` lists the violin part's f / ff / p, 12 hairpins and 10 bowings read from the scan (printed p. 10). The rebuilt file differs from the old one only in those marks and its work title.

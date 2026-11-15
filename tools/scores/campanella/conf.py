@@ -11,3 +11,20 @@ TEMPO = {0: ('Andantino allegretto moderato', 114)}   # dotted crotchet = 76: re
 FWD = set(); BWD = set(); LAST = 42
 TITLE = 'La Campanella (Violin Concerto No. 2, Rondo)'; COMPOSER = 'Niccolò Paganini'
 RIGHTS = 'From Philipp Scharwenka\'s edition for violin and piano, Breitkopf & Haertel [ca. 1896], plate 21008 (IMSLP #774280, #774279, public domain); engraved by Violin Toolkit 2026, CC0 1.0'
+# the violin part's dynamics, hairpins and bowings, read from the scan (IMSLP #774280, printed p. 10; Trix: f, ff and the
+# down-bows were missing). Bars are ours (0 = the upbeat); offsets in crotchets into the bar.
+MARKS = [
+    (1, 0, 0, 'dyn', 'f'), (1, 0, 0, 'bow', 'down'), (1, 0, 0.5, 'cresc', 2),
+    (1, 4, 1, 'bow', 'down'), (1, 4, 1.5, 'cresc', 3),
+    (1, 8, 0, 'dyn', 'ff'),
+    (1, 16, 1, 'dyn', 'p'), (1, 16, 1, 'bow', 'up'),
+    (1, 24, 0, 'cresc', 1.5), (1, 24, 1.5, 'dim', 3),
+    (1, 26, 1.5, 'dim', 3), (1, 28, 2, 'dim', 3),
+    (1, 29, 0.5, 'cresc', 1.5), (1, 29, 1.5, 'dim', 3),
+    (1, 31, 0, 'cresc', 1.5), (1, 31, 1.5, 'dim', 3),
+    (1, 32, 0, 'dyn', 'f'), (1, 32, 0.5, 'bow', 'down'), (1, 32, 1, 'bow', 'down'), (1, 32, 1.5, 'bow', 'down'), (1, 32, 2, 'bow', 'down'),
+    (1, 33, 1, 'dyn', 'f'), (1, 33, 1, 'bow', 'down'), (1, 33, 1.5, 'bow', 'down'), (1, 33, 2, 'bow', 'down'),
+    (1, 34, 1, 'dyn', 'f'), (1, 34, 1.5, 'cresc', 2.5),
+    (1, 38, 1.5, 'cresc', 2.5),
+    (1, 42, 0, 'dyn', 'ff'),
+]

@@ -4,7 +4,9 @@ COMPOSER, EXTRA_CREATORS [(type, name)], RIGHTS). Usage: build.py <dir with conf
 tokens.txt -> hungarian5.mxl. Line: 'P<n> <bar>: tok tok | tok' ; tok = PITCH[+PITCH]:DUR[~] or r:DUR
 PITCH = step [# b n] octave (absolute, alter written out); DUR = 1 2 4 8 16 32 [.|..] [t triplet | q quintuplet | s septuplet (needs DIV a multiple of 7)]; '|' = second voice.
 Optional: a DUR ending in 'g' is a grace note (slashed, takes no time; 'G' unslashed); PICKUP (crotchets) makes bar 0 an upbeat;
-ENDINGS [(first bar, last bar, '1', 'stop' or 'discontinue')] volta brackets. Passages under an 8va line are written at pitch."""
+ENDINGS [(first bar, last bar, '1', 'stop' or 'discontinue')] volta brackets. Passages under an 8va line are written at pitch.
+MARKS [(part, bar, crotchets into the bar, kind, value)]: kind 'dyn' (p, f, ff ...), 'cresc' / 'dim' (a hairpin from there; value = where it
+ends, in crotchets into the same bar), 'bow' ('down' / 'up', on the note starting there) (Trix: the scan's f, ff and bowings)."""
 import sys, zipfile, re
 from xml.sax.saxutils import escape as esc
 D = sys.argv[1]; out = sys.argv[2]
@@ -31,6 +33,20 @@ def pitch(p):
     al = {'#': 1, 'b': -1, '##': 2, 'bb': -2}.get(m.group(2), 0)
     return '<pitch><step>%s</step>%s<octave>%s</octave></pitch>' % (m.group(1), '<alter>%d</alter>' % al if al else '', m.group(3))
 bad = []; parts = []
+MARKS = C.get('MARKS', [])
+def marks_at(pn, b, upto):
+    """the dynamics and hairpin starts/stops of part pn, bar b, due at or before `upto` divisions, each once"""
+    out = ''
+    for i, (mp, mb, mo, kind, val) in enumerate(MARKS):
+        if mp != pn or mb != b or kind == 'bow': continue
+        evs = [(round(mo * DIV), 'start')] + ([(round(val * DIV), 'stop')] if kind in ('cresc', 'dim') else [])
+        for j, (at, what) in enumerate(evs):
+            if (i, j) in DONE or at > upto: continue
+            DONE.add((i, j))
+            if kind == 'dyn': out += '<direction placement="below"><direction-type><dynamics><%s/></dynamics></direction-type></direction>' % val
+            else: out += '<direction placement="below"><direction-type><wedge type="%s"/></direction-type></direction>' % ({'cresc': 'crescendo', 'dim': 'diminuendo'}[kind] if what == 'start' else 'stop')
+    return out
+DONE = set()
 PICK = C.get('PICKUP'); FIRST = 0 if PICK else 1   # an upbeat: bar 0, PICKUP crotchets long, implicit
 isg = lambda d: d.rstrip('~').endswith(('g', 'G'))
 for pn in range(1, len(NAMES) + 1):
@@ -85,6 +101,10 @@ for pn in range(1, len(NAMES) + 1):
                 gr = d[-1] if d[-1] in 'gG' else ''
                 v, ty, dot, tm = dur(d)
                 if gr: v = 0
+                bow = ''
+                if vi == 0 and not gr:
+                    x += marks_at(pn, b, tot)
+                    bow = next((val for (mp, mb, mo, kind, val) in MARKS if kind == 'bow' and mp == pn and mb == b and round(mo * DIV) == tot and p != 'r'), '')
                 tot += v
                 for k, q in enumerate(p.split('+')):
                     qt = tie or q.endswith('~'); q = q.rstrip('~')
@@ -100,6 +120,7 @@ for pn in range(1, len(NAMES) + 1):
                         st_ = info[ti][0]
                         if st_ % DIV == 0: nt += '<tuplet type="start" bracket="no"/>'
                         elif (st_ + DIV // 3) % DIV == 0: nt += '<tuplet type="stop"/>'
+                    if bow and not k: nt += '<technical><%s-bow/></technical>' % bow
                     if key in tied: nt += '<tied type="stop"/>'
                     if qt: nt += '<tied type="start"/>'
                     if nt: n += '<notations>%s</notations>' % nt
@@ -108,6 +129,7 @@ for pn in range(1, len(NAMES) + 1):
                     qt = tie or q.endswith('~'); q = q.rstrip('~')
                     tied.discard((vi, q))
                     if qt: tied.add((vi, q))
+            if vi == 0: x += marks_at(pn, b, FULL + 1)   # hairpins ending at the barline
             if tot != FULL: bad.append('P%d b%d voice %d: %s beats' % (pn, b, vi + 1, tot / DIV))
         ends = [(en, et) for e0, e1, en, et in C.get('ENDINGS', []) if b == e1]
         ending = ''.join('<ending number="%s" type="%s"/>' % e for e in ends)
