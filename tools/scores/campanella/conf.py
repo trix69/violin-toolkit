@@ -7,7 +7,7 @@ CLEF = [('G', 2), ('G', 2), ('F', 4)]
 KEY = lambda b: 2; MODE = 'minor'
 TIME = (6, 8)
 PICKUP = 2
-TEMPO = {0: ('Andantino allegretto moderato', 84)}   # dotted crotchet = 56 (our choice)
+TEMPO = {0: ('Andantino allegretto moderato', 114)}   # dotted crotchet = 76: recordings of the whole Rondo average 77-85 (Trix: 56 was slow)
 FWD = set(); BWD = set(); LAST = 16
 TITLE = 'La Campanella (Violin Concerto No. 2, Rondo, opening)'; COMPOSER = 'Niccolò Paganini'
 RIGHTS = 'From Philipp Scharwenka\'s edition for violin and piano, Breitkopf & Haertel [ca. 1896], plate 21008 (IMSLP #774280, #774279, public domain); engraved by Violin Toolkit 2026, CC0 1.0'
