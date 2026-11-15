@@ -287,3 +287,8 @@ Now `ly rel2abs bwv-1003_3.ly`, plus `pre = { \key c \major \time 3/4 }` and `al
 `bwv-1003_3.mid` (one pass): 422 of 424 onsets; the two others are unisons between voices (bars 1 and 20). ly2xml.py now
 also takes `name = << … >>`, writes each `\repeat` once when several voices write it (the one with `\alternative` wins),
 keeps `\repeat volta 3` as `times="3"`, and warns when a tie has no note to end on.
+
+## Minuets: playable chords (2026-11-16, Hermes F121)
+
+Bars 32, 65 and 97 wrote the keyboard chord G4 over D4 + B3 (B-flat 3 in 65), two notes on the G string. Trix chose to drop the
+D4 (G4 + B3, a sixth on the D and G strings): `minuet_thin.py minuets.mxl`, after `minuet_pair.py` and `minuet_grace.py`.
