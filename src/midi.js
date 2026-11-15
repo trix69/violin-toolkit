@@ -3606,7 +3606,8 @@
         var c = Math.abs(r.cents), t = r.timing == null ? 0 : Math.abs(r.timing);
         if (c > ASSESS.RED || t > r.tRed) bad++; else if (c <= ASSESS.IN_TUNE && t <= r.tOk) good++;
       });
-      if (n) grade[bi] = bad >= Math.max(2, Math.ceil(n / 3)) ? 'red' : !bad && good >= n * 0.75 ? 'ok' : 'amber';
+      /* a bar with every note missed or wrong is red even with one note (Trix: a one-note bar went amber) */
+      if (n) grade[bi] = bad === n || bad >= Math.max(2, Math.ceil(n / 3)) ? 'red' : !bad && good >= n * 0.75 ? 'ok' : 'amber';
     });
     function draw(root, merge) {
       if (!root) return;
