@@ -321,6 +321,9 @@
       /* a double stop (Trix: they were all shown as missed): one pitch is heard at a time, so it is measured against the note of
          the two (or more) the frames sit nearest; r.m and r.pick name that note */
       var pick = 0, hz = hzOf(song.notes[e.idx[0]]), cs = centsIn(fr, a, b, hz);
+      /* a double stop started far from its place (more than half a second, or half its length, off): the sound in its window
+         may be another note's, so its pitch is not graded (Trix: a D4 read 49 cents low, started 1.7 s early) */
+      if (e.chord && Math.abs(r.timing) > Math.max(500, 500 * (e.e - e.t))) { r.noPitch = true; r.far = true; return r; }
       if (e.chord && fr.pk && fr.pk.length) {   /* each note of the double stop measured on its own (see chordCents) */
         var hzs = e.idx.map(function (k) { return hzOf(song.notes[k]); });
         r.each = e.idx.map(function (k, q) {

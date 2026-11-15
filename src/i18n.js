@@ -310,6 +310,7 @@
     [/^(\S+): in tune \(([+−]\d+) ¢\)$/, function (m, n, c) { return n + '：音准合格（' + c + ' 音分）'; }],
     [/^(\S+): (\d+) ¢ (high|low)$/, function (m, n, c, d) { return n + '：' + (d === 'high' ? '偏高 ' : '偏低 ') + c + ' 音分'; }],
     [/^(\S+): not measured$/, function (m, n) { return n + '：未测到'; }],
+    [/^Double stop: started too far from its place for the pitch to be measured\.$/, function () { return '双音：起音离应有位置太远，未测音准。'; }],
     [/^Double stop: pitch not measured \(two notes at once\)\.$/, function () { return '双音：音准未测（两个音同时发声）。'; }],
     [/^Double stop: measured on (\S+)\.$/, function (m, n) { return '双音：按 ' + n + ' 评判。'; }],   /* Play-along (跟音练习) */
     [/^Page (\d+) of (\d+)$/, function (m, a, b) { return '第 ' + a + ' 页，共 ' + b + ' 页'; }],

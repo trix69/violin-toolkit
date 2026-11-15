@@ -3502,7 +3502,7 @@
       if (list.length > 1 && b) line(b.time + (['', 'st', 'nd', 'rd'][b.time] || 'th') + ' time', 'pa-pass');
       if (!r) { line('Not recorded.'); return; }
       if (r.missed) { line('Not heard.'); return; }
-      if (r.noPitch) { line('Double stop: pitch not measured (two notes at once).'); if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r)); if (r.exit !== undefined) line(ms(r.exit, 'End', r)); return; }
+      if (r.noPitch) { line(r.far ? 'Double stop: started too far from its place for the pitch to be measured.' : 'Double stop: pitch not measured (two notes at once).'); if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r)); if (r.exit !== undefined) line(ms(r.exit, 'End', r)); return; }
       if (r.each) line('Double stop:');
       if (r.chord && r.m !== undefined && !r.each) line('Double stop: measured on ' + APP.board.name(r.m) + '.');
       if (r.each) {   /* each note of the double stop, top first */
@@ -3522,11 +3522,16 @@
       if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r));
       if (r.exit !== undefined) line(ms(r.exit, 'End', r));
     });
-    var r1 = paResOf[list[0]];
-    if (r1 && !r1.missed && (!r1.chord || r1.pick === list[0]) && r1.cents !== undefined && n0.si >= 0) {
-      if (n0.fg === 0 && Math.abs(r1.cents) > ASSESS.IN_TUNE && Math.abs(r1.cents) < PA_WRONG) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say');   /* no finger to move: the string's tuning */
+    var r1 = paResOf[list[0]], oth = [];
+    if (r1 && r1.each) {   /* a double stop: this note's own reading, and the other notes beside it on the board (Trix) */
+      var own = null; r1.each.forEach(function (o) { if (o.k === list[0]) own = o; else if (o.cents !== undefined && ns0(o.k).si >= 0) oth.push({ n: ns0(o.k), cents: o.cents }); });
+      r1 = own && own.cents !== undefined ? { cents: own.cents, chord: true } : null;
+    } else if (r1 && r1.chord && r1.pick !== list[0]) r1 = null;
+    function ns0(kk) { return song.notes[kk]; }
+    if (r1 && !r1.missed && r1.cents !== undefined && n0.si >= 0) {
+      if (!r1.chord && n0.fg === 0 && Math.abs(r1.cents) > ASSESS.IN_TUNE && Math.abs(r1.cents) < PA_WRONG) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say');   /* no finger to move: the string's tuning */
       if (paView === 'pages') {   /* Pages only: Live has the big fingerboard (Trix); the board on the right of the text */
-        var fb = paFingerSvg(n0, r1, k), txt = document.createElement('div'); txt.className = 'pa-fb-txt';
+        var fb = paFingerSvg(n0, r1, k, oth), txt = document.createElement('div'); txt.className = 'pa-fb-txt';
         while (box.firstChild) txt.appendChild(box.firstChild);
         if (n0.fg !== 0 && Math.abs(r1.cents) < PA_WRONG) txt.appendChild(fb.say);   /* a wrong note: 'Played B4 instead of A4' says it, the dot shows where */ box.appendChild(txt); box.appendChild(fb.svg); box.classList.add('has-fb');
       }
@@ -3549,14 +3554,16 @@
      the finger should be (the written note, with its finger), a disc where it was (from the pitch played), and how far apart
      they are on a real violin (328 mm string) */
   var PA_OPEN = [55, 62, 69, 76], PA_SNAME = ['G', 'D', 'A', 'E'], PA_LEN = 328;
-  function paFingerSvg(n, r, k) {
+  function paFingerSvg(n, r, k, oth) {
+    oth = (oth || []).filter(function (q) { return q.n.si !== n.si; });   /* the rest of a double stop, each on its own string */
     /* drawn like the MIDI player's board (Trix): all four strings, every note place from the open string up, the key's notes
        tinted, the written note lit in its string colour with its finger, and a disc where the played pitch puts the finger */
     var si = n.si, open = PA_OPEN[si], ne = n.m - open, na = ne + r.cents / 100, sa = si;
     while (na < -0.4 && sa > 0) { sa--; na = n.m + r.cents / 100 - PA_OPEN[sa]; }   /* lower than this open string: where it is played, a string down (Trix) */
     na = Math.max(-0.4, na);
     function mm(x) { return PA_LEN * (1 - Math.pow(2, -x / 12)); }
-    var top = Math.max(7, Math.ceil(Math.max(ne, na)) + 1), COL = ['#66AEE6', '#74C493', '#E3A24C', '#EE6A5E'];
+    oth.forEach(function (q) { q.ne = q.n.m - PA_OPEN[q.n.si]; q.na = Math.max(-0.4, q.ne + q.cents / 100); });
+    var top = Math.max(7, Math.ceil(Math.max.apply(null, [ne, na].concat(oth.map(function (q) { return Math.max(q.ne, q.na); })))) + 1), COL = ['#66AEE6', '#74C493', '#E3A24C', '#EE6A5E'];
     var W = 150, X0 = 22, DX = (W - 2 * X0) / 3, Y0 = 26, H = Math.max(210, 22 * top + 40), K = (H - Y0 - 14) / mm(top), R = Math.min(10, K * (mm(1) - mm(0)) / 2 - 1);
     function Y(x) { return Y0 + K * mm(x); }
     var kn = song.keyAt ? song.keyAt(n.b || 0) : { sf: song.sf || 0 }, root = ((kn.sf * 7) % 12 + 12) % 12, inKey = {};
@@ -3570,13 +3577,19 @@
       o.push('<text x="' + x + '" y="12" class="pa-fb-lab" fill="' + COL[s4] + '">' + PA_SNAME[s4] + '</text>');
       o.push('<line x1="' + x + '" y1="' + (Y0 - 6) + '" x2="' + x + '" y2="' + (H - 6) + '" stroke="' + COL[s4] + '" class="pa-fb-str"/>');
       for (var j = 0; j <= top; j++) {
-        var m = PA_OPEN[s4] + j, y = Y(j), lit = s4 === si && j === ne, key = inKey[m % 12];
+        var oq = oth.filter(function (q) { return q.n.si === s4 && q.ne === j; })[0];
+        var m = PA_OPEN[s4] + j, y = Y(j), lit = (s4 === si && j === ne) || !!oq, key = inKey[m % 12];
         var nm = APP.board.name(m).replace(/-?\d+$/, '');
         o.push('<circle cx="' + x + '" cy="' + y.toFixed(1) + '" r="' + R.toFixed(1) + '" class="pa-fb-n' + (lit ? ' lit' : key ? ' key' : '') + '" style="--c:' + COL[s4] + '"/>');
-        if (R >= 7) o.push('<text x="' + x + '" y="' + (y + 3).toFixed(1) + '" class="pa-fb-t' + (lit ? ' lit' : '') + '">' + (lit && n.fg > 0 ? n.fg : nm) + '</text>');
+        if (R >= 7) o.push('<text x="' + x + '" y="' + (y + 3).toFixed(1) + '" class="pa-fb-t' + (lit ? ' lit' : '') + '">' + (lit && (oq ? oq.n.fg : n.fg) > 0 ? (oq ? oq.n.fg : n.fg) : nm) + '</text>');
       }
     }
     if (Math.abs(r.cents) > ASSESS.IN_TUNE && (n.fg !== 0 || Math.abs(r.cents) >= PA_WRONG)) o.push('<circle cx="' + (X0 + sa * DX) + '" cy="' + Y(na).toFixed(1) + '" r="' + (R * 0.62).toFixed(1) + '" fill="' + kind + '" class="pa-fb-got"/>');   /* in tune or open: the written place only (Trix) */
+    oth.forEach(function (q) {   /* the other note's own disc where its pitch puts the finger */
+      if (Math.abs(q.cents) <= ASSESS.IN_TUNE) return;
+      var kq = Math.abs(q.cents) <= ASSESS.RED ? '#d68a00' : '#d23b2f';
+      o.push('<circle cx="' + (X0 + q.n.si * DX) + '" cy="' + Y(q.na).toFixed(1) + '" r="' + (R * 0.62).toFixed(1) + '" fill="' + kq + '" class="pa-fb-got"/>');
+    });
     o.push('</svg>');
     var w = document.createElement('div'); w.innerHTML = o.join('');
     var d = mm(na) - mm(ne), p0 = document.createElement('p'); p0.className = 'pa-fb-say';
