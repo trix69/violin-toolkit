@@ -14,13 +14,49 @@
   var WIN = 2048, HOP = 512, BLK = 128, EW = 512, GATE = 0.01;
   var IN_TUNE = 10, IN_TIME = 25, AMBER = 10, RED = 25;   /* cents, ms: the definitions, kept fixed between builds */
 
-  function framer(sr, yin) {
-    var ring = new Float32Array(WIN), filled = 0, pos = 0, since = 0, n = 0;
-    var fr = { sr: sr, hop: HOP, win: WIN, t: [], rms: [], f: [], et: [], e: [] };
-    var buf = new Float32Array(WIN);
+  /* double stops (Trix: why not pitch?): one pitch detector cannot read two notes at once, so a piece with double stops also
+     keeps, every second frame, the 16 strongest peaks of the spectrum (frequency + level; numbers, not audio). Each note of a
+     double stop is then measured from the peaks at its own harmonics. A 4096-sample Hann window, zero-padded to 8192 */
+  var PW = 4096, PN = 8192, PK = 16, pfft = null;
+  function fftSetup() {
+    var cos = new Float64Array(PN / 2), sin = new Float64Array(PN / 2), rev = new Uint32Array(PN), hann = new Float64Array(PW), bits = Math.log2(PN), i;
+    for (i = 0; i < PN / 2; i++) { cos[i] = Math.cos(2 * Math.PI * i / PN); sin[i] = -Math.sin(2 * Math.PI * i / PN); }
+    for (i = 0; i < PN; i++) { var r = 0, x = i; for (var b = 0; b < bits; b++) { r = (r << 1) | (x & 1); x >>= 1; } rev[i] = r; }
+    for (i = 0; i < PW; i++) hann[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (PW - 1));
+    return { cos: cos, sin: sin, rev: rev, hann: hann, re: new Float64Array(PN), im: new Float64Array(PN), mag: new Float64Array(PN / 2) };
+  }
+  function peaksOf(win, sr) {   /* win: PW samples, oldest first -> Float32Array [f0, level0, f1, level1, ...] */
+    var F = pfft || (pfft = fftSetup()), re = F.re, im = F.im, i, j, len;
+    re.fill(0); im.fill(0);
+    for (i = 0; i < PW; i++) re[F.rev[i]] = win[i] * F.hann[i];
+    for (len = 2; len <= PN; len <<= 1) {
+      var half = len >> 1, step = PN / len;
+      for (i = 0; i < PN; i += len) for (j = 0; j < half; j++) {
+        var c = F.cos[j * step], s2 = F.sin[j * step], a = i + j, b = a + half;
+        var tr = re[b] * c - im[b] * s2, ti = re[b] * s2 + im[b] * c;
+        re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+      }
+    }
+    var lo = Math.floor(150 * PN / sr), hi = Math.min(PN / 2 - 2, Math.ceil(5000 * PN / sr)), mag = F.mag, top = 0;
+    for (i = lo - 1; i <= hi + 1; i++) { mag[i] = Math.log(re[i] * re[i] + im[i] * im[i] + 1e-12); if (mag[i] > top) top = mag[i]; }
+    var cand = [];
+    for (i = lo; i <= hi; i++) if (mag[i] > mag[i - 1] && mag[i] >= mag[i + 1] && mag[i] > top - 11.5) {   /* within ~50 dB of the loudest */
+      var d = mag[i - 1] - 2 * mag[i] + mag[i + 1], p = d < 0 ? 0.5 * (mag[i - 1] - mag[i + 1]) / d : 0;
+      cand.push([(i + p) * sr / PN, mag[i] - 0.25 * (mag[i - 1] - mag[i + 1]) * p]);
+    }
+    cand.sort(function (u, v) { return v[1] - u[1]; });
+    var out = new Float32Array(2 * PK);
+    for (i = 0; i < Math.min(PK, cand.length); i++) { out[2 * i] = cand[i][0]; out[2 * i + 1] = cand[i][1]; }
+    return out;
+  }
+  function framer(sr, yin, opts) {
+    var ring = new Float32Array(WIN), filled = 0, pos = 0, since = 0, n = 0, hops = 0;
+    var fr = { sr: sr, hop: HOP, win: WIN, t: [], rms: [], f: [], et: [], e: [], pt: [], pk: [] };
+    var buf = new Float32Array(WIN), peaks = opts && opts.peaks, pring = peaks ? new Float32Array(PW) : null, ppos = 0, pbuf = peaks ? new Float32Array(PW) : null;
     fr.push = function (x) {   /* x: Float32Array of any length, in order */
       for (var i = 0; i < x.length; i++) {
         ring[pos] = x[i]; pos = (pos + 1) % WIN; if (filled < WIN) filled++;
+        if (peaks) { pring[ppos] = x[i]; ppos = (ppos + 1) % PW; }
         n++; since++;
         if (n % BLK === 0 && filled >= EW) {   /* fine loudness: the last 512 samples (a cycle of the lowest note fits), every 128 */
           var s = 0, k, j;
@@ -34,6 +70,10 @@
           var rms = Math.sqrt(e2 / WIN);
           fr.t.push((n - WIN / 2) / sr); fr.rms.push(rms);
           fr.f.push(rms > GATE ? yin(buf, sr, 150, 3000) : 0);
+          if (peaks && (hops++ & 1) === 0 && n >= PW && rms > GATE) {
+            for (k = 0; k < PW; k++) pbuf[k] = pring[(ppos + k) % PW];
+            fr.pt.push((n - PW / 2) / sr); fr.pk.push(peaksOf(pbuf, sr));
+          }
         }
       }
     };
@@ -131,6 +171,34 @@
     function c(i) { var v = 1200 * Math.log(fr.f[i] / hz) / Math.LN2; while (v > 600) v -= 1200; while (v < -600) v += 1200; return v; }   /* an octave slip of the detector, not of the player */
     for (i = i0; i < i1; i++) if (!(fr.t[i] - half < a - 0.005 || fr.t[i] + half > b + 0.005) && fr.f[i] && fr.rms[i] > GATE) out.push(c(i));
     if (!out.length) for (i = i0; i < i1; i++) if (fr.t[i] >= a && fr.t[i] <= b && fr.f[i] && fr.rms[i] > GATE) out.push(c(i));   /* a short note: frames centred inside it */
+    return out;
+  }
+
+  /* one note of a double stop from the kept peaks: per frame, its harmonics 1-4 that no other note of the chord shares (within
+     70 cents of any of their first 5), each matched to the strongest peak within 70 cents; the frame's reading is their
+     level-weighted mean in cents; the note's frames between a and b */
+  function chordCents(fr, a, b, hzs, i) {
+    var out = [], i0 = lowerBound(fr.pt, a), i1 = lowerBound(fr.pt, b), hs = [];
+    for (var h = 1; h <= 4; h++) {
+      var tg = h * hzs[i], clash = false;
+      hzs.forEach(function (o, j) { if (j === i) return; for (var h2 = 1; h2 <= 5; h2++) if (Math.abs(1200 * Math.log(h2 * o / tg) / Math.LN2) < 70) clash = true; });
+      if (!clash && tg < 4800) hs.push(h);
+    }
+    if (!hs.length) return out;
+    for (var q = i0; q < i1; q++) {
+      var pk = fr.pk[q], sw = 0, sc = 0, top = -Infinity;
+      for (var z = 1; z < pk.length; z += 2) if (pk[z - 1] > 0 && pk[z] > top) top = pk[z];
+      hs.forEach(function (h2) {
+        var tg2 = h2 * hzs[i], best = null;
+        for (var z2 = 0; z2 < pk.length; z2 += 2) {
+          if (!(pk[z2] > 0)) continue;
+          var c = 1200 * Math.log(pk[z2] / tg2) / Math.LN2;
+          if (Math.abs(c) < 70 && pk[z2 + 1] > top - 6.9 && (!best || pk[z2 + 1] > best[1])) best = [c, pk[z2 + 1]];   /* within ~30 dB of the frame's loudest */
+        }
+        if (best) { var w = Math.exp(best[1] - top) * h2; sw += w; sc += w * best[0]; }   /* higher harmonics read cents more finely */
+      });
+      if (sw > 0) out.push(sc / sw);
+    }
     return out;
   }
 
@@ -253,6 +321,21 @@
       /* a double stop (Trix: they were all shown as missed): one pitch is heard at a time, so it is measured against the note of
          the two (or more) the frames sit nearest; r.m and r.pick name that note */
       var pick = 0, hz = hzOf(song.notes[e.idx[0]]), cs = centsIn(fr, a, b, hz);
+      if (e.chord && fr.pk && fr.pk.length) {   /* each note of the double stop measured on its own (see chordCents) */
+        var hzs = e.idx.map(function (k) { return hzOf(song.notes[k]); });
+        r.each = e.idx.map(function (k, q) {
+          var cc = chordCents(fr, a, b, hzs, q), o = { k: k, m: song.notes[k].m };
+          if (cc.length >= 3) o.cents = Math.round(median(cc) * 10) / 10;
+          return o;
+        });
+        var meas = r.each.filter(function (o) { return o.cents !== undefined; });
+        if (meas.length) {
+          var wo = meas.reduce(function (u, v) { return Math.abs(v.cents) > Math.abs(u.cents) ? v : u; });   /* the event's own reading: its worse note */
+          r.cents = wo.cents; r.m = wo.m; r.pick = wo.k; r.hz = hzOf(song.notes[wo.k]);
+          return r;
+        }
+        delete r.each;
+      }
       if (e.chord) {
         var best = Infinity;
         e.idx.forEach(function (k, q) { var h = hzOf(song.notes[k]), c2 = centsIn(fr, a, b, h); if (!c2.length) return; var md = Math.abs(median(c2)); if (md < best) { best = md; pick = q; hz = h; cs = c2; } });

@@ -3283,7 +3283,7 @@
     if (!APP.board.prime()) return;   /* inside the tap: the sound engine may start (iPhone) */
     var au = APP.board.audio(), ctx = au && au.ctx;
     if (!ctx || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { paSay('The microphone is not available.'); return; }
-    var T = paTake = { state: 'starting', sound: sound, ctx: ctx, f0: -1, next: -1, fr: ASSESS.framer(ctx.sampleRate, window.yin), quietSince: 0, warned: false, ctxGo: 0, recEnd: 0 };
+    var T = paTake = { state: 'starting', sound: sound, ctx: ctx, f0: -1, next: -1, fr: ASSESS.framer(ctx.sampleRate, window.yin, { peaks: song.notes.some(function (n, i) { return i && !n.grace && !song.notes[i - 1].grace && Math.abs(n.t - song.notes[i - 1].t) < 1e-4; }) }), quietSince: 0, warned: false, ctxGo: 0, recEnd: 0 };
     paRes = null; paBrowse = null; paClearTints(); paSay(''); paCardClose(); paUi();
     APP.mic('pa', true);
     navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
@@ -3503,7 +3503,18 @@
       if (!r) { line('Not recorded.'); return; }
       if (r.missed) { line('Not heard.'); return; }
       if (r.noPitch) { line('Double stop: pitch not measured (two notes at once).'); if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r)); if (r.exit !== undefined) line(ms(r.exit, 'End', r)); return; }
-      if (r.chord && r.m !== undefined) line('Double stop: measured on ' + APP.board.name(r.m) + '.');
+      if (r.each) line('Double stop:');
+      if (r.chord && r.m !== undefined && !r.each) line('Double stop: measured on ' + APP.board.name(r.m) + '.');
+      if (r.each) {   /* each note of the double stop, top first */
+        r.each.slice().sort(function (u, v) { return v.m - u.m; }).forEach(function (o) {
+          if (o.cents === undefined) { line(APP.board.name(o.m) + ': not measured'); return; }
+          var c2 = Math.round(o.cents);
+          line(APP.board.name(o.m) + ': ' + (Math.abs(c2) <= ASSESS.IN_TUNE ? 'in tune (' + (c2 >= 0 ? '+' : '−') + Math.abs(c2) + ' ¢)' : Math.abs(c2) + ' ¢ ' + (c2 > 0 ? 'high' : 'low')));
+        });
+        if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r));
+        if (r.exit !== undefined) line(ms(r.exit, 'End', r));
+        return;
+      }
       var c = Math.round(r.cents);
       if (Math.abs(c) >= PA_WRONG && Math.round(c / 100) !== 0) line('Played ' + APP.board.name(r.m + Math.round(c / 100)) + ' instead of ' + APP.board.name(r.m) + ' (' + (c >= 0 ? '+' : '−') + Math.abs(c) + ' ¢)');
       else line(Math.abs(c) <= ASSESS.IN_TUNE ? 'Pitch: in tune (' + (c >= 0 ? '+' : '−') + Math.abs(c) + ' ¢)' : 'Pitch: ' + Math.abs(c) + ' ¢ ' + (c > 0 ? 'high' : 'low'));
@@ -3593,7 +3604,15 @@
         /* far off (Trix: C written, D played): the written note grey, the note played drawn in red where it sits */
         var played = kind === 'red' && Math.abs(r.cents) >= PA_WRONG ? r.m + Math.round(r.cents / 100) : null;
         if (played !== null && played === r.m) played = null;
-        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r), played: r.chord && r.pick !== k ? null : played, c: kind === 'np' ? 0 : kind === 'na' || r.missed ? null : r.cents,   /* a double stop with no pitch: its timing stem, at the written height, no head */ t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
+        var per = {}; if (r.each) r.each.forEach(function (o) { per[o.k] = o; });   /* a double stop measured note by note: each head its own */
+        r.idx.forEach(function (k) {
+          var o = per[k];
+          if (o) {
+            var ok2 = o.cents === undefined ? 'na' : Math.abs(o.cents) <= ASSESS.IN_TUNE ? 'ok' : Math.abs(o.cents) <= ASSESS.RED ? 'amber' : 'red';
+            var pl2 = ok2 === 'red' && Math.abs(o.cents) >= PA_WRONG ? o.m + Math.round(o.cents / 100) : null; if (pl2 === o.m) pl2 = null;
+            st[k] = { kind: ok2, time: tk(r), played: pl2, c: o.cents === undefined ? null : o.cents, t0: r.timing, t1: r.exit }; barOf[k] = bi; paResOf[k] = r; return;
+          }
+          st[k] = { kind: kind, time: r.missed ? null : tk(r), played: r.chord && r.pick !== k ? null : played, c: kind === 'np' ? 0 : kind === 'na' || r.missed ? null : r.cents,   /* a double stop with no pitch: its timing stem, at the written height, no head */ t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
       });
     });
     /* each bar's grade (Trix): green when generally good, amber so-so, red many problems. A note is good with pitch and start both
