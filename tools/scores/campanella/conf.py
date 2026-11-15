@@ -34,3 +34,36 @@ MARKS = [
     (1, 26, 1, 'fing', '0'), (1, 27, 1.5, 'fing', '3'), (1, 28, 1.5, 'fing', '1'),
     (1, 41, 0, 'fing', '3'), (1, 41, 0.5, 'fing', '2'),
 ]
+
+# the scan's accents, staccato dots, slurs (not the small grace-note slurs) and the artificial harmonics of bars 31-33
+# (stopped note + diamond a fourth above; the written top note is the one that plays) (Trix, 2026-11-16)
+def _all(bar, offs, kind): return [(1, bar, o, kind, None) for o in offs]
+EIGHTHS = [0, 0.5, 1, 1.5, 2, 2.5]
+MARKS += [(1, 4, 0, 'acc', None), (1, 8, 0, 'acc', None), (1, 12, 0, 'acc', None), (1, 38, 0, 'acc', None)]
+for bar in (7, 15, 41):
+    MARKS += [(1, bar, 0, 'acc', None), (1, bar, 1.5, 'acc', None)] + _all(bar, [0.5, 0.75, 1, 2, 2.25, 2.5], 'stacc')
+for bar in (9, 10, 11, 13, 14): MARKS += _all(bar, EIGHTHS, 'stacc')
+MARKS += _all(12, [1.5, 2, 2.5], 'stacc')
+# the first solo episode
+MARKS += [(1, 16, 1, 'slur', (16, 2.5))] + _all(16, [1, 1.5, 2, 2.5], 'stacc')
+for bar in (17, 19, 21):
+    MARKS += [(1, bar, 0, 'slur', (bar, 0.5)), (1, bar, 1.5, 'slur', (bar, 2))] + _all(bar, [0, 0.125, 0.25, 0.375, 0.5, 1, 1.5, 1.625, 1.75, 1.875, 2, 2.5], 'stacc')
+MARKS += [(1, 18, 0, 'slur', (18, 0.5)), (1, 18, 1, 'slur', (18, 2.5))] + _all(18, [0, 0.125, 0.25, 0.375, 0.5, 1, 1.5, 2, 2.5], 'stacc')
+MARKS += [(1, 20, 0, 'slur', (20, 0.5)), (1, 20, 1, 'slur', (20, 2.5))] + _all(20, [0, 0.125, 0.25, 0.375, 0.5, 1, 1.5, 2, 2.5], 'stacc')
+for bar in (22, 23):
+    MARKS += [(1, bar, 0, 'slur', (bar, 0.5)), (1, bar, 0.5, 'acc', None), (1, bar, 1, 'slur', (bar, 1.25)),
+              (1, bar, 1.5, 'slur', (bar, 2)), (1, bar, 2, 'acc', None), (1, bar, 2.5, 'slur', (bar, 2.75))]
+    MARKS += _all(bar, [0, 0.125, 0.25, 0.375, 0.5, 1, 1.25, 1.5, 1.625, 1.75, 1.875, 2, 2.5, 2.75], 'stacc')
+MARKS += [(1, 24, 0, 'slur', (24, 1)), (1, 24, 1.5, 'slur', (25, 0)),
+          (1, 25, 1.5, 'slur', (25, 2.5)), (1, 25, 2.5, 'stacc', None),
+          (1, 26, 0, 'slur', (26, 0.5)), (1, 26, 1, 'stacc', None), (1, 26, 1.5, 'slur', (27, 0)),
+          (1, 27, 1.5, 'slur', (27, 2.5)), (1, 27, 2.5, 'stacc', None),
+          (1, 28, 0, 'slur', (28, 0.5)), (1, 28, 1, 'stacc', None), (1, 28, 1.5, 'slur', (29, 0)),
+          (1, 29, 1.5, 'slur', (29, 1.75))] + _all(29, [0.5, 1, 1.5, 1.75, 2, 2.25, 2.5, 2.75], 'stacc')
+MARKS += [(1, 30, 0, 'slur', (30, 1)), (1, 30, 1.5, 'acc', None), (1, 30, 1.5, 'slur', (31, 0))]
+MARKS += [(1, 40, 1.5, 'acc', None)]
+# the harmonics: (stopped, touching)
+MARKS += [(1, 31, o, 'harm', h) for o, h in [(0.5, ('F#5', 'B5')), (1, ('F#5', 'B5')), (1.5, ('G5', 'C6')), (1.75, ('F#5', 'B5')),
+          (2, ('E5', 'A5')), (2.25, ('D5', 'G5')), (2.5, ('C#5', 'F#5')), (2.75, ('B4', 'E5'))]]
+MARKS += [(1, 32, 0, 'harm', ('A#4', 'D#5'))] + [(1, 32, o, 'harm', ('F#5', 'B5')) for o in (0.5, 1, 1.5, 2)]
+MARKS += [(1, 33, o, 'harm', ('F#5', 'B5')) for o in (1, 1.5, 2)]

@@ -6,7 +6,9 @@ PITCH = step [# b n] octave (absolute, alter written out); DUR = 1 2 4 8 16 32 [
 Optional: a DUR ending in 'g' is a grace note (slashed, takes no time; 'G' unslashed); PICKUP (crotchets) makes bar 0 an upbeat;
 ENDINGS [(first bar, last bar, '1', 'stop' or 'discontinue')] volta brackets. Passages under an 8va line are written at pitch.
 MARKS [(part, bar, crotchets into the bar, kind, value)]: kind 'dyn' (p, f, ff ...), 'cresc' / 'dim' (a hairpin from there; value = where it
-ends, in crotchets into the same bar), 'bow' ('down' / 'up', on the note starting there), 'fing' (the printed fingering '0'-'4' on the note starting there) (Trix: the scan's f, ff and bowings)."""
+ends, in crotchets into the same bar), 'bow' ('down' / 'up', on the note starting there), 'fing' (the printed fingering '0'-'4' on the note starting there),
+'acc' / 'stacc' (accent / staccato on the note there), 'slur' (value = (end bar, end crotchets): from this note to that one),
+'harm' (value = (stopped pitch, touching pitch): an artificial harmonic's stopped note and diamond, drawn under this note, never played) (Trix: the scan's f, ff and bowings)."""
 import sys, zipfile, re
 from xml.sax.saxutils import escape as esc
 D = sys.argv[1]; out = sys.argv[2]
@@ -38,7 +40,7 @@ def marks_at(pn, b, upto):
     """the dynamics and hairpin starts/stops of part pn, bar b, due at or before `upto` divisions, each once"""
     out = ''
     for i, (mp, mb, mo, kind, val) in enumerate(MARKS):
-        if mp != pn or mb != b or kind in ('bow', 'fing'): continue
+        if mp != pn or mb != b or kind not in ('dyn', 'cresc', 'dim'): continue
         evs = [(round(mo * DIV), 'start')] + ([(round(val * DIV), 'stop')] if kind in ('cresc', 'dim') else [])
         for j, (at, what) in enumerate(evs):
             if (i, j) in DONE or at > upto: continue
@@ -47,6 +49,12 @@ def marks_at(pn, b, upto):
             else: out += '<direction placement="below"><direction-type><wedge type="%s"/></direction-type></direction>' % ({'cresc': 'crescendo', 'dim': 'diminuendo'}[kind] if what == 'start' else 'stop')
     return out
 DONE = set()
+SLURN = {}
+_open = []
+for i, (mp, mb, mo, kind, val) in sorted(enumerate(MARKS), key=lambda e: (e[1][1], e[1][2])):
+    if kind != 'slur': continue
+    _open = [o for o in _open if (o[0], o[1]) > (mb, mo)]
+    n = next(c for c in (1, 2, 3, 4) if c not in [o[2] for o in _open]); SLURN[i] = n; _open.append((val[0], val[1], n))
 PICK = C.get('PICKUP'); FIRST = 0 if PICK else 1   # an upbeat: bar 0, PICKUP crotchets long, implicit
 isg = lambda d: d.rstrip('~').endswith(('g', 'G'))
 for pn in range(1, len(NAMES) + 1):
@@ -102,11 +110,16 @@ for pn in range(1, len(NAMES) + 1):
                 gr = d[-1] if d[-1] in 'gG' else ''
                 v, ty, dot, tm = dur(d)
                 if gr: v = 0
-                bow = ''; fing = ''
+                bow = ''; fing = ''; arts = []; sl = []; harm = None
                 if vi == 0 and not gr:
                     x += marks_at(pn, b, tot)
                     bow = next((val for (mp, mb, mo, kind, val) in MARKS if kind == 'bow' and mp == pn and mb == b and round(mo * DIV) == tot and p != 'r'), '')
                     fing = next((val for (mp, mb, mo, kind, val) in MARKS if kind == 'fing' and mp == pn and mb == b and round(mo * DIV) == tot and p != 'r'), '')
+                    here = [(i, kind, val) for i, (mp, mb, mo, kind, val) in enumerate(MARKS) if mp == pn and mb == b and round(mo * DIV) == tot and p != 'r']
+                    arts = [{'acc': 'accent', 'stacc': 'staccato'}[kind] for i, kind, val in here if kind in ('acc', 'stacc')]
+                    sl = [('stop', SLURN[i]) for i, (mp, mb, mo, kind, val) in enumerate(MARKS) if kind == 'slur' and mp == pn and val[0] == b and round(val[1] * DIV) == tot and p != 'r']
+                    sl += [('start', SLURN[i]) for i, kind, val in here if kind == 'slur']
+                    harm = next((val for i, kind, val in here if kind == 'harm'), None)
                 tot += v
                 for k, q in enumerate(p.split('+')):
                     qt = tie or q.endswith('~'); q = q.rstrip('~')
@@ -122,11 +135,19 @@ for pn in range(1, len(NAMES) + 1):
                         st_ = info[ti][0]
                         if st_ % DIV == 0: nt += '<tuplet type="start" bracket="no"/>'
                         elif (st_ + DIV // 3) % DIV == 0: nt += '<tuplet type="stop"/>'
+                    if not k: nt += ''.join('<slur type="%s" number="%d"/>' % x for x in sl)
                     if (bow or fing) and not k: nt += '<technical>%s%s</technical>' % ('<%s-bow/>' % bow if bow else '', '<fingering>%s</fingering>' % fing if fing else '')
+                    if arts and not k: nt += '<articulations>%s</articulations>' % ''.join('<%s/>' % a for a in arts)
                     if key in tied: nt += '<tied type="stop"/>'
                     if qt: nt += '<tied type="start"/>'
                     if nt: n += '<notations>%s</notations>' % nt
                     x += n + '</note>'
+                    if harm and k == len(p.split('+')) - 1:   # the harmonic's stopped note and touching note, as chord notes the app draws but never plays
+                        for hp, touch in ((harm[0], False), (harm[1], True)):
+                            x += ('<note><chord/>' + pitch(hp) + '<duration>%d</duration><voice>%d</voice><type>%s</type>' % (v, vi + 1, ty) + ('<dot/>' * dot if dot else '')
+                                  + ('<time-modification><actual-notes>%d</actual-notes><normal-notes>%d</normal-notes></time-modification>' % {'t': (3, 2), 'q': (5, 4), 's': (7, 4)}[tm] if tm else '')
+                                  + ('<notehead>diamond</notehead>' if touch else '')
+                                  + '<notations><technical><harmonic><artificial/><%s/></harmonic></technical></notations></note>' % ('touching-pitch' if touch else 'base-pitch'))
                 for q in p.split('+'):
                     qt = tie or q.endswith('~'); q = q.rstrip('~')
                     tied.discard((vi, q))

@@ -236,7 +236,7 @@
     var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [], ferm = [], tempoWords = [], tmarks = {};   /* tmarks: tick -> printed tempo change, for whichever part is the solo */   /* tick -> tempo entry; ferm: notes and rests under a fermata; tempoWords: rit./a tempo without a <sound> */
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
-      var ms = kids(part, 'measure'), notes = [], tie = {}, chordTrem = 0, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
+      var ms = kids(part, 'measure'), notes = [], deco = [], tie = {}, chordTrem = 0, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
       var ksw = [], kmw = [], kw0 = null, km0 = null;
       /* a grace's length by the tempo there (Trix, after the research: short graces stay about the same length in ms at any tempo,
          a little longer when slow): 60 ms at ♩ = 120 and faster, rising evenly with the beat's length to 120 ms at ♩ = 30 and slower;
@@ -371,6 +371,10 @@
             if (!chord) chordTrem = n.trem || 0; else if (!n.trem && chordTrem) n.trem = chordTrem;   /* a chord's tremolo, often written on its first note only */
             if (art.length) n.art = art;
             if (slurs.length) n.slur = slurs;
+            /* an artificial harmonic's stopped note and its touching (diamond) note: drawn, never played, lit or graded (Trix: the
+               scan's diamonds); the note that sounds carries the harmonic */
+            var hmk = tech && kid(tech, 'harmonic');
+            if (hmk && (kid(hmk, 'touching-pitch') || kid(hmk, 'base-pitch'))) { deco.push({ sb: n.sb, wsp: n.wsp, m: mm, touch: !!kid(hmk, 'touching-pitch') }); return; }
             notes.push(n);
             if (ties.indexOf('start') >= 0) tie[mm] = n;
           }
@@ -381,7 +385,7 @@
       dynamics(notes, marks);
       if (notes.length) {
         var pr = {}, prs = {}; if (info.prog !== undefined) { pr[ch] = info.prog; prs[ch] = [info.prog]; }
-        tracks.push({ notes: notes, chans: 1, name: info.name || info.inst, label: info.name + ' ' + info.inst, prog: pr, progs: prs, marks: marks });
+        tracks.push({ notes: notes, chans: 1, name: info.name || info.inst, label: info.name + ' ' + info.inst, prog: pr, progs: prs, marks: marks, deco: deco });
       }
     });
     tempos.sort(function (a, b) { return a.tick - b.tick; });
@@ -495,7 +499,7 @@
       .map(function (tr) { tr.notes = tr.notes.filter(function (n) { return n.ch !== DRUM && !(tr.prog[n.ch] >= 112); }); return tr; })
       .filter(function (tr, i) { if (tr.notes.length) return true; dropped.push(tr.name || tr.label.trim() || 'Part ' + (i + 1)); return false; });   /* emptied by drums or sound effects: not always drums (Hermes F30) */
     if (!tracks.length) throw fail('This file has only drums or sound effects.');   /* it has notes, all of them drums (Hermes F28) */
-    var soloName = '', accNames = [], soloMarks = null;
+    var soloName = '', accNames = [], soloMarks = null, soloDeco = null;
     function gmViolin(tr) { return Object.keys(tr.prog).some(function (c) { return tr.prog[c] === GM_VIOLIN && tr.notes.some(function (n) { return n.ch === +c; }); }); }
     if (tracks.length === 1 && tracks[0].chans > 1) {
       var pr = tracks[0].prog, vc = Object.keys(pr).filter(function (c) { return pr[c] === GM_VIOLIN; }).map(Number)
@@ -517,7 +521,7 @@
       });
       if (byFirst >= 0) byName = byFirst;
       si = byName >= 0 ? byName : byProg >= 0 ? byProg : 0;
-      solo = tracks[si].notes; soloName = tracks[si].name; soloMarks = tracks[si].marks || null;
+      solo = tracks[si].notes; soloName = tracks[si].name; soloMarks = tracks[si].marks || null; soloDeco = tracks[si].deco || null;
       tracks.forEach(function (tr, i) { var nm = tr.name || 'Part ' + (i + 1); if (i !== si && accNames.indexOf(nm) < 0) accNames.push(nm); });   /* a name once: a piano's two hands are two parts both called Piano (Trix's Winter) */
       tracks.forEach(function (tr, i) { if (i !== si) acc = acc.concat(tr.notes); });
     }
@@ -531,6 +535,7 @@
     }, []);
     var firstTick = acc.reduce(function (a, n) { return Math.min(a, n.t0); }, Infinity);
     var sg = build(solo, tpq, tempos, sig || { num: 4, den: 4 }, sf || 0, firstTick, minor);
+    sg.deco = (soloDeco || []).map(function (d) { return { b: d.sb / tpq - sg.skipB, wsp: d.wsp, touch: d.touch }; }).filter(function (d) { return d.b > -1e-6; });
     /* the bar number at a beat, for the score's corner (Trix): MusicXML's own numbers (repeats show theirs again, a
        pickup is 0); a MIDI file's bars counted from its start */
     var barQ = sg.sig.num * 4 / sg.sig.den, bl = bars ? bars.map(function (b) { return { beat: b.tick / tpq - sg.skipB, num: b.num, mi: b.mi, wr: b.wr, ts: b.ts, ks: b.ks, km: b.km }; }) : null;
@@ -1424,8 +1429,20 @@
       var hollow = len >= 2, stem = len < 4, dotted = len === 3 || len === 1.5 || len === 0.75 || len === 0.375;
       var flags = hd.beam >= 0 ? 0 : hd.len <= 0.125 ? 3 : hd.len <= 0.25 ? 2 : hd.len < 1 ? 1 : 0;
       g.push('<ellipse class="' + (hollow ? 'head hollow' : 'head') + '" cx="' + hx + '" cy="' + y + '" rx="5.4" ry="3.9" transform="rotate(-20 ' + hx + ' ' + y + ')"/>');
+      var dys = [];
+      if (isHead) (sg.deco || []).forEach(function (d) {   /* an artificial harmonic's stopped note (black) and touching note (a hollow diamond) under it */
+        if (Math.abs(d.b - nt.b) > 1e-6) return;
+        var dstep = d.wsp[0] + 7 * (d.wsp[2] - 4), dy = yOf(dstep), ka = keyAccOf(sfAt(bStart(bIdx(nt.b))))[d.wsp[0]] || 0;
+        for (var dl = 0; dl >= dstep; dl -= 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(dl) + 'h18"/>');
+        for (dl = 12; dl <= dstep; dl += 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(dl) + 'h18"/>');
+        if (d.wsp[1] !== ka) g.push('<g class="acc">' + APP.accSvg(ACC[String(d.wsp[1])], hx - 14, dy, S) + '</g>');
+        g.push(d.touch ? '<path class="head hollow" d="M' + (hx - 5) + ' ' + dy + 'L' + hx + ' ' + (dy - 4) + 'L' + (hx + 5) + ' ' + dy + 'L' + hx + ' ' + (dy + 4) + 'Z"/>'
+          : '<ellipse class="head" cx="' + hx + '" cy="' + dy + '" rx="5.4" ry="3.9" transform="rotate(-20 ' + hx + ' ' + dy + ')"/>');
+        dys.push(dy);
+      });
       if (stem && isHead) {
         var sx = up ? hx + 4.9 : hx - 4.9, sy = hd.beam >= 0 ? hd.tip : up ? hd.yTop - 3.4 * S : hd.yBot + 3.4 * S, sy0 = up ? hd.yBot : hd.yTop;
+        if (dys.length) sy0 = up ? Math.max(sy0, Math.max.apply(null, dys)) : Math.min(sy0, Math.min.apply(null, dys));   /* the stem through the harmonic's notes */
         g.push('<path class="stem" d="M' + sx + ' ' + (sy0 + (up ? -1 : 1)) + 'V' + sy + '"/>');
         if (nt.trem) for (var tq = 0; tq < nt.trem; tq++) {   /* tremolo: slashes across the stem, between head and tip */
           var ty0 = sy0 + (sy - sy0) * 0.55 + (up ? 1 : -1) * tq * 4.5;
