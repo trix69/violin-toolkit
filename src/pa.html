@@ -16,14 +16,12 @@
   <div class="pa-res" id="paRes" hidden>
     <p class="pa-partial" id="paPartial" hidden></p>
     <div class="pa-bars" id="paStats"></div>
+    <button type="button" class="pa-lgbtn" id="paLgBtn" aria-expanded="false" aria-controls="paStats"><span>Colour key</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
     <p class="pa-temper" id="paTemper"></p>
-    <div class="pa-showrow">
     <div class="pa-seg pa-show" id="paShow" role="radiogroup" aria-label="Show">
       <button type="button" role="radio" data-s="pitch" aria-checked="false">Pitch</button>
       <button type="button" role="radio" data-s="time" aria-checked="false">Timing</button>
       <button type="button" role="radio" data-s="both" aria-checked="true">Both</button>
-    </div>
-    <button type="button" class="pa-lgbtn" id="paLgBtn" aria-expanded="false" aria-controls="paLegend"><span>Colour key</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
     </div>
     <div class="pa-legend" id="paLegend" hidden>
       <div class="pa-lg pa-lg-pitch">
@@ -36,9 +34,9 @@
       </div>
       <div class="pa-lg pa-lg-time">
         <span class="pa-lh">Shadow note stem, timing (moved left = early, right = late; longer stem = held too long, shorter = cut short):</span>
-        <span><i class="sw sw-tok" aria-hidden="true"></i><span>within 1/16 of a beat (30–80 ms)</span></span>
-        <span><i class="sw sw-tamber" aria-hidden="true"></i><span>1/16–1/8 of a beat off (70–160 ms)</span></span>
-        <span><i class="sw sw-tred" aria-hidden="true"></i><span>more than 1/8 of a beat off (past 160 ms)</span></span>
+        <span><i class="sw sw-tok" aria-hidden="true"></i><span>within 1/10 of a beat (40–120 ms)</span></span>
+        <span><i class="sw sw-tamber" aria-hidden="true"></i><span>1/10–1/5 of a beat off (90–240 ms)</span></span>
+        <span><i class="sw sw-tred" aria-hidden="true"></i><span>more than 1/5 of a beat off (past 240 ms)</span></span>
       </div>
     </div>
   </div>

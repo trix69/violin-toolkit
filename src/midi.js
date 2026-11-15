@@ -3387,7 +3387,7 @@
     })();
   }
   $('paLgBtn').addEventListener('click', function () {   /* the colour key: folded until asked for (Trix) */
-    var open = this.getAttribute('aria-expanded') !== 'true'; this.setAttribute('aria-expanded', open ? 'true' : 'false'); $('paLegend').hidden = !open;
+    var open = this.getAttribute('aria-expanded') !== 'true'; this.setAttribute('aria-expanded', open ? 'true' : 'false'); $('paStats').classList.toggle('lg-open', open);   /* both keys open or close together (Trix) */
   });
   APP.paAnalysisSecs = function () { return paRes && paRes.secs; };   /* tests */
   function paSummarise(an, recEnd) {
@@ -3411,7 +3411,7 @@
     if (!R.empty && APP.coach) setTimeout(function () { if (paRes === R && paOn) APP.coach.maybe('playalong:result'); }, 300);   /* the result's own tips, once (Trix) */
     var part = $('paPartial'); part.textContent = R.partial || ''; part.hidden = !R.partial;
     var st = $('paStats'), lgP = document.querySelector('.pa-lg-pitch'), lgT = document.querySelector('.pa-lg-time');
-    $('paLegend').appendChild(lgP); $('paLegend').appendChild(lgT); st.textContent = '';   /* the key, folded under its button (Trix) */
+    $('paLegend').appendChild(lgP); $('paLegend').appendChild(lgT); st.textContent = '';   /* back in their store until the bars are drawn */
     if (!R.empty) {   /* a bar each for pitch and timing (Trix): how many notes fell in each band, the green share large */
       var all = [], P = { ok: 0, amber: 0, red: 0, miss: 0 }, T = { ok: 0, amber: 0, red: 0, miss: 0 };
       R.bars.forEach(function (b) { b.notes.forEach(function (r) { all.push(r); }); });
@@ -3426,9 +3426,9 @@
         var box = document.createElement('div'); box.className = 'pa-sb';
         var h = document.createElement('div'); h.className = 'pa-sb-h';
         var b = document.createElement('b'); b.textContent = row[0]; h.appendChild(b);
-        var big = document.createElement('span'); big.className = 'pa-sb-big'; big.setAttribute('translate', 'no'); big.textContent = Math.round(100 * C.ok / n) + '%'; h.appendChild(big);
         var sm = document.createElement('small'); sm.textContent = row[1]; h.appendChild(sm);
         box.appendChild(h);
+        var big = document.createElement('div'); big.className = 'pa-sb-big'; big.setAttribute('translate', 'no'); big.textContent = Math.round(100 * C.ok / n) + '%'; box.appendChild(big);   /* large, centred over its bar (Trix) */
         var bar = document.createElement('div'); bar.className = 'pa-sb-bar' + row[3]; bar.setAttribute('role', 'img');
         bar.setAttribute('aria-label', row[0] + ': ' + ['ok', 'amber', 'red', 'miss'].map(function (k) { return Math.round(100 * C[k] / n) + '%'; }).join(', '));
         ['ok', 'amber', 'red', 'miss'].forEach(function (k) {
@@ -3437,11 +3437,11 @@
           seg.textContent = pc >= 12 ? Math.round(pc) + '%' : ''; seg.title = C[k] + ' / ' + n; seg.setAttribute('translate', 'no');
           bar.appendChild(seg);
         });
-        box.appendChild(bar); st.appendChild(box);   /* Pitch on the left, Timing on the right (Trix) */
+        box.appendChild(bar); box.appendChild(row[0] === 'Pitch' ? lgP : lgT); st.appendChild(box);   /* Pitch on the left, Timing on the right, each key under its own bar (Trix) */
       });
     }
     $('paTemper').textContent = R.empty ? '' : { equal: 'Measured against Equal temperament.', just: 'Measured against Just intonation.', pyth: 'Measured against Pythagorean tuning.' }[R.temper] || 'Measured against Equal temperament.';
-    $('paLegend').hidden = !!R.empty || $('paLgBtn').getAttribute('aria-expanded') !== 'true'; $('paLgBtn').hidden = !!R.empty;   /* the key stays as the button left it (Trix: folded) */   /* no list of the worst bars (Trix): the tints show them, a tap opens one */
+    $('paLegend').hidden = true; $('paStats').classList.toggle('lg-open', $('paLgBtn').getAttribute('aria-expanded') === 'true'); $('paLgBtn').hidden = !!R.empty;   /* the key stays as the button left it (Trix: folded) */   /* no list of the worst bars (Trix): the tints show them, a tap opens one */
     paRetint();
   }
 
@@ -3458,7 +3458,7 @@
     var q = 500 * bq; try { if (r.b !== undefined && r.b !== null) q = (song.beatSec(r.b + 0.25) - song.beatSec(r.b)) * 4000 * bq; } catch (e) {}
     if (!(q > 0)) q = 500 * bq;
     q /= paTakeSpeed || 1;
-    r.tOk = Math.round(Math.max(30, Math.min(80, q / 16))); r.tRed = Math.round(Math.max(70, Math.min(160, q / 8)));
+    r.tOk = Math.round(Math.max(40, Math.min(120, q / 10))); r.tRed = Math.round(Math.max(90, Math.min(240, q / 5)));   /* 1/10 and 1/5 of the beat (Trix: a little looser than 1/16 and 1/8) */
   }
   var PA_WRONG = 75;   /* 75 cents or more off: a different note (Trix: "only if it's deviated too much") */
   /* the note played, as a red head on its line or space (its accidental against the key, ledger lines) beside the written one */
@@ -3627,7 +3627,7 @@
           var cx = +head.getAttribute('cx'), cy = +head.getAttribute('cy'), rx = +head.getAttribute('rx') || S * 0.6, ry = +head.getAttribute('ry') || S * 0.45;
           var t0 = m.t0 == null ? 0 : m.t0, t1 = m.t1 == null ? t0 : m.t1;
           var dy = wrong ? 0 : -Math.max(-1.5 * S, Math.min(1.5 * S, m.c / 25 * S / 2)), dx = Math.max(-18, Math.min(18, (t0 + t1) / 2 / 7));
-          var lf = Math.max(0.45, Math.min(1.9, 1 + (t1 - t0) / 400)), hy = cy + dy, HR = rx * 1.3, VR = ry * 1.3, hx;   /* lf: the stem's length against the written one */
+          var lf = Math.max(0.45, Math.min(1.9, 1 + (t1 - t0) / 400)), hy = cy + dy, HR = rx, VR = ry, hx;   /* the written head's own size (Trix) */   /* lf: the stem's length against the written one */
           var up = true; Array.prototype.forEach.call(g.querySelectorAll('line, path.stem'), function (l) {   /* the stem goes the way the written one does (Hermes F92: stems are paths) */
             if (l.nodeName === 'path') {
               var md = (l.getAttribute('d') || '').match(/^M(-?[\d.]+) (-?[\d.]+)V(-?[\d.]+)/);

@@ -148,7 +148,10 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 
 /* Pitch | Timing | Both (Trix): which marks the result shows */
 .pa-show { justify-self: start; }
-.pa-showrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }   /* the colour key beside Pitch / Timing / Both (Trix) */
+.pa-bars:not(.lg-open) .pa-lg { display: none; }   /* each key under its own bar, both folded or both open (Trix) */
+.pa-bars .pa-sb { align-content: start; }
+.pa-bars .pa-sb-h { justify-content: center; }
+.pa-bars .pa-sb-big { font: 700 34px/1.05 var(--font-body); text-align: center; letter-spacing: -0.01em; }   /* large, centred above its bar (Trix) */
 .pa-legend { display: grid; gap: 6px; }
 .pa-lg { display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .pa-lg > span { display: inline-flex; align-items: center; gap: 6px; }
