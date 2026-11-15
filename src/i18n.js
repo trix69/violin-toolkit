@@ -306,7 +306,9 @@
     [/^Open string: tune the ([GDAE]) string (up|down) by (\d+) ¢\.$/, function (m, st, d, v) { return '空弦：把 ' + st + ' 弦调' + (d === 'up' ? '高 ' : '低 ') + v + ' 音分。'; }],
     [/^Finger about ([\d.]+) mm too close to the (bridge|scroll)\.$/, function (m, v, w) { return '手指离' + (w === 'bridge' ? '琴马' : '琴头') + '近了约 ' + v + ' 毫米。'; }],
     [/^(\d+)(?:st|nd|rd|th) time$/, function (m, n) { return '第 ' + n + ' 遍'; }],
-    [/^Bar (\S+)$/, function (m, n) { return '第 ' + n + ' 小节'; }],   /* Play-along (跟音练习) */
+    [/^Bar (\S+)$/, function (m, n) { return '第 ' + n + ' 小节'; }],
+    [/^Double stop: pitch not measured \(two notes at once\)\.$/, function () { return '双音：音准未测（两个音同时发声）。'; }],
+    [/^Double stop: measured on (\S+)\.$/, function (m, n) { return '双音：按 ' + n + ' 评判。'; }],   /* Play-along (跟音练习) */
     [/^Page (\d+) of (\d+)$/, function (m, a, b) { return '第 ' + a + ' 页，共 ' + b + ' 页'; }],
     [/^Only bar (\S+) of (\S+) was recorded\.$/, function (m, a, n) { return '只录到第 ' + a + ' 小节（共 ' + n + ' 小节）。'; }],
     [/^Only the upbeat to bar (\S+) of (\S+) was recorded\.$/, function (m, b, n) { return '只录到弱起至第 ' + b + ' 小节（共 ' + n + ' 小节）。'; }],

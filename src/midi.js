@@ -3421,7 +3421,8 @@
       var all = [], P = { ok: 0, amber: 0, red: 0, miss: 0 }, T = { ok: 0, amber: 0, red: 0, miss: 0 };
       R.bars.forEach(function (b) { b.notes.forEach(function (r) { all.push(r); }); });
       all.forEach(function (r) {
-        if (r.missed || r.chord || r.cents === undefined) { P.miss++; T.miss++; return; }
+        if (r.noPitch) { if (r.timing === null || r.timing === undefined) T.miss++; else { var t0 = Math.abs(r.timing); T[t0 <= r.tOk ? 'ok' : t0 <= r.tRed ? 'amber' : 'red']++; } return; }   /* a double stop with no pitch to read: timing only */
+        if (r.missed || r.cents === undefined) { P.miss++; T.miss++; return; }
         var c = Math.abs(r.cents); P[c <= ASSESS.IN_TUNE ? 'ok' : c <= ASSESS.RED ? 'amber' : 'red']++;
         if (r.timing === null || r.timing === undefined) { T.miss++; return; }
         var t = Math.abs(r.timing); T[t <= r.tOk ? 'ok' : t <= r.tRed ? 'amber' : 'red']++;
@@ -3501,7 +3502,8 @@
       if (list.length > 1 && b) line(b.time + (['', 'st', 'nd', 'rd'][b.time] || 'th') + ' time', 'pa-pass');
       if (!r) { line('Not recorded.'); return; }
       if (r.missed) { line('Not heard.'); return; }
-      if (r.chord) { line('Double stop: not assessed.'); return; }
+      if (r.noPitch) { line('Double stop: pitch not measured (two notes at once).'); if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r)); if (r.exit !== undefined) line(ms(r.exit, 'End', r)); return; }
+      if (r.chord && r.m !== undefined) line('Double stop: measured on ' + APP.board.name(r.m) + '.');
       var c = Math.round(r.cents);
       if (Math.abs(c) >= PA_WRONG && Math.round(c / 100) !== 0) line('Played ' + APP.board.name(r.m + Math.round(c / 100)) + ' instead of ' + APP.board.name(r.m) + ' (' + (c >= 0 ? '+' : '−') + Math.abs(c) + ' ¢)');
       else line(Math.abs(c) <= ASSESS.IN_TUNE ? 'Pitch: in tune (' + (c >= 0 ? '+' : '−') + Math.abs(c) + ' ¢)' : 'Pitch: ' + Math.abs(c) + ' ¢ ' + (c > 0 ? 'high' : 'low'));
@@ -3510,7 +3512,7 @@
       if (r.exit !== undefined) line(ms(r.exit, 'End', r));
     });
     var r1 = paResOf[list[0]];
-    if (r1 && !r1.missed && !r1.chord && r1.cents !== undefined && n0.si >= 0) {
+    if (r1 && !r1.missed && (!r1.chord || r1.pick === list[0]) && r1.cents !== undefined && n0.si >= 0) {
       if (n0.fg === 0 && Math.abs(r1.cents) > ASSESS.IN_TUNE && Math.abs(r1.cents) < PA_WRONG) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say');   /* no finger to move: the string's tuning */
       if (paView === 'pages') {   /* Pages only: Live has the big fingerboard (Trix); the board on the right of the text */
         var fb = paFingerSvg(n0, r1, k), txt = document.createElement('div'); txt.className = 'pa-fb-txt';
@@ -3587,11 +3589,11 @@
     function tk(r) { if (r.timing === null || r.timing === undefined) return null; var a = Math.abs(r.timing); return a <= r.tOk ? 'ok' : a <= r.tRed ? 'amber' : 'red'; }
     paRes.bars.forEach(function (b, bi) {
       b.notes.forEach(function (r) {
-        var kind = r.missed ? 'miss' : r.chord || r.cents === undefined ? 'na' : Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'ok' : Math.abs(r.cents) <= ASSESS.RED ? 'amber' : 'red';
+        var kind = r.missed ? 'miss' : r.noPitch ? 'np' : r.cents === undefined ? 'na' : Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'ok' : Math.abs(r.cents) <= ASSESS.RED ? 'amber' : 'red';
         /* far off (Trix: C written, D played): the written note grey, the note played drawn in red where it sits */
         var played = kind === 'red' && Math.abs(r.cents) >= PA_WRONG ? r.m + Math.round(r.cents / 100) : null;
         if (played !== null && played === r.m) played = null;
-        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r), played: played, c: kind === 'na' || r.missed ? null : r.cents, t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
+        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r), played: r.chord && r.pick !== k ? null : played, c: kind === 'na' || r.missed ? null : r.cents, t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
       });
     });
     /* each bar's grade (Trix): green when generally good, amber so-so, red many problems. A note is good with pitch and start both
@@ -3601,7 +3603,8 @@
     paRes.bars.forEach(function (b, bi) {
       var n = 0, good = 0, bad = 0;
       b.notes.forEach(function (r) {
-        if (r.chord) return; n++;
+        n++;
+        if (r.noPitch) { var tn = r.timing == null ? Infinity : Math.abs(r.timing); if (tn > r.tRed) bad++; else if (tn <= r.tOk) good++; return; }   /* timing only */
         if (r.missed || r.cents === undefined) { bad++; return; }
         var c = Math.abs(r.cents), t = r.timing == null ? 0 : Math.abs(r.timing);
         if (c > ASSESS.RED || t > r.tRed) bad++; else if (c <= ASSESS.IN_TUNE && t <= r.tOk) good++;
@@ -3655,7 +3658,7 @@
           sh.setAttribute('class', 'pa-sh'); sh.setAttribute('data-pabar', barOf[k]); sh.setAttribute('data-pak', (merge ? 'p' : 's') + k);
           sh.innerHTML = '<rect class="pa-hit" x="' + (Math.min(cx, hx) - HR - 4).toFixed(1) + '" y="' + (cy - 2.5 * S).toFixed(1) + '" width="' + (Math.abs(hx - cx) + 2 * HR + 8).toFixed(1) + '" height="' + (5 * S).toFixed(1) + '"/>' +
             (m.time && nStem ? '<line class="pa-sk ' + m.time + '" x1="' + sxS.toFixed(1) + '" y1="' + hy.toFixed(1) + '" x2="' + sxS.toFixed(1) + '" y2="' + sy2.toFixed(1) + '"/>' + flagsSvg : '') +
-            (wrong ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + (nHollow ? ' hollow' : '') + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>' +
+            (wrong || m.kind === 'np' ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + (nHollow ? ' hollow' : '') + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>' +
               (nDotted ? '<circle class="pa-sdt ' + (m.kind === 'na' ? 'ok' : m.kind) + '" cx="' + (hx + HR + 4.5).toFixed(1) + '" cy="' + (hy + ddy).toFixed(1) + '" r="1.9"/>' : ''));   /* a dotted value keeps its dot (Hermes F96) */   /* a wrong note: the red played head says the pitch */
           g.parentNode.insertBefore(sh, g);   /* behind the written note: its shadow */
         }

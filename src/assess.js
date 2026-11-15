@@ -140,8 +140,8 @@
     song.notes.forEach(function (n, k) {
       if (n.grace) return;
       var last = ev[ev.length - 1];
-      if (last && Math.abs(last.t - n.t) < 1e-4) { last.idx.push(k); last.chord = true; last.e = Math.max(last.e, n.e); return; }
-      ev.push({ t: n.t, e: n.e, m: n.m, idx: [k], chord: false, b: n.b });
+      if (last && Math.abs(last.t - n.t) < 1e-4) { last.idx.push(k); last.ms.push(n.m); last.chord = true; last.e = Math.max(last.e, n.e); return; }
+      ev.push({ t: n.t, e: n.e, m: n.m, ms: [n.m], idx: [k], chord: false, b: n.b });
     });
     return ev;
   }
@@ -169,8 +169,8 @@
           } else step = Math.abs(L) < 2.5 ? Math.abs(L) * 0.4 : INF;   /* the first note: near where the count-in put it */
           if (step < INF) {
             var pc = 0;
-            if (!e.chord && p.m !== null) { var d = Math.abs(p.m - e.m); d = Math.min(d, Math.abs(d - 12), Math.abs(d - 24)) + (d > 6 ? 0.5 : 0); pc = d < 0.5 ? 0 : Math.min(d, 4) * 0.6; }
-            else if (!e.chord) pc = 0.5;
+            if (p.m !== null) { pc = Infinity; e.ms.forEach(function (em) { var d = Math.abs(p.m - em); d = Math.min(d, Math.abs(d - 12), Math.abs(d - 24)) + (d > 6 ? 0.5 : 0); pc = Math.min(pc, d < 0.5 ? 0 : Math.min(d, 4) * 0.6); }); }   /* a double stop: the nearer of its notes */
+            else pc = e.chord ? 0.3 : 0.5;
             if (cost[k] + step + pc < best) { best = cost[k] + step + pc; bf = 3; bl = L; be = e.t; bh = 1; }
           }
         }
@@ -246,12 +246,20 @@
          when the note runs into it (a slur, legato); against the note's own end in the score, on the same clock */
       var endT = soundEnd(fr, o.t + 0.05, nextT);
       if (endT !== null) r.exit = Math.round((endT - (e.e + r.warp)) * 1000);
-      if (e.chord) { r.skip = 'chord'; return r; }
       /* the window: from the onset to the next onset (an open string ringing on is not measured past it), and no
          longer than the note's own length allows; attack 80 ms and release 120 ms left out (less for short notes) */
       var dur = (e.e - e.t), end = Math.min(nextT, o.t + dur * 1.25 + 0.1), L = end - o.t;
       var a = o.t + Math.min(0.08, 0.2 * L), b = end - Math.min(0.12, 0.2 * L);
-      var hz = hzOf(song.notes[e.idx[0]]), cs = centsIn(fr, a, b, hz);
+      /* a double stop (Trix: they were all shown as missed): one pitch is heard at a time, so it is measured against the note of
+         the two (or more) the frames sit nearest; r.m and r.pick name that note */
+      var pick = 0, hz = hzOf(song.notes[e.idx[0]]), cs = centsIn(fr, a, b, hz);
+      if (e.chord) {
+        var best = Infinity;
+        e.idx.forEach(function (k, q) { var h = hzOf(song.notes[k]), c2 = centsIn(fr, a, b, h); if (!c2.length) return; var md = Math.abs(median(c2)); if (md < best) { best = md; pick = q; hz = h; cs = c2; } });
+        r.m = e.ms[pick]; r.pick = e.idx[pick];
+      }
+      /* two notes at once with no single pitch to read (a third, a sixth): its start is still judged */
+      if (e.chord && (!cs.length || Math.abs(median(cs)) > 100)) { delete r.pick; r.m = e.m; r.noPitch = true; return r; }   /* (or a reading far from both: the detector's guess at the pair, not a note played) */   /* two notes at once with no single pitch to read (a third, a sixth): its start is still judged */
       if (!cs.length) { r.missed = true; r.timing = null; return r; }
       r.cents = Math.round(median(cs) * 10) / 10;
       r.hz = hz;
@@ -313,12 +321,11 @@
   function analyse(fr, song, opts) { var j = job(fr, song, opts); j.step(Infinity); return j.result; }
 
   /* per bar and for the piece, by the definitions (Trix's spec): in tune |cents| <= 10, in time |ms| <= 25; a bar
-     with a chord is not assessed (v1 does not guess which string is which) */
+     with a double stop is assessed on the note heard (see note()) */
   function summarise(an, bars) {
     var B = bars.map(function (b, k) { return { num: b.num, beat: b.beat, next: k + 1 < bars.length ? bars[k + 1].beat : Infinity, notes: [] }; });
     an.notes.forEach(function (r) { for (var k = 0; k < B.length; k++) if (r.b >= B[k].beat - 1e-6 && r.b < B[k].next - 1e-6) { B[k].notes.push(r); break; } });
     B.forEach(function (b) {
-      if (b.notes.some(function (r) { return r.chord; })) { b.state = 'na'; return; }
       var ok = b.notes.filter(function (r) { return r.cents !== undefined; });
       b.missed = b.notes.filter(function (r) { return r.missed; }).length;
       if (!ok.length) { b.state = b.notes.length ? 'na' : 'empty'; return; }
