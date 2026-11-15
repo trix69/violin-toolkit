@@ -826,7 +826,7 @@
         var d = k - POS_S[p];
         if (d < -1 || d > 7) continue;
         var fg = d <= 0 ? 1 : d <= 2 ? 2 : d <= 4 ? 3 : 4;
-        if (!blind && n.xfg !== undefined && n.xfg !== fg) continue;   /* a written finger */
+        if (!blind && n.xfg !== undefined && (n.xfg !== fg || (fg === 1 && d < 0))) continue;   /* a written 1 only where that finger stops the note (Hermes F123) */   /* a written finger */
         var c = FG_COST.pos[p] + (fg === 4 ? FG_COST.four : 0) + (d === 6 ? FG_COST.high4 : 0) + (d === 7 ? FG_COST.ext : 0);
         if (si <= 1 && p > 2) c += FG_COST.lowHigh;
         out.push({ si: si, p: p, fg: fg, c: c });
