@@ -3421,6 +3421,11 @@
       var all = [], P = { ok: 0, amber: 0, red: 0, miss: 0 }, T = { ok: 0, amber: 0, red: 0, miss: 0 };
       R.bars.forEach(function (b) { b.notes.forEach(function (r) { all.push(r); }); });
       all.forEach(function (r) {
+        if (r.each && !r.noPitch && !r.missed) {   /* each note of a chord in Pitch (an unheard one: missed), the start once in Timing (Hermes F114) */
+          r.each.forEach(function (o) { if (o.cents === undefined) { P.miss++; return; } var co = Math.abs(o.cents); P[co <= ASSESS.IN_TUNE ? 'ok' : co <= ASSESS.RED ? 'amber' : 'red']++; });
+          if (r.timing === null || r.timing === undefined) T.miss++; else { var te = Math.abs(r.timing); T[te <= r.tOk ? 'ok' : te <= r.tRed ? 'amber' : 'red']++; }
+          return;
+        }
         if (r.noPitch) { if (r.timing === null || r.timing === undefined) T.miss++; else { var t0 = Math.abs(r.timing); T[t0 <= r.tOk ? 'ok' : t0 <= r.tRed ? 'amber' : 'red']++; } return; }   /* a double stop with no pitch to read: timing only */
         if (r.missed || r.cents === undefined) { P.miss++; T.miss++; return; }
         var c = Math.abs(r.cents); P[c <= ASSESS.IN_TUNE ? 'ok' : c <= ASSESS.RED ? 'amber' : 'red']++;
@@ -3502,9 +3507,10 @@
       if (list.length > 1 && b) line(b.time + (['', 'st', 'nd', 'rd'][b.time] || 'th') + ' time', 'pa-pass');
       if (!r) { line('Not recorded.'); return; }
       if (r.missed) { line('Not heard.'); return; }
-      if (r.noPitch) { line(r.far ? 'Double stop: started too far from its place for the pitch to be measured.' : 'Double stop: pitch not measured (two notes at once).'); if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r)); if (r.exit !== undefined) line(ms(r.exit, 'End', r)); return; }
-      if (r.each) line('Double stop:');
-      if (r.chord && r.m !== undefined && !r.each) line('Double stop: measured on ' + APP.board.name(r.m) + '.');
+      var dbl = !r.idx || r.idx.length === 2, cname = dbl ? 'Double stop' : 'Chord';   /* by count (Hermes F113) */
+      if (r.noPitch) { line(r.far ? cname + ': started too far from its place for the pitch to be measured.' : cname + ': pitch not measured (' + (dbl ? 'two' : r.idx.length) + ' notes at once).'); if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r)); if (r.exit !== undefined) line(ms(r.exit, 'End', r)); return; }
+      if (r.each) line(cname + ':');
+      if (r.chord && r.m !== undefined && !r.each) line(cname + ': measured on ' + APP.board.name(r.m) + '.');
       if (r.each) {   /* each note of the double stop, top first */
         r.each.slice().sort(function (u, v) { return v.m - u.m; }).forEach(function (o) {
           if (o.cents === undefined) { line(APP.board.name(o.m) + ': not measured'); return; }
@@ -3637,6 +3643,11 @@
       b.notes.forEach(function (r) {
         n++;
         if (r.noPitch) { var tn = r.timing == null ? Infinity : Math.abs(r.timing); if (tn > r.tRed) bad++; else if (tn <= r.tOk) good++; return; }   /* timing only */
+        if (r.each && !r.missed) {   /* a chord: each note counts, with the chord's start (Hermes F114) */
+          var tc = r.timing == null ? 0 : Math.abs(r.timing);
+          n--; r.each.forEach(function (o) { n++; if (o.cents === undefined || Math.abs(o.cents) > ASSESS.RED || tc > r.tRed) bad++; else if (Math.abs(o.cents) <= ASSESS.IN_TUNE && tc <= r.tOk) good++; });
+          return;
+        }
         if (r.missed || r.cents === undefined) { bad++; return; }
         var c = Math.abs(r.cents), t = r.timing == null ? 0 : Math.abs(r.timing);
         if (c > ASSESS.RED || t > r.tRed) bad++; else if (c <= ASSESS.IN_TUNE && t <= r.tOk) good++;
