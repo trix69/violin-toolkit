@@ -278,3 +278,12 @@ voice's `\partial 4`). Hard Times (#371) left out: it moves bars with `\set Timi
 OpenScore Lieder via `pack_os.py`; Heidenröslein's voice is notated an octave up under a treble-8va clef: moved down an
 octave, clef plain. ly2xml.py gained `\bar ":|:"` repeats (a repeat sign inside a bar cuts the bar in two), dotted-beat
 `--tempo 4.=76`, `\transpose x x`, `\omit`, church modes, `\include "english.ly"`; pack.py never re-bars its output.
+
+## Andante BWV 1003 re-converted (2026-11-16, Hermes F118/F119)
+
+The python-ly route (`bach/build.py`) lost its five `\alternative` blocks: both endings played in a row and bar 14 twice.
+Now `ly rel2abs bwv-1003_3.ly`, plus `pre = { \key c \major \time 3/4 }` and `all = { \pre \melody }`, then
+`ly2xml.py abs.ly and.musicxml all --tempo 60` and `pack.py`. Play order: 1–11, 1–10, 12–28, 14–26, 29. Against
+`bwv-1003_3.mid` (one pass): 422 of 424 onsets; the two others are unisons between voices (bars 1 and 20). ly2xml.py now
+also takes `name = << … >>`, writes each `\repeat` once when several voices write it (the one with `\alternative` wins),
+keeps `\repeat volta 3` as `times="3"`, and warns when a tie has no note to end on.

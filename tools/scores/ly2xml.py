@@ -104,11 +104,12 @@ while j < len(toks):
     if k0 + 2 < len(toks) and toks[k0] == ('cmd', '\\transpose') and toks[k0 + 1][0] == toks[k0 + 2][0] == 'word':   # name = \transpose g g { }
         if toks[k0 + 1][1:3] != toks[k0 + 2][1:3]: sys.exit('\\transpose to another pitch: not supported')
         k0 += 3
-    if t[0] == 'word' and k0 < len(toks) and toks[j + 1] == ('p', '=') and toks[k0] == ('p', '{'):
+    if t[0] == 'word' and k0 < len(toks) and j + 1 < len(toks) and toks[j + 1] == ('p', '=') and toks[k0] in (('p', '{'), ('sim', '<<')):
+        op, cl = (('p', '{'), ('p', '}')) if toks[k0] == ('p', '{') else (('sim', '<<'), ('sim', '>>'))   # name = { } or name = << >>
         depth, k = 0, k0
         while True:
-            if toks[k] == ('p', '{'): depth += 1
-            elif toks[k] == ('p', '}'):
+            if toks[k] == op: depth += 1
+            elif toks[k] == cl:
                 depth -= 1
                 if not depth: break
             k += 1
@@ -347,7 +348,7 @@ class P:
                 while self.peek() != ('p', '}'):
                     a0 = S.t; self.item(); alts.append((a0, S.t))
                 self.next()
-            S.repeats.append((t0, t1, alts)); return
+            S.repeats.append((t0, t1, alts, n)); return
         if c == 'tempo':
             words, q = None, None
             if self.peek()[0] == 'str': words = self.next()[1][1:-1]
@@ -404,11 +405,18 @@ for name in EXPR.split('+'):
     if name in LABELS: add_pending('words', LABELS[name])
     P(VARS[name]).run()
 END = S.t
+# voices of one staff each write the same \repeat: once per start; where only some voices write the \alternative
+# (a resting voice may not), the one with endings wins (Hermes F118: BWV 1003's three voices)
+_rep = {}
+for r in S.repeats:
+    o = _rep.get(r[0])
+    if o is None or (r[2] and not o[2]) or (bool(r[2]) == bool(o[2]) and r[1] > o[1]): _rep[r[0]] = (r[0], r[1], list(r[2]), r[3])
+S.repeats = sorted(_rep.values())
 # repeat signs written as bar lines (\bar "|:" ":|" ":|:" ":|.|:" ...): a repeat from the last start sign (or the beginning)
 st = F(0)
 for t, b_ in sorted(S.bars, key=lambda x: x[0]):
     if ':' not in b_: continue
-    if b_.startswith(':') and not any(r[0] == st and r[1] == t for r in S.repeats): S.repeats.append((st, t, []))
+    if b_.startswith(':') and not any(r[0] == st and r[1] == t for r in S.repeats): S.repeats.append((st, t, [], 2))
     if b_.endswith(':'): st = t
 for r in S.repeats:   # a \repeat volta starting there resets the start
     pass
@@ -499,6 +507,7 @@ ev = out
 for i, e in enumerate(ev):
     if e['ties'] and e['kind'] == 'note':
         nx = next((x for x in ev[i + 1:] if x['voice'] == e['voice'] and not x['grace'] and x['t'] >= e['t'] + e['d']), None)
+        if not (nx and nx['t'] == e['t'] + e['d'] and set(e['pitches']) & set(nx['pitches'])): print('a tie at %s (voice %d) has no note right after it to end on: dropped' % (e['t'], e['voice']), file=sys.stderr)
         if nx and nx['t'] == e['t'] + e['d']:
             e['tie_to'] = [p for p in e['pitches'] if p in nx['pitches']]
             nx.setdefault('tie_from', []); nx['tie_from'] += e['tie_to']
@@ -706,7 +715,9 @@ for bi, (b0, b1, sig) in enumerate(bars):
         bl = rb(); ET.SubElement(bl, 'bar-style').text = 'light-heavy'
         for a0, a1, n_, more in ending_bars:
             if a1 == b1 and more: ET.SubElement(bl, 'ending', number=str(n_), type='stop')
-        ET.SubElement(bl, 'repeat', direction='backward')
+        times = next((r[3] for r in S.repeats if (r[2][0][1] if r[2] else r[1]) == b1), 2)
+        rp = ET.SubElement(bl, 'repeat', direction='backward')
+        if times != 2 and not any(r[2] for r in S.repeats if (r[2][0][1] if r[2] else r[1]) == b1): rp.set('times', str(times))   # \repeat volta 3 (Hermes R147.2)
     else:
         for a0, a1, n_, more in ending_bars:
             if a1 == b1:
