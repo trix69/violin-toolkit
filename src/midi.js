@@ -3247,7 +3247,7 @@
     paTime.textContent = fmt(p) + ' / ' + fmt(song.end);
     paFill.style.width = (song.end ? 100 * p / song.end : 0).toFixed(2) + '%';
     var beat = counting ? Math.max(0, countBeat) : song.toBeat(p), bo = song.barAt ? song.barAt(Math.max(0, beat)) : null;
-    paBarNow.textContent = bo && (paTake || pos > 0.01) ? 'Bar ' + bo.num : '';
+    paBarNow.textContent = bo && (paTake || pos > 0.01) ? (bo.num === '0' ? 'Upbeat' : 'Bar ' + bo.num) : '';   /* Hermes F111 */
     var pg = null; if (fgMap.length) { var wb = writtenBeat(beat); fgMap.forEach(function (m) { if (m.b0 <= wb + 1e-6) pg = m.pi; }); }
     var nPg = fgMap.length ? fgMap[fgMap.length - 1].pi + 1 : 0;
     paPage.textContent = nPg && pg !== null ? 'Page ' + (pg + 1) + ' of ' + nPg : '';
@@ -3393,7 +3393,8 @@
     var bars = song.bars || [], recBeat = song.toBeat(recEnd), recBars = bars.filter(function (b) { return b.beat < recBeat - 1e-6; });
     var sum = ASSESS.summarise(an, recBars.length ? recBars : bars.slice(0, 1));
     var total = bars.length ? bars[bars.length - 1].num : '', lastRec = recBars.length ? recBars[recBars.length - 1].num : '';
-    if (recBars.length && recBars.length < bars.length) sum.partial = bars[0].num === lastRec ? 'Only bar ' + lastRec + ' of ' + total + ' was recorded.' : 'Only bars ' + bars[0].num + '–' + lastRec + ' of ' + total + ' were recorded.';   /* one bar: singular (Hermes F82) */
+    if (recBars.length && recBars.length < bars.length && bars[0].num === '0') sum.partial = lastRec === '0' ? 'Only the upbeat was recorded.' : 'Only the upbeat to bar ' + lastRec + ' of ' + total + ' was recorded.';   /* a pickup is the upbeat, not bar 0 (Hermes F111) */
+    else if (recBars.length && recBars.length < bars.length) sum.partial = bars[0].num === lastRec ? 'Only bar ' + lastRec + ' of ' + total + ' was recorded.' : 'Only bars ' + bars[0].num + '–' + lastRec + ' of ' + total + ' were recorded.';   /* one bar: singular (Hermes F82) */
     sum.temper = APP.temper ? APP.temper.id : 'equal';
     sum.bars.forEach(function (b, i) { b.idx = i; b.notes.forEach(paTLim); });
     return sum;
@@ -3486,7 +3487,7 @@
     var k = +key.slice(1), list = key[0] === 'p' ? (paPrinted[k] || [k]) : [k], bars = song.bars || [], n0 = song.notes[k];
     paCardBar = paBarOf[list[0]];
     $('paCardN').textContent = APP.board.name(n0.m);
-    $('paCardT').textContent = 'Bar ' + (bars[paCardBar] ? bars[paCardBar].num : '');
+    $('paCardT').textContent = bars[paCardBar] && bars[paCardBar].num === '0' ? 'Upbeat' : 'Bar ' + (bars[paCardBar] ? bars[paCardBar].num : '');
     var box = $('paCardB'); box.textContent = ''; box.classList.remove('has-fb');
     function line(t, cls) { var p0 = document.createElement('p'); p0.textContent = t; if (cls) p0.className = cls; box.appendChild(p0); }
     function ms(v, what, r) { return Math.abs(v) <= r.tOk ? what + ': on time (' + (v >= 0 ? '+' : '−') + Math.abs(v) + ' ms, within ' + r.tOk + ' ms)' : what + ': ' + Math.abs(v) + ' ms ' + (v > 0 ? 'late' : 'early'); }
