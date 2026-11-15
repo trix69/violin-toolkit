@@ -1715,6 +1715,12 @@ html[lang="zh-CN"] {
 .a4list button:focus-visible, .a4step button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 /* "new version" popup: Later and Update side by side */
 #upd { z-index: 140; }
+#upd.upd-going .upd-row { display: none; }
+.upd-prog { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.upd-prog[hidden] { display: none; }
+.upd-bar { flex: 1; height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 12%, transparent); overflow: hidden; }
+.upd-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width .15s linear; }
+.upd-pct { min-width: 3.2em; text-align: right; font: 600 15px var(--font-body, system-ui); font-variant-numeric: tabular-nums; }
 #fgWarn { z-index: 140; }
 #delAsk, #repAsk { z-index: 140; }
 #extAsk { z-index: 160; }
@@ -2557,7 +2563,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
       </div>
       </div>
     </div>
-    <button type="button" class="ver" id="verBtn" data-version="1.48" data-build="20261115-210225" data-cache="violin-toolkit-"><span>Version 1.48</span> · <span id="verMsg">Check for updates</span></button>
+    <button type="button" class="ver" id="verBtn" data-version="1.49" data-build="20261115-230448" data-cache="violin-toolkit-"><span>Version 1.49</span> · <span id="verMsg">Check for updates</span></button>
     <button type="button" class="sheet-done" id="sheetDone">Done</button>
   </div>
 </div>
@@ -2649,6 +2655,7 @@ a.howto-btn { text-decoration: none; box-sizing: border-box; }
     <h2 id="updTitle">New version</h2>
     <p class="upd-msg" id="updMsg"></p>
     <p class="upd-note" id="updNote">Your settings and practice time are kept.</p>
+    <div class="upd-prog" id="updProg" hidden><div class="upd-bar" id="updBar" role="progressbar" aria-label="Update progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="updFill"></i></div><span class="upd-pct" id="updPct" translate="no">0%</span></div>
     <div class="upd-row">
       <button type="button" class="upd-later" id="updLater">Later</button>
       <button type="button" class="sheet-done" id="updNow">Update</button>
@@ -4989,13 +4996,49 @@ function noteGate() {
   var WIN = 2048, HOP = 512, BLK = 128, EW = 512, GATE = 0.01;
   var IN_TUNE = 10, IN_TIME = 25, AMBER = 10, RED = 25;   /* cents, ms: the definitions, kept fixed between builds */
 
-  function framer(sr, yin) {
-    var ring = new Float32Array(WIN), filled = 0, pos = 0, since = 0, n = 0;
-    var fr = { sr: sr, hop: HOP, win: WIN, t: [], rms: [], f: [], et: [], e: [] };
-    var buf = new Float32Array(WIN);
+  /* double stops (Trix: why not pitch?): one pitch detector cannot read two notes at once, so a piece with double stops also
+     keeps, every second frame, the 16 strongest peaks of the spectrum (frequency + level; numbers, not audio). Each note of a
+     double stop is then measured from the peaks at its own harmonics. A 4096-sample Hann window, zero-padded to 8192 */
+  var PW = 4096, PN = 8192, PK = 16, pfft = null;
+  function fftSetup() {
+    var cos = new Float64Array(PN / 2), sin = new Float64Array(PN / 2), rev = new Uint32Array(PN), hann = new Float64Array(PW), bits = Math.log2(PN), i;
+    for (i = 0; i < PN / 2; i++) { cos[i] = Math.cos(2 * Math.PI * i / PN); sin[i] = -Math.sin(2 * Math.PI * i / PN); }
+    for (i = 0; i < PN; i++) { var r = 0, x = i; for (var b = 0; b < bits; b++) { r = (r << 1) | (x & 1); x >>= 1; } rev[i] = r; }
+    for (i = 0; i < PW; i++) hann[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (PW - 1));
+    return { cos: cos, sin: sin, rev: rev, hann: hann, re: new Float64Array(PN), im: new Float64Array(PN), mag: new Float64Array(PN / 2) };
+  }
+  function peaksOf(win, sr) {   /* win: PW samples, oldest first -> Float32Array [f0, level0, f1, level1, ...] */
+    var F = pfft || (pfft = fftSetup()), re = F.re, im = F.im, i, j, len;
+    re.fill(0); im.fill(0);
+    for (i = 0; i < PW; i++) re[F.rev[i]] = win[i] * F.hann[i];
+    for (len = 2; len <= PN; len <<= 1) {
+      var half = len >> 1, step = PN / len;
+      for (i = 0; i < PN; i += len) for (j = 0; j < half; j++) {
+        var c = F.cos[j * step], s2 = F.sin[j * step], a = i + j, b = a + half;
+        var tr = re[b] * c - im[b] * s2, ti = re[b] * s2 + im[b] * c;
+        re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+      }
+    }
+    var lo = Math.floor(150 * PN / sr), hi = Math.min(PN / 2 - 2, Math.ceil(5000 * PN / sr)), mag = F.mag, top = 0;
+    for (i = lo - 1; i <= hi + 1; i++) { mag[i] = Math.log(re[i] * re[i] + im[i] * im[i] + 1e-12); if (mag[i] > top) top = mag[i]; }
+    var cand = [];
+    for (i = lo; i <= hi; i++) if (mag[i] > mag[i - 1] && mag[i] >= mag[i + 1] && mag[i] > top - 11.5) {   /* within ~50 dB of the loudest */
+      var d = mag[i - 1] - 2 * mag[i] + mag[i + 1], p = d < 0 ? 0.5 * (mag[i - 1] - mag[i + 1]) / d : 0;
+      cand.push([(i + p) * sr / PN, mag[i] - 0.25 * (mag[i - 1] - mag[i + 1]) * p]);
+    }
+    cand.sort(function (u, v) { return v[1] - u[1]; });
+    var out = new Float32Array(2 * PK);
+    for (i = 0; i < Math.min(PK, cand.length); i++) { out[2 * i] = cand[i][0]; out[2 * i + 1] = cand[i][1]; }
+    return out;
+  }
+  function framer(sr, yin, opts) {
+    var ring = new Float32Array(WIN), filled = 0, pos = 0, since = 0, n = 0, hops = 0;
+    var fr = { sr: sr, hop: HOP, win: WIN, t: [], rms: [], f: [], et: [], e: [], pt: [], pk: [] };
+    var buf = new Float32Array(WIN), peaks = opts && opts.peaks, pring = peaks ? new Float32Array(PW) : null, ppos = 0, pbuf = peaks ? new Float32Array(PW) : null;
     fr.push = function (x) {   /* x: Float32Array of any length, in order */
       for (var i = 0; i < x.length; i++) {
         ring[pos] = x[i]; pos = (pos + 1) % WIN; if (filled < WIN) filled++;
+        if (peaks) { pring[ppos] = x[i]; ppos = (ppos + 1) % PW; }
         n++; since++;
         if (n % BLK === 0 && filled >= EW) {   /* fine loudness: the last 512 samples (a cycle of the lowest note fits), every 128 */
           var s = 0, k, j;
@@ -5009,6 +5052,10 @@ function noteGate() {
           var rms = Math.sqrt(e2 / WIN);
           fr.t.push((n - WIN / 2) / sr); fr.rms.push(rms);
           fr.f.push(rms > GATE ? yin(buf, sr, 150, 3000) : 0);
+          if (peaks && (hops++ & 1) === 0 && n >= PW && rms > GATE) {
+            for (k = 0; k < PW; k++) pbuf[k] = pring[(ppos + k) % PW];
+            fr.pt.push((n - PW / 2) / sr); fr.pk.push(peaksOf(pbuf, sr));
+          }
         }
       }
     };
@@ -5109,14 +5156,42 @@ function noteGate() {
     return out;
   }
 
+  /* one note of a double stop from the kept peaks: per frame, its harmonics 1-4 that no other note of the chord shares (within
+     70 cents of any of their first 5), each matched to the strongest peak within 70 cents; the frame's reading is their
+     level-weighted mean in cents; the note's frames between a and b */
+  function chordCents(fr, a, b, hzs, i) {
+    var out = [], i0 = lowerBound(fr.pt, a), i1 = lowerBound(fr.pt, b), hs = [];
+    for (var h = 1; h <= 4; h++) {
+      var tg = h * hzs[i], clash = false;
+      hzs.forEach(function (o, j) { if (j === i) return; for (var h2 = 1; h2 <= 5; h2++) if (Math.abs(1200 * Math.log(h2 * o / tg) / Math.LN2) < 70) clash = true; });
+      if (!clash && tg < 4800) hs.push(h);
+    }
+    if (!hs.length) return out;
+    for (var q = i0; q < i1; q++) {
+      var pk = fr.pk[q], sw = 0, sc = 0, top = -Infinity;
+      for (var z = 1; z < pk.length; z += 2) if (pk[z - 1] > 0 && pk[z] > top) top = pk[z];
+      hs.forEach(function (h2) {
+        var tg2 = h2 * hzs[i], best = null;
+        for (var z2 = 0; z2 < pk.length; z2 += 2) {
+          if (!(pk[z2] > 0)) continue;
+          var c = 1200 * Math.log(pk[z2] / tg2) / Math.LN2;
+          if (Math.abs(c) < 70 && pk[z2 + 1] > top - 6.9 && (!best || pk[z2 + 1] > best[1])) best = [c, pk[z2 + 1]];   /* within ~30 dB of the frame's loudest */
+        }
+        if (best) { var w = Math.exp(best[1] - top) * h2; sw += w; sc += w * best[0]; }   /* higher harmonics read cents more finely */
+      });
+      if (sw > 0) out.push(sc / sw);
+    }
+    return out;
+  }
+
   /* the score's events: each onset of the solo (a chord's notes share one), graces left out */
   function events(song) {
     var ev = [];
     song.notes.forEach(function (n, k) {
       if (n.grace) return;
       var last = ev[ev.length - 1];
-      if (last && Math.abs(last.t - n.t) < 1e-4) { last.idx.push(k); last.chord = true; last.e = Math.max(last.e, n.e); return; }
-      ev.push({ t: n.t, e: n.e, m: n.m, idx: [k], chord: false, b: n.b });
+      if (last && Math.abs(last.t - n.t) < 1e-4) { last.idx.push(k); last.ms.push(n.m); last.chord = true; last.e = Math.max(last.e, n.e); return; }
+      ev.push({ t: n.t, e: n.e, m: n.m, ms: [n.m], idx: [k], chord: false, b: n.b });
     });
     return ev;
   }
@@ -5144,8 +5219,8 @@ function noteGate() {
           } else step = Math.abs(L) < 2.5 ? Math.abs(L) * 0.4 : INF;   /* the first note: near where the count-in put it */
           if (step < INF) {
             var pc = 0;
-            if (!e.chord && p.m !== null) { var d = Math.abs(p.m - e.m); d = Math.min(d, Math.abs(d - 12), Math.abs(d - 24)) + (d > 6 ? 0.5 : 0); pc = d < 0.5 ? 0 : Math.min(d, 4) * 0.6; }
-            else if (!e.chord) pc = 0.5;
+            if (p.m !== null) { pc = Infinity; e.ms.forEach(function (em) { var d = Math.abs(p.m - em); d = Math.min(d, Math.abs(d - 12), Math.abs(d - 24)) + (d > 6 ? 0.5 : 0); pc = Math.min(pc, d < 0.5 ? 0 : Math.min(d, 4) * 0.6); }); }   /* a double stop: the nearer of its notes */
+            else pc = e.chord ? 0.3 : 0.5;
             if (cost[k] + step + pc < best) { best = cost[k] + step + pc; bf = 3; bl = L; be = e.t; bh = 1; }
           }
         }
@@ -5221,12 +5296,38 @@ function noteGate() {
          when the note runs into it (a slur, legato); against the note's own end in the score, on the same clock */
       var endT = soundEnd(fr, o.t + 0.05, nextT);
       if (endT !== null) r.exit = Math.round((endT - (e.e + r.warp)) * 1000);
-      if (e.chord) { r.skip = 'chord'; return r; }
       /* the window: from the onset to the next onset (an open string ringing on is not measured past it), and no
          longer than the note's own length allows; attack 80 ms and release 120 ms left out (less for short notes) */
       var dur = (e.e - e.t), end = Math.min(nextT, o.t + dur * 1.25 + 0.1), L = end - o.t;
       var a = o.t + Math.min(0.08, 0.2 * L), b = end - Math.min(0.12, 0.2 * L);
-      var hz = hzOf(song.notes[e.idx[0]]), cs = centsIn(fr, a, b, hz);
+      /* a double stop (Trix: they were all shown as missed): one pitch is heard at a time, so it is measured against the note of
+         the two (or more) the frames sit nearest; r.m and r.pick name that note */
+      var pick = 0, hz = hzOf(song.notes[e.idx[0]]), cs = centsIn(fr, a, b, hz);
+      /* a double stop started far from its place (more than half a second, or half its length, off): the sound in its window
+         may be another note's, so its pitch is not graded (Trix: a D4 read 49 cents low, started 1.7 s early) */
+      if (e.chord && Math.abs(r.timing) > Math.max(500, 500 * (e.e - e.t))) { r.noPitch = true; r.far = true; return r; }
+      if (e.chord && fr.pk && fr.pk.length) {   /* each note of the double stop measured on its own (see chordCents) */
+        var hzs = e.idx.map(function (k) { return hzOf(song.notes[k]); });
+        r.each = e.idx.map(function (k, q) {
+          var cc = chordCents(fr, a, b, hzs, q), o = { k: k, m: song.notes[k].m };
+          if (cc.length >= 3) o.cents = Math.round(median(cc) * 10) / 10;
+          return o;
+        });
+        var meas = r.each.filter(function (o) { return o.cents !== undefined; });
+        if (meas.length) {
+          var wo = meas.reduce(function (u, v) { return Math.abs(v.cents) > Math.abs(u.cents) ? v : u; });   /* the event's own reading: its worse note */
+          r.cents = wo.cents; r.m = wo.m; r.pick = wo.k; r.hz = hzOf(song.notes[wo.k]);
+          return r;
+        }
+        delete r.each;
+      }
+      if (e.chord) {
+        var best = Infinity;
+        e.idx.forEach(function (k, q) { var h = hzOf(song.notes[k]), c2 = centsIn(fr, a, b, h); if (!c2.length) return; var md = Math.abs(median(c2)); if (md < best) { best = md; pick = q; hz = h; cs = c2; } });
+        r.m = e.ms[pick]; r.pick = e.idx[pick];
+      }
+      /* two notes at once with no single pitch to read (a third, a sixth): its start is still judged */
+      if (e.chord && (!cs.length || Math.abs(median(cs)) > 100)) { delete r.pick; r.m = e.m; r.noPitch = true; return r; }   /* (or a reading far from both: the detector's guess at the pair, not a note played) */   /* two notes at once with no single pitch to read (a third, a sixth): its start is still judged */
       if (!cs.length) { r.missed = true; r.timing = null; return r; }
       r.cents = Math.round(median(cs) * 10) / 10;
       r.hz = hz;
@@ -5288,12 +5389,11 @@ function noteGate() {
   function analyse(fr, song, opts) { var j = job(fr, song, opts); j.step(Infinity); return j.result; }
 
   /* per bar and for the piece, by the definitions (Trix's spec): in tune |cents| <= 10, in time |ms| <= 25; a bar
-     with a chord is not assessed (v1 does not guess which string is which) */
+     with a double stop is assessed on the note heard (see note()) */
   function summarise(an, bars) {
     var B = bars.map(function (b, k) { return { num: b.num, beat: b.beat, next: k + 1 < bars.length ? bars[k + 1].beat : Infinity, notes: [] }; });
     an.notes.forEach(function (r) { for (var k = 0; k < B.length; k++) if (r.b >= B[k].beat - 1e-6 && r.b < B[k].next - 1e-6) { B[k].notes.push(r); break; } });
     B.forEach(function (b) {
-      if (b.notes.some(function (r) { return r.chord; })) { b.state = 'na'; return; }
       var ok = b.notes.filter(function (r) { return r.cents !== undefined; });
       b.missed = b.notes.filter(function (r) { return r.missed; }).length;
       if (!ok.length) { b.state = b.notes.length ? 'na' : 'empty'; return; }
@@ -8610,7 +8710,7 @@ function noteGate() {
     if (!APP.board.prime()) return;   /* inside the tap: the sound engine may start (iPhone) */
     var au = APP.board.audio(), ctx = au && au.ctx;
     if (!ctx || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { paSay('The microphone is not available.'); return; }
-    var T = paTake = { state: 'starting', sound: sound, ctx: ctx, f0: -1, next: -1, fr: ASSESS.framer(ctx.sampleRate, window.yin), quietSince: 0, warned: false, ctxGo: 0, recEnd: 0 };
+    var T = paTake = { state: 'starting', sound: sound, ctx: ctx, f0: -1, next: -1, fr: ASSESS.framer(ctx.sampleRate, window.yin, { peaks: song.notes.some(function (n, i) { return i && !n.grace && !song.notes[i - 1].grace && Math.abs(n.t - song.notes[i - 1].t) < 1e-4; }) }), quietSince: 0, warned: false, ctxGo: 0, recEnd: 0 };
     paRes = null; paBrowse = null; paClearTints(); paSay(''); paCardClose(); paUi();
     APP.mic('pa', true);
     navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (stream) {
@@ -8748,7 +8848,13 @@ function noteGate() {
       var all = [], P = { ok: 0, amber: 0, red: 0, miss: 0 }, T = { ok: 0, amber: 0, red: 0, miss: 0 };
       R.bars.forEach(function (b) { b.notes.forEach(function (r) { all.push(r); }); });
       all.forEach(function (r) {
-        if (r.missed || r.chord || r.cents === undefined) { P.miss++; T.miss++; return; }
+        if (r.each && !r.noPitch && !r.missed) {   /* each note of a chord in Pitch (an unheard one: missed), the start once in Timing (Hermes F114) */
+          r.each.forEach(function (o) { if (o.cents === undefined) { P.miss++; return; } var co = Math.abs(o.cents); P[co <= ASSESS.IN_TUNE ? 'ok' : co <= ASSESS.RED ? 'amber' : 'red']++; });
+          if (r.timing === null || r.timing === undefined) T.miss++; else { var te = Math.abs(r.timing); T[te <= r.tOk ? 'ok' : te <= r.tRed ? 'amber' : 'red']++; }
+          return;
+        }
+        if (r.noPitch) { if (r.timing === null || r.timing === undefined) T.miss++; else { var t0 = Math.abs(r.timing); T[t0 <= r.tOk ? 'ok' : t0 <= r.tRed ? 'amber' : 'red']++; } return; }   /* a double stop with no pitch to read: timing only */
+        if (r.missed || r.cents === undefined) { P.miss++; T.miss++; return; }
         var c = Math.abs(r.cents); P[c <= ASSESS.IN_TUNE ? 'ok' : c <= ASSESS.RED ? 'amber' : 'red']++;
         if (r.timing === null || r.timing === undefined) { T.miss++; return; }
         var t = Math.abs(r.timing); T[t <= r.tOk ? 'ok' : t <= r.tRed ? 'amber' : 'red']++;
@@ -8828,7 +8934,20 @@ function noteGate() {
       if (list.length > 1 && b) line(b.time + (['', 'st', 'nd', 'rd'][b.time] || 'th') + ' time', 'pa-pass');
       if (!r) { line('Not recorded.'); return; }
       if (r.missed) { line('Not heard.'); return; }
-      if (r.chord) { line('Double stop: not assessed.'); return; }
+      var dbl = !r.idx || r.idx.length === 2, cname = dbl ? 'Double stop' : 'Chord';   /* by count (Hermes F113) */
+      if (r.noPitch) { line(r.far ? cname + ': started too far from its place for the pitch to be measured.' : cname + ': pitch not measured (' + (dbl ? 'two' : r.idx.length) + ' notes at once).'); if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r)); if (r.exit !== undefined) line(ms(r.exit, 'End', r)); return; }
+      if (r.each) line(cname + ':');
+      if (r.chord && r.m !== undefined && !r.each) line(cname + ': measured on ' + APP.board.name(r.m) + '.');
+      if (r.each) {   /* each note of the double stop, top first */
+        r.each.slice().sort(function (u, v) { return v.m - u.m; }).forEach(function (o) {
+          if (o.cents === undefined) { line(APP.board.name(o.m) + ': not measured'); return; }
+          var c2 = Math.round(o.cents);
+          line(APP.board.name(o.m) + ': ' + (Math.abs(c2) <= ASSESS.IN_TUNE ? 'in tune (' + (c2 >= 0 ? '+' : '−') + Math.abs(c2) + ' ¢)' : Math.abs(c2) + ' ¢ ' + (c2 > 0 ? 'high' : 'low')));
+        });
+        if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r));
+        if (r.exit !== undefined) line(ms(r.exit, 'End', r));
+        return;
+      }
       var c = Math.round(r.cents);
       if (Math.abs(c) >= PA_WRONG && Math.round(c / 100) !== 0) line('Played ' + APP.board.name(r.m + Math.round(c / 100)) + ' instead of ' + APP.board.name(r.m) + ' (' + (c >= 0 ? '+' : '−') + Math.abs(c) + ' ¢)');
       else line(Math.abs(c) <= ASSESS.IN_TUNE ? 'Pitch: in tune (' + (c >= 0 ? '+' : '−') + Math.abs(c) + ' ¢)' : 'Pitch: ' + Math.abs(c) + ' ¢ ' + (c > 0 ? 'high' : 'low'));
@@ -8836,11 +8955,16 @@ function noteGate() {
       if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r));
       if (r.exit !== undefined) line(ms(r.exit, 'End', r));
     });
-    var r1 = paResOf[list[0]];
-    if (r1 && !r1.missed && !r1.chord && r1.cents !== undefined && n0.si >= 0) {
-      if (n0.fg === 0 && Math.abs(r1.cents) > ASSESS.IN_TUNE && Math.abs(r1.cents) < PA_WRONG) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say');   /* no finger to move: the string's tuning */
+    var r1 = paResOf[list[0]], oth = [];
+    if (r1 && r1.each) {   /* a double stop: this note's own reading, and the other notes beside it on the board (Trix) */
+      var own = null; r1.each.forEach(function (o) { if (o.k === list[0]) own = o; else if (o.cents !== undefined && ns0(o.k).si >= 0) oth.push({ n: ns0(o.k), cents: o.cents }); });
+      r1 = own && own.cents !== undefined ? { cents: own.cents, chord: true } : null;
+    } else if (r1 && r1.chord && r1.pick !== list[0]) r1 = null;
+    function ns0(kk) { return song.notes[kk]; }
+    if (r1 && !r1.missed && r1.cents !== undefined && n0.si >= 0) {
+      if (!r1.chord && n0.fg === 0 && Math.abs(r1.cents) > ASSESS.IN_TUNE && Math.abs(r1.cents) < PA_WRONG) line('Open string: tune the ' + PA_SNAME[n0.si] + ' string ' + (r1.cents > 0 ? 'down' : 'up') + ' by ' + Math.abs(Math.round(r1.cents)) + ' ¢.', 'pa-fb-say');   /* no finger to move: the string's tuning */
       if (paView === 'pages') {   /* Pages only: Live has the big fingerboard (Trix); the board on the right of the text */
-        var fb = paFingerSvg(n0, r1, k), txt = document.createElement('div'); txt.className = 'pa-fb-txt';
+        var fb = paFingerSvg(n0, r1, k, oth), txt = document.createElement('div'); txt.className = 'pa-fb-txt';
         while (box.firstChild) txt.appendChild(box.firstChild);
         if (n0.fg !== 0 && Math.abs(r1.cents) < PA_WRONG) txt.appendChild(fb.say);   /* a wrong note: 'Played B4 instead of A4' says it, the dot shows where */ box.appendChild(txt); box.appendChild(fb.svg); box.classList.add('has-fb');
       }
@@ -8863,14 +8987,16 @@ function noteGate() {
      the finger should be (the written note, with its finger), a disc where it was (from the pitch played), and how far apart
      they are on a real violin (328 mm string) */
   var PA_OPEN = [55, 62, 69, 76], PA_SNAME = ['G', 'D', 'A', 'E'], PA_LEN = 328;
-  function paFingerSvg(n, r, k) {
+  function paFingerSvg(n, r, k, oth) {
+    oth = (oth || []).filter(function (q) { return q.n.si !== n.si; });   /* the rest of a double stop, each on its own string */
     /* drawn like the MIDI player's board (Trix): all four strings, every note place from the open string up, the key's notes
        tinted, the written note lit in its string colour with its finger, and a disc where the played pitch puts the finger */
     var si = n.si, open = PA_OPEN[si], ne = n.m - open, na = ne + r.cents / 100, sa = si;
     while (na < -0.4 && sa > 0) { sa--; na = n.m + r.cents / 100 - PA_OPEN[sa]; }   /* lower than this open string: where it is played, a string down (Trix) */
     na = Math.max(-0.4, na);
     function mm(x) { return PA_LEN * (1 - Math.pow(2, -x / 12)); }
-    var top = Math.max(7, Math.ceil(Math.max(ne, na)) + 1), COL = ['#66AEE6', '#74C493', '#E3A24C', '#EE6A5E'];
+    oth.forEach(function (q) { q.ne = q.n.m - PA_OPEN[q.n.si]; q.na = Math.max(-0.4, q.ne + q.cents / 100); });
+    var top = Math.max(7, Math.ceil(Math.max.apply(null, [ne, na].concat(oth.map(function (q) { return Math.max(q.ne, q.na); })))) + 1), COL = ['#66AEE6', '#74C493', '#E3A24C', '#EE6A5E'];
     var W = 150, X0 = 22, DX = (W - 2 * X0) / 3, Y0 = 26, H = Math.max(210, 22 * top + 40), K = (H - Y0 - 14) / mm(top), R = Math.min(10, K * (mm(1) - mm(0)) / 2 - 1);
     function Y(x) { return Y0 + K * mm(x); }
     var kn = song.keyAt ? song.keyAt(n.b || 0) : { sf: song.sf || 0 }, root = ((kn.sf * 7) % 12 + 12) % 12, inKey = {};
@@ -8884,13 +9010,19 @@ function noteGate() {
       o.push('<text x="' + x + '" y="12" class="pa-fb-lab" fill="' + COL[s4] + '">' + PA_SNAME[s4] + '</text>');
       o.push('<line x1="' + x + '" y1="' + (Y0 - 6) + '" x2="' + x + '" y2="' + (H - 6) + '" stroke="' + COL[s4] + '" class="pa-fb-str"/>');
       for (var j = 0; j <= top; j++) {
-        var m = PA_OPEN[s4] + j, y = Y(j), lit = s4 === si && j === ne, key = inKey[m % 12];
+        var oq = oth.filter(function (q) { return q.n.si === s4 && q.ne === j; })[0];
+        var m = PA_OPEN[s4] + j, y = Y(j), lit = (s4 === si && j === ne) || !!oq, key = inKey[m % 12];
         var nm = APP.board.name(m).replace(/-?\d+$/, '');
         o.push('<circle cx="' + x + '" cy="' + y.toFixed(1) + '" r="' + R.toFixed(1) + '" class="pa-fb-n' + (lit ? ' lit' : key ? ' key' : '') + '" style="--c:' + COL[s4] + '"/>');
-        if (R >= 7) o.push('<text x="' + x + '" y="' + (y + 3).toFixed(1) + '" class="pa-fb-t' + (lit ? ' lit' : '') + '">' + (lit && n.fg > 0 ? n.fg : nm) + '</text>');
+        if (R >= 7) o.push('<text x="' + x + '" y="' + (y + 3).toFixed(1) + '" class="pa-fb-t' + (lit ? ' lit' : '') + '">' + (lit && (oq ? oq.n.fg : n.fg) > 0 ? (oq ? oq.n.fg : n.fg) : nm) + '</text>');
       }
     }
     if (Math.abs(r.cents) > ASSESS.IN_TUNE && (n.fg !== 0 || Math.abs(r.cents) >= PA_WRONG)) o.push('<circle cx="' + (X0 + sa * DX) + '" cy="' + Y(na).toFixed(1) + '" r="' + (R * 0.62).toFixed(1) + '" fill="' + kind + '" class="pa-fb-got"/>');   /* in tune or open: the written place only (Trix) */
+    oth.forEach(function (q) {   /* the other note's own disc where its pitch puts the finger */
+      if (Math.abs(q.cents) <= ASSESS.IN_TUNE) return;
+      var kq = Math.abs(q.cents) <= ASSESS.RED ? '#d68a00' : '#d23b2f';
+      o.push('<circle cx="' + (X0 + q.n.si * DX) + '" cy="' + Y(q.na).toFixed(1) + '" r="' + (R * 0.62).toFixed(1) + '" fill="' + kq + '" class="pa-fb-got"/>');
+    });
     o.push('</svg>');
     var w = document.createElement('div'); w.innerHTML = o.join('');
     var d = mm(na) - mm(ne), p0 = document.createElement('p'); p0.className = 'pa-fb-say';
@@ -8914,11 +9046,19 @@ function noteGate() {
     function tk(r) { if (r.timing === null || r.timing === undefined) return null; var a = Math.abs(r.timing); return a <= r.tOk ? 'ok' : a <= r.tRed ? 'amber' : 'red'; }
     paRes.bars.forEach(function (b, bi) {
       b.notes.forEach(function (r) {
-        var kind = r.missed ? 'miss' : r.chord || r.cents === undefined ? 'na' : Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'ok' : Math.abs(r.cents) <= ASSESS.RED ? 'amber' : 'red';
+        var kind = r.missed ? 'miss' : r.noPitch ? 'np' : r.cents === undefined ? 'na' : Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'ok' : Math.abs(r.cents) <= ASSESS.RED ? 'amber' : 'red';
         /* far off (Trix: C written, D played): the written note grey, the note played drawn in red where it sits */
         var played = kind === 'red' && Math.abs(r.cents) >= PA_WRONG ? r.m + Math.round(r.cents / 100) : null;
         if (played !== null && played === r.m) played = null;
-        r.idx.forEach(function (k) { st[k] = { kind: kind, time: r.missed ? null : tk(r), played: played, c: kind === 'na' || r.missed ? null : r.cents, t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
+        var per = {}; if (r.each) r.each.forEach(function (o) { per[o.k] = o; });   /* a double stop measured note by note: each head its own */
+        r.idx.forEach(function (k) {
+          var o = per[k];
+          if (o) {
+            var ok2 = o.cents === undefined ? 'na' : Math.abs(o.cents) <= ASSESS.IN_TUNE ? 'ok' : Math.abs(o.cents) <= ASSESS.RED ? 'amber' : 'red';
+            var pl2 = ok2 === 'red' && Math.abs(o.cents) >= PA_WRONG ? o.m + Math.round(o.cents / 100) : null; if (pl2 === o.m) pl2 = null;
+            st[k] = { kind: ok2, time: tk(r), played: pl2, c: o.cents === undefined ? null : o.cents, t0: r.timing, t1: r.exit }; barOf[k] = bi; paResOf[k] = r; return;
+          }
+          st[k] = { kind: kind, time: r.missed ? null : tk(r), played: r.chord && r.pick !== k ? null : played, c: kind === 'np' ? 0 : kind === 'na' || r.missed ? null : r.cents,   /* a double stop with no pitch: its timing stem, at the written height, no head */ t0: r.missed ? null : r.timing, t1: r.missed ? null : r.exit }; barOf[k] = bi; paResOf[k] = r; });
       });
     });
     /* each bar's grade (Trix): green when generally good, amber so-so, red many problems. A note is good with pitch and start both
@@ -8928,12 +9068,19 @@ function noteGate() {
     paRes.bars.forEach(function (b, bi) {
       var n = 0, good = 0, bad = 0;
       b.notes.forEach(function (r) {
-        if (r.chord) return; n++;
+        n++;
+        if (r.noPitch) { var tn = r.timing == null ? Infinity : Math.abs(r.timing); if (tn > r.tRed) bad++; else if (tn <= r.tOk) good++; return; }   /* timing only */
+        if (r.each && !r.missed) {   /* a chord: each note counts, with the chord's start (Hermes F114) */
+          var tc = r.timing == null ? 0 : Math.abs(r.timing);
+          n--; r.each.forEach(function (o) { n++; if (o.cents === undefined || Math.abs(o.cents) > ASSESS.RED || tc > r.tRed) bad++; else if (Math.abs(o.cents) <= ASSESS.IN_TUNE && tc <= r.tOk) good++; });
+          return;
+        }
         if (r.missed || r.cents === undefined) { bad++; return; }
         var c = Math.abs(r.cents), t = r.timing == null ? 0 : Math.abs(r.timing);
         if (c > ASSESS.RED || t > r.tRed) bad++; else if (c <= ASSESS.IN_TUNE && t <= r.tOk) good++;
       });
-      if (n) grade[bi] = bad >= Math.max(2, Math.ceil(n / 3)) ? 'red' : !bad && good >= n * 0.75 ? 'ok' : 'amber';
+      /* a bar with every note missed or wrong is red even with one note (Trix: a one-note bar went amber) */
+      if (n) grade[bi] = bad === n || bad >= Math.max(2, Math.ceil(n / 3)) ? 'red' : !bad && good >= n * 0.75 ? 'ok' : 'amber';
     });
     function draw(root, merge) {
       if (!root) return;
@@ -8981,7 +9128,7 @@ function noteGate() {
           sh.setAttribute('class', 'pa-sh'); sh.setAttribute('data-pabar', barOf[k]); sh.setAttribute('data-pak', (merge ? 'p' : 's') + k);
           sh.innerHTML = '<rect class="pa-hit" x="' + (Math.min(cx, hx) - HR - 4).toFixed(1) + '" y="' + (cy - 2.5 * S).toFixed(1) + '" width="' + (Math.abs(hx - cx) + 2 * HR + 8).toFixed(1) + '" height="' + (5 * S).toFixed(1) + '"/>' +
             (m.time && nStem ? '<line class="pa-sk ' + m.time + '" x1="' + sxS.toFixed(1) + '" y1="' + hy.toFixed(1) + '" x2="' + sxS.toFixed(1) + '" y2="' + sy2.toFixed(1) + '"/>' + flagsSvg : '') +
-            (wrong ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + (nHollow ? ' hollow' : '') + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>' +
+            (wrong || m.kind === 'np' ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + (nHollow ? ' hollow' : '') + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>' +
               (nDotted ? '<circle class="pa-sdt ' + (m.kind === 'na' ? 'ok' : m.kind) + '" cx="' + (hx + HR + 4.5).toFixed(1) + '" cy="' + (hy + ddy).toFixed(1) + '" r="1.9"/>' : ''));   /* a dotted value keeps its dot (Hermes F96) */   /* a wrong note: the red played head says the pitch */
           g.parentNode.insertBefore(sh, g);   /* behind the written note: its shadow */
         }
@@ -9612,24 +9759,42 @@ function noteGate() {
         return (j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version)) ? j : null;
       });
     }
+    /* the update's progress (Trix: show 0-100 % so people see it working): the service worker's own download is not
+       reported, so that stage eases towards 40 %; the page itself is read in chunks against its expected size (40-90 %);
+       saving and tidying the copies 90-100 %, then the reload */
+    var prog = function () {};
     function install(j) {
-      busy = true; say('Updating to ' + j.version + '…');
+      busy = true; say('Updating to ' + j.version + '…'); prog(0);
+      var ease = 0, easeT = setInterval(function () { ease += (40 - ease) * 0.08; prog(ease); }, 120);
       return navigator.serviceWorker.getRegistration().then(function (reg) { return reg && swapIn(reg); }).then(function () {
+        clearInterval(easeT); prog(40);
         /* save the new page under its own build stamp (normally the new service worker already has), choose it
            (the service worker shows the chosen copy, so Later keeps the old one), then drop older copies.
            Only this site's caches (data-cache prefix + build stamp); the test site shares the origin. */
         var pre = btn.dataset.cache || 'violin-toolkit-', want = pre + j.build, mine = new RegExp('^' + pre + '[0-9]{8}-[0-9]{6}$');
         return fetch('index.html', { cache: 'no-store' }).then(function (r) {
           if (!r.ok) throw new Error('page');
-          return caches.open(want).then(function (c) { return c.put('index.html', r); });
+          if (!r.body || !r.body.getReader) return caches.open(want).then(function (c) { return c.put('index.html', r); });
+          var len = +(r.headers.get('content-length') || 0), est = Math.max(r.headers.get('content-encoding') ? 0 : len, document.documentElement.outerHTML.length), got = 0, parts = [], rd = r.body.getReader(), hd = new Headers(r.headers);
+          hd.delete('content-encoding'); hd.delete('content-length');   /* the body kept is the decoded page */
+          return (function pump() {
+            return rd.read().then(function (x) {
+              if (x.done) return;
+              parts.push(x.value); got += x.value.length; prog(40 + 50 * Math.min(1, got / est));
+              return pump();
+            });
+          })().then(function () {
+            return caches.open(want).then(function (c) { return c.put('index.html', new Response(new Blob(parts), { status: 200, headers: hd })); });
+          });
         }).then(function () {
+          prog(92);
           return caches.open(pre + 'meta').then(function (m) { return m.put('current', new Response(j.build)); });
         }).then(function () {
           return caches.keys().then(function (ks) {
             return Promise.all(ks.filter(function (k) { return mine.test(k) && k < want; }).map(function (k) { return caches.delete(k); }));
           });
         }).catch(function () {});
-      }).then(function () { location.reload(); });
+      }).then(function () { prog(100); return new Promise(function (ok) { setTimeout(ok, 350); }); }).then(function () { location.reload(); });
     }
     btn.addEventListener('click', function () {
       if (busy) return;
@@ -9670,6 +9835,7 @@ function noteGate() {
       updNow.focus();
     }
     function closeUpd() {
+      if (upd.classList.contains('upd-going')) return;   /* the update is under way: it ends in the reload */
       upd.hidden = true;
       window.removeEventListener('keydown', onUpdKey, true);
       try { updOpener.focus(); } catch (e) {}
@@ -9683,8 +9849,18 @@ function noteGate() {
     updNow.addEventListener('click', function () {
       closeUpd();
       if (STORE) { openStore(); return; }   /* the store updates the app; no download, no reload */
+      if (!APK && pending && !busy) { updNow.blur(); }
       if (APK) { location.href = APK_URL; return; }   /* the app opens it in the browser, which downloads the APK */
-      if (pending && !busy) install(pending).catch(function () { location.reload(); });
+      if (pending && !busy) {   /* the window stays, showing the progress (Trix) */
+        upd.hidden = false; upd.classList.add('upd-going');
+        document.getElementById('updTitle').textContent = 'Updating…';
+        document.getElementById('updMsg').textContent = 'Version ' + pending.version;
+        document.getElementById('updProg').hidden = false;
+        var fill = document.getElementById('updFill'), pct = document.getElementById('updPct'), bar = document.getElementById('updBar'), shown = 0;
+        prog = function (v) { v = Math.max(shown, Math.min(100, v)); shown = v; fill.style.width = v.toFixed(1) + '%'; pct.textContent = Math.floor(v) + '%'; bar.setAttribute('aria-valuenow', Math.floor(v)); };
+        prog(0);
+        install(pending).catch(function () { location.reload(); });
+      }
     });
     APP.autoCheck = autoCheck;
     setTimeout(autoCheck, 1500);
@@ -10355,7 +10531,7 @@ function noteGate() {
     'Simile: keep the same bowing or articulation as before.': 'Simile：继续使用与前面相同的弓法或演奏法。',
     'Attacca: start the next movement without a pause.': 'Attacca：不停顿，直接开始下一乐章。',
     'Volti subito: turn the page quickly, the music carries straight on.': 'Volti subito：快速翻页，音乐紧接着继续。',
-    "Play-along": "跟音练习", "Play the piece · see each bar": "演奏整首 · 查看每小节", "Play a piece to the microphone, see each bar": "对着麦克风演奏，查看每一小节", "View": "视图", "Pages": "谱页", "Live": "实时", "Start": "开始", "Stop": "停止", "Start again": "重新开始", "Upbeat": "弱起", "Analysing…": "正在分析…", "Microphone level": "麦克风音量", "Headphones only: the microphone is on.": "请用耳机：麦克风已打开。", "No sound: the microphone is on.": "静音：麦克风已打开。", "The microphone can not hear the violin.": "麦克风听不到琴声。", "The microphone is not available.": "无法使用麦克风。", "The microphone is blocked.": "麦克风被阻止了。", "10–25 ¢ off": "偏差 10–25 音分", "more than 25 ¢ off": "偏差超过 25 音分", "timing off by more than 25 ms": "节奏偏差超过 25 毫秒", "not assessed": "未评估", "within 10 ¢": "偏差 10 音分以内", "Show": "显示", "Zoom in": "放大", "Zoom out": "缩小", "Shadow note head, pitch (higher = sharp, lower = flat):": "影子音符的符头（音准，偏高在上、偏低在下）：", "Shadow note stem, timing (moved left = early, right = late; longer stem = held too long, shorter = cut short):": "影子音符的符干（节奏：左移偏早、右移偏晚；符干变长＝拉得太长，变短＝太短）：", "grey note: missed or not assessed": "灰色音符：漏掉或未评估", "Finger in place.": "手指位置正确。", "← scroll": "← 琴头", "bridge →": "琴马 →", "Fingerboard": "指板", "in tune": "音准合格", "on time": "节奏合格", "Pitch": "音准", "Timing": "节奏", "Both": "两者", "red head beside it: the note you played instead": "旁边的红色音符：实际拉出的音", "Not heard.": "没有听到这个音。", "Not recorded.": "没有录到。", "Double stop: not assessed.": "双音：未评估。", "Note colour, pitch:": "音符颜色（音准）：", "Background, timing:": "背景（节奏）：", "within 1/10 of a beat (40–120 ms)": "误差在 1/10 拍以内（40–120 毫秒）", "1/10–1/5 of a beat off (90–240 ms)": "误差 1/10–1/5 拍（90–240 毫秒）", "more than 1/5 of a beat off (past 240 ms)": "误差超过 1/5 拍（240 毫秒以上）", "missed or not assessed": "漏掉或未评估", "Tap a note to practise its bar in the MIDI player.": "点一个音，到 MIDI 播放器里练习它所在的小节。", "The five worst bars": "最需要练习的五个小节", "Tap a bar to practise it in the MIDI player.": "点一个小节，到 MIDI 播放器里练习它。", "Use headphones": "请使用耳机", "The microphone is on for the whole take. With the phone on speaker, any reference or click the app plays reaches it and is scored as your own playing. Put on headphones, or start without sound.": "整段录音期间麦克风一直开着。如果用外放，应用发出的参考音或节拍都会被录进去，并当成你拉的内容评分。请戴上耳机，或选择静音开始。", "I’m using headphones — start": "已戴耳机，开始", "I'm using headphones — start": "已戴耳机，开始", "Start without sound": "静音开始", "Nothing was recorded.": "没有录到内容。", "Measured against Equal temperament.": "按平均律计算。", "Measured against Just intonation.": "按纯律计算。", "Measured against Pythagorean tuning.": "按五度相生律计算。",
+    "Play-along": "跟音练习", "Play the piece · see each bar": "演奏整首 · 查看每小节", "Play a piece to the microphone, see each bar": "对着麦克风演奏，查看每一小节", "View": "视图", "Pages": "谱页", "Live": "实时", "Start": "开始", "Stop": "停止", "Start again": "重新开始", "Upbeat": "弱起", "Updating…": "正在更新…", "Update progress": "更新进度", "Double stop:": "双音：", "Chord:": "和弦：", "Analysing…": "正在分析…", "Microphone level": "麦克风音量", "Headphones only: the microphone is on.": "请用耳机：麦克风已打开。", "No sound: the microphone is on.": "静音：麦克风已打开。", "The microphone can not hear the violin.": "麦克风听不到琴声。", "The microphone is not available.": "无法使用麦克风。", "The microphone is blocked.": "麦克风被阻止了。", "10–25 ¢ off": "偏差 10–25 音分", "more than 25 ¢ off": "偏差超过 25 音分", "timing off by more than 25 ms": "节奏偏差超过 25 毫秒", "not assessed": "未评估", "within 10 ¢": "偏差 10 音分以内", "Show": "显示", "Zoom in": "放大", "Zoom out": "缩小", "Shadow note head, pitch (higher = sharp, lower = flat):": "影子音符的符头（音准，偏高在上、偏低在下）：", "Shadow note stem, timing (moved left = early, right = late; longer stem = held too long, shorter = cut short):": "影子音符的符干（节奏：左移偏早、右移偏晚；符干变长＝拉得太长，变短＝太短）：", "grey note: missed or not assessed": "灰色音符：漏掉或未评估", "Finger in place.": "手指位置正确。", "← scroll": "← 琴头", "bridge →": "琴马 →", "Fingerboard": "指板", "in tune": "音准合格", "on time": "节奏合格", "Pitch": "音准", "Timing": "节奏", "Both": "两者", "red head beside it: the note you played instead": "旁边的红色音符：实际拉出的音", "Not heard.": "没有听到这个音。", "Not recorded.": "没有录到。", "Double stop: not assessed.": "双音：未评估。", "Note colour, pitch:": "音符颜色（音准）：", "Background, timing:": "背景（节奏）：", "within 1/10 of a beat (40–120 ms)": "误差在 1/10 拍以内（40–120 毫秒）", "1/10–1/5 of a beat off (90–240 ms)": "误差 1/10–1/5 拍（90–240 毫秒）", "more than 1/5 of a beat off (past 240 ms)": "误差超过 1/5 拍（240 毫秒以上）", "missed or not assessed": "漏掉或未评估", "Tap a note to practise its bar in the MIDI player.": "点一个音，到 MIDI 播放器里练习它所在的小节。", "The five worst bars": "最需要练习的五个小节", "Tap a bar to practise it in the MIDI player.": "点一个小节，到 MIDI 播放器里练习它。", "Use headphones": "请使用耳机", "The microphone is on for the whole take. With the phone on speaker, any reference or click the app plays reaches it and is scored as your own playing. Put on headphones, or start without sound.": "整段录音期间麦克风一直开着。如果用外放，应用发出的参考音或节拍都会被录进去，并当成你拉的内容评分。请戴上耳机，或选择静音开始。", "I’m using headphones — start": "已戴耳机，开始", "I'm using headphones — start": "已戴耳机，开始", "Start without sound": "静音开始", "Nothing was recorded.": "没有录到内容。", "Measured against Equal temperament.": "按平均律计算。", "Measured against Just intonation.": "按纯律计算。", "Measured against Pythagorean tuning.": "按五度相生律计算。",
     'Intonation': '律制', 'Equal': '平均律', 'Just': '纯律', 'Pythagorean': '五度相生律',
     'Tap': '点拍', 'Slower': '减慢', 'Faster': '加快', 'Time signature': '拍号', 'Beats per bar': '每小节拍数',
     'Note value': '音符时值', 'Tempo': '速度', 'Start': '开始', 'Stop': '停止',
@@ -10458,7 +10634,15 @@ function noteGate() {
     [/^Open string: tune the ([GDAE]) string (up|down) by (\d+) ¢\.$/, function (m, st, d, v) { return '空弦：把 ' + st + ' 弦调' + (d === 'up' ? '高 ' : '低 ') + v + ' 音分。'; }],
     [/^Finger about ([\d.]+) mm too close to the (bridge|scroll)\.$/, function (m, v, w) { return '手指离' + (w === 'bridge' ? '琴马' : '琴头') + '近了约 ' + v + ' 毫米。'; }],
     [/^(\d+)(?:st|nd|rd|th) time$/, function (m, n) { return '第 ' + n + ' 遍'; }],
-    [/^Bar (\S+)$/, function (m, n) { return '第 ' + n + ' 小节'; }],   /* Play-along (跟音练习) */
+    [/^Bar (\S+)$/, function (m, n) { return '第 ' + n + ' 小节'; }],
+    [/^(\S+): in tune \(([+−]\d+) ¢\)$/, function (m, n, c) { return n + '：音准合格（' + c + ' 音分）'; }],
+    [/^(\S+): (\d+) ¢ (high|low)$/, function (m, n, c, d) { return n + '：' + (d === 'high' ? '偏高 ' : '偏低 ') + c + ' 音分'; }],
+    [/^(\S+): not measured$/, function (m, n) { return n + '：未测到'; }],
+    [/^(Double stop|Chord): started too far from its place for the pitch to be measured\.$/, function (m, w) { return (w === 'Chord' ? '和弦' : '双音') + '：起音离应有位置太远，未测音准。'; }],
+    [/^Chord: pitch not measured \((\d+) notes at once\)\.$/, function (m, n) { return '和弦：音准未测（' + n + ' 个音同时发声）。'; }],
+    [/^Chord: measured on (\S+)\.$/, function (m, n) { return '和弦：按 ' + n + ' 评判。'; }],
+    [/^Double stop: pitch not measured \(two notes at once\)\.$/, function () { return '双音：音准未测（两个音同时发声）。'; }],
+    [/^Double stop: measured on (\S+)\.$/, function (m, n) { return '双音：按 ' + n + ' 评判。'; }],   /* Play-along (跟音练习) */
     [/^Page (\d+) of (\d+)$/, function (m, a, b) { return '第 ' + a + ' 页，共 ' + b + ' 页'; }],
     [/^Only bar (\S+) of (\S+) was recorded\.$/, function (m, a, n) { return '只录到第 ' + a + ' 小节（共 ' + n + ' 小节）。'; }],
     [/^Only the upbeat to bar (\S+) of (\S+) was recorded\.$/, function (m, b, n) { return '只录到弱起至第 ' + b + ' 小节（共 ' + n + ' 小节）。'; }],
@@ -10485,6 +10669,7 @@ function noteGate() {
     [/^Version ([\d.]+) is available\.$/, function (m, v) { return '版本 ' + v + ' 已推出。'; }],
     [/^(\d+) notes? (?:is|are) below the violin’s G string and left out\.(?: (\d+) notes? (?:is|are) above the fingerboard shown: heard, not lit\.)?$/, function (m, a, b) { return a + ' 个音低于小提琴的 G 弦，已略去。' + (b ? b + ' 个音高于所显示的指板：只播放声音，不点亮。' : ''); }],
     [/^(\d+) notes? (?:is|are) above the fingerboard shown: heard, not lit\.$/, function (m, b) { return b + ' 个音高于所显示的指板：只播放声音，不点亮。'; }],
+    [/^Version ([\d.]+)$/, function (m, v) { return '版本 ' + v; }],
     [/^Updating to ([\d.]+)…$/, function (m, v) { return '正在更新到 ' + v + '…'; }],
     [/^(.+)[ \u00a0](major|minor) · (?:(Equal|Just|Pyth\.) · )?(1st|2nd|3rd)[ \u00a0]position$/, function (m, k, q, t, p) { return k + Q[q] + ' · ' + (t ? T[t] + ' · ' : '') + P[p]; }],
     [/^(.+)[ \u00a0](major|minor) · (Equal|Just|Pyth\.)(?: · (.+))?$/, function (m, k, q, t, s) { return k + Q[q] + ' · ' + T[t] + (s ? ' · ' + s.split(' · ').map(pcPart).join(' · ') : ''); }],   /* Pitch Check: key · intonation · status */
