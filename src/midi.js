@@ -3653,7 +3653,9 @@
       if (n) { grade[bi] = sum / n; lo = Math.min(lo, grade[bi]); hi = Math.max(hi, grade[bi]); }
     });
     if (!heard) grade = {};
-    else Object.keys(grade).forEach(function (bi) { grade[bi] = hi - lo > 1e-9 ? (grade[bi] - lo) / (hi - lo) : 0.5; });
+    /* half where the bar ranks in this take, half how good it is outright (a deviation of 2 = both pitch and start at their red
+       limits = fully red): a take's worst bar that is still good is amber, not red; a best bar that is poor is amber, not green (Trix) */
+    else Object.keys(grade).forEach(function (bi) { var rel = hi - lo > 1e-9 ? (grade[bi] - lo) / (hi - lo) : 0.5, abs = Math.min(1, grade[bi] / 2); grade[bi] = 0.5 * rel + 0.5 * abs; });
     function heatFill(h) {   /* 0 green, 0.5 amber, 1 red */
       var G = [46, 160, 67], A = [232, 164, 32], R = [214, 48, 39], u = h <= 0.5 ? h * 2 : (h - 0.5) * 2, x = h <= 0.5 ? G : A, y = h <= 0.5 ? A : R;
       return 'rgba(' + [0, 1, 2].map(function (i) { return Math.round(x[i] + (y[i] - x[i]) * u); }).join(',') + ',' + (0.11 + 0.04 * (1 - Math.abs(h - 0.5) * 2)).toFixed(3) + ')';
