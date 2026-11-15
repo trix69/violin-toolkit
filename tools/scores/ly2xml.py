@@ -28,6 +28,33 @@ while i < len(args):
 text = open(SRC, encoding='utf-8').read()
 text = re.sub(r'%\{.*?%\}', ' ', text, flags=re.S)
 text = re.sub(r'%[^\n]*', ' ', text)
+
+
+def drop_scheme(t):   # #'( ... ) / #( ... ) with nested parentheses, ##t, #-1, #"x"
+    out, i = [], 0
+    while i < len(t):
+        if t[i] == '#' and not t.startswith('##{', i):
+            j = i + 1
+            while j < len(t) and t[j] in "#'`": j += 1
+            if j < len(t) and t[j] == '(':
+                depth = 0
+                while j < len(t):
+                    if t[j] == '(': depth += 1
+                    elif t[j] == ')':
+                        depth -= 1
+                        if not depth: j += 1; break
+                    elif t[j] == '"': j = t.index('"', j + 1)
+                    j += 1
+            elif j < len(t) and t[j] == '"': j = t.index('"', j + 1) + 1
+            else:
+                while j < len(t) and not t[j].isspace() and t[j] not in '{}': j += 1
+            out.append(' '); i = j; continue
+        out.append(t[i]); i += 1
+    return ''.join(out)
+
+
+text = drop_scheme(text)
+text = re.sub(r'(?<=[\d.])\s*\*\s*(?=\d)', '*', text)   # R1 * 5 -> R1*5
 m = re.search(r'\\language\s+"(\w+)"', text)
 LANG = m.group(1) if m else 'nederlands'
 
@@ -70,15 +97,17 @@ VARS = {}
 j = 0
 while j < len(toks):
     t = toks[j]
-    if t[0] == 'word' and j + 2 < len(toks) and toks[j + 1] == ('p', '=') and toks[j + 2] == ('p', '{'):
-        depth, k = 0, j + 2
+    k0 = j + 2
+    while k0 + 1 < len(toks) and toks[k0][0] == 'cmd' and toks[k0][1] in ('\\context', '\\new') and toks[k0 + 1][0] == 'word': k0 += 2   # name = \context Staff { }
+    if t[0] == 'word' and k0 < len(toks) and toks[j + 1] == ('p', '=') and toks[k0] == ('p', '{'):
+        depth, k = 0, k0
         while True:
             if toks[k] == ('p', '{'): depth += 1
             elif toks[k] == ('p', '}'):
                 depth -= 1
                 if not depth: break
             k += 1
-        VARS[t[1]] = toks[j + 2:k + 1]; j = k + 1
+        VARS[t[1]] = toks[k0:k + 1]; j = k + 1
     else: j += 1
 
 STEPS = 'cdefgab'
@@ -125,7 +154,7 @@ IGNORE = {'stemUp', 'stemDown', 'stemNeutral', 'autoBeamOn', 'autoBeamOff', 'tup
           'slurDown', 'slurNeutral', 'tieUp', 'tieDown', 'tieNeutral', 'voiceOne', 'voiceTwo', 'voiceThree', 'voiceFour', 'oneVoice',
           'break', 'pageBreak', 'noBreak', 'mBreak', 'phrasingSlurUp', 'phrasingSlurDown', 'dynamicUp', 'dynamicDown', 'dynamicNeutral',
           'textLengthOn', 'textLengthOff', 'cadenzaOn', 'cadenzaOff', 'italic', 'bold', 'once', 'arpeggio', 'glissando', 'laissezVibrer',
-          'stopTrillSpan'}
+          'stopTrillSpan', 'noBeam', 'shiftOn', 'shiftOff', 'shiftOnn'}
 
 
 class State:
@@ -260,10 +289,12 @@ class P:
         print('skipped', t, file=sys.stderr)
 
     def simultaneous(self):
-        t0, v0, ends, seg = S.t, S.voice, [S.t], 0
-        last0 = S.last
+        t0, v0, ends, seg, blocks = S.t, S.voice, [S.t], 0, 0
         while self.peek() != ('sim', '>>'):
             if self.peek()[0] == 'vsep': self.next(); seg += 1; S.voice = v0 + seg; continue
+            nx = self.peek()
+            if not seg and (nx == ('p', '{') or (nx[0] == 'cmd' and nx[1][1:] in VARS) or nx[1] in ('\\context', '\\new')):   # << {A} {B} >>: each block its own voice
+                S.voice = v0 + blocks; blocks += 1
             S.t = t0; self.item(); ends.append(S.t)
         self.next()
         S.t, S.voice = max(ends), v0
@@ -334,7 +365,7 @@ class P:
             prop = self.next()[1]
             if c in ('set', 'override') and self.peek() == ('p', '='):
                 self.next(); v = self.peek()
-                if v[0] in ('str', 'num', 'prop') or (v[0] == 'word' and pitch(v[1], '') is None) or v == ('cmd', '\\markup'): self.next()
+                if v[0] in ('str', 'num', 'prop') or (v[0] == 'word' and pitch(v[1], '') is None and v[1] not in ('r', 'R', 's')) or v == ('cmd', '\\markup'): self.next()
                 else: return   # the value was a Scheme #t, dropped by the cleaner: the next token is music
                 if v == ('cmd', '\\markup'): self.markup(); return
                 if 'midiInstrument' in prop and v[0] == 'str':
@@ -346,6 +377,10 @@ class P:
         if c in IGNORE: return
         if c in CMD_ART or c in ('cresc', 'dim'): self.i -= 1; self.postfix(); return
         if c == 'relative': sys.exit('\\relative: run `ly rel2abs` first')
+        if c in ('context', 'new'):   # \context Staff [= name] music: the music, in this staff
+            self.next()
+            if self.peek() == ('p', '='): self.next(); self.next()
+            return
         print('ignored command \\' + c, file=sys.stderr)
 
     def run(self):
@@ -416,13 +451,13 @@ for e in ev:
         bi = next(i for i, b in enumerate(bars) if b[0] <= e['t'] < b[1])
         if e['t'] + e['d'] <= bars[bi][1]: break
         cut = bars[bi][1] - e['t']; rest_ = e['d'] - cut
-        if e['tup'] or not spell(cut) or not spell(rest_):
+        if e['tup'] or not spell(cut):
             print('note over a barline at %s (bar %d) cannot be split cleanly' % (e['t'], bi + 1), file=sys.stderr); break
         a = dict(e); a['d'] = cut; a['base'], a['dots'] = spell(cut)
         a['sl_stop'] = 0; a['ferm'] = False
         a['ties'] = e['kind'] == 'note'; a['split'] = True
         out.append(a)
-        b = dict(e); b['t'] = bars[bi][1]; b['d'] = rest_; b['base'], b['dots'] = spell(rest_)
+        b = dict(e); b['t'] = bars[bi][1]; b['d'] = rest_; b['base'], b['dots'] = spell(rest_) or (e['base'], e['dots'])   # R1*5: cut again at the next bar
         b['dirs'] = []; b['arts'] = []; b['sl_start'] = 0; b['fing'] = []; b['tiedfrom'] = True; b['tuptags'] = []
         e = b
     out.append(e)

@@ -257,3 +257,13 @@ Steps: `ly rel2abs Caprice_24.ly` (comments and the `\header` dropped) -> `m_abs
 `pack.py c24.musicxml paganini24.mxl "Caprice No. 24 in A minor, Op. 1" "Niccolò Paganini" "<rights>"`.
 Checked against the edition's MIDI (repeats unfolded, Var. V skipped as the MIDI does): 1,518 of 1,520 notes at the same
 time and pitch; the two others are the final trills, which the MIDI writes out.
+
+## Romance No. 1, Op. 40 (Mutopia #944) and BWV 1042 mvt 1 (Mutopia #29), 2026-11-16: `ly2xml.py` per staff + `parts_merge.py`
+
+Each staff converted on its own (`ly2xml.py all.ly part.musicxml <expr> --name "Ripieno 1"`), then
+`parts_merge.py out.musicxml solo.xml acc1.xml …` (common divisions, parts in that order), then `pack.py`.
+- Romance: the edition's parts are already absolute; solo 659/659 against the MIDI, the strings every note (the cello's seven
+  two-voice unisons are one note in the MIDI).
+- BWV 1042: `ly rel2abs` on the five `*_1.ly` files + `common-defs.ly`; the da capo written out as the MIDI plays it
+  (`soloViolinBa Bb <<Bc lower/upper>> Bd Ba`, continuo `BaMain BaLastbarB Bb <<Bc>> BaMain BaLastbarC`), "D.C. al fine" and
+  "Fine" removed; all five parts identical to the edition's `score.mid`. `pack.py` now beams semiquavers in 2/2 by the crotchet.

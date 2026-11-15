@@ -117,6 +117,7 @@ for part in root.findall('part'):
             if t is not None: beats, btype = int(t.find('beats').text), int(t.find('beat-type').text)
         compound = btype == 8 and beats % 3 == 0
         beat = div * 3 // 2 if compound else div * 4 // btype   # one beat in divisions
+        sub = div if (beats, btype) == (2, 2) else beat   # alla breve: semiquavers beamed by the crotchet, as Bach-Gesellschaft does (BWV 1042)
         # eighths alone: half a bar in 4/4, the whole bar in 2/4 and 3/4, the beat elsewhere (LilyPond's defaults)
         eighth_unit = beat * 2 if (beats, btype) == (4, 4) else beat * beats if (btype == 4 and beats in (2, 3)) else beat
         pos, voices = 0, {}
@@ -134,8 +135,8 @@ for part in root.findall('part'):
                 ok = el.find('rest') is None and el.findtext('type') in SHORT and el.find('beam') is None
                 if ok and cur and cur[-1][0] + cur[-1][1] == p:
                     allq = all(e.findtext('type') == 'eighth' for (_, _, e) in cur + [(p, d, el)])
-                    unit = eighth_unit if allq else beat
-                    if p // unit == cur[0][0] // unit and (allq or (p // beat == cur[0][0] // beat)):
+                    unit = eighth_unit if allq else sub
+                    if p // unit == cur[0][0] // unit and (allq or (p // sub == cur[0][0] // sub)):
                         cur.append((p, d, el)); continue
                 cur = [(p, d, el)] if ok else None
                 if cur: groups.append(cur)
