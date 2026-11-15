@@ -220,3 +220,8 @@ chord before "A"). In the tutti the violin plays the tune, as the violin part pr
   chord (42); 1:06. Violin pitches from `heads2.swift` (shape-based notehead finder, works on ledger lines) on a 5200 px render,
   rhythms read from `pitchguide.swift` crops with `XTICKS=1`; piano chords from `pitchguide2.swift` (both staves labelled) on a
   10400 px render. Least certain: the inner voices of some piano chords (bars 21–30) and bar 39–40's harmony.
+
+## Winter, 2nd movement: shorter ending (2026-11-15)
+
+Trix: the ending note was a little too long. `win2_end.py winter_largo.mxl winter_largo.mxl`: in the last bar every part's whole note
+(fermata and ties kept) becomes a crotchet followed by a dotted-minim rest; the piece ends about 6 s sooner (1:37 -> 1:31).
