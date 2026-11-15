@@ -1550,13 +1550,13 @@
     var passages = [];
     items = items.concat(beams, slurItems, posMarks(sg, inf, xAt, bars, passages, !!opts.paged));
     /* dynamics, hairpins and words under the staff (MusicXML, Trix) */
-    var DY = BOT + 41, wedge = null, lastDynX = -99, lastTempo = null;
+    var DY = BOT + 41, wedge = null, lastDynX = -99, lastDynEnd = -99, lastTempo = null;
     function wordY(x, text) {   /* the words row, lowered under a fingering that reaches it (Trix: "molto rall." on a 1) */
       var w = text.length * 6.2, yy = DY - 1;
       lowInk.forEach(function (f) { if (f[0] > x - 8 && f[0] < x + w + 4) yy = Math.max(yy, f[1] + 14); });
       return yy;
     }   /* below any fingering under the notes */
-    (sg.marks || []).forEach(function (m) {
+    [].concat(sg.marks || []).sort(function (a, b) { return a.beat - b.beat || (a.kind === 'dyn' ? -1 : b.kind === 'dyn' ? 1 : 0); }).forEach(function (m) {   /* a sign before a word on the same beat, so the word goes after it (Hermes F108) */
       var x = xAt(m.beat);
       if (m.kind === 'breath') {   /* a comma above the top line just before the next note; a caesura: two slanted strokes on it */
         var bx = x - 13, byy = Y0 - 10;
@@ -1577,10 +1577,11 @@
       }
       if (m.kind === 'dyn') {
         items.push([x, '<text class="mp-dyn" x="' + (x - 4) + '" y="' + DY + '">' + m.text + '</text>']); lastDynX = x;
+        lastDynEnd = x - 4 + m.text.length * 8 + (m.word ? 6 + m.word.length * 6.2 : 0);   /* where the sign (and its own word) end */
         if (m.word) items.push([x, '<text class="mp-word" x="' + (x - 4 + m.text.length * 8 + 6) + '" y="' + DY + '">' + m.word.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);   /* "p dolce": the word after the sign (Hermes F105) */
       }
       else if (m.kind === 'words' && posWord(m.text)) return;   /* drawn as a position mark (posMarks) */
-      else if (m.kind === 'words') items.push([x, '<text class="mp-word" x="' + (Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4) + '" y="' + wordY(Math.abs(x - lastDynX) < 1 ? x + 22 : x - 4, m.text) + '">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);
+      else if (m.kind === 'words') items.push([x, '<text class="mp-word" x="' + (Math.abs(x - lastDynX) < 1 ? lastDynEnd + 8 : x - 4) + '" y="' + wordY(Math.abs(x - lastDynX) < 1 ? lastDynEnd + 8 : x - 4, m.text) + '">' + m.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>']);
       else if (m.text === 'stop') {
         if (!wedge) return;
         var x0 = wedge.x + (Math.abs(wedge.x - lastDynX) < 1 ? 18 : 0), x1 = Math.max(x0 + 16, x - 4), yc = DY - 5, op = wedge.cresc;
