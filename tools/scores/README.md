@@ -193,3 +193,15 @@ pieces it builds come out byte for byte the same. 103 bars, repeats 1–8 / 11�
 2:00. Violin: the piano's top line where the piano plays alone, the voice where it sings, the piano's top line again in the
 closing chords. The piano RH 8va (bars 68–81) is written at pitch. Bars 55–64 (left-hand chords over the A pedal on the
 faintest page) follow the draft's chromatic line; the place to look first if a chord sounds wrong.
+
+## Bach, solo violin: Gavotte en Rondeau BWV 1006, Andante BWV 1003, Adagio BWV 1001, Preludio BWV 1006 (2026-11-15)
+
+Mutopia nos. 1471, 1456, 1429, 1469 (Bach-Gesellschaft 1879, Band 27.1; typeset 2008, CC BY-SA 3.0). python-ly fails on the files'
+`<< \melodyOne \\ \melodyTwo \\ … >>` (empty or 22-note output) and drops some spacers, so `bach/build.py` converts each voice
+alone with the spacers (`s`, `s1*3/4*12` expanded per bar) and the `\partial` upbeat written as marked rests (`r<d>\fermata`),
+re-bars with `rebar.py` where python-ly mis-fills bars, restores the upbeat (`upbeat.py`), merges the voices into one part
+(`merge_voices.py`: marked rests back to `<forward>`, chord notes python-ly pushed into the next bar moved back), and packs.
+Checked with `xmlvsmidi.py` / `pitchcheck.py` against the edition's MIDI, bar by bar: every pitch equal except where two voices
+share a note (Gavotte bars 8, 34, 35, 73; Andante 1, 20: the MIDI sounds it once) and the Adagio's one grace note (bar 11).
+Tempos added (the files have none): ♩ = 120 / 60 / 44 / 120. The Adagio's `<mode>` is dropped: G minor written with one flat,
+so the app names no key instead of "D minor".
