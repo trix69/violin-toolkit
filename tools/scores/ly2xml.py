@@ -37,7 +37,7 @@ TOK = re.compile(r'''
  | (?P<sim><<|>>)
  | (?P<vsep>\\\\)
  | (?P<hair>\\[<>!()\[\]])
- | (?P<cmd>\\[a-zA-Z]+)
+ | (?P<cmd>\\[a-zA-Z]+(?:-[a-zA-Z]+)*)
  | (?P<art>[-^_][.>^_!+\-](?![\d"]))
  | (?P<fing>[-^_]\d+)
  | (?P<dir>[-^_](?=["\\]))
@@ -120,17 +120,19 @@ CMD_ART = {'staccato': ('art', 'staccato'), 'accent': ('art', 'accent'), 'tenuto
            'staccatissimo': ('art', 'staccatissimo'), 'portato': ('art', 'detached-legato'), 'fermata': ('ferm', 'fermata'),
            'trill': ('orn', 'trill-mark'), 'prall': ('orn', 'inverted-mordent'), 'mordent': ('orn', 'mordent'), 'turn': ('orn', 'turn'),
            'upbow': ('tech', 'up-bow'), 'downbow': ('tech', 'down-bow'), 'flageolet': ('tech', 'harmonic'), 'open': ('tech', 'open-string'),
-           'stopped': ('tech', 'stopped'), 'snappizzicato': ('tech', 'snap-pizzicato')}
+           'stopped': ('tech', 'stopped'), 'snappizzicato': ('tech', 'snap-pizzicato'), 'startTrillSpan': ('orn', 'trill-mark')}
 IGNORE = {'stemUp', 'stemDown', 'stemNeutral', 'autoBeamOn', 'autoBeamOff', 'tupletUp', 'tupletDown', 'tupletNeutral', 'slurUp',
           'slurDown', 'slurNeutral', 'tieUp', 'tieDown', 'tieNeutral', 'voiceOne', 'voiceTwo', 'voiceThree', 'voiceFour', 'oneVoice',
           'break', 'pageBreak', 'noBreak', 'mBreak', 'phrasingSlurUp', 'phrasingSlurDown', 'dynamicUp', 'dynamicDown', 'dynamicNeutral',
-          'textLengthOn', 'textLengthOff', 'cadenzaOn', 'cadenzaOff', 'italic', 'bold', 'once', 'arpeggio', 'glissando', 'laissezVibrer'}
+          'textLengthOn', 'textLengthOff', 'cadenzaOn', 'cadenzaOff', 'italic', 'bold', 'once', 'arpeggio', 'glissando', 'laissezVibrer',
+          'stopTrillSpan'}
 
 
 class State:
     def __init__(self):
         self.t = F(0); self.voice = 1; self.factor = F(1); self.tup = []; self.grace = False
         self.last = (F(4), 0, F(1)); self.ev = []; self.lastev = None; self.seq = 0
+        self.clefs = []
         self.times, self.keys, self.partial, self.repeats, self.endings, self.bars, self.checks = [], [], None, [], [], [], []
         self.pending = []   # directions waiting for the next note: (kind, value)
         self.beam_open = {}; self.tupid = 0; self.midi = 'violin'
@@ -211,6 +213,7 @@ class P:
                 elif k == 'tech': e['tech'].append(v)
                 else: e['ferm'] = True
             elif t[0] == 'cmd' and t[1] == '\\markup': self.next(); e['dirs'].append(('words', self.markup()))
+            elif t == ('cmd', '\\rest') and e.get('kind') == 'note': self.next(); e['kind'] = 'rest'; e['pitches'] = []   # c'8\rest: a rest drawn at that pitch
             else: return
 
     def note_word(self, t):
@@ -323,12 +326,16 @@ class P:
             return
         if c == 'bar': S.bars.append((S.t, self.next()[1][1:-1])); return
         if c == 'markup': add_pending('words', self.markup()); return
-        if c in ('clef',): self.next(); return
+        if c == 'clef':
+            n = self.next(); S.clefs.append((S.t, (n[1][1:-1] if n[0] == 'str' else n[1])))
+            return
         if c == 'ottava': return
         if c in ('set', 'unset', 'override', 'revert'):
             prop = self.next()[1]
             if c in ('set', 'override') and self.peek() == ('p', '='):
-                self.next(); v = self.next()
+                self.next(); v = self.peek()
+                if v[0] in ('str', 'num', 'prop') or (v[0] == 'word' and pitch(v[1], '') is None) or v == ('cmd', '\\markup'): self.next()
+                else: return   # the value was a Scheme #t, dropped by the cleaner: the next token is music
                 if v == ('cmd', '\\markup'): self.markup(); return
                 if 'midiInstrument' in prop and v[0] == 'str':
                     ins = v[1][1:-1]
@@ -481,6 +488,12 @@ barstyle = {}
 for t, s in S.bars: barstyle[t] = s
 
 voices = sorted({e['voice'] for e in ev})
+CLEFS = {'treble': ('G', 2), 'violin': ('G', 2), 'G': ('G', 2), 'alto': ('C', 3), 'C': ('C', 3), 'tenor': ('C', 4), 'bass': ('F', 4), 'F': ('F', 4)}
+def clefat(t):   # a clef change inside a bar shows from that bar
+    c = 'treble'
+    for t0, n in sorted(S.clefs, key=lambda x: x[0]):
+        if t0 < next(b[1] for b in bars if b[0] <= t < b[1]): c = n
+    return c
 prevsig, prevkey = None, None
 tempo_done = False
 
@@ -520,15 +533,16 @@ for bi, (b0, b1, sig) in enumerate(bars):
             ET.SubElement(bl, 'ending', number=str(n_), type='start').text = '%d.' % n_
     k = keyat(b0)
     at = None
-    if bi == 0 or sig != prevsig or k[1:] != prevkey or (b1 - b0) != F(sig[0], sig[1]) and bi:
+    if bi == 0 or clefat(b0) != clefat(bars[bi - 1][0]) or sig != prevsig or k[1:] != prevkey or (b1 - b0) != F(sig[0], sig[1]) and bi:
         at = ET.SubElement(meas, 'attributes')
         if bi == 0: ET.SubElement(at, 'divisions').text = str(DIV)
         if bi == 0 or k[1:] != prevkey:
             ke = ET.SubElement(at, 'key'); ET.SubElement(ke, 'fifths').text = str(k[1]); ET.SubElement(ke, 'mode').text = k[2]
         if bi == 0 or sig != prevsig:
             te = ET.SubElement(at, 'time'); ET.SubElement(te, 'beats').text = str(sig[0]); ET.SubElement(te, 'beat-type').text = str(sig[1])
-        if bi == 0:
-            cl = ET.SubElement(at, 'clef'); ET.SubElement(cl, 'sign').text = 'G'; ET.SubElement(cl, 'line').text = '2'
+        if bi == 0 or clefat(b0) != clefat(bars[bi - 1][0]):
+            sg, ln = CLEFS.get(clefat(b0), ('G', 2))
+            cl = ET.SubElement(at, 'clef'); ET.SubElement(cl, 'sign').text = sg; ET.SubElement(cl, 'line').text = str(ln)
         if not len(at): meas.remove(at)
     prevsig, prevkey = sig, k[1:]
     pos = b0
