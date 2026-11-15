@@ -612,7 +612,8 @@
     notes.forEach(function (n, i) {
       var j = i + 1; while (j < notes.length && notes[j].b <= n.b + 1e-6) j++;
       var gap = j < notes.length ? notes[j].b - n.b : Infinity, len;
-      if (n.wsp) len = gap <= n.own + 1e-3 ? gap : n.own;   /* MusicXML: its written lengths and rests, as printed (Por una Cabeza's quaver rests) */
+      var own = n.wl && !n.tup ? n.wl : n.own;   /* a note a grace took time from: its written length (no rest drawn after it) */
+      if (n.wsp) len = gap <= own + 1e-3 ? gap : own;   /* MusicXML: its written lengths and rests, as printed (Por una Cabeza's quaver rests) */
       else if (gap <= n.own + 0.5) len = gap;   /* MIDI: runs on to the next note: a short breath is not a rest */
       else {   /* a rest follows: a short (staccato) note is written to the end of its beat (Trix: show the rests) */
         var unit = sig.den >= 8 ? 0.5 : 1, endB = n.b + n.own;

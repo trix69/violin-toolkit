@@ -205,3 +205,13 @@ Checked with `xmlvsmidi.py` / `pitchcheck.py` against the edition's MIDI, bar by
 share a note (Gavotte bars 8, 34, 35, 73; Andante 1, 20: the MIDI sounds it once) and the Adagio's one grace note (bar 11).
 Tempos added (the files have none): ♩ = 120 / 60 / 44 / 120. The Adagio's `<mode>` is dropped: G minor written with one flat,
 so the app names no key instead of "D minor".
+
+## Paganini, La Campanella (Concerto No. 2, Rondo), opening (2026-11-15)
+
+Scharwenka's violin and piano edition (Breitkopf & Härtel ca. 1896, plate 21008; IMSLP #774280 violin, #774279 piano; PD; Trix
+downloaded both into `~/Downloads/vt-scores/campanella/`). The 1851 full score (IMSLP #253710) was too faint to read. Audiveris
+read neither part usefully (graces as chords, the 6/8 lost), so the notes were measured from 2600 px renders: `heads.swift`
+finds noteheads on a staff and names their pitch from the line positions (`stafflines.swift`), `pitchguide.swift` draws the
+lines and spaces with names over a crop for the rhythm, graces and chords. `campanella/tokens.txt` + `conf.py` (upbeat via
+`PICKUP`, slashed graces `:8g`), built by `mendelssohn/build.py`: the upbeat and bars 1–16 (solo theme, tutti, to the B minor
+chord before "A"). In the tutti the violin plays the tune, as the violin part prints it; the piano doubles it.
