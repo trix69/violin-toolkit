@@ -3618,12 +3618,13 @@
         }
         /* the shadow note (Trix): a coloured note behind the written one. Up / down = pitch (half a space per 25 ¢, at most 1.5
            spaces), head colour = pitch band; left / right = timing (the middle of start and end: left = early overall, 1 px per 7 ms,
-           at most 18 px), stem colour = timing band; wider head = held longer than written, narrower = shorter */
+           at most 18 px), stem colour = timing band; a longer stem = held longer than written, shorter = cut short, the written
+           length when right; the head keeps its shape (Trix) */
         if (m.c !== null && m.c !== undefined) {
           var cx = +head.getAttribute('cx'), cy = +head.getAttribute('cy'), rx = +head.getAttribute('rx') || S * 0.6, ry = +head.getAttribute('ry') || S * 0.45;
           var t0 = m.t0 == null ? 0 : m.t0, t1 = m.t1 == null ? t0 : m.t1;
           var dy = wrong ? 0 : -Math.max(-1.5 * S, Math.min(1.5 * S, m.c / 25 * S / 2)), dx = Math.max(-18, Math.min(18, (t0 + t1) / 2 / 7));
-          var wf = Math.max(0.55, Math.min(1.9, 1 + (t1 - t0) / 400)), hy = cy + dy, HR = rx * 1.3 * wf, VR = ry * 1.3, hx;
+          var lf = Math.max(0.45, Math.min(1.9, 1 + (t1 - t0) / 400)), hy = cy + dy, HR = rx * 1.3, VR = ry * 1.3, hx;   /* lf: the stem's length against the written one */
           var up = true; Array.prototype.forEach.call(g.querySelectorAll('line, path.stem'), function (l) {   /* the stem goes the way the written one does (Hermes F92: stems are paths) */
             if (l.nodeName === 'path') {
               var md = (l.getAttribute('d') || '').match(/^M(-?[\d.]+) (-?[\d.]+)V(-?[\d.]+)/);
@@ -3633,7 +3634,7 @@
             var x1 = +l.getAttribute('x1'), y1 = +l.getAttribute('y1'), y2 = +l.getAttribute('y2');
             if (Math.abs(x1 - cx) <= rx + 2 && Math.abs(y2 - y1) > 2 * S) up = Math.min(y1, y2) < cy - S;
           });
-          var sxS = (up ? cx + rx : cx - rx) + dx, sy2 = up ? hy - 3.4 * S : hy + 3.4 * S, sh = document.createElementNS(NS, 'g');   /* the stem where the written one is, moved by the timing */
+          var sxS = (up ? cx + rx : cx - rx) + dx, sy2 = up ? hy - 3.4 * S * lf : hy + 3.4 * S * lf, sh = document.createElementNS(NS, 'g');   /* the stem where the written one is, moved by the timing */
           hx = up ? sxS - HR + 1.2 : sxS + HR - 1.2;
           /* drawn as the written note's value (Trix): hollow from a minim, no stem on a semibreve, flags for quavers and shorter
              (a beamed note gets its flags here, since the shadow stands alone) */
