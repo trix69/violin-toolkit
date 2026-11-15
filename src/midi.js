@@ -2753,8 +2753,10 @@
       fgNote = 'This piece is in a newer version of the app. Update the app to open it.'; fgDirty = true; if (APP.fgSync) APP.fgSync();
       return;
     }
+    fgNote = '';   /* a code this version has clears an earlier notice (Hermes F110) */
     for (var i = 0; f && i < songs.length; i++) if (songs[i].demo && songs[i].demo.f === f) {
       if (+songSel.value !== i) { songSel.value = String(i); load(i); }
+      else { fgDirty = true; if (APP.fgSync) APP.fgSync(); }   /* the same piece, shown again without the notice */
       if (fgSel) fgOptions();
       if (APP.show) APP.show('fingering');
       return;
