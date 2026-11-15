@@ -225,3 +225,10 @@ chord before "A"). In the tutti the violin plays the tune, as the violin part pr
 
 Trix: the ending note was a little too long. `win2_end.py winter_largo.mxl winter_largo.mxl`: in the last bar every part's whole note
 (fermata and ties kept) becomes a crotchet followed by a dotted-minim rest; the piece ends about 6 s sooner (1:37 -> 1:31).
+
+## Preludio BWV 1006: bariolage beams (2026-11-15)
+
+Trix: bars 13 on drew unbeamed flags. The source writes the bariolage as two voices taking turns (one note each), and a
+MusicXML beam stays within a voice. `join_voices.py in.mxl out.musicxml` joins the voices of every measure where they never
+sound together (32 bars of the Preludio; none in the Gavotte, Andante, Adagio), then `pack.py out.musicxml bach1006_preludio.mxl - - -`
+beams them by the beat (96 groups). Pitches per bar unchanged. Use it after `merge_voices.py` from now on.
