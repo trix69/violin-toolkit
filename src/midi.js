@@ -242,12 +242,15 @@
          a little longer when slow): 60 ms at ♩ = 120 and faster, rising evenly with the beat's length to 120 ms at ♩ = 30 and slower;
          the callers also keep it to half the main note at most. Returns ticks */
       function graceCap(t) { var us = 500000; tempos.forEach(function (tp) { if (tp.tick <= t) us = tp.us; }); var ms = Math.max(60, Math.min(120, 60 + (us / 1000 - 500) / 25)); return TPQ * ms * 1000 / us; }
+      var seenBar = {}, again = false;   /* a bar's second time through a repeat: its words are not added again (Trix: a second "Allegro" at the repeat) */
       function wordMark(t, text) {   /* words on one beat share one mark ("Minuet I" and its ♩ = 120) */
+        if (again) return;
         var same = marks.filter(function (m) { return m.kind === 'words' && m.tick === t; })[0];
         if (same) { if (same.text.indexOf(text) < 0) same.text += '  ' + text; } else marks.push({ tick: t, kind: 'words', text: text });
       }   /* the key in force in each written bar (a repeat back over a key change goes back to its key) */
       ms.forEach(function (m, k) { divStart[k] = dvw; kids(m, 'attributes').forEach(function (a) { if (txt(a, 'divisions')) dvw = +txt(a, 'divisions'); var ky = kid(a, 'key'); if (ky && txt(ky, 'fifths') !== '') { kw0 = +txt(ky, 'fifths'); km0 = /^(major|minor)$/.test(txt(ky, 'mode')) ? txt(ky, 'mode') : null; } }); ksw[k] = kw0; kmw[k] = km0; });
       order.forEach(function (k) {
+        again = !!seenBar[k]; seenBar[k] = true;
         var m = ms[k]; if (!m) return;
         var tmE = m.getElementsByTagName('time')[0];   /* a change of time signature (the Csárdás: 2/4, 4/4, 2/4) */
         if (pi === 0) bars.push({ tick: at, num: m.getAttribute('number') || String(k + 1), mi: k, wr: order.info[k], ts: tmE && txt(tmE, 'beats') ? { num: parseInt(txt(tmE, 'beats'), 10) || 4, den: +txt(tmE, 'beat-type') || 4 } : null, ks: ksw[k], km: kmw[k] });
@@ -275,7 +278,7 @@
                     if (w && dm && dm[0]) { if (dm[1]) gl.push(dm[1]); if (dm[2]) gl.push(dm[2]); } else if (w) ex.push(w);
                   });
                   if (gl.length) marks.push({ tick: tk(cur), kind: 'dyn', text: gl.join(' '), glyphs: gl, word: ex.join(' ') });
-                  else if (ex.length) marks.push({ tick: tk(cur), kind: 'words', text: ex.join(' ') });
+                  else if (ex.length && !again) marks.push({ tick: tk(cur), kind: 'words', text: ex.join(' ') });
                 }
                 else if (d.nodeName === 'wedge' && /crescendo|diminuendo|stop/.test(d.getAttribute('type'))) marks.push({ tick: tk(cur), kind: 'wedge', text: d.getAttribute('type') });
                 else if (d.nodeName === 'words' && /^(pizz\.?|pizzicato|arco)$/i.test(d.textContent.trim())) { if (!(snd && snd.getAttribute('pizzicato'))) pz = !/^arco$/i.test(d.textContent.trim()); }   /* pizz. / arco: drawn once, above the notes where the playing changes, and played so even without a <sound> (Trix) */
@@ -291,8 +294,8 @@
               if (tw.length) seenTempo[t].word = tw.join(' ');
               /* a change of tempo after the start is printed (Trix): its words, and the new ♩ unless it is a rit./rall./accel. */
               var was = null; tempos.forEach(function (tp) { if (tp.tick < t && (was === null || tp.tick >= was.tick)) was = tp; });
-              var same = was && Math.round(60e6 / was.us) === Math.round(bpm);   /* a repeat back over the same tempo: nothing new to print */
-              if (t > 0 && !(same && !tw.length) && !tmarks[t]) tmarks[t] = { w: tw.join(' '), bpm: RAMP_W.test(tw.join(' ')) || same ? null : Math.round(bpm) };
+              var same = was && Math.round(60e6 / was.us) === Math.round(bpm);   /* a repeat back over the same tempo (and the same words, e.g. a first-bar "Allegro" inside a repeat): nothing new to print */
+              if (t > 0 && !(same && (!tw.length || tw.join(' ') === (was.word || ''))) && !tmarks[t]) tmarks[t] = { w: tw.join(' '), bpm: RAMP_W.test(tw.join(' ')) || same ? null : Math.round(bpm) };
             }
           } else if (nm === 'note') {
             if (kid(el, 'cue')) return;   /* cue notes are not played */
@@ -629,8 +632,19 @@
     for (var i = 0; i < notes.length; ) {
       var j = i; while (j < notes.length && Math.abs(notes[j].b - notes[i].b) < 1e-6) j++;
       var maxSi = 3, unit = notes.slice(i, j).sort(function (a, b) { return b.m - a.m; });
-      unit.forEach(function (n, u) {
-        /* within the octave first (lowest position); a double stop's lower note goes up the next string down */
+      /* a double stop or chord is bowed on neighbouring strings, never across a skipped one (Trix: Caprice 24's octaves
+         lit the D and E strings): of the runs of neighbouring strings that hold every note (high note on the higher
+         string), the one with the lowest hand position */
+      var run = -1, runH = Infinity;
+      if (unit.length > 1 && unit.length <= 4) for (var top = 3; top >= unit.length - 1; top--) {
+        var h = 0;
+        for (var u = 0; u < unit.length && h < Infinity; u++) { var k = unit[u].m - OPEN[top - u]; h = k < 0 || k > 19 ? Infinity : Math.max(h, k); }
+        if (h < runH) { runH = h; run = top; }
+      }
+      if (run >= 0) unit.forEach(function (n, u) { n.si = run - u; });
+      else unit.forEach(function (n, u) {
+        /* a single note, or a chord no run of strings can hold: within the octave first (lowest position); a double
+           stop's lower note goes up the next string down */
         var si = u === 0 ? strFor(n.m, 3, 12) : strFor(n.m, maxSi, 19);
         if (si < 0) si = strFor(n.m, 3, 19);
         n.si = si; if (si >= 0) maxSi = si - 1;
@@ -1809,7 +1823,7 @@
   function play() {
     if (!song || playing || counting) return;
     if (!APP.board.prime()) return;   /* the sound engine starts inside the tap (iPhone) */
-    clearTimeout(partsT); partsEl.hidden = true; partsEl.classList.remove('show');   /* the parts note never covers the count-in; the screen-reader copy keeps it (Hermes F29) */
+    partsEl.classList.add('edge');   /* the parts note never covers the count-in (Hermes F29): it moves to the score's top edge and finishes its time (Trix: it vanished as the tune started) */
     var r = abRange();
     if (r) {   /* A–B: from bar A (outside the passage: back to A), counting in at A */
       if (pos < r.aT - 0.01 || pos >= r.eT - 0.01) seekTo(r.aT);
@@ -1843,7 +1857,12 @@
   var partsEl = $('mpParts'), partsSr = $('mpPartsSr'), partsT = 0;
   function flashParts() {
     clearTimeout(partsT); partsEl.classList.remove('show'); partsEl.hidden = true; partsSr.textContent = '';
-    if (!song || (!song.acc.length && !song.dropped.length)) return;
+    if (!song) return;   /* a solo tune too: "Violin: …" alone (Trix: Caprice 24 showed nothing) */
+    /* over the MIDI player's score when it is on screen; otherwise (Fingerings, Play-along pages) floating over the page (Trix) */
+    var host = $('mpScore'), onScore = !!host.getClientRects().length;
+    if (onScore && partsEl.parentNode !== host) host.appendChild(partsEl);
+    if (!onScore && partsEl.parentNode !== document.body) document.body.appendChild(partsEl);
+    partsEl.classList.toggle('float', !onScore); partsEl.classList.toggle('edge', onScore && (playing || counting));
     var zh = window.I18N && I18N.lang === 'zh', lv = zh ? '小提琴' : 'Violin', la = zh ? '伴奏' : 'Accompaniment';   /* the score is translate="no" */
     var v = song.soloName || (zh ? '第 1 声部' : 'Part 1'), a = song.accNames.join(zh ? '、' : ', ');
     var ld = zh ? '已略去' : 'Left out', d = song.dropped.join(zh ? '、' : ', ');
@@ -1852,7 +1871,7 @@
     $('mpPartsA').parentNode.hidden = !a; $('mpPartsD').parentNode.hidden = !d;
     partsEl.hidden = false; void partsEl.offsetWidth; partsEl.classList.add('show');
     partsSr.textContent = lv + (zh ? '：' : ': ') + v + (zh ? '。' : '. ') + (a ? la + (zh ? '：' : ': ') + a + (zh ? '。' : '. ') : '') + (d ? ld + (zh ? '：' : ': ') + d + (zh ? '。' : '.') : '');
-    partsT = setTimeout(function () { partsEl.hidden = true; partsEl.classList.remove('show'); }, 2700);
+    partsT = setTimeout(function () { partsEl.hidden = true; partsEl.classList.remove('show'); }, 4200);   /* Trix: a little longer (was 2.7 s) */
   }
   function load(i) {
     pause();

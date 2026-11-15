@@ -266,3 +266,15 @@ Each staff converted on its own (`ly2xml.py all.ly part.musicxml <expr> --name "
 - BWV 1042: `ly rel2abs` on the five `*_1.ly` files + `common-defs.ly`; the da capo written out as the MIDI plays it
   (`soloViolinBa Bb <<Bc lower/upper>> Bd Ba`, continuo `BaMain BaLastbarB Bb <<Bc>> BaMain BaLastbarC`), "D.C. al fine" and
   "Fine" removed; all five parts identical to the edition's `score.mid`. `pack.py` now beams semiquavers in 2/2 by the crotchet.
+
+## Twenty more built-ins (2026-11-16): Handel HWV 361 and 370, Eccles, four folk tunes, four Schubert songs
+
+All Mutopia ones with `ly2xml.py` (+ `parts_merge.py` for violin + piano right hand + left hand), each part compared with
+the edition's MIDI (repeats not unfolded: these MIDIs play them once). Handel #652/#654 (`HWVnnn-violin-N.ly` +
+`HWVnnn-piano-N.ly`, `ly rel2abs`; MIDI `HWVnnn-score[-1..3].mid`, tracks 1–3); Eccles #540 (`sonata.ly`, violin only);
+Greensleeves #1943 (melody; its guitar is a Scheme music function, left out; `\time 3/4` given as a prefix variable),
+Soldier's Joy #510, The Holly and the Ivy #644 (melodies), Home! Sweet Home! #435 (voice + piano; the piano given the
+voice's `\partial 4`). Hard Times (#371) left out: it moves bars with `\set Timing.measurePosition`. Schubert songs:
+OpenScore Lieder via `pack_os.py`; Heidenröslein's voice is notated an octave up under a treble-8va clef: moved down an
+octave, clef plain. ly2xml.py gained `\bar ":|:"` repeats (a repeat sign inside a bar cuts the bar in two), dotted-beat
+`--tempo 4.=76`, `\transpose x x`, `\omit`, church modes, `\include "english.ly"`; pack.py never re-bars its output.

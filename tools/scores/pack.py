@@ -44,6 +44,7 @@ def note_dur(el):
 for m in root.iter('measure'):
     while len(m) and m[-1].tag == 'backup': m.remove(m[-1])
 rebarred = []
+EXACT = any((sw.text or '').endswith('ly2xml.py') for sw in root.iter('software'))   # bars already cut by note times: never re-bar
 PICKUP = float(sys.argv[6]) if len(sys.argv) > 6 else 0   # LilyPond \partial, in crotchets: python-ly ignores it
 for part in root.findall('part'):
     ms = part.findall('measure')
@@ -54,7 +55,7 @@ for part in root.findall('part'):
         if a is not None and a.find('divisions') is not None: div = int(a.find('divisions').text)
         if a is not None and a.find('time') is not None: beats, bt = int(a.find('time/beats').text), int(a.find('time/beat-type').text)
         lens.append((sum(note_dur(e) for e in m), div * 4 * beats // bt))
-    if not PICKUP and not any(a_ != f for (a_, f) in lens[1:-1]): continue
+    if EXACT or (not PICKUP and not any(a_ != f for (a_, f) in lens[1:-1])): continue
     if inner:
         if PICKUP: sys.exit('pickup asked but part %s has voices or repeats' % part.get('id'))
         continue

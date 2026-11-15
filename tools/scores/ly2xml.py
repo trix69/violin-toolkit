@@ -20,7 +20,9 @@ SRC, OUT, EXPR = args[:3]
 TEMPO, LABELS, PNAME = None, {}, 'Violin'
 i = 3
 while i < len(args):
-    if args[i] == '--tempo': TEMPO = int(args[i + 1]); i += 2
+    if args[i] == '--tempo':   # 120 (crotchets) or 4.=76, 8=69, 2=42
+        u, _, v = args[i + 1].rpartition('=')
+        TEMPO = (u or '4', int(v)); i += 2
     elif args[i] == '--label': k, v = args[i + 1].split('=', 1); LABELS[k] = v; i += 2
     elif args[i] == '--name': PNAME = args[i + 1]; i += 2
     else: sys.exit('unknown option ' + args[i])
@@ -56,7 +58,7 @@ def drop_scheme(t):   # #'( ... ) / #( ... ) with nested parentheses, ##t, #-1, 
 text = drop_scheme(text)
 text = re.sub(r'(?<=[\d.])\s*\*\s*(?=\d)', '*', text)   # R1 * 5 -> R1*5
 m = re.search(r'\\language\s+"(\w+)"', text)
-LANG = m.group(1) if m else 'nederlands'
+LANG = m.group(1) if m else 'english' if re.search(r'\\include\s+"english\.ly"', text) else 'nederlands'
 
 DUR = r"(?:\d+\.*|\\breve\.*)?(?:\*\d+(?:/\d+)?)*(?::\d*)?"
 TOK = re.compile(r'''
@@ -72,7 +74,7 @@ TOK = re.compile(r'''
  | (?P<prop>[a-zA-Z]+(?:\.[a-zA-Z-]+)+)
  | (?P<word>[a-zA-Z]+)(?P<oct>[',]*)(?P<acc>[!?]?)(?P<wdur>''' + DUR + r''')
  | (?P<frac>\d+/\d+)
- | (?P<num>\d+\.*)
+ | (?P<num>\d+\.*(?:\*\d+(?:/\d+)?)?)
  | (?P<scm>\#'?\([^)]*\)|\#\S+)
  | (?P<p>[{}()\[\]~|=])
  | (?P<ws>\s+)
@@ -86,7 +88,7 @@ def tokenize(s):
         if k in ('ws', 'scm'): continue
         if k == 'cdur' or k == 'chord': out.append(('chord', mm.group('chord'), mm.group('cdur'))); continue
         if k in ('wdur', 'oct', 'acc', 'word'): out.append(('word', mm.group('word'), mm.group('oct'), mm.group('acc'), mm.group('wdur'))); continue
-        if k == 'other': print('skipped character', repr(mm.group(0)), file=sys.stderr); continue
+        if k == 'other': continue   # lyrics, markup punctuation: never music
         out.append((k, mm.group(k)))
     return out
 
@@ -99,6 +101,9 @@ while j < len(toks):
     t = toks[j]
     k0 = j + 2
     while k0 + 1 < len(toks) and toks[k0][0] == 'cmd' and toks[k0][1] in ('\\context', '\\new') and toks[k0 + 1][0] == 'word': k0 += 2   # name = \context Staff { }
+    if k0 + 2 < len(toks) and toks[k0] == ('cmd', '\\transpose') and toks[k0 + 1][0] == toks[k0 + 2][0] == 'word':   # name = \transpose g g { }
+        if toks[k0 + 1][1:3] != toks[k0 + 2][1:3]: sys.exit('\\transpose to another pitch: not supported')
+        k0 += 3
     if t[0] == 'word' and k0 < len(toks) and toks[j + 1] == ('p', '=') and toks[k0] == ('p', '{'):
         depth, k = 0, k0
         while True:
@@ -310,7 +315,7 @@ class P:
             tn = self.next(); mode = self.next()[1][1:]
             p = pitch(tn[1], '')
             MAJ = {'C': 0, 'G': 1, 'D': 2, 'A': 3, 'E': 4, 'B': 5, 'F': -1}
-            f = MAJ[p[0]] + 7 * p[1] - (3 if mode == 'minor' else 0)
+            f = MAJ[p[0]] + 7 * p[1] + {'major': 0, 'ionian': 0, 'minor': -3, 'aeolian': -3, 'dorian': -2, 'mixolydian': -1, 'lydian': 1, 'phrygian': -4, 'locrian': -5}[mode]
             S.keys.append((S.t, f, mode)); return
         if c == 'partial':
             d = self.next(); base, dots, mult, _ = parse_dur(d[1] if d[0] == 'num' else d[4], S.last)
@@ -347,7 +352,7 @@ class P:
             words, q = None, None
             if self.peek()[0] == 'str': words = self.next()[1][1:-1]
             if self.peek()[0] == 'num' and self.peek(1) == ('p', '='):
-                self.next(); self.next(); q = int(self.next()[1].rstrip('.'))
+                un = self.next()[1]; self.next(); q = (un, int(self.next()[1].rstrip('.')))
             add_pending('tempo', (words, q)); return
         if c == 'mark':
             n = self.peek()
@@ -377,6 +382,13 @@ class P:
         if c in IGNORE: return
         if c in CMD_ART or c in ('cresc', 'dim'): self.i -= 1; self.postfix(); return
         if c == 'relative': sys.exit('\\relative: run `ly rel2abs` first')
+        if c == 'transpose':
+            a, b = self.next(), self.next()
+            if (a[1], a[2]) != (b[1], b[2]): sys.exit('\\transpose %s %s: not supported (only a transpose to the same pitch)' % (a[1] + a[2], b[1] + b[2]))
+            return
+        if c in ('omit', 'hide', 'undo'):   # \omit DynamicText: a grob, no music
+            if self.peek()[0] in ('word', 'prop'): self.next()
+            return
         if c in ('context', 'new'):   # \context Staff [= name] music: the music, in this staff
             self.next()
             if self.peek() == ('p', '='): self.next(); self.next()
@@ -392,6 +404,14 @@ for name in EXPR.split('+'):
     if name in LABELS: add_pending('words', LABELS[name])
     P(VARS[name]).run()
 END = S.t
+# repeat signs written as bar lines (\bar "|:" ":|" ":|:" ":|.|:" ...): a repeat from the last start sign (or the beginning)
+st = F(0)
+for t, b_ in sorted(S.bars, key=lambda x: x[0]):
+    if ':' not in b_: continue
+    if b_.startswith(':') and not any(r[0] == st and r[1] == t for r in S.repeats): S.repeats.append((st, t, []))
+    if b_.endswith(':'): st = t
+for r in S.repeats:   # a \repeat volta starting there resets the start
+    pass
 ev = S.ev
 # a pizz. word written as text also switches the sound, and the edition's arco may only be in the MIDI setup
 for e in ev:
@@ -433,6 +453,18 @@ while t < END:
     e_ = min(nxt) if nxt else min(t + L, END)
     if nxt: print('time change inside a bar at %s: a short bar' % e_, file=sys.stderr)
     bars.append((t, e_, sig)); t = e_
+# a repeat sign inside a bar (\bar ":|:" before an upbeat): the bar is cut there into two halves, the second an
+# implicit bar with the same number, so the repeat sign can stand on a barline
+cuts = sorted({t for r in S.repeats for t in [r[0], r[1]] + [x for a in r[2] for x in a]} - {b[0] for b in bars} - {END})
+cont = set()
+for t in cuts:
+    k = next((i for i, b in enumerate(bars) if b[0] < t < b[1]), None)
+    if k is None: continue
+    b0, b1, sg = bars[k]; bars[k:k + 1] = [(b0, t, sg), (t, b1, sg)]; cont.add(t)
+num, BNUM = (0 if S.partial else 1) - 1, []
+for b in bars:
+    if b[0] not in cont: num += 1
+    BNUM.append(num)
 starts = [b[0] for b in bars]
 for c in S.checks:
     if c not in starts and c != END: print('bar check off at', c, '(bar %d)' % next(i for i, b in enumerate(bars) if b[0] <= c < b[1]), file=sys.stderr)
@@ -509,6 +541,7 @@ def keymap(f):
 
 
 root = ET.Element('score-partwise', version='3.1')
+ET.SubElement(ET.SubElement(ET.SubElement(root, 'identification'), 'encoding'), 'software').text = 'Violin Toolkit ly2xml.py'
 pl = ET.SubElement(root, 'part-list'); sp = ET.SubElement(pl, 'score-part', id='P1'); ET.SubElement(sp, 'part-name').text = PNAME
 part = ET.SubElement(root, 'part', id='P1')
 keys = sorted(S.keys); keyat = lambda t: max((k for k in keys if k[0] <= t), default=(0, 0, 'major'))
@@ -542,11 +575,17 @@ def direction(meas, kind, val, voice, placement='above'):
     elif kind == 'words': ET.SubElement(ET.SubElement(d, 'direction-type'), 'words').text = val
     elif kind == 'tempo':
         words, q = val
-        if TEMPO and not tempo_done: q = TEMPO
+        unit = '4'
+        if q and not isinstance(q, int): unit, q = q   # (unit, value) from \tempo 4. = 76
+        if TEMPO and not tempo_done: unit, q = TEMPO
         if words: ET.SubElement(ET.SubElement(d, 'direction-type'), 'words').text = words
         if q:
             mt = ET.SubElement(ET.SubElement(d, 'direction-type'), 'metronome')
-            ET.SubElement(mt, 'beat-unit').text = 'quarter'; ET.SubElement(mt, 'per-minute').text = str(q); tempo_done = True
+            ET.SubElement(mt, 'beat-unit').text = TYPES[F(int(unit.rstrip('.')))]
+            for _ in range(unit.count('.')): ET.SubElement(mt, 'beat-unit-dot')
+            ET.SubElement(mt, 'per-minute').text = str(q); tempo_done = True
+            q = round(q * length(F(int(unit.rstrip('.'))), unit.count('.'), F(1)) * 4, 2)   # <sound tempo> is in crotchets
+            if q == int(q): q = int(q)
     if not len(d): meas.remove(d); return
     ET.SubElement(d, 'voice').text = str(voice)
     if q: ET.SubElement(d, 'sound', tempo=str(q))
@@ -557,8 +596,8 @@ if TEMPO and not any(k == 'tempo' for e in ev for k, _ in e['dirs']):
     fe['dirs'].insert(0, ('tempo', (None, TEMPO)))
 
 for bi, (b0, b1, sig) in enumerate(bars):
-    meas = ET.SubElement(part, 'measure', number=str(bi if S.partial else bi + 1))
-    if S.partial and bi == 0: meas.set('implicit', 'yes')
+    meas = ET.SubElement(part, 'measure', number=str(BNUM[bi]))
+    if (S.partial and bi == 0) or b0 in cont: meas.set('implicit', 'yes')
     if b0 in rep_start:
         bl = ET.SubElement(meas, 'barline', location='left'); ET.SubElement(bl, 'bar-style').text = 'heavy-light'; ET.SubElement(bl, 'repeat', direction='forward')
     for a0, a1, n_, _ in ending_bars:
