@@ -243,9 +243,8 @@ beams them by the beat (96 groups). Pitches per bar unchanged. Use it after `mer
   continuo as accompaniment), crotchet = 96; clean. BWV 1041 (Mutopia #2051, solo part only): `\afterGrace X {g}` → `X \grace {g}`,
   fingerings and macros stripped, `rebar.py b41.musicxml out 0.5` (new optional upbeat argument). Rieding (Mutopia #1781): violin +
   piano, clean.
-- Not yet: Beethoven Romance Op. 40, BWV 1042, Paganini Caprice 24 — two-voice writing; `lysplit.py` (new) splits
-  `<< {A} \\ {B} >>` into two single-voice files (the other voice as marked rests, tuplets of rests flattened) for
-  `merge_voices.py`; `rebar.py` still assumes one time signature (Caprice 24 changes 2/4 ↔ 3/4).
+- Romance Op. 40, BWV 1042 and Caprice 24 were added on 2026-11-16 with `ly2xml.py` (sections below); `lysplit.py` was
+  an earlier attempt for the two-voice blocks and is no longer needed for them.
 
 ## Caprice No. 24 (Paganini, Mutopia #2000), 2026-11-16: `ly2xml.py`
 
