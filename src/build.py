@@ -560,6 +560,7 @@ SCORE_CREDITS = [
     ('Violin Concerto in E minor, Op. 64, 1st movement (opening)', 'Felix Mendelssohn', "The composer's own edition, Leipzig: Breitkopf und Härtel, n.d. [1845], plate 7210: violin part (IMSLP #913234) and violin and piano score (IMSLP #872023); bars 1–48 (to the orchestra's entry), the piano part as accompaniment; engraved by Violin Toolkit, 2026", 'Public Domain (edition); our engraving CC0 1.0'),
     ('Violin Concerto in D major, Op. 35, 1st movement (opening)', 'Pyotr Ilyich Tchaikovsky', "Mutopia Project no. 466 (Eulenburg, 1920); the solo's entry and first theme (bars 23–41) with the string parts as accompaniment (winds, horns, trumpets and timpani left out); converted to MusicXML by Violin Toolkit", 'Public Domain'),
     ('Violin Concerto in D major, Op. 61, 1st movement (opening)', 'Ludwig van Beethoven', "Mutopia Project no. 990 (Breitkopf & Härtel, 1862–1865); the solo's entry and first dolce theme (bars 89–109) with the string parts as accompaniment (winds, brass, timpani and double bass left out); converted to MusicXML by Violin Toolkit", 'Public Domain'),
+    ('Caprice No. 24 in A minor, Op. 1', 'Niccolò Paganini', '24 Capricci per violino solo, No. 24: the theme, eleven variations and the finale; Mutopia Project no. 2000 (Milan: Ricordi, 1836), typeset by Samuel Rummel; converted to MusicXML by Violin Toolkit (all eleven variations, though the edition\'s own MIDI leaves out Var. V); crotchet = 120 ours', 'Creative Commons Attribution-ShareAlike 4.0'),
     ('La Campanella (Violin Concerto No. 2, Rondo)', 'Niccolò Paganini', "Op. 7, 3rd movement (Rondo): the upbeat and bars 1-42: the solo theme, the tutti, the first solo episode, the theme's return, to the next tutti; from Philipp Scharwenka's edition for violin and piano, Leipzig: Breitkopf & Härtel, n.d. [ca. 1896], plate 21008: violin part (IMSLP #774280) and piano score (IMSLP #774279); engraved by Violin Toolkit, 2026 (in the tutti the violin plays the tune, as the violin part prints it; the harmonics of bars 31-33 are written as their top notes; dotted crotchet = 76, near recorded performances)", 'Public Domain (edition); our engraving CC0 1.0'),
     ('Hungarian Dance No. 5', 'Johannes Brahms', "Arranged for 2 violins, 2 violas and cello by Hans Erblich, 2012 (IMSLP #205345, PDF typeset by the arranger); transcribed to MusicXML from that PDF by Violin Toolkit, 2026 (first violin played, the others as accompaniment; the ad lib. 8va played as written)", 'Creative Commons Attribution Share Alike 3.0'),
     ('Orpheus in the Underworld (Can-Can)', 'Jacques Offenbach', "Galop infernal, No. 15b of Orphée aux enfers (Orpheus in der Unterwelt); from the vocal score, Berlin: Bote & Bock, n.d. [ca. 1880], plate 10779 (IMSLP #26815); engraved by Violin Toolkit, 2026: the violin plays the piano's top line in the piano passages and the sung tune elsewhere, the piano as accompaniment (the chorus parts left out)", 'Public Domain (edition); our engraving CC0 1.0'),
@@ -606,6 +607,7 @@ SCORE_SOURCE = {
     'mendelssohn.mxl': 'Breitkopf & Härtel 1845 (public domain), engraved by Violin Toolkit · CC0 1.0',
     'tchaikovsky35.mxl': 'Mutopia Project #466, MusicXML by Violin Toolkit · Public Domain',
     'beethoven61.mxl': 'Mutopia Project #990, MusicXML by Violin Toolkit · Public Domain',
+    'paganini24.mxl': 'Mutopia Project #2000 (typeset by Samuel Rummel), MusicXML by Violin Toolkit · CC BY-SA 4.0',
     'campanella.mxl': 'Scharwenka edition (Breitkopf & Härtel, ca. 1896, public domain), engraved by Violin Toolkit · CC0 1.0',
     'hungarian5.mxl': 'Arr. Hans Erblich (2012, IMSLP #205345), transcribed by Violin Toolkit · CC BY-SA 3.0',
     'little_swans.mxl': 'Eugene Gajewski\'s engraving of the Op. 20a suite (2024, IMSLP #917974), violin line arr. Violin Toolkit · CC0 1.0',
@@ -660,6 +662,7 @@ MIDI_DEMOS = [('twinkle.mxl', 'Twinkle, Twinkle, Little Star', 'Traditional'),
               ('mendelssohn.mxl', 'Violin Concerto in E minor, Op. 64, 1st movement (opening)', 'Felix Mendelssohn'),
               ('tchaikovsky35.mxl', 'Violin Concerto in D major, Op. 35, 1st movement (opening)', 'Pyotr Ilyich Tchaikovsky'),
               ('beethoven61.mxl', 'Violin Concerto in D major, Op. 61, 1st movement (opening)', 'Ludwig van Beethoven'),
+              ('paganini24.mxl', 'Caprice No. 24 in A minor, Op. 1', 'Niccolò Paganini'),
               ('campanella.mxl', 'La Campanella (Violin Concerto No. 2, Rondo)', 'Niccolò Paganini'),
               ('hungarian5.mxl', 'Hungarian Dance No. 5', 'Johannes Brahms'),
               ('cancan.mxl', 'Orpheus in the Underworld (Can-Can)', 'Jacques Offenbach'),
@@ -709,7 +712,7 @@ TUNE_CODES = {'twinkle.mxl': 'tw', 'ode.mxl': 'od', 'minuets.mxl': 'mn', 'minuet
               'ave_maria.mxl': 'am', 'gounod_ave_maria.mxl': 'gm', 'standchen.mxl': 'st', 'cygne.mxl': 'sw', 'meditation.mxl': 'me', 'massenet_elegie.mxl': 'el', 'humoresque.mxl': 'hu',
               'habanera.mxl': 'hb', 'porunacabeza.mxl': 'pc', 'valse.mxl': 'va', 'mountain_king.mxl': 'mk', 'little_swans.mxl': 'ls', 'brahms_wiegenlied.mxl': 'wg', 'faure_reve.mxl': 'ar', 'haydn_emperor.mxl': 'he', 'tchaikovsky_cantabile.mxl': 'tq', 'dvorak_american.mxl': 'da', 'borodin_nocturne.mxl': 'bn', 'canon.mxl': 'cn',
               'rv356.mxl': 'rv', 'bach1043.mxl': 'b4', 'bach1041.mxl': 'b1', 'romance.mxl': 'ro', 'rieding35.mxl': 'ri', 'mendelssohn.mxl': 'mc', 'tchaikovsky35.mxl': 'tc', 'beethoven61.mxl': 'bc',
-              'hungarian5.mxl': 'hd', 'campanella.mxl': 'lc', 'csardas.mxl': 'cs', 'bach1006_gavotte.mxl': 'bg', 'bach1003_andante.mxl': 'ba', 'bach1001_adagio.mxl': 'bd', 'bach1006_preludio.mxl': 'bp', 'cancan.mxl': 'cc', 'spring.mxl': 'sp', 'autumn.mxl': 'au', 'winter.mxl': 'wi',
+              'hungarian5.mxl': 'hd', 'campanella.mxl': 'lc', 'paganini24.mxl': 'p4', 'csardas.mxl': 'cs', 'bach1006_gavotte.mxl': 'bg', 'bach1003_andante.mxl': 'ba', 'bach1001_adagio.mxl': 'bd', 'bach1006_preludio.mxl': 'bp', 'cancan.mxl': 'cc', 'spring.mxl': 'sp', 'autumn.mxl': 'au', 'winter.mxl': 'wi',
               'winter_largo.mxl': 'wl', 'summer.mxl': 'su', 'serenade.mxl': 'se'}
 assert set(TUNE_CODES) == set(f for f, t, c in MIDI_DEMOS), 'every built-in needs its QR code: ' + str(set(f for f, t, c in MIDI_DEMOS) ^ set(TUNE_CODES))
 assert len(set(TUNE_CODES.values())) == len(TUNE_CODES)

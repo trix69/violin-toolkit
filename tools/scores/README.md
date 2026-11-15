@@ -246,3 +246,14 @@ beams them by the beat (96 groups). Pitches per bar unchanged. Use it after `mer
 - Not yet: Beethoven Romance Op. 40, BWV 1042, Paganini Caprice 24 — two-voice writing; `lysplit.py` (new) splits
   `<< {A} \\ {B} >>` into two single-voice files (the other voice as marked rests, tuplets of rests flattened) for
   `merge_voices.py`; `rebar.py` still assumes one time signature (Caprice 24 changes 2/4 ↔ 3/4).
+
+## Caprice No. 24 (Paganini, Mutopia #2000), 2026-11-16: `ly2xml.py`
+
+python-ly mis-bars this edition (unmarked 3:4 tuplets, 4:6, 7:4, 8:4 and 9:4 groups, 3/4 variations inside a 2/4 piece, a
+two-voice variation). `ly2xml.py` replaces it for such sources: it gives every note its exact start as a fraction and
+cuts the bars afterwards from the time signatures, so bars cannot drift; every bar check (`|`) in the source matched.
+Steps: `ly rel2abs Caprice_24.ly` (comments and the `\header` dropped) -> `m_abs.ly`, then
+`ly2xml.py m_abs.ly c24.musicxml music+varI+…+varXI --tempo 120 --label music=Tema --label varI="Var. I" …`, then
+`pack.py c24.musicxml paganini24.mxl "Caprice No. 24 in A minor, Op. 1" "Niccolò Paganini" "<rights>"`.
+Checked against the edition's MIDI (repeats unfolded, Var. V skipped as the MIDI does): 1,518 of 1,520 notes at the same
+time and pitch; the two others are the final trills, which the MIDI writes out.
