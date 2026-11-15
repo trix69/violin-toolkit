@@ -1703,15 +1703,15 @@
     ai = accFrom(pos);
     noteEls.forEach(function (el, k) { el.classList.toggle('done', k < ni); });
     /* the metronome clicks from the next beat on (on the first one when starting from the top) */
-    lastTick = !song || pos < 0.01 ? -1 : Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);
+    lastTick = !song || pos < 0.01 ? -1 : Math.floor(song.toBeat(pos) / pulse().q + 1e-6);
     if (!playing && !counting) showAt();   /* moving the slider while paused shows what sounds there */
     scroll(); ui();
   }
   function frame(now) {
     if (!playing) return;
     pos += (now - last) / 1000 * speed;
-    var k = Math.floor(song.toBeat(pos) / (4 / song.sig.den) + 1e-6);   /* the beat is tracked even at 0, so raising the fader clicks from the next beat */
-    if (k > lastTick) { lastTick = k; if (pos < song.end && mix.m > 0 && !paMute) APP.board.click(k % song.sig.num === 0, mix.m); }
+    var pu = pulse(), k = Math.floor(song.toBeat(pos) / pu.q + 1e-6);   /* the beat is tracked even at 0, so raising the fader clicks from the next beat */
+    if (k > lastTick) { lastTick = k; if (pos < song.end && mix.m > 0 && !paMute) APP.board.click(k % pu.n === 0, mix.m); }
     last = now;
     if (song.acc.length) accAhead();
     var ns = song.notes;
@@ -1749,10 +1749,13 @@
   /* the tempo where the music is now, as marked (Trix: the readout follows a change of tempo) */
   function curBpm() { return song.bpmAt ? song.bpmAt(Math.max(0, counting ? countBase : song.toBeat(pos))) : song.bpm; }
   var counting = false, countT = 0, countEl = $('mpCount'), countBeat = 0, countBase = 0;
+  /* the beat the metronome and count-in use: in 6/8, 9/8, 12/8 the dotted crotchet (two, three or four a bar; Trix), else the
+     time signature's own unit, as Play-along grades */
+  function pulse() { var sg = song.sig, c = sg.den === 8 && sg.num % 3 === 0 && sg.num > 3; return { q: c ? 1.5 : 4 / sg.den, n: c ? sg.num / 3 : sg.num }; }
   function countIn(then, base) {   /* base: the beat it leads into (A–B: bar A), else the start */
     base = base || 0; countBase = base;
-    var n = song.sig.num, k = n, step = 60 / (song.bpmAt ? song.bpmAt(base) : song.bpm) * 4 / song.sig.den / speed * 1000;   /* at the tempo of where it leads (Trix: A–B in a slower passage) */
-    var bar = n * 4 / song.sig.den, t0 = performance.now();
+    var pu = pulse(), n = pu.n, k = n, step = 60 / (song.bpmAt ? song.bpmAt(base) : song.bpm) * pu.q / speed * 1000;   /* at the tempo of where it leads (Trix: A–B in a slower passage) */
+    var bar = n * pu.q, t0 = performance.now();
     counting = true; countBeat = base - bar; ui();
     (function slide() {   /* the score moves through the empty bar in time with the count */
       if (!counting) return;
