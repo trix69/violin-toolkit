@@ -3474,17 +3474,17 @@
   }
   var PA_WRONG = 75;   /* 75 cents or more off: a different note (Trix: "only if it's deviated too much") */
   /* the note played, as a red head on its line or space (its accidental against the key, ledger lines) beside the written one */
-  function paPlayedHead(m, cx, cy, beat) {
+  function paPlayedHead(m, cx, cy, beat, atX) {
     var NS = 'http://www.w3.org/2000/svg', g = document.createElementNS(NS, 'g'), kn = song.keyAt ? song.keyAt(beat) : { sf: song.sf };
     var sharps = kn.sf >= 0, sp = (sharps ? SP_S : SP_F)[((m % 12) + 12) % 12], L = sp[0], acc = sp[1], oct = Math.floor(m / 12) - 1;
-    var step = L + 7 * (oct - 4), y = yOf(step), wStep = 2 + (BOT - cy) / (S / 2), x = cx + (Math.abs(step - wStep) <= 1 ? 12 : 0);
+    var step = L + 7 * (oct - 4), y = yOf(step), wStep = 2 + (BOT - cy) / (S / 2), x = atX !== undefined ? atX : cx + (Math.abs(step - wStep) <= 1 ? 12 : 0);   /* atX: on the shadow's stem (Trix: the red head and its stem apart) */
     var keyAcc = {}; for (var i = 0; i < Math.abs(kn.sf); i++) keyAcc[(sharps ? SHARP_K : FLAT_K)[i]] = sharps ? 1 : -1;
     var html = '';
     for (var l = 0; l >= step; l -= 2) html += '<path class="ledger" d="M' + (x - 9) + ' ' + yOf(l) + 'h18"/>';
     for (l = 12; l <= step; l += 2) html += '<path class="ledger" d="M' + (x - 9) + ' ' + yOf(l) + 'h18"/>';
     if ((keyAcc[L] || 0) !== acc) html += '<g class="pa-wacc" transform="translate(' + x + ' ' + y + ') scale(.7) translate(' + (-x) + ' ' + (-y) + ')">' + APP.accSvg(acc > 0 ? '#' : acc < 0 ? 'b' : 'n', x - 12, y, S) + '</g>';
     html += '<ellipse class="pa-whead" cx="' + x + '" cy="' + y + '" rx="5.4" ry="3.9" transform="rotate(-20 ' + x + ' ' + y + ')"/>';
-    g.setAttribute('class', 'pa-wrong'); g.innerHTML = html;
+    g.setAttribute('class', 'pa-wrong'); g.innerHTML = html; g.py = y;
     return g;
   }
   function paClearTints() {
@@ -3666,7 +3666,7 @@
         if (!m || !head) return;
         var wrong = m.played !== null && m.played !== undefined;
         g.classList.add('pa-p'); if (m.kind === 'miss' || m.kind === 'na' || wrong) g.classList.add('pa-miss');   /* the written note stays ink; grey when missed */
-        if (wrong) g.parentNode.insertBefore(paPlayedHead(m.played, +head.getAttribute('cx'), +head.getAttribute('cy'), song.notes[k].b), g.nextSibling);
+        if (wrong && (m.c === null || m.c === undefined)) g.parentNode.insertBefore(paPlayedHead(m.played, +head.getAttribute('cx'), +head.getAttribute('cy'), song.notes[k].b), g.nextSibling);   /* with a shadow it goes on the shadow's stem (below) */
         g.setAttribute('data-pabar', barOf[k]); g.setAttribute('data-pak', (merge ? 'p' : 's') + k);
         var gr = null; (merge ? paPrinted[k] || [k] : [k]).forEach(function (kk) { var gg = grade[barOf[kk]]; if (gg !== undefined && (gr === null || gg > gr)) gr = gg; });   /* repeats: the worse time round */
         if (gr !== null) {
@@ -3682,7 +3682,7 @@
           var cx = +head.getAttribute('cx'), cy = +head.getAttribute('cy'), rx = +head.getAttribute('rx') || S * 0.6, ry = +head.getAttribute('ry') || S * 0.45;
           var t0 = m.t0 == null ? 0 : m.t0, t1 = m.t1 == null ? t0 : m.t1;
           var dy = wrong ? 0 : -Math.max(-1.5 * S, Math.min(1.5 * S, m.c / 25 * S / 2)), dx = Math.max(-18, Math.min(18, (t0 + t1) / 2 / 7));
-          var lf = Math.max(0.45, Math.min(1.9, 1 + (t1 - t0) / 400)), hy = cy + dy, HR = rx, VR = ry, hx;   /* the written head's own size (Trix) */   /* lf: the stem's length against the written one */
+          var pw = wrong ? paPlayedHead(m.played, cx, cy, song.notes[k].b) : null, lf = Math.max(0.45, Math.min(1.9, 1 + (t1 - t0) / 400)), hy = wrong ? pw.py : cy + dy, HR = rx, VR = ry, hx;   /* the written head's own size (Trix) */   /* lf: the stem's length against the written one */
           var up = true; Array.prototype.forEach.call(g.querySelectorAll('line, path.stem'), function (l) {   /* the stem goes the way the written one does (Hermes F92: stems are paths) */
             if (l.nodeName === 'path') {
               var md = (l.getAttribute('d') || '').match(/^M(-?[\d.]+) (-?[\d.]+)V(-?[\d.]+)/);
@@ -3707,6 +3707,7 @@
             (wrong || m.kind === 'np' ? '' : '<ellipse class="pa-sd ' + (m.kind === 'na' ? 'ok' : m.kind) + (nHollow ? ' hollow' : '') + '" cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" rx="' + HR.toFixed(1) + '" ry="' + VR.toFixed(1) + '" transform="rotate(-20 ' + hx.toFixed(1) + ' ' + hy.toFixed(1) + ')"/>' +
               (nDotted ? '<circle class="pa-sdt ' + (m.kind === 'na' ? 'ok' : m.kind) + '" cx="' + (hx + HR + 4.5).toFixed(1) + '" cy="' + (hy + ddy).toFixed(1) + '" r="1.9"/>' : ''));   /* a dotted value keeps its dot (Hermes F96) */   /* a wrong note: the red played head says the pitch */
           g.parentNode.insertBefore(sh, g);   /* behind the written note: its shadow */
+          if (wrong) g.parentNode.insertBefore(paPlayedHead(m.played, cx, cy, song.notes[k].b, hx), g.nextSibling);   /* the note played, on its own stem */
         }
       });
       spans.forEach(function (sp) {   /* behind everything in its system / section, barline to barline (Trix) */
