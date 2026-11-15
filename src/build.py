@@ -327,6 +327,12 @@ html[lang="zh-CN"] {
 .a4list button:focus-visible, .a4step button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 /* "new version" popup: Later and Update side by side */
 #upd { z-index: 140; }
+#upd.upd-going .upd-row { display: none; }
+.upd-prog { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.upd-prog[hidden] { display: none; }
+.upd-bar { flex: 1; height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 12%, transparent); overflow: hidden; }
+.upd-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width .15s linear; }
+.upd-pct { min-width: 3.2em; text-align: right; font: 600 15px var(--font-body, system-ui); font-variant-numeric: tabular-nums; }
 #fgWarn { z-index: 140; }
 #delAsk, #repAsk { z-index: 140; }
 #extAsk { z-index: 160; }
@@ -1328,24 +1334,42 @@ nav_js = """(function () {
         return (j.build && btn.dataset.build ? j.build !== btn.dataset.build : num(j.version) > num(btn.dataset.version)) ? j : null;
       });
     }
+    /* the update's progress (Trix: show 0-100 % so people see it working): the service worker's own download is not
+       reported, so that stage eases towards 40 %; the page itself is read in chunks against its expected size (40-90 %);
+       saving and tidying the copies 90-100 %, then the reload */
+    var prog = function () {};
     function install(j) {
-      busy = true; say('Updating to ' + j.version + '…');
+      busy = true; say('Updating to ' + j.version + '…'); prog(0);
+      var ease = 0, easeT = setInterval(function () { ease += (40 - ease) * 0.08; prog(ease); }, 120);
       return navigator.serviceWorker.getRegistration().then(function (reg) { return reg && swapIn(reg); }).then(function () {
+        clearInterval(easeT); prog(40);
         /* save the new page under its own build stamp (normally the new service worker already has), choose it
            (the service worker shows the chosen copy, so Later keeps the old one), then drop older copies.
            Only this site's caches (data-cache prefix + build stamp); the test site shares the origin. */
         var pre = btn.dataset.cache || 'violin-toolkit-', want = pre + j.build, mine = new RegExp('^' + pre + '[0-9]{8}-[0-9]{6}$');
         return fetch('index.html', { cache: 'no-store' }).then(function (r) {
           if (!r.ok) throw new Error('page');
-          return caches.open(want).then(function (c) { return c.put('index.html', r); });
+          if (!r.body || !r.body.getReader) return caches.open(want).then(function (c) { return c.put('index.html', r); });
+          var len = +(r.headers.get('content-length') || 0), est = Math.max(r.headers.get('content-encoding') ? 0 : len, document.documentElement.outerHTML.length), got = 0, parts = [], rd = r.body.getReader(), hd = new Headers(r.headers);
+          hd.delete('content-encoding'); hd.delete('content-length');   /* the body kept is the decoded page */
+          return (function pump() {
+            return rd.read().then(function (x) {
+              if (x.done) return;
+              parts.push(x.value); got += x.value.length; prog(40 + 50 * Math.min(1, got / est));
+              return pump();
+            });
+          })().then(function () {
+            return caches.open(want).then(function (c) { return c.put('index.html', new Response(new Blob(parts), { status: 200, headers: hd })); });
+          });
         }).then(function () {
+          prog(92);
           return caches.open(pre + 'meta').then(function (m) { return m.put('current', new Response(j.build)); });
         }).then(function () {
           return caches.keys().then(function (ks) {
             return Promise.all(ks.filter(function (k) { return mine.test(k) && k < want; }).map(function (k) { return caches.delete(k); }));
           });
         }).catch(function () {});
-      }).then(function () { location.reload(); });
+      }).then(function () { prog(100); return new Promise(function (ok) { setTimeout(ok, 350); }); }).then(function () { location.reload(); });
     }
     btn.addEventListener('click', function () {
       if (busy) return;
@@ -1386,6 +1410,7 @@ nav_js = """(function () {
       updNow.focus();
     }
     function closeUpd() {
+      if (upd.classList.contains('upd-going')) return;   /* the update is under way: it ends in the reload */
       upd.hidden = true;
       window.removeEventListener('keydown', onUpdKey, true);
       try { updOpener.focus(); } catch (e) {}
@@ -1399,8 +1424,18 @@ nav_js = """(function () {
     updNow.addEventListener('click', function () {
       closeUpd();
       if (STORE) { openStore(); return; }   /* the store updates the app; no download, no reload */
+      if (!APK && pending && !busy) { updNow.blur(); }
       if (APK) { location.href = APK_URL; return; }   /* the app opens it in the browser, which downloads the APK */
-      if (pending && !busy) install(pending).catch(function () { location.reload(); });
+      if (pending && !busy) {   /* the window stays, showing the progress (Trix) */
+        upd.hidden = false; upd.classList.add('upd-going');
+        document.getElementById('updTitle').textContent = 'Updating…';
+        document.getElementById('updMsg').textContent = 'Version ' + pending.version;
+        document.getElementById('updProg').hidden = false;
+        var fill = document.getElementById('updFill'), pct = document.getElementById('updPct'), bar = document.getElementById('updBar'), shown = 0;
+        prog = function (v) { v = Math.max(shown, Math.min(100, v)); shown = v; fill.style.width = v.toFixed(1) + '%'; pct.textContent = Math.floor(v) + '%'; bar.setAttribute('aria-valuenow', Math.floor(v)); };
+        prog(0);
+        install(pending).catch(function () { location.reload(); });
+      }
     });
     APP.autoCheck = autoCheck;
     setTimeout(autoCheck, 1500);
@@ -1919,6 +1954,7 @@ markup = f"""
     <h2 id="updTitle">New version</h2>
     <p class="upd-msg" id="updMsg"></p>
     <p class="upd-note" id="updNote">Your settings and practice time are kept.</p>
+    <div class="upd-prog" id="updProg" hidden><div class="upd-bar" id="updBar" role="progressbar" aria-label="Update progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="updFill"></i></div><span class="upd-pct" id="updPct" translate="no">0%</span></div>
     <div class="upd-row">
       <button type="button" class="upd-later" id="updLater">Later</button>
       <button type="button" class="sheet-done" id="updNow">Update</button>
