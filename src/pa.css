@@ -234,7 +234,7 @@ html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { di
 .pa-float .mp-speed { min-width: 3.2em; text-align: center; }
 .pa-float .mp-vibrow { display: none; }   /* no vibrato switch here (Trix) */
 .pa-float .mp-mixpop, .pa-float .mp-abpop { bottom: calc(100% + 10px); }
-.shell[data-view="playalong"] #paFloat #mpFull { position: static !important; display: none !important; }
+.shell[data-view="playalong"] #paFloat #mpFull { position: static !important; display: none !important; border-radius: 50%; width: clamp(33px, 9.6vw, 44px); height: auto; aspect-ratio: 1; }   /* round like the pill's other buttons (Trix) */
 .shell[data-view="playalong"] #paFloat.live #mpFull { display: grid !important; }
 .shell[data-view="playalong"] #main { padding-bottom: 76px; }   /* room under the floating controls */
 /* Pages (Trix): the same pill at the top of the pages, staying at the top of the screen while they scroll; menus open downwards */

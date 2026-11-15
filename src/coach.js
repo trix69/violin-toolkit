@@ -57,8 +57,7 @@
       { sel: '#paStats', title: 'Your result', text: 'How many notes were in tune and on time. The bar shows the green, amber, red and missed share.' },
       { sel: '#fgPages .pa-sh', one: true, mid: true, when: function () { return APP.paState && APP.paState().view === 'pages'; }, title: 'Shadow notes', text: 'Each note you played is drawn as a coloured shadow: higher or lower when sharp or flat, moved left or right when early or late, with a longer or shorter stem when held too long or cut short. Each bar gets a light green, amber or red background.' },
       { sel: '#mpSvg .pa-sh', one: true, mid: true, fall: '#mpScore', when: function () { return APP.paState && APP.paState().view === 'live'; }, title: 'Shadow notes', text: 'Each note you played is drawn as a coloured shadow: higher or lower when sharp or flat, moved left or right when early or late, with a longer or shorter stem when held too long or cut short. Each bar gets a light green, amber or red background.' },
-      { sel: '#fgPages .pa-sh, #mpSvg .pa-sh', one: true, mid: true, fall: '#mpScore', title: 'Tap a note', text: 'Tap a note for its card: how many cents off, how early or late, and on the fingerboard where your finger landed and how far to move it.' },
-      { sel: '#paShow', title: 'Pitch, Timing or Both', text: 'Show only the pitch marks, only the timing marks, or both.' }
+      { sel: '#fgPages .pa-sh, #mpSvg .pa-sh', one: true, mid: true, fall: '#mpScore', title: 'Tap a note', text: 'Tap a note for its card: how many cents off, how early or late, and on the fingerboard where your finger landed and how far to move it.' }
     ]
   };
   /* a small picture of the board for the Pitch Check tip: F on the E string in C major (low 1st finger),
