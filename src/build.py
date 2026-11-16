@@ -305,8 +305,8 @@ html[lang="zh-CN"] {
 #a4pop { z-index: 130; }
 #credits { z-index: 130; }
 .cr-note { margin: 0 0 12px; font: 400 13px/1.45 var(--font-body); color: var(--muted); }
-.credits { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
-.credits li { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font: 400 13px/1.4 var(--font-body); color: var(--muted); }
+.credits { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }   /* long OpenScore paths no longer widen every card past the window (Trix, iPhone) */
+.credits li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; overflow-wrap: anywhere; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font: 400 13px/1.4 var(--font-body); color: var(--muted); }
 .credits li b { font: 600 15px var(--font-note); color: var(--fg); }
 .credits .cr-lic { color: var(--fg); }
 .segc.six { grid-template-columns: repeat(6, 1fr); }
