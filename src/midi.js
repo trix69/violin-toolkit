@@ -740,8 +740,10 @@
   /* positions by the 1st finger's usual note, in semitones above the open string (A string: 1st B, 2nd C♯,
      3rd D, 4th E, 5th F♯, 6th G, 7th A, 8th B, 9th C) */
   var POS_S = [2, 4, 5, 7, 9, 10, 12, 14, 15];
+  function boardHand(n) { return n.half ? 9 : n.hand; }   /* the board's hand: 9 = half position (board.html HAND_S[9] = 1) */
   var FG_COST = {
     four: 0.6,        /* the 4th finger: the weakest */
+    half: 1.0,        /* half position: only for a written finger no other position meets */
     high4: 1.6,       /* a 4th finger a semitone higher than usual (high 4, a stretch) */
     ext: 3.5,         /* the 4th finger stretched a tone further */
     pos: [0, 1.5, 0.6, 0.9, 1.2, 1.4, 1.6, 1.8, 2],   /* per note, by position: 1st free, 3rd before 2nd (Trix's rule) */
@@ -833,6 +835,12 @@
         out.push({ si: si, p: p, fg: fg, c: c });
       }
     }
+    if (!out.length && n.xfg > 0 && !window.VT_FG_BLIND) for (si = 0; si < 4; si++) {   /* half position (1st finger a semitone above the open string): a written 2 on A3 (Trix) */
+      if (n.xs && 4 - n.xs !== si) continue;
+      var kh = n.m - OPEN[si], dh = kh - 1, fh = dh <= 0 ? 1 : dh <= 2 ? 2 : dh <= 4 ? 3 : 4;
+      if (kh < 1 || dh > 7 || fh !== n.xfg || (fh === 1 && dh < 0)) continue;
+      out.push({ si: si, p: 0, half: true, fg: fh, c: FG_COST.pos[0] + FG_COST.half + (fh === 4 ? FG_COST.four : 0) });
+    }
     if (!out.length && n.xfg !== undefined && !window.VT_FG_BLIND) return waysFor(Object.assign({}, n, { xfg: undefined }));   /* a written finger no position meets: plan the note freely, the mark is still drawn (Hermes F125) */
     return out;
   }
@@ -904,7 +912,7 @@
     for (q = units.length - 1; q >= 0; q--) {
       var st = states[q][j];
       if (!st.fixed) { var n = units[q][0]; n.si = st.si; n.fg = st.fg; }
-      units[q].forEach(function (u) { u.hand = st.p; });   /* the hand position (0 = 1st ... 8 = 9th; -1 unknown): position marks on the score */
+      units[q].forEach(function (u) { u.hand = st.p; u.half = !!st.half; });   /* the hand position (0 = 1st ... 8 = 9th; -1 unknown): position marks on the score */
       if (q > 0) j = back[q][j];
     }
   }
@@ -960,7 +968,7 @@
     }
     units.forEach(function (un, ui) {
       var n = un.reduce(function (a, b) { return b.m > a.m ? b : a; }), next = units[ui + 1] ? units[ui + 1][0] : null;
-      var fg = n.fg, k = n.si >= 0 ? n.m - OPEN[n.si] : 0, d = n.hand >= 0 && fg > 0 ? k - POS_S[n.hand] : 0;
+      var fg = n.fg, k = n.si >= 0 ? n.m - OPEN[n.si] : 0, d = n.hand >= 0 && fg > 0 ? k - (n.half ? 1 : POS_S[n.hand]) : 0;
       var ext = fg === 4 || d >= 6, bar = barOf(n);
       var posCh = prev && fg > 0 && prev.fg > 0 && n.hand !== undefined && prev.hand !== undefined && n.hand !== prev.hand;
       var strCh = prev && n.si !== prev.si;
@@ -1759,7 +1767,7 @@
       if (ns[ni].e <= pos) { noteEls[ni].classList.add('done'); ni++; continue; }
       /* a note under a quarter of a second just lights up: no string wobble, rings or glow (Trix: fast pieces lagged) */
       var quick = (ns[ni].e - ns[ni].t) / speed < 0.25;
-      APP.board.hand(ns[ni].hand);   /* before on(): a new position centres the board first */
+      APP.board.hand(boardHand(ns[ni]));   /* before on(): a new position centres the board first */
       APP.board.on(ns[ni].m, 'n' + ni, !quick && !paMute, ns[ni].si, ns[ni].b, paMute, toneOf(ns[ni]), lvlOf(ns[ni]));   /* a take without sound: lit, not sounded */   /* a harmonic sounds pure, pizzicato plucked */   /* its string, and its chord (both notes of a double stop stay lit) */
       noteEls[ni].classList.add('on');
       noteEls[ni].classList.toggle('quick', quick);
@@ -1819,7 +1827,7 @@
     for (k = Math.max(0, ni - 64); k < ns.length && ns[k].t <= pos + 1e-6; k++) if (ns[k].e > pos) show.push(k);
     /* in the short break between two notes: the one just played */
     if (!show.length) for (k = Math.min(ni, ns.length) - 1; k >= 0 && (lastB === null || ns[k].b === lastB); k--) { lastB = ns[k].b; show.push(k); }
-    if (show.length) APP.board.hand(ns[show[0]].hand);
+    if (show.length) APP.board.hand(boardHand(ns[show[0]]));
     show.forEach(function (k) {
       APP.board.on(ns[k].m, 'n' + k, false, ns[k].si, ns[k].b, true);
       noteEls[k].classList.add('on'); noteEls[k].classList.add('quick');
@@ -3604,7 +3612,7 @@
        (Pitch Check's disc, as far above or below it as it was off) */
     if (paView === 'live') {
       var r0 = paResOf[list[0]];
-      APP.board.allOff(); APP.board.hand(n0.hand); APP.board.on(n0.m, 'pa-card', false, n0.si, n0.b, true);
+      APP.board.allOff(); APP.board.hand(boardHand(n0)); APP.board.on(n0.m, 'pa-card', false, n0.si, n0.b, true);
       APP.board.heard(r0 && r0.cents !== undefined && !r0.missed ? { m: n0.m + r0.cents / 100, cents: r0.cents, si: Math.abs(r0.cents) >= PA_WRONG ? -1 : n0.si } : null);
     }
   }

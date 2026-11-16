@@ -1523,11 +1523,11 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
   /* a board taller than its box: keep every note sounding now (both notes of a double stop) in view */
   /* the hand position the tune is played in (midi.js planner: 0 = 1st ... 8 = 9th), shown as a numeral in the label column (Trix) */
-  var pHand = -1, HAND_S = [2, 4, 5, 7, 9, 10, 12, 14, 15], ROMAN_L = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'], ROMAN = ['\u2160', '\u2161', '\u2162', '\u2163', '\u2164', '\u2165', '\u2166', '\u2167', '\u2168'];
+  var pHand = -1, HAND_S = [2, 4, 5, 7, 9, 10, 12, 14, 15, 1], ROMAN_L = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', '\u00bd'], ROMAN = ['\u2160', '\u2161', '\u2162', '\u2163', '\u2164', '\u2165', '\u2166', '\u2167', '\u2168', '\u00bd'];   /* 9: half position */
   function handLabel() {
     var old = labels.querySelector('.hand'), hl = labels.querySelector('.harmlbl'), box = document.getElementById('handbox');
     if (old) old.remove();
-    var show = playerOn && pHand >= 0, s = show ? HAND_S[pHand] : 0, lo = pHand === 0 ? 0 : s - 1, hi = Math.min(s + 5, playerN), mid = (lo + hi) / 2;
+    var show = playerOn && pHand >= 0, s = show ? HAND_S[pHand] : 0, lo = pHand === 0 || pHand === 9 ? 0 : s - 1, hi = Math.min(s + 5, playerN), mid = (lo + hi) / 2;
     if (box) box.hidden = !show;
     if (hl) hl.hidden = show && Math.abs(mid - MAXN) <= 1;   /* a numeral on the harmonic's row hides that label */
     if (!show) return;
@@ -1571,7 +1571,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   function centreHand() {
     if (stage.style.overflowY !== 'auto' || pHand < 0) return;
     var s = HAND_S[pHand];
-    centreRows(pHand === 0 ? 0 : s - 1, Math.min(playerN, s + 7), false, false);   /* the box and the 4th finger's stretch, so a stretched note is in view without scrolling (Trix) */   /* the box and the 4th finger's stretch, so a stretched note is in view without scrolling */
+    centreRows(pHand === 0 || pHand === 9 ? 0 : s - 1, Math.min(playerN, s + 7), false, false);   /* the box and the 4th finger's stretch, so a stretched note is in view without scrolling (Trix) */   /* the box and the 4th finger's stretch, so a stretched note is in view without scrolling */
   }
   /* the Fingerboard tool: the same glass box over the chosen position's keys (Trix); 1st position includes the open strings */
   function posBox(pc) {
@@ -1588,7 +1588,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
   /* the position's box and its 4th-finger stretch all fit the board's box (a very small screen: not) */
   function handFits() {
-    var s0 = HAND_S[pHand], base = 2 * (TOPN + 1), a = buttons[base + (pHand === 0 ? 0 : s0 - 1)], z = buttons[base + Math.min(playerN, s0 + 7)];
+    var s0 = HAND_S[pHand], base = 2 * (TOPN + 1), a = buttons[base + (pHand === 0 || pHand === 9 ? 0 : s0 - 1)], z = buttons[base + Math.min(playerN, s0 + 7)];
     if (!a || !z) return false;
     return z.getBoundingClientRect().bottom - a.getBoundingClientRect().top + 16 <= stage.clientHeight;
   }
