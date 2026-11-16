@@ -302,7 +302,7 @@
             var gr = kid(el, 'grace');
             if (gr) {   /* a grace note (Trix): played and drawn small just before the note it decorates */
               var gp = kid(el, 'pitch');
-              if (gp && !kid(el, 'chord')) graces.push({ m: (+txt(gp, 'octave') + 1) * 12 + (STEP[txt(gp, 'step')] || 0) + Math.round(+txt(gp, 'alter') || 0), slash: gr.getAttribute('slash') === 'yes', steal: +gr.getAttribute('steal-time-previous') || (gr.getAttribute('slash') === 'yes' ? 50 : 0) });   /* a slashed grace too (Trix): quick, just before the beat */
+              if (gp && !kid(el, 'chord')) graces.push({ m: (+txt(gp, 'octave') + 1) * 12 + (STEP[txt(gp, 'step')] || 0) + Math.round(+txt(gp, 'alter') || 0), slash: gr.getAttribute('slash') === 'yes', ty: txt(el, 'type'), steal: +gr.getAttribute('steal-time-previous') || (gr.getAttribute('slash') === 'yes' ? 50 : 0) });   /* a slashed grace too (Trix): quick, just before the beat */
               return;
             }
             var dur = +txt(el, 'duration') || 0, chord = !!kid(el, 'chord'), from = chord ? last : cur;
@@ -322,14 +322,14 @@
               var cnt2 = graces.length, room = prev ? (t0 - prev.t0) * graces[0].steal / 100 : TPQ / 8, each2 = Math.max(1, Math.round(Math.min(room / cnt2, (t1 - t0) / (2 * cnt2), graceCap(t0)))), g0 = Math.max(0, t0 - cnt2 * each2);   /* nothing before the first beat (Hermes F80) */
               if (g0 + cnt2 * each2 > t0) t0 = g0 + cnt2 * each2;   /* the file's first note: the grace takes its time from it instead */
               if (prev && prev.t1 > g0) { if (!prev.wl) prev.wl = (prev.t1 - prev.t0) / TPQ; prev.t1 = Math.max(prev.t0 + 1, g0); }   /* drawn at its written value, played a little shorter */
-              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: g0 + gi * each2, t1: g0 + (gi + 1) * each2, sb: Math.max(0, t0 - (cnt2 - gi)), gi: gi, gn: cnt2, ch: ch, v: 90, pz: pz, grace: 'acc' }); });
+              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: g0 + gi * each2, t1: g0 + (gi + 1) * each2, sb: Math.max(0, t0 - (cnt2 - gi)), gi: gi, gn: cnt2, gs: g.slash, gty: g.ty, ch: ch, v: 90, pz: pz, grace: 'acc' }); });
               gFrom = -1; gShift = 0; graces = [];
             }
             else if (!chord && graces.length) {
               /* graces not slashed (an appoggiatura, or a run): quick, about a 32nd each (Trix: a very quick grace), on the
                  beat, taking their time from the start of the note that follows */
               var main = t1 - t0, cnt = graces.length, each = Math.max(1, Math.round(Math.min(main / (2 * cnt), graceCap(t0))));   /* 60-120 ms by the tempo, at most half the main note (Trix) */
-              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: Math.max(0, t0 - (cnt - gi)), gi: gi, gn: cnt, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
+              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: Math.max(0, t0 - (cnt - gi)), gi: gi, gn: cnt, gs: g.slash, gty: g.ty, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
               gFrom = t0; gShift = cnt * each; t0 += gShift; graces = [];
             } else if (!chord) { gFrom = -1; gShift = 0; }
             var slurs = kids(kid(el, 'notations'), 'slur').map(function (sl) { return { t: sl.getAttribute('type'), n: sl.getAttribute('number') || '1' }; });
@@ -607,7 +607,7 @@
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
       var sb = n.sb !== undefined ? n.sb : n.t0;
-      return { m: n.m, t: t, e: n.grace ? e : e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, tup: n.tup, wl: n.wl, oacc: n.oacc, wsp: n.wsp, slur: n.slur, vel: n.v || 80, grace: n.grace };
+      return { m: n.m, t: t, e: n.grace ? e : e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, gs: n.gs, gty: n.gty, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, tup: n.tup, wl: n.wl, oacc: n.oacc, wsp: n.wsp, slur: n.slur, vel: n.v || 80, grace: n.grace };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -1322,10 +1322,11 @@
       else { f.head = k; f.members = [k]; heads.push(k); }
     });
     heads.forEach(function (k) {
-      var f = inf[k], ys = f.members.map(function (j) { return inf[j].y; });
+      var f = inf[k], ys = f.members.map(function (j) { return inf[j].y; }), sts = f.members.map(function (j) { return inf[j].step; });
+      if (!f.nt.grace) (sg.deco || []).forEach(function (d) { if (Math.abs(d.b - f.nt.b) < 1e-6) { var ds = d.wsp[0] + 7 * (d.wsp[2] - 4); sts.push(ds); ys.push(yOf(ds)); } });   /* an artificial harmonic's stopped note and diamond: the stem and beam clear them too (Trix) */
       f.yTop = Math.min.apply(null, ys); f.yBot = Math.max.apply(null, ys);
       f.len = Math.min.apply(null, f.members.map(function (j) { return inf[j].len; }));
-      f.mean = f.members.reduce(function (t, j) { return t + inf[j].step; }, 0) / f.members.length;
+      f.mean = sts.reduce(function (t, v) { return t + v; }, 0) / sts.length;
       f.up = f.mean < 6;
       var last = -99;   /* chord fingerings beside the notes, top down, at least 11 px apart */
       f.members.slice().sort(function (a, b) { return inf[a].y - inf[b].y; }).forEach(function (j) { last = Math.max(inf[j].y + 4, last + 11); inf[j].fy = last; });
@@ -1425,10 +1426,16 @@
         for (var gl = 0; gl >= step; gl -= 2) g.push('<path class="ledger" d="M' + (hx - 6) + ' ' + yOf(gl) + 'h12"/>');
         for (gl = 12; gl <= step; gl += 2) g.push('<path class="ledger" d="M' + (hx - 6) + ' ' + yOf(gl) + 'h12"/>');
         var gsx = hx + 2.9, gtop = y - 2.2 * S;
+        /* two or more graces together: one beam over them (quaver 1, semiquaver 2, demisemiquaver 3), slashed only if written so (Trix: La Campanella's beamed pairs) */
+        var grp = [], gk0 = k - (nt.gi || 0);
+        if (nt.gn > 1) for (var gj = 0; gj < nt.gn; gj++) { var gf = inf[gk0 + gj]; if (gf && gf.nt.grace && gf.nt.gi === gj) grp.push(gf); }
+        var gBeam = grp.length === nt.gn && nt.gn > 1;
+        if (gBeam) gtop = Math.min.apply(null, grp.map(function (gf) { return gf.y; })) - 2.2 * S;
         g.push('<ellipse class="head" cx="' + hx + '" cy="' + y + '" rx="3.3" ry="2.3" transform="rotate(-20 ' + hx + ' ' + y + ')"/>');
         g.push('<path class="stem" d="M' + gsx + ' ' + (y - 1) + 'V' + gtop + '"/>');
-        g.push('<path class="flag" d="M' + gsx + ' ' + gtop + 'c.6 3 4.6 4.2 3.5 8.8c.6-3.5-1.8-5.3-3.5-5.9z"/>');
-        if (nt.grace === 'acc') g.push('<path class="stem" d="M' + (hx - 1.5) + ' ' + (y - 0.6 * S) + 'L' + (hx + 7) + ' ' + (y - 1.8 * S) + '"/>');
+        if (!gBeam) g.push('<path class="flag" d="M' + gsx + ' ' + gtop + 'c.6 3 4.6 4.2 3.5 8.8c.6-3.5-1.8-5.3-3.5-5.9z"/>');
+        else if (nt.gi === nt.gn - 1) { var nb = nt.gty === '32nd' ? 3 : nt.gty === '16th' ? 2 : 1, bx0 = grp[0].hx + 2.9; for (var bq = 0; bq < nb; bq++) g.push('<path class="beam" d="M' + bx0 + ' ' + (gtop + bq * 3) + 'H' + gsx + 'v1.8H' + bx0 + 'z"/>'); }
+        if (gBeam ? nt.gs && nt.gi === 0 : nt.grace === 'acc') g.push('<path class="stem" d="M' + (hx - 1.5) + ' ' + (y - 0.6 * S) + 'L' + (hx + 7) + ' ' + (y - 1.8 * S) + '"/>');
         inf[k].top = gtop - 4;   /* a grace note's stem and flag take the space over it (Trix: Ⅲ on a grace note) */
         items.push([hx, '<g class="mp-n mp-grace" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);
         return;
@@ -1439,13 +1446,16 @@
       var hollow = len >= 2, stem = len < 4, dotted = len === 3 || len === 1.5 || len === 0.75 || len === 0.375;
       var flags = hd.beam >= 0 ? 0 : hd.len <= 0.125 ? 3 : hd.len <= 0.25 ? 2 : hd.len < 1 ? 1 : 0;
       g.push('<ellipse class="' + (hollow ? 'head hollow' : 'head') + '" cx="' + hx + '" cy="' + y + '" rx="5.4" ry="3.9" transform="rotate(-20 ' + hx + ' ' + y + ')"/>');
-      var dys = [];
+      var dys = [], accYs = f.sign ? [[y, 0]] : [];
       if (isHead) (sg.deco || []).forEach(function (d) {   /* an artificial harmonic's stopped note (black) and touching note (a hollow diamond) under it */
         if (Math.abs(d.b - nt.b) > 1e-6) return;
         var dstep = d.wsp[0] + 7 * (d.wsp[2] - 4), dy = yOf(dstep), ka = keyAccOf(sfAt(bStart(bIdx(nt.b))))[d.wsp[0]] || 0;
         for (var dl = 0; dl >= dstep; dl -= 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(dl) + 'h18"/>');
         for (dl = 12; dl <= dstep; dl += 2) g.push('<path class="ledger" d="M' + (hx - 9) + ' ' + yOf(dl) + 'h18"/>');
-        if (d.wsp[1] !== ka) g.push('<g class="acc">' + APP.accSvg(ACC[String(d.wsp[1])], hx - 14, dy, S) + '</g>');
+        if (d.wsp[1] !== ka) {   /* staggered left of any accidental of the same chord within a sixth (Trix: three sharps in one column) */
+          var col = 0; while (accYs.some(function (a2) { return a2[1] === col && Math.abs(a2[0] - dy) < 2.6 * S; })) col++;   /* the nearest free column */
+          g.push('<g class="acc">' + APP.accSvg(ACC[String(d.wsp[1])], hx - 14 - 8 * col, dy, S) + '</g>'); accYs.push([dy, col]);
+        }
         g.push(d.touch ? '<path class="head hollow" d="M' + (hx - 5) + ' ' + dy + 'L' + hx + ' ' + (dy - 4) + 'L' + (hx + 5) + ' ' + dy + 'L' + hx + ' ' + (dy + 4) + 'Z"/>'
           : '<ellipse class="head" cx="' + hx + '" cy="' + dy + '" rx="5.4" ry="3.9" transform="rotate(-20 ' + hx + ' ' + dy + ')"/>');
         dys.push(dy);

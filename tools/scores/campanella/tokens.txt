@@ -2,19 +2,19 @@
 ; bars 31-33: the harmonics written as their top notes at written pitch (the edition has them under an 8va line); piano bell octaves at sounding pitch
 P1 0: F#5:8 F#5:8g F#6:8 F#6:8 E6:8
 P1 1: E6:8g D6:8 D6:8 C#6:8 C#6:8g B5:8 A#5:8 B5:8
-P1 2: A#5:16g B5:16g C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
-P1 3: E5:8g D5:8 C#5:8 B4:8 B4:16g C#5:16g D5:8 C#5:8 B4:8
+P1 2: A#5:16G B5:16G C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
+P1 3: E5:8g D5:8 C#5:8 B4:8 B4:16G C#5:16G D5:8 C#5:8 B4:8
 P1 4: F#4:4 F#5:8 F#5:8g F#6:8 F#6:8 E6:8
 P1 5: E6:8g D6:8 D6:8 C#6:8 C#6:8g B5:8 A#5:8 B5:8
-P1 6: A#5:16g B5:16g C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
+P1 6: A#5:16G B5:16G C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
 P1 7: F#5:8 B5:16 D6:16 F#6:8 F#5:8 A#5:16 C#6:16 F#6:8
 P1 8: B3:4 F#5:8 F#5:8g F#6:8 F#6:8 E6:8
 P1 9: E6:8g D6:8 D6:8 C#6:8 C#6:8g B5:8 A#5:8 B5:8
-P1 10: A#5:16g B5:16g C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
-P1 11: E5:8g D5:8 C#5:8 B4:8 B4:16g C#5:16g D5:8 C#5:8 B4:8
+P1 10: A#5:16G B5:16G C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
+P1 11: E5:8g D5:8 C#5:8 B4:8 B4:16G C#5:16G D5:8 C#5:8 B4:8
 P1 12: F#4:4 F#5:8 F#5:8g F#6:8 F#6:8 E6:8
 P1 13: E6:8g D6:8 D6:8 C#6:8 C#6:8g B5:8 A#5:8 B5:8
-P1 14: A#5:16g B5:16g C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
+P1 14: A#5:16G B5:16G C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
 P1 15: F#5:8 B5:16 D6:16 F#6:8 F#5:8 A#5:16 C#6:16 F#6:8
 P1 16: B3:4 D5:8 D5:8 D5:8 D5:8
 P1 17: E5:32 D5:32 C#5:32 D5:32 A4:8 D5:8 F#5:32 E5:32 D#5:32 E5:32 A4:8 E5:8
@@ -36,11 +36,11 @@ P1 32: A#5:8 F#6:8 F#6:8 F#6:8 F#6:8 r:8
 P1 33: r:4 F#6:8 F#6:8 F#6:8 r:8
 P1 34: r:4 F#5:8 F#5:8g F#6:8 F#6:8 E6:8
 P1 35: E6:8g D6:8 D6:8 C#6:8 C#6:8g B5:8 A#5:8 B5:8
-P1 36: A#5:16g B5:16g C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
-P1 37: E5:8g D5:8 C#5:8 B4:8 B4:16g C#5:16g D5:8 C#5:8 B4:8
+P1 36: A#5:16G B5:16G C#6:8 F#5:8 F#5:8 A5:8g G5:8 F#5:8 E5:8
+P1 37: E5:8g D5:8 C#5:8 B4:8 B4:16G C#5:16G D5:8 C#5:8 B4:8
 P1 38: F#4:4 F#5:8 F#5:8g F#6:8 F#6:8 E6:8
 P1 39: D6:8 D6:8 C6:8 B5:8 B5:8 A5:8
-P1 40: A5:8g G5:8 G5:8 E5:8 E5:16g F#5:16g G5:8 F#5:8 E5:8   ; 2026-11-16: was F#5 F#5 D5 | G5 F#5 E5 without graces; the scan (p. 10, last system) has G5 G5 E5 with an A5 grace, then E5 F#5 graces
+P1 40: A5:8g G5:8 G5:8 E5:8 E5:16G F#5:16G G5:8 F#5:8 E5:8   ; 2026-11-16: was F#5 F#5 D5 | G5 F#5 E5 without graces; the scan (p. 10, last system) has G5 G5 E5 with an A5 grace, then E5 F#5 graces
 P1 41: F#5:8 B5:16 D6:16 F#6:8 F#5:8 A#5:16 C#6:16 F#6:8
 P1 42: B3:4 r:8 r:4 r:8
 P2 0: r:8 r:4 r:8
@@ -53,11 +53,11 @@ P2 6: C#4+E4+F#4+A#4:8 C#4+E4+F#4+A#4:8 r:8 C#4+E4+F#4+A#4:8 r:8 r:8
 P2 7: D4+F#4+B4+D5:8 r:8 r:8 E4+F#4+A#4+C#5:8 r:8 r:8
 P2 8: B3+D4+F#4+B4:8 r:8 F#5:8 F#5:8g F#5+F#6:8 F#5+F#6:8 E5+E6:8
 P2 9: E6:8g D5+D6:8 D5+D6:8 C#5+C#6:8 C#6:8g B4+B5:8 A#4+A#5:8 B4+B5:8
-P2 10: A#5:16g B5:16g C#5+C#6:8 F#4+F#5:8 F#4+F#5:8 A5:8g G4+G5:8 F#4+F#5:8 E4+E5:8
-P2 11: E5:8g D4+D5:8 C#5:8 B4:8 B4:16g C#5:16g D5:8 C#5:8 B4:8
+P2 10: A#5:16G B5:16G C#5+C#6:8 F#4+F#5:8 F#4+F#5:8 A5:8g G4+G5:8 F#4+F#5:8 E4+E5:8
+P2 11: E5:8g D4+D5:8 C#5:8 B4:8 B4:16G C#5:16G D5:8 C#5:8 B4:8
 P2 12: F#4:4 F#5:8 F#5:8g F#5+F#6:8 F#5+F#6:8 E5+E6:8
 P2 13: E6:8g D5+D6:8 D5+D6:8 C#5+C#6:8 C#6:8g B4+B5:8 A#4+A#5:8 B4+B5:8
-P2 14: A#5:16g B5:16g C#5+C#6:8 F#4+F#5:8 F#4+F#5:8 A5:8g G4+G5:8 F#4+F#5:8 E4+E5:8
+P2 14: A#5:16G B5:16G C#5+C#6:8 F#4+F#5:8 F#4+F#5:8 A5:8g G4+G5:8 F#4+F#5:8 E4+E5:8
 P2 15: F#4+F#5:8 B4:16 D5:16 F#5+B5+F#6:8 F#4+F#5:8 A#4:16 C#5:16 A#5+C#6+F#6:8
 P2 16: B4+D5+F#5+B5:4 r:8 r:4 r:8
 P2 17: A3+D4+F#4:8 r:8 r:8 A3+C#4+G4:8 r:8 r:8

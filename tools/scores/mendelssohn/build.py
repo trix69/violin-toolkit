@@ -3,7 +3,7 @@
 COMPOSER, EXTRA_CREATORS [(type, name)], RIGHTS). Usage: build.py <dir with conf.py and tokens.txt> out.mxl
 tokens.txt -> hungarian5.mxl. Line: 'P<n> <bar>: tok tok | tok' ; tok = PITCH[+PITCH]:DUR[~] or r:DUR
 PITCH = step [# b n] octave (absolute, alter written out); DUR = 1 2 4 8 16 32 [.|..] [t triplet | q quintuplet | s septuplet (needs DIV a multiple of 7)]; '|' = second voice.
-Optional: a DUR ending in 'g' is a grace note (slashed, takes no time; 'G' unslashed); PICKUP (crotchets) makes bar 0 an upbeat;
+Optional: a DUR ending in 'g' is a grace note (slashed, takes no time; 'G' unslashed, also played before the beat: steal-time-previous 50); PICKUP (crotchets) makes bar 0 an upbeat;
 ENDINGS [(first bar, last bar, '1', 'stop' or 'discontinue')] volta brackets. Passages under an 8va line are written at pitch.
 MARKS [(part, bar, crotchets into the bar, kind, value)]: kind 'dyn' (p, f, ff ...), 'cresc' / 'dim' (a hairpin from there; value = where it
 ends, in crotchets into the same bar), 'bow' ('down' / 'up', on the note starting there), 'fing' (the printed fingering '0'-'4' on the note starting there),
@@ -63,7 +63,8 @@ for pn in range(1, len(NAMES) + 1):
         src = bars.get((pn, b), '')
         BEATS, BTYPE = TIMEF(b); FULL = DIV * 4 * BEATS // BTYPE; BEAT = DIV * 4 // BTYPE   # a beat in divisions (beams group by it)
         if BTYPE == 8 and BEATS % 3 == 0: BEAT = DIV * 3 // 2   # 6/8, 9/8, 12/8: beamed by the dotted crotchet (Trix: La Campanella's quavers stood alone)
-        if b == 0: FULL = int(PICK * DIV)
+        BOFF = 0   # an upbeat is the end of a bar: beams group from where the full bar would start (Trix: La Campanella's upbeat F#5 stands alone)
+        if b == 0: BOFF = FULL - int(PICK * DIV); FULL = int(PICK * DIV)
         newtime = b == FIRST or TIMEF(b) != TIMEF(b - 1)
         x = '<measure number="%d"%s>' % (b, ' implicit="yes"' if b == 0 else '')
         if b in FWD: x += '<barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>'
@@ -102,7 +103,7 @@ for pn in range(1, len(NAMES) + 1):
                 if v_ == 0: continue   # a grace note: outside the beams, and does not break them
                 if rest or v_ >= DIV or wt_ in ('quarter', 'half', 'whole'): flush(grp); grp = []; continue   # a crotchet in a triplet is not beamed
                 unit = DIV if trip else BEAT   # triplets beam in threes (one crotchet), other notes by the beat
-                if grp and (st // unit != info[grp[0]][0] // unit or trip != info[grp[0]][3]): flush(grp); grp = []
+                if grp and ((st + BOFF) // unit != (info[grp[0]][0] + BOFF) // unit or trip != info[grp[0]][3]): flush(grp); grp = []
                 grp.append(k)
             flush(grp)
             for ti, t in enumerate(toks):
@@ -123,7 +124,7 @@ for pn in range(1, len(NAMES) + 1):
                 tot += v
                 for k, q in enumerate(p.split('+')):
                     qt = tie or q.endswith('~'); q = q.rstrip('~')
-                    n = '<note>' + ('<grace%s/>' % (' slash="yes"' if gr == 'g' else '') if gr else '') + ('<chord/>' if k else '') + ('<rest/>' if q == 'r' else pitch(q)) + ('<duration>%d</duration>' % v if not gr else '')
+                    n = '<note>' + ('<grace%s/>' % (' slash="yes"' if gr == 'g' else ' steal-time-previous="50"') if gr else '') + ('<chord/>' if k else '') + ('<rest/>' if q == 'r' else pitch(q)) + ('<duration>%d</duration>' % v if not gr else '')
                     key = (vi, q)
                     if key in tied: n += '<tie type="stop"/>'
                     if qt: n += '<tie type="start"/>'
