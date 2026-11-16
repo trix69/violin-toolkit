@@ -3522,7 +3522,7 @@
         big.innerHTML = PA_ICON[row[0]] + '<span translate="no">' + Math.round(100 * C.ok / n) + '%</span>'; box.appendChild(big);
         var cap = document.createElement('div'); cap.className = 'pa-sb-cap'; cap.textContent = row[1]; box.appendChild(cap);
         var bar = document.createElement('div'); bar.className = 'pa-sb-bar' + row[3]; bar.setAttribute('role', 'img');
-        bar.setAttribute('aria-label', row[0] + ': ' + ['ok', 'amber', 'red', 'miss'].map(function (k) { return Math.round(100 * C[k] / n) + '%'; }).join(', '));
+        bar.setAttribute('aria-label', row[1] + ': ' + ['ok', 'amber', 'red', 'miss'].map(function (k) { return Math.round(100 * C[k] / n) + '%'; }).join(', '));
         ['ok', 'amber', 'red', 'miss'].forEach(function (k) {
           if (!C[k]) return;
           var seg = document.createElement('i'), pc = 100 * C[k] / n; seg.className = 's-' + k; seg.style.flex = '0 0 ' + pc.toFixed(2) + '%';
