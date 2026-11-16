@@ -374,7 +374,7 @@
             /* an artificial harmonic's stopped note and its touching (diamond) note: drawn, never played, lit or graded (Trix: the
                scan's diamonds); the note that sounds carries the harmonic */
             var hmk = tech && kid(tech, 'harmonic');
-            if (hmk && (kid(hmk, 'touching-pitch') || kid(hmk, 'base-pitch'))) { deco.push({ sb: n.sb, wsp: n.wsp, m: mm, touch: !!kid(hmk, 'touching-pitch') }); return; }
+            if (hmk && chord && (kid(hmk, 'touching-pitch') || kid(hmk, 'base-pitch'))) { deco.push({ sb: n.sb, wsp: n.wsp, m: mm, touch: !!kid(hmk, 'touching-pitch') }); return; }   /* only a chord member is display-only (Hermes F126) */
             notes.push(n);
             if (ties.indexOf('start') >= 0) tie[mm] = n;
           }
@@ -833,6 +833,7 @@
         out.push({ si: si, p: p, fg: fg, c: c });
       }
     }
+    if (!out.length && n.xfg !== undefined && !window.VT_FG_BLIND) return waysFor(Object.assign({}, n, { xfg: undefined }));   /* a written finger no position meets: plan the note freely, the mark is still drawn (Hermes F125) */
     return out;
   }
   function planFingers(notes, tpq) {

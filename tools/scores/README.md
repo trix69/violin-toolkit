@@ -254,6 +254,8 @@ cuts the bars afterwards from the time signatures, so bars cannot drift; every b
 Steps: `ly rel2abs Caprice_24.ly` (comments and the `\header` dropped) -> `m_abs.ly`, then
 `ly2xml.py m_abs.ly c24.musicxml music+varI+…+varXI --tempo 120 --label music=Tema --label varI="Var. I" …`, then
 `pack.py c24.musicxml paganini24.mxl "Caprice No. 24 in A minor, Op. 1" "Niccolò Paganini" "<rights>"`.
+Then `python3 -I c24_open0.py paganini24.mxl`: the source's "-0" in Var. IX on 34 notes that are not an open string is dropped
+(Hermes F125; the 25 on open-string pitches stay).
 Checked against the edition's MIDI (repeats unfolded, Var. V skipped as the MIDI does): 1,518 of 1,520 notes at the same
 time and pitch; the two others are the final trills, which the MIDI writes out.
 
