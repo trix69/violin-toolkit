@@ -720,6 +720,21 @@
   /* the violin note's loudness from its velocity, around the part's usual level (so the mixer level holds) */
   function lvlOf(n) { return song && song.velMid ? Math.max(0.3, Math.min(1.8, Math.pow((n.vel || song.velMid) / song.velMid, 1.2))) : 1; }
   function toneOf(n) { return n.harm ? 'pure' : n.pz ? 'pizz' : ''; }
+  /* a written trill (tr) as sound (Trix): the upper note is the next one up in the key at that beat, changed by an accidental
+     written on the tr; it alternates every 1/12 s of real time (about a 32nd at 160), or a 32nd at slow tempos if slower */
+  function trillOf(n) {
+    if (!(n.art || []).some(function (a) { return a === 'trill-mark'; })) return null;
+    var k = song.keyAt ? song.keyAt(n.b) : { sf: song.sf || 0 }, tonic = ((7 * k.sf) % 12 + 12) % 12;
+    var inKey = function (m) { var pc = ((m - tonic) % 12 + 12) % 12; return [0, 2, 4, 5, 7, 9, 11].indexOf(pc) >= 0; };
+    var u = inKey(n.m + 1) && inKey(n.m) ? n.m + 1 : n.m + 2;
+    var white = function (m) { return [0, 2, 4, 5, 7, 9, 11].indexOf(((m % 12) + 12) % 12) >= 0; };
+    if (n.oacc === 'sharp' && white(u)) u += 1;
+    else if (n.oacc === 'flat' && white(u)) u -= 1;
+    else if (n.oacc === 'natural' && !white(u)) u += k.sf >= 0 ? -1 : 1;
+    var dur = (n.e - n.t) / speed, beatSec = song.beatSec ? (song.beatSec(n.b + 1) - song.beatSec(n.b)) / speed : 0.5;
+    if (u <= n.m || dur < 0.15) return null;
+    return { up: u - n.m, dur: dur, step: Math.max(1 / 12, beatSec > 0 ? beatSec / 8 : 0) };
+  }
   function strForFinger(m, f) {
     if (f === 0) return OPEN.indexOf(m);
     var best = -1, bestBase = 99;
@@ -1786,7 +1801,7 @@
       /* a note under a quarter of a second just lights up: no string wobble, rings or glow (Trix: fast pieces lagged) */
       var quick = (ns[ni].e - ns[ni].t) / speed < 0.25;
       APP.board.hand(boardHand(ns[ni]));   /* before on(): a new position centres the board first */
-      APP.board.on(ns[ni].m, 'n' + ni, !quick && !paMute, ns[ni].si, ns[ni].b, paMute, toneOf(ns[ni]), lvlOf(ns[ni]));   /* a take without sound: lit, not sounded */   /* a harmonic sounds pure, pizzicato plucked */   /* its string, and its chord (both notes of a double stop stay lit) */
+      APP.board.on(ns[ni].m, 'n' + ni, !quick && !paMute, ns[ni].si, ns[ni].b, paMute, toneOf(ns[ni]), lvlOf(ns[ni]), paMute ? null : trillOf(ns[ni]));   /* a take without sound: lit, not sounded */   /* a harmonic sounds pure, pizzicato plucked */   /* its string, and its chord (both notes of a double stop stay lit) */
       noteEls[ni].classList.add('on');
       noteEls[ni].classList.toggle('quick', quick);
       active.push(ni); ni++;

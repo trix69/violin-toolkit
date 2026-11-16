@@ -1339,7 +1339,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   function applyVib(rec) {
     /* the MIDI player plays without vibrato (Trix: it sounded noisy) */
     if (rec.player) {   /* the MIDI player: its own switch (Trix), off by default; long notes only */
-      var pw = playerVibOn && !rec.open && rec.tone !== 'pure' && rec.tone !== 'pizz' && (performance.now() - rec.t0 >= 290);
+      var pw = playerVibOn && !rec.trill && !rec.open && rec.tone !== 'pure' && rec.tone !== 'pizz' && (performance.now() - rec.t0 >= 290);
       if (pw !== rec.vibOn) { rec.vibOn = pw; if (rec.v && rec.v.vib) rec.v.vib(pw); }
       return;
     }
@@ -1493,7 +1493,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     }
     return -1;
   }
-  function pOn(midi, id, fx, si, grp, quiet, tone, lvl) {   /* tone: 'pure' a harmonic (a flute-like sine), 'pizz' plucked (Trix); lvl: loudness from the score's dynamics */   /* si: the string to use (a double stop's two strings); grp: its chord; fx false: no wobble or rings; quiet: shown, not sounded (paused) */
+  function pOn(midi, id, fx, si, grp, quiet, tone, lvl, trill) {   /* trill: { up: semitones to the upper note, dur, step: seconds } (Trix: tr was not heard) */   /* tone: 'pure' a harmonic (a flute-like sine), 'pizz' plucked (Trix); lvl: loudness from the score's dynamics */   /* si: the string to use (a double stop's two strings); grp: its chord; fx false: no wobble or rings; quiet: shown, not sounded (paused) */
     if (!quiet) {
       if (window.APP && APP.playThroughSilent) APP.playThroughSilent();
       if (!ensureCtx()) return;
@@ -1510,6 +1510,18 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
       else rec.v.out.connect(soloOut());
     }
     rec.tone = tone;
+    /* a trill: both oscillators step between the note and the one above (detune, so the vibrato LFO still adds on top),
+       starting on the note and ending on it for the last quarter, as players are taught for a plain tr */
+    if (trill && rec.v && tone !== 'pure' && tone !== 'pizz' && trill.up > 0) {
+      rec.trill = true;
+      var tt = ctx.currentTime, tEnd = tt + trill.dur * 0.75, hi = false;
+      rec.v.nodes.forEach(function (o) {
+        if (o.type !== 'sawtooth' && o.type !== 'triangle') return;
+        o.detune.setValueAtTime(0, tt);
+        for (var q = tt + trill.step, up = true; q < tEnd - trill.step * 0.5; q += trill.step, up = !up) o.detune.setValueAtTime(up ? trill.up * 100 : 0, q);
+        o.detune.setValueAtTime(0, Math.max(tt, tEnd - trill.step * 0.5));
+      });
+    }
     if (!quiet) rec.timer = setTimeout(function () { applyVib(rec); }, 300);
     if (el) {
       el.classList.remove('off');
