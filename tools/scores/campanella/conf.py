@@ -7,6 +7,7 @@ CLEF = [('G', 2), ('G', 2), ('F', 4)]
 KEY = lambda b: 2; MODE = 'minor'
 TIME = (6, 8)
 PICKUP = 2
+GRACE_SLURS = [1]   # the scan slurs every grace into its note (Trix)
 TEMPO = {0: ('Andantino allegretto moderato', 114)}   # dotted crotchet = 76: recordings of the whole Rondo average 77-85 (Trix: 56 was slow)
 FWD = set(); BWD = set(); LAST = 42
 TITLE = 'La Campanella (Violin Concerto No. 2, Rondo)'; COMPOSER = 'Niccolò Paganini'

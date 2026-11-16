@@ -302,7 +302,7 @@
             var gr = kid(el, 'grace');
             if (gr) {   /* a grace note (Trix): played and drawn small just before the note it decorates */
               var gp = kid(el, 'pitch');
-              if (gp && !kid(el, 'chord')) graces.push({ m: (+txt(gp, 'octave') + 1) * 12 + (STEP[txt(gp, 'step')] || 0) + Math.round(+txt(gp, 'alter') || 0), slash: gr.getAttribute('slash') === 'yes', ty: txt(el, 'type'), steal: +gr.getAttribute('steal-time-previous') || (gr.getAttribute('slash') === 'yes' ? 50 : 0) });   /* a slashed grace too (Trix): quick, just before the beat */
+              if (gp && !kid(el, 'chord')) graces.push({ m: (+txt(gp, 'octave') + 1) * 12 + (STEP[txt(gp, 'step')] || 0) + Math.round(+txt(gp, 'alter') || 0), slash: gr.getAttribute('slash') === 'yes', ty: txt(el, 'type'), sl: (kids(kid(el, 'notations'), 'slur').filter(function (x) { return x.getAttribute('type') === 'start'; })[0] || { getAttribute: function () { return null; } }).getAttribute('number'), steal: +gr.getAttribute('steal-time-previous') || (gr.getAttribute('slash') === 'yes' ? 50 : 0) });   /* a slashed grace too (Trix): quick, just before the beat */
               return;
             }
             var dur = +txt(el, 'duration') || 0, chord = !!kid(el, 'chord'), from = chord ? last : cur;
@@ -314,6 +314,7 @@
             if (!pt) { if (!chord && kid(kid(el, 'notations'), 'fermata')) ferm.push({ t0: tk(from), t1: tk(from + dur) }); graces = []; return; }   /* a rest, or unpitched (graces before a rest are dropped) */
             var mm = (+txt(pt, 'octave') + 1) * 12 + (STEP[txt(pt, 'step')] || 0) + Math.round(+txt(pt, 'alter') || 0);
             var t0 = tk(from), t1 = tk(from + dur), ties = kids(el, 'tie').map(function (t) { return t.getAttribute('type'); });
+            var gSl = !chord && graces.length ? graces[0].sl : null;   /* a slur from the graces to this note: drawn with the graces, not one of the note's own slurs */
             if (chord && t0 === gFrom) t0 += gShift;   /* the rest of a chord moves with its first note */
             else if (!chord && graces.length && graces.every(function (g) { return g.steal > 0; })) {
               /* graces marked steal-time-previous, and slashed ones (Trix: the Minuets' bar 8, a quick grace just before the beat): about a
@@ -322,17 +323,18 @@
               var cnt2 = graces.length, room = prev ? (t0 - prev.t0) * graces[0].steal / 100 : TPQ / 8, each2 = Math.max(1, Math.round(Math.min(room / cnt2, (t1 - t0) / (2 * cnt2), graceCap(t0)))), g0 = Math.max(0, t0 - cnt2 * each2);   /* nothing before the first beat (Hermes F80) */
               if (g0 + cnt2 * each2 > t0) t0 = g0 + cnt2 * each2;   /* the file's first note: the grace takes its time from it instead */
               if (prev && prev.t1 > g0) { if (!prev.wl) prev.wl = (prev.t1 - prev.t0) / TPQ; prev.t1 = Math.max(prev.t0 + 1, g0); }   /* drawn at its written value, played a little shorter */
-              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: g0 + gi * each2, t1: g0 + (gi + 1) * each2, sb: Math.max(0, t0 - (cnt2 - gi)), gi: gi, gn: cnt2, gs: g.slash, gty: g.ty, ch: ch, v: 90, pz: pz, grace: 'acc' }); });
+              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: g0 + gi * each2, t1: g0 + (gi + 1) * each2, sb: Math.max(0, t0 - (cnt2 - gi)), gi: gi, gn: cnt2, gs: g.slash, gty: g.ty, gsl: !!graces[0].sl, ch: ch, v: 90, pz: pz, grace: 'acc' }); });
               gFrom = -1; gShift = 0; graces = [];
             }
             else if (!chord && graces.length) {
               /* graces not slashed (an appoggiatura, or a run): quick, about a 32nd each (Trix: a very quick grace), on the
                  beat, taking their time from the start of the note that follows */
               var main = t1 - t0, cnt = graces.length, each = Math.max(1, Math.round(Math.min(main / (2 * cnt), graceCap(t0))));   /* 60-120 ms by the tempo, at most half the main note (Trix) */
-              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: Math.max(0, t0 - (cnt - gi)), gi: gi, gn: cnt, gs: g.slash, gty: g.ty, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
+              graces.forEach(function (g, gi) { notes.push({ m: g.m, t0: t0 + gi * each, t1: t0 + (gi + 1) * each, sb: Math.max(0, t0 - (cnt - gi)), gi: gi, gn: cnt, gs: g.slash, gty: g.ty, gsl: !!graces[0].sl, ch: ch, v: 90, pz: pz, grace: g.slash || cnt > 1 ? 'acc' : 'app' }); });   /* sb: on the score just before the main note */
               gFrom = t0; gShift = cnt * each; t0 += gShift; graces = [];
             } else if (!chord) { gFrom = -1; gShift = 0; }
             var slurs = kids(kid(el, 'notations'), 'slur').map(function (sl) { return { t: sl.getAttribute('type'), n: sl.getAttribute('number') || '1' }; });
+            if (gSl) slurs = slurs.filter(function (x) { return !(x.t === 'stop' && x.n === gSl); });
             if (ties.indexOf('stop') >= 0 && tie[mm]) {   /* tied on: one longer note; a slur ending here ends on it */
               tie[mm].t1 = t1; if (slurs.length) tie[mm].slur = (tie[mm].slur || []).concat(slurs);
               if (ties.indexOf('start') < 0) delete tie[mm]; return;
@@ -607,7 +609,7 @@
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
       var sb = n.sb !== undefined ? n.sb : n.t0;
-      return { m: n.m, t: t, e: n.grace ? e : e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, gs: n.gs, gty: n.gty, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, tup: n.tup, wl: n.wl, oacc: n.oacc, wsp: n.wsp, slur: n.slur, vel: n.v || 80, grace: n.grace };
+      return { m: n.m, t: t, e: n.grace ? e : e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, gs: n.gs, gty: n.gty, gsl: n.gsl, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, tup: n.tup, wl: n.wl, oacc: n.oacc, wsp: n.wsp, slur: n.slur, vel: n.v || 80, grace: n.grace };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -1303,7 +1305,7 @@
     if (opts.barsOnly) return { X0: X0, bars: bars, nMax: nMax };   /* the pages' first pass: where the bars fall is all it needs */
     /* first pass: where each note sits; accidentals hold to the end of the bar */
     var lowInk = [], barNo = -1, inBar = {}, keyAcc = {}, inf = sg.notes.map(function (nt) {
-      var bn = bIdx(nt.b);
+      var bn = bIdx(nt.grace ? nt.b + (nt.gn - nt.gi) / 480 : nt.b);   /* a grace note belongs to its main note's bar (Trix: the A#5 grace before bar 6 lost its sharp) */
       if (bn !== barNo) { barNo = bn; inBar = {}; keyAcc = keyAccOf(sfAt(bStart(bn))); }
       var spl = sp[nt.m % 12], L = spl[0], acc = spl[1], oct = Math.floor(nt.m / 12) - 1;
       /* MusicXML: the note as written (Trix: the Habanera's F# after its change to D major was drawn as Gb) */
@@ -1435,6 +1437,12 @@
         g.push('<path class="stem" d="M' + gsx + ' ' + (y - 1) + 'V' + gtop + '"/>');
         if (!gBeam) g.push('<path class="flag" d="M' + gsx + ' ' + gtop + 'c.6 3 4.6 4.2 3.5 8.8c.6-3.5-1.8-5.3-3.5-5.9z"/>');
         else if (nt.gi === nt.gn - 1) { var nb = nt.gty === '32nd' ? 3 : nt.gty === '16th' ? 2 : 1, bx0 = grp[0].hx + 2.9; for (var bq = 0; bq < nb; bq++) g.push('<path class="beam" d="M' + bx0 + ' ' + (gtop + bq * 3) + 'H' + gsx + 'v1.8H' + bx0 + 'z"/>'); }
+        if (nt.gi === nt.gn - 1) {   /* the grace slur, in every piece (Trix): under the heads, from the first grace into its note */
+          var mk = k + 1; while (inf[mk] && inf[mk].nt.grace) mk++;
+          var mf = inf[mk], g0f = inf[k - nt.gi] && inf[k - nt.gi].nt.grace ? inf[k - nt.gi] : f;
+          if (mf) { var ax = g0f.hx - 1, ay = g0f.y + 4, bx = mf.hx - 4, by = mf.y + 5.5, cy = Math.max(ay, by) + 6;
+            g.push('<path class="slur" d="M' + ax + ' ' + ay + 'Q' + ((ax + bx) / 2) + ' ' + (cy + 3) + ' ' + bx + ' ' + by + '"/>'); }
+        }
         if (gBeam ? nt.gs && nt.gi === 0 : nt.grace === 'acc') g.push('<path class="stem" d="M' + (hx - 1.5) + ' ' + (y - 0.6 * S) + 'L' + (hx + 7) + ' ' + (y - 1.8 * S) + '"/>');
         inf[k].top = gtop - 4;   /* a grace note's stem and flag take the space over it (Trix: Ⅲ on a grace note) */
         items.push([hx, '<g class="mp-n mp-grace" data-k="' + k + '" style="--hue:' + hueOf(nt) + '">' + g.join('') + '</g>']);

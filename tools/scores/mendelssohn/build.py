@@ -3,7 +3,7 @@
 COMPOSER, EXTRA_CREATORS [(type, name)], RIGHTS). Usage: build.py <dir with conf.py and tokens.txt> out.mxl
 tokens.txt -> hungarian5.mxl. Line: 'P<n> <bar>: tok tok | tok' ; tok = PITCH[+PITCH]:DUR[~] or r:DUR
 PITCH = step [# b n] octave (absolute, alter written out); DUR = 1 2 4 8 16 32 [.|..] [t triplet | q quintuplet | s septuplet (needs DIV a multiple of 7)]; '|' = second voice.
-Optional: a DUR ending in 'g' is a grace note (slashed, takes no time; 'G' unslashed, also played before the beat: steal-time-previous 50); PICKUP (crotchets) makes bar 0 an upbeat;
+Optional: a DUR ending in 'g' is a grace note (slashed, takes no time; 'G' unslashed, also played before the beat: steal-time-previous 50); PICKUP (crotchets) makes bar 0 an upbeat; GRACE_SLURS [part numbers] slurs each grace group into its note;
 ENDINGS [(first bar, last bar, '1', 'stop' or 'discontinue')] volta brackets. Passages under an 8va line are written at pitch.
 MARKS [(part, bar, crotchets into the bar, kind, value)]: kind 'dyn' (p, f, ff ...), 'cresc' / 'dim' (a hairpin from there; value = where it
 ends, in crotchets into the same bar), 'bow' ('down' / 'up', on the note starting there), 'fing' (the printed fingering '0'-'4' on the note starting there),
@@ -121,6 +121,10 @@ for pn in range(1, len(NAMES) + 1):
                     sl = [('stop', SLURN[i]) for i, (mp, mb, mo, kind, val) in enumerate(MARKS) if kind == 'slur' and mp == pn and val[0] == b and round(val[1] * DIV) == tot and p != 'r']
                     sl += [('start', SLURN[i]) for i, kind, val in here if kind == 'slur']
                     harm = next((val for i, kind, val in here if kind == 'harm'), None)
+                if vi == 0 and C.get('GRACE_SLURS') and pn in C['GRACE_SLURS'] and p != 'r':   # a slur from the grace notes into their note (number 3)
+                    pg = ti > 0 and toks[ti - 1].split(':')[1].rstrip('~')[-1:] in ('g', 'G')
+                    if gr and not pg: sl.append(('start', 3))
+                    if not gr and pg: sl.insert(0, ('stop', 3))
                 tot += v
                 for k, q in enumerate(p.split('+')):
                     qt = tie or q.endswith('~'); q = q.rstrip('~')
