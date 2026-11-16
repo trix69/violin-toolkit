@@ -156,8 +156,7 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa-bars .pa-sb-ic { width: 38px; height: 38px; flex: none; }
 .pa-bars .pa-sb-ic { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .pa-bars .pa-sb-ic .dot { fill: currentColor; }
-.pa-bars .pa-sb-pitch .pa-sb-ic { color: #23a455; }
-.pa-bars .pa-sb-timing .pa-sb-ic { color: #e0479e; }
+.pa-bars .pa-sb-ic { color: var(--accent); }   /* the colour theme's own (Trix: no new colours) */
 .pa-bars .pa-sb-cap { text-align: center; font: 600 12px var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 2px 0 6px; }
 .pa-legend { display: grid; gap: 6px; }
 .pa-lg { display: flex; flex-wrap: wrap; gap: 6px 14px; }
