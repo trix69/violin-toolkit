@@ -19,21 +19,21 @@ head_add = '''<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="%(name)s">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="description" content="Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and 中文.">
+<meta name="description" content="Free violin tuner, fingerboard, metronome and music symbols, plus a MIDI player, fingered sheet music as PDF and play-along with pitch and timing feedback. Works offline, in English and 中文.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Violin Toolkit">
-<meta property="og:description" content="Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and 中文.">
+<meta property="og:description" content="Free violin tuner, fingerboard, metronome and music symbols, plus a MIDI player, fingered sheet music as PDF and play-along with pitch and timing feedback. Works offline, in English and 中文.">
 <meta property="og:url" content="https://trix69.github.io/violin-toolkit/">
 <meta property="og:image" content="https://trix69.github.io/violin-toolkit/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Violin Toolkit">
-<meta name="twitter:description" content="Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and 中文.">
+<meta name="twitter:description" content="Free violin tuner, fingerboard, metronome and music symbols, plus a MIDI player, fingered sheet music as PDF and play-along with pitch and timing feedback. Works offline, in English and 中文.">
 <meta name="twitter:image" content="https://trix69.github.io/violin-toolkit/og-image.png">
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Violin Toolkit",
- "description": "Free violin tuner, fingerboard chart, metronome, MIDI player with sheet music, and music symbols. Works offline, in English and Chinese.",
+ "description": "Free violin tuner, fingerboard, metronome and music symbols, plus a MIDI player, fingered sheet music as PDF and play-along with pitch and timing feedback. Works offline, in English and Chinese.",
  "url": "https://trix69.github.io/violin-toolkit/", "applicationCategory": "MusicApplication", "operatingSystem": "Any",
  "inLanguage": ["en", "zh-CN"], "isAccessibleForFree": true,
  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
@@ -42,6 +42,8 @@ head_add = '''<link rel="manifest" href="manifest.webmanifest">
 </script>
 '''
 head_add = head_add.replace('%(name)s', NAME)
+import hashlib as _hl
+head_add = head_add.replace('og-image.png"', 'og-image.png?v=' + _hl.md5(open(SRC + 'icons/og-image.png', 'rb').read()).hexdigest()[:8] + '"')   # new picture -> new URL, so chat apps fetch it again (Trix, 2026-11-17)
 if TEST:
     head_add += '''<meta name="robots" content="noindex">
 <style>.test-ribbon { position: fixed; z-index: 300; top: 0; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 0 0 8px 8px; background: #c2410c; color: #fff; font: 700 11px/1.4 ui-monospace, monospace; letter-spacing: .1em; pointer-events: none; }</style>
@@ -116,7 +118,7 @@ open(OUT + 'index.html', 'w', encoding='utf-8').write(out)
 # read by the Settings version button to see whether a newer release is online
 json.dump({'version': app_version, 'build': ver, 'pp': open(SRC + 'PP_VERSION').read().strip(), 'play': open(SRC + 'PLAY_VERSION').read().strip()}, open(OUT + 'version.json', 'w'))   # play: the version Google Play offers (src/PLAY_VERSION, raised when Trix says Play approved a release); the Play app compares with it, not with the website's   # pp: the privacy policy's date (the app re-asks when it is newer)
 json.dump({
-  "name": NAME, "short_name": "VT Test" if TEST else "Violin Toolkit", "description": "Violin tuner, fingerboard chart, metronome, MIDI player and music symbols.",
+  "name": NAME, "short_name": "VT Test" if TEST else "Violin Toolkit", "description": "Violin tuner, fingerboard, metronome, symbols, MIDI player, fingered sheet music and play-along.",
   "id": "/violin-toolkit-test/" if TEST else "/violin-toolkit/", "lang": "en", "dir": "ltr", "categories": ["music", "education", "utilities"],
   "start_url": "./", "scope": "./", "display": "standalone", "orientation": "portrait",
   "background_color": "#16201b", "theme_color": "#2f7679",
