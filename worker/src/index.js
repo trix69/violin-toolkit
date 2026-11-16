@@ -137,7 +137,7 @@ function render(daily, inst7, inst30, versions, day1 = []) {
   // per day: visits as a pale bar behind, devices stacked by app type in front
   const W = Math.max(320, dayList.length * 22), H = 170, max = Math.max(1, ...dayList.map((d) => dayTot(d, 'checks')));
   let bars = '';
-  dayList.forEach((d, i) => {
+  dayList.slice().reverse().forEach((d, i) => {   // latest day on the left (Trix)
     const tv = dayTot(d, 'checks'), hv = tv / max * (H - 30);
     if (tv) bars += `<rect x="${i * 22 + 2}" y="${(H - 18 - hv).toFixed(1)}" width="20" height="${hv.toFixed(1)}" fill="currentColor" opacity=".13"><title>${esc(d)}: ${tv} visits</title></rect>`;
     let y = H - 18;
@@ -145,7 +145,7 @@ function render(daily, inst7, inst30, versions, day1 = []) {
     if (i % 5 === 0 || i === dayList.length - 1) bars += `<text x="${i * 22 + 12}" y="${H - 4}" font-size="9" text-anchor="middle" fill="currentColor" opacity=".6">${esc(d.slice(5))}</text>`;
   });
   const legend = '<div class="legend"><span><i class="key" style="background:currentColor;opacity:.2"></i>Visits</span>' + cs.map((c) => `<span><i class="key" style="background:${COLOURS[c]}"></i>${esc(CLIENT_NAMES[c])} devices</span>`).join('') + '</div>';
-  const chart = dayList.length ? `<h2>Per day (last 30 days)</h2><div class="chart"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Visits and devices per day by app type">${bars}</svg>${legend}</div>` : '<p class="note">No checks recorded yet.</p>';
+  const chart = dayList.length ? `<h2>Per day (last 30 days, latest first)</h2><div class="chart"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Visits and devices per day by app type">${bars}</svg>${legend}</div>` : '<p class="note">No checks recorded yet.</p>';
   const by = (rows) => { const m = {}; rows.forEach((r) => { m[r.client] = r; }); return m; };
   const m7 = by(inst7), m30 = by(inst30);
   const table = `<h2>By app type</h2><div class="wrap"><table><tr><th rowspan="2">App</th><th colspan="2">Last 7 days</th><th colspan="2">Last 30 days</th></tr><tr><th>Devices</th><th>Visits</th><th>Devices</th><th>Visits</th></tr>` +
