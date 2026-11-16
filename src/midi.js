@@ -181,6 +181,26 @@
      most) instead of stepping there; a rit. with no tempo slows by a fifth and "a tempo" / "Tempo I" restores; a fermata
      holds its note (or rest) for up to two beats more. tp.shown keeps the tempo without the fermatas, for the ♩ readout */
   var RAMP_W = /^((poco a poco|molto|poco|un poco)\s+)?(rit|rall|allarg|calando|smorz|accel|string)/i, TEMPO_W = /^((poco a poco|molto|poco|un poco)\s+)?(rit|rall|allarg|calando|smorz|accel|string)|^(a tempo|tempo i|tempo primo)\b/i;
+  /* a tempo word with no number (Trix: "Vivace" in a file without ♩ =): the usual metronome speed for it, as crotchets in x/4;
+     the most specific term wins (Allegro moderato before Allegro); molto / assai a little faster, ma non troppo a little slower */
+  var TEMPO_TERMS = [
+    [/larghissimo/, 24], [/grave/, 40], [/larghetto/, 63], [/largo|langsam|lent\b|lento|slow/, 50],
+    [/adagietto/, 74], [/adagio|ruhig/, 70],
+    [/andante moderato/, 96], [/andantino/, 96], [/andante|walking/, 92],
+    [/allegro moderato/, 116], [/allegretto/, 116], [/moderato|m[aä]ssig|mod[eé]r[eé]|moderately|tempo di minuetto|menuet/, 108],
+    [/allegro vivace|allegrissimo|vivacissimo/, 172], [/allegro con brio/, 144], [/allegro|anim[eé]|fast|quick/, 132],
+    [/prestissimo/, 208], [/presto/, 184], [/vivace|vivo|vif|vite|lebhaft|schnell|lively/, 160]
+  ];
+  function termBpm(w) {
+    w = String(w || '').toLowerCase().replace(/[.,;:!()]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!w || TEMPO_W.test(w) || w.length > 40) return 0;   /* rit., a tempo…: handled as tempo changes; a long sentence is not a tempo mark */
+    for (var i = 0; i < TEMPO_TERMS.length; i++) if (TEMPO_TERMS[i][0].test(w)) {
+      var b = TEMPO_TERMS[i][1];
+      if (/non troppo|non tanto|ma non/.test(w)) b *= 0.92; else if (/molto|assai/.test(w)) b *= 1.08;
+      return b;
+    }
+    return 0;
+  }
   function playedTempo(tempos, ferm, words, tpq, sig, bars) {
     function sort() { tempos.sort(function (a, b) { return a.tick - b.tick; }); }
     function usAt(t) { var u = 500000; tempos.forEach(function (tp) { if (tp.tick <= t) u = tp.us; }); return u; }
@@ -233,7 +253,7 @@
     var parts = kids(root, 'part');
     if (!parts.length) throw fail('This file has no notes.');
     var modeKnown = false;   /* the score says major or minor (else the Fingerings pages name no key: Trix) */
-    var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [], ferm = [], tempoWords = [], tmarks = {};   /* tmarks: tick -> printed tempo change, for whichever part is the solo */   /* tick -> tempo entry; ferm: notes and rests under a fermata; tempoWords: rit./a tempo without a <sound> */
+    var order = playOrder(kids(parts[0], 'measure')), tempos = [], sig = null, sf = null, minor = false, tracks = [], seenTempo = {}, bars = [], ferm = [], tempoWords = [], tmarks = {}, textTempos = {};   /* tmarks: tick -> printed tempo change, for whichever part is the solo */   /* tick -> tempo entry; ferm: notes and rests under a fermata; tempoWords: rit./a tempo without a <sound> */
     parts.forEach(function (part, pi) {
       var info = meta[part.getAttribute('id')] || { name: '', inst: '', ch: pi % 16 }, ch = info.ch;
       var ms = kids(part, 'measure'), notes = [], deco = [], tie = {}, chordTrem = 0, at = 0, divStart = [], dvw = 1, pz = false, marks = [], graces = [], gFrom = -1, gShift = 0;   /* graces: waiting for their main note */   /* pz: pizz. until arco; marks: dynamics, hairpins, words */
@@ -287,6 +307,16 @@
                   wordMark(tk(cur), d.textContent.trim());
                   if (TEMPO_W.test(d.textContent.trim())) tempoWords.push({ tick: tk(cur), text: d.textContent.trim() });
                 }
+              });
+            });
+            if (!(bpm > 0) && nm === 'direction') kids(el, 'direction-type').forEach(function (dt) {   /* no number to play at: a printed ♩ = or a tempo word gives one (Trix) */
+              kids(dt).forEach(function (d) {
+                var tt = tk(cur), q = 0;
+                if (d.nodeName === 'metronome' && +txt(d, 'per-minute') > 0) {
+                  var bu = { whole: 4, half: 2, quarter: 1, eighth: 0.5, '16th': 0.25 }[txt(d, 'beat-unit')] || 1;
+                  q = +txt(d, 'per-minute') * bu * (kid(d, 'beat-unit-dot') ? 1.5 : 1);
+                  if (q > 0) textTempos[tt] = { q: q, exact: true };
+                } else if (d.nodeName === 'words' && (q = termBpm(d.textContent)) && !(textTempos[tt] && textTempos[tt].exact)) textTempos[tt] = { q: q };
               });
             });
             if (bpm > 0) {
@@ -389,6 +419,21 @@
         var pr = {}, prs = {}; if (info.prog !== undefined) { pr[ch] = info.prog; prs[ch] = [info.prog]; }
         tracks.push({ notes: notes, chans: 1, name: info.name || info.inst, label: info.name + ' ' + info.inst, prog: pr, progs: prs, marks: marks, deco: deco });
       }
+    });
+    /* tempo words and ♩ = marks without a <sound tempo> of their own (Trix): a word's speed is for the felt beat, so x/2 is
+       counted in minims, 6/8 9/8 12/8 in dotted crotchets and 3/8 in quavers (as crotchets: x1.2, x1.05, x0.5) */
+    var sgN = sig ? sig.num : 4, sgD = sig ? sig.den : 4, feel = sgD === 2 ? 1.2 : sgD === 8 && sgN % 3 === 0 && sgN > 3 ? 1.05 : sgD === 8 ? 0.5 : 1;
+    /* a word after a tempo that has a word of its own changes speed by the ratio of the two words (Handel's "Adagio" after
+       "Andante" ♩ = 60 slows to 46, not up to the table's 70); otherwise the table's speed */
+    Object.keys(textTempos).map(Number).sort(function (a, b) { return a - b; }).forEach(function (t) {
+      var tt = textTempos[t]; if (seenTempo[t]) { if (!tt.exact) seenTempo[t].term = tt.q; return; }
+      var prev = null; tempos.forEach(function (tp) { if (tp.tick < t && (!prev || tp.tick >= prev.tick)) prev = tp; });
+      /* a word only where the file has set no tempo of its own yet: an edition that sets one and then writes "Adagio" for a
+         cadence may not mark the return (Bach BWV 1042 bar 121, the written-out da capo after it), so its words stay words */
+      if (!tt.exact && tempos.some(function (tp) { return tp.tick <= t && !tp.fromText; })) return;
+      var bp = Math.round(tt.exact ? tt.q : prev && prev.term ? 60e6 / prev.us * tt.q / prev.term : tt.q * feel);
+      tempos.push(seenTempo[t] = { tick: t, us: 60e6 / bp, term: tt.exact ? 0 : tt.q, fromText: !tt.exact });
+      if (t > 0 && !tmarks[t]) tmarks[t] = { w: '', bpm: bp };
     });
     tempos.sort(function (a, b) { return a.tick - b.tick; });
     playedTempo(tempos, ferm, tempoWords, TPQ, sig, bars);
