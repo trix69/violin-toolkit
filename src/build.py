@@ -599,7 +599,7 @@ SCORE_CREDITS = [
     ('Der Lindenbaum', 'Franz Schubert', 'Winterreise, D. 911 No. 5; OpenScore Lieder (scores/Schubert,_Franz/Winterreise,_D.911/05_Der_Lindenbaum/lc5016466.mxl, taken 2026-11-16), the voice part played by the violin, the piano as accompaniment', 'MusicXML: OpenScore (CC0 1.0)'),
 ]
 import html as _h
-CREDITS_HTML = ''.join('<li><b>%s</b><span translate="no">%s</span><span translate="no">%s</span><span class="cr-lic" translate="no">%s</span></li>' % tuple(_h.escape(x) for x in r) for r in SCORE_CREDITS)
+# CREDITS_HTML is made after MIDI_DEMOS below, in the dropdown's order (Trix)
 # the source line in the bottom-left footer of every Fingerings page (Trix): short form of the credits above
 SCORE_SOURCE = {
     'twinkle.mxl': 'Engraved by Violin Toolkit, 2026 · CC0 1.0',
@@ -780,6 +780,11 @@ TUNE_CODES = {'twinkle.mxl': 'tw', 'ode.mxl': 'od', 'minuets.mxl': 'mn', 'minuet
               'rv356.mxl': 'rv', 'bach1043.mxl': 'b4', 'bach1041.mxl': 'b1', 'bach1042.mxl': 'b2', 'romance.mxl': 'ro', 'romance40.mxl': 'r4', 'rieding35.mxl': 'ri', 'mendelssohn.mxl': 'mc', 'tchaikovsky35.mxl': 'tc', 'beethoven61.mxl': 'bc',
               'hungarian5.mxl': 'hd', 'campanella.mxl': 'lc', 'paganini24.mxl': 'p4', 'handel361_1.mxl': 'h1', 'handel361_2.mxl': 'h2', 'handel361_3.mxl': 'h3', 'handel361_4.mxl': 'h4', 'handel370_1.mxl': 'f1', 'handel370_2.mxl': 'f2', 'handel370_3.mxl': 'f3', 'handel370_4.mxl': 'f4', 'eccles_1.mxl': 'e1', 'eccles_2.mxl': 'e2', 'eccles_3.mxl': 'e3', 'eccles_4.mxl': 'e4', 'greensleeves.mxl': 'gs', 'soldiers_joy.mxl': 'sj', 'holly_ivy.mxl': 'hi', 'home_sweet_home.mxl': 'hs', 'schubert_heidenroeslein.mxl': 'hr', 'schubert_an_die_musik.mxl': 'dm', 'schubert_forelle.mxl': 'fo', 'schubert_lindenbaum.mxl': 'lb', 'csardas.mxl': 'cs', 'bach1006_gavotte.mxl': 'bg', 'bach1003_andante.mxl': 'ba', 'bach1001_adagio.mxl': 'bd', 'bach1006_preludio.mxl': 'bp', 'cancan.mxl': 'cc', 'spring.mxl': 'sp', 'autumn.mxl': 'au', 'winter.mxl': 'wi',
               'winter_largo.mxl': 'wl', 'summer.mxl': 'su', 'serenade.mxl': 'se'}
+# the Score credits window lists the tunes in the same order as the tune dropdown (Trix, 2026-11-17)
+_DEMO_ORDER = [t for f, t, c in MIDI_DEMOS]
+assert sorted(_DEMO_ORDER) == sorted(r[0] for r in SCORE_CREDITS), 'credits and dropdown differ: ' + str(set(_DEMO_ORDER) ^ set(r[0] for r in SCORE_CREDITS))
+SCORE_CREDITS = sorted(SCORE_CREDITS, key=lambda r: _DEMO_ORDER.index(r[0]))
+CREDITS_HTML = ''.join('<li><b>%s</b><span translate="no">%s</span><span translate="no">%s</span><span class="cr-lic" translate="no">%s</span></li>' % tuple(_h.escape(x) for x in r) for r in SCORE_CREDITS)
 assert set(TUNE_CODES) == set(f for f, t, c in MIDI_DEMOS), 'every built-in needs its QR code: ' + str(set(f for f, t, c in MIDI_DEMOS) ^ set(TUNE_CODES))
 assert len(set(TUNE_CODES.values())) == len(TUNE_CODES)
 _tune_qr = {}
