@@ -3510,14 +3510,17 @@
         if (r.timing === null || r.timing === undefined) { T.miss++; return; }
         var t = Math.abs(r.timing); T[t <= r.tOk ? 'ok' : t <= r.tRed ? 'amber' : 'red']++;
       });
-      [['Pitch', 'in tune', P, ''], ['Timing', 'on time', T, ' time']].forEach(function (row) {
+      /* the score card (Trix, after MuseScore's result): an icon beside each large percentage, its name in small capitals under it */
+      var PA_ICON = {   /* the fingerboard's icon for pitch, the metronome's for rhythm (Trix): the same drawings as their tool buttons */
+        Pitch: '<svg class="pa-sb-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h11"/><path d="M8.4 3.5L7.2 21M10.8 3.5l-.5 17.5M13.2 3.5l.5 17.5M15.6 3.5L16.8 21" opacity=".7"/><path d="M7.7 11h8.6M7.3 17h9.4" opacity=".7"/><circle class="dot" cx="10.8" cy="7.3" r="1.3"/><circle class="dot" cx="15.6" cy="14" r="1.3"/></svg>',
+        Timing: '<svg class="pa-sb-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l3.4 18H5.8z"/><path d="M12 17.5L15.6 6.5"/><circle class="dot" cx="14.2" cy="10.6" r="1.2"/></svg>'
+      };
+      [['Pitch', 'Pitch', P, ''], ['Timing', 'Rhythm', T, ' time']].forEach(function (row) {
         var C = row[2], n = C.ok + C.amber + C.red + C.miss; if (!n) return;
-        var box = document.createElement('div'); box.className = 'pa-sb';
-        var h = document.createElement('div'); h.className = 'pa-sb-h';
-        var b = document.createElement('b'); b.textContent = row[0]; h.appendChild(b);
-        var sm = document.createElement('small'); sm.textContent = row[1]; h.appendChild(sm);
-        box.appendChild(h);
-        var big = document.createElement('div'); big.className = 'pa-sb-big'; big.setAttribute('translate', 'no'); big.textContent = Math.round(100 * C.ok / n) + '%'; box.appendChild(big);   /* large, centred over its bar (Trix) */
+        var box = document.createElement('div'); box.className = 'pa-sb pa-sb-' + row[0].toLowerCase();
+        var big = document.createElement('div'); big.className = 'pa-sb-big';
+        big.innerHTML = PA_ICON[row[0]] + '<span translate="no">' + Math.round(100 * C.ok / n) + '%</span>'; box.appendChild(big);
+        var cap = document.createElement('div'); cap.className = 'pa-sb-cap'; cap.textContent = row[1]; box.appendChild(cap);
         var bar = document.createElement('div'); bar.className = 'pa-sb-bar' + row[3]; bar.setAttribute('role', 'img');
         bar.setAttribute('aria-label', row[0] + ': ' + ['ok', 'amber', 'red', 'miss'].map(function (k) { return Math.round(100 * C[k] / n) + '%'; }).join(', '));
         ['ok', 'amber', 'red', 'miss'].forEach(function (k) {

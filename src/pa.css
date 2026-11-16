@@ -151,7 +151,14 @@ html.fg-printing .pa-wrong { display: none !important; } @media print { .pa-wron
 .pa-bars:not(.lg-open) .pa-lg { display: none; }   /* each key under its own bar, both folded or both open (Trix) */
 .pa-bars .pa-sb { align-content: start; }
 .pa-bars .pa-sb-h { justify-content: center; }
-.pa-bars .pa-sb-big { font: 700 34px/1.05 var(--font-body); text-align: center; letter-spacing: -0.01em; }   /* large, centred above its bar (Trix) */
+/* the score card (Trix, after MuseScore's result): icon + large percentage, the name in small capitals under it */
+.pa-bars .pa-sb-big { display: flex; align-items: center; justify-content: center; gap: 6px; font: 800 44px/1 var(--font-body); letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+.pa-bars .pa-sb-ic { width: 38px; height: 38px; flex: none; }
+.pa-bars .pa-sb-ic { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pa-bars .pa-sb-ic .dot { fill: currentColor; }
+.pa-bars .pa-sb-pitch .pa-sb-ic { color: #23a455; }
+.pa-bars .pa-sb-timing .pa-sb-ic { color: #e0479e; }
+.pa-bars .pa-sb-cap { text-align: center; font: 600 12px var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 2px 0 6px; }
 .pa-legend { display: grid; gap: 6px; }
 .pa-lg { display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .pa-lg > span { display: inline-flex; align-items: center; gap: 6px; }
