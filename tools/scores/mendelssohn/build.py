@@ -5,7 +5,7 @@ tokens.txt -> hungarian5.mxl. Line: 'P<n> <bar>: tok tok | tok' ; tok = PITCH[+P
 PITCH = step [# b n] octave (absolute, alter written out); DUR = 1 2 4 8 16 32 [.|..] [t triplet | q quintuplet | s septuplet (needs DIV a multiple of 7)]; '|' = second voice.
 Optional: a DUR ending in 'g' is a grace note (slashed, takes no time; 'G' unslashed, also played before the beat: steal-time-previous 50); PICKUP (crotchets) makes bar 0 an upbeat; GRACE_SLURS [part numbers] slurs each grace group into its note;
 ENDINGS [(first bar, last bar, '1', 'stop' or 'discontinue')] volta brackets. Passages under an 8va line are written at pitch.
-MARKS [(part, bar, crotchets into the bar, kind, value)]: kind 'dyn' (p, f, ff ...), 'cresc' / 'dim' (a hairpin from there; value = where it
+MARKS [(part, bar, crotchets into the bar, kind, value)]: kind 'dyn' (p, f, ff ...), 'words' (text under the staff, e.g. 'cresc.'), 'cresc' / 'dim' (a hairpin from there; value = where it
 ends, in crotchets into the same bar), 'bow' ('down' / 'up', on the note starting there), 'fing' (the printed fingering '0'-'4' on the note starting there),
 'acc' / 'stacc' (accent / staccato on the note there), 'slur' (value = (end bar, end crotchets): from this note to that one),
 'orn' (value 'tr', 'turn', 'inverted-turn', 'mordent' or 'inverted-mordent': the ornament over the note there),
@@ -41,12 +41,13 @@ def marks_at(pn, b, upto):
     """the dynamics and hairpin starts/stops of part pn, bar b, due at or before `upto` divisions, each once"""
     out = ''
     for i, (mp, mb, mo, kind, val) in enumerate(MARKS):
-        if mp != pn or mb != b or kind not in ('dyn', 'cresc', 'dim'): continue
+        if mp != pn or mb != b or kind not in ('dyn', 'cresc', 'dim', 'words'): continue
         evs = [(round(mo * DIV), 'start')] + ([(round(val * DIV), 'stop')] if kind in ('cresc', 'dim') else [])
         for j, (at, what) in enumerate(evs):
             if (i, j) in DONE or at > upto: continue
             DONE.add((i, j))
-            if kind == 'dyn': out += '<direction placement="below"><direction-type><dynamics><%s/></dynamics></direction-type></direction>' % val
+            if kind == 'words': out += '<direction placement="below"><direction-type><words font-style="italic">%s</words></direction-type></direction>' % esc(val)
+            elif kind == 'dyn': out += '<direction placement="below"><direction-type><dynamics><%s/></dynamics></direction-type></direction>' % val
             else: out += '<direction placement="below"><direction-type><wedge type="%s"/></direction-type></direction>' % ({'cresc': 'crescendo', 'dim': 'diminuendo'}[kind] if what == 'start' else 'stop')
     return out
 DONE = set()
