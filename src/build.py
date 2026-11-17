@@ -505,6 +505,8 @@ met_js = open(SP + 'met.js').read()
 # Symbols page (its own tool since 2026-11-06; was a window on the metronome)
 sym_css = open(SP + 'sym.css').read()
 sym_html = open(SP + 'sym.html').read()
+# each card carries its English name (data-sym), so other pages can find it whatever the language (Trix: Fingerings' note card)
+sym_html = re.sub(r'<li ([^>]*data-tip="[^"]*"[^>]*)>(.*?<b>([^<]*)</b>)', lambda m: '<li %s data-sym="%s">%s' % (m.group(1), m.group(3), m.group(2)), sym_html, flags=re.S)
 sym_js = open(SP + 'sym.js').read()
 # MIDI player (2026-11-06): demo tunes from src/midi/ (made by src/midi/make_demos.py) embedded as base64
 import base64, json

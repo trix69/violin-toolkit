@@ -3771,6 +3771,13 @@
     if (n0.si >= 0 && n0.fg !== 0) { if (n0.half) line('Half position'); else if (n0.hand >= 0) line(ORD(n0.hand + 1) + ' position'); }
     var oth = song.notes.filter(function (q, i) { return i !== k && !q.grace && Math.abs(q.t - n0.t) < 1e-4; });
     if (oth.length) line('Double stop with ' + oth.map(function (q) { return APP.board.name(q.m); }).join(', '));
+    fgSymbols(n0, k).forEach(function (li) {   /* the Symbols page's cards for what is written on this note (Trix) */
+      var d = document.createElement('div'); d.className = 'fg-sym';
+      var g = li.querySelector('.sym'); if (g) d.appendChild(g.cloneNode(true));
+      var tx = document.createElement('div'), b = document.createElement('b'), p1 = document.createElement('p');
+      b.textContent = li.getAttribute('data-sym'); p1.textContent = li.getAttribute('data-tip');
+      tx.appendChild(b); tx.appendChild(p1); d.appendChild(tx); box.appendChild(d);
+    });
     if (n0.si >= 0) {
       var fb = paFingerSvg(n0, { cents: 0 }, k, oth.filter(function (q) { return q.si >= 0; }).map(function (q) { return { n: q, cents: 0 }; }));
       var txt = document.createElement('div'); txt.className = 'pa-fb-txt';
@@ -3782,6 +3789,44 @@
     $('paCardC').style.maxHeight = rr ? Math.max(160, up ? rr.top - 30 : window.innerHeight - rr.bottom - 30) + 'px' : '';
     paCardEl.hidden = false;
     try { $('paCardC').focus({ preventScroll: true }); } catch (e) {}
+  }
+  /* the written marks on a note, as the Symbols page names them: its length, accidental, slur, articulations, bowing, ornaments,
+     and a dynamic or hairpin that starts on it */
+  var SYM_ART = { staccato: 'Staccato', staccatissimo: 'Staccatissimo', tenuto: 'Tenuto', accent: 'Accent', 'strong-accent': 'Marcato',
+    'up-bow': 'Up bow', 'down-bow': 'Down bow', fermata: 'Fermata', 'trill-mark': 'Trill', turn: 'Turn', 'inverted-turn': 'Inverted turn',
+    'inverted-mordent': 'Mordent', 'inverted-mordent-long': 'Mordent', mordent: 'Lower mordent', 'mordent-long': 'Lower mordent' };
+  var SYM_DYN = { ppp: 'Softest', pp: 'Very soft', p: 'Soft', mp: 'Fairly soft', mf: 'Fairly loud', f: 'Loud', ff: 'Very loud', fff: 'Loudest',
+    sf: 'Sudden accent', sfz: 'Sudden accent', fz: 'Sudden accent', fp: 'Loud, then soft', sfp: 'Accent, then soft' };
+  function fgSymbols(n, k) {
+    var want = [];
+    if (!n.tup && !n.grace) {
+      var L = { 0.25: 'Semiquaver (16th note)', 0.5: 'Quaver (eighth note)', 1: 'Crotchet (quarter note)', 1.5: 'Dotted crotchet', 2: 'Minim (half note)', 3: 'Dotted minim', 4: 'Semibreve (whole note)' };
+      var own = Math.round((n.own || 0) * 4) / 4; if (L[own]) want.push(L[own]);
+    }
+    if (n.wsp && n.wsp[0] >= 0) {   /* an accidental the key does not give */
+      var kk = song.keyAt ? song.keyAt(n.b) : { sf: song.sf || 0 }, ka = 0;
+      for (var j = 0; j < Math.abs(kk.sf); j++) if ((kk.sf > 0 ? [3, 0, 4, 1, 5, 2, 6] : [6, 2, 5, 1, 4, 0, 3])[j] === n.wsp[0]) ka = kk.sf > 0 ? 1 : -1;
+      if (n.wsp[1] !== ka) want.push({ '2': 'Double sharp', '1': 'Sharp', '0': 'Natural', '-1': 'Flat', '-2': 'Double flat' }[String(n.wsp[1])]);
+    }
+    var depth = 0; for (var i = 0; i < k; i++) (song.notes[i].slur || []).forEach(function (x) { depth += x.t === 'start' ? 1 : x.t === 'stop' && depth > 0 ? -1 : 0; });
+    if (depth > 0 || (n.slur || []).some(function (x) { return x.t === 'start' || x.t === 'stop'; })) want.push('Slur');
+    (n.art || []).forEach(function (a) { if (SYM_ART[a]) want.push(SYM_ART[a]); });
+    if (n.pz) want.push('Pizzicato');
+    if (n.harm) want.push('Harmonic');
+    if (n.trem) want.push('Tremolo');
+    (song.marks || []).forEach(function (m) {
+      if (Math.abs(m.beat - n.b) > 1e-3) return;
+      if (m.kind === 'dyn') String(m.text || '').split(' ').forEach(function (t) { if (SYM_DYN[t]) want.push(SYM_DYN[t]); });
+      else if (m.kind === 'wedge' && m.text !== 'stop') want.push(m.text === 'crescendo' ? 'Get louder' : 'Get softer');
+      else if (m.kind === 'words' && /^cresc/i.test(m.text)) want.push('Get louder');
+      else if (m.kind === 'words' && /^(dim|decresc)/i.test(m.text)) want.push('Get softer');
+    });
+    var seen = {}, out = [];
+    want.forEach(function (w) {
+      if (!w || seen[w]) return; seen[w] = 1;
+      var li = document.querySelector('#symbols li[data-sym="' + w + '"]'); if (li) out.push(li);
+    });
+    return out;
   }
   APP.paForget = function () { if (paTake || !paRes) return; paRes = null; paBrowse = null; paClearTints(); paSay(''); paCardClose(); paUi(); };
   function paCardClose() { if (paCardEl.hidden) return; paCardEl.hidden = true; APP.board.off('pa-card'); APP.board.heard(null); }
