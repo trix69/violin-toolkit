@@ -196,7 +196,7 @@
     if (!w || TEMPO_W.test(w) || w.length > 40) return 0;   /* rit., a tempo…: handled as tempo changes; a long sentence is not a tempo mark */
     for (var i = 0; i < TEMPO_TERMS.length; i++) if (TEMPO_TERMS[i][0].test(w)) {
       var b = TEMPO_TERMS[i][1];
-      if (/non troppo|non tanto|ma non/.test(w)) b *= 0.92; else if (/molto|assai/.test(w)) b *= 1.08;
+      if (/non troppo|non tanto|ma non|not too|nicht zu|pas trop/.test(w)) b *= 0.92; else if (/molto|assai/.test(w)) b *= 1.08;
       return b;
     }
     return 0;
@@ -422,16 +422,20 @@
     });
     /* tempo words and ♩ = marks without a <sound tempo> of their own (Trix): a word's speed is for the felt beat, so x/2 is
        counted in minims, 6/8 9/8 12/8 in dotted crotchets and 3/8 in quavers (as crotchets: x1.2, x1.05, x0.5) */
-    var sgN = sig ? sig.num : 4, sgD = sig ? sig.den : 4, feel = sgD === 2 ? 1.2 : sgD === 8 && sgN % 3 === 0 && sgN > 3 ? 1.05 : sgD === 8 ? 0.5 : 1;
-    /* a word after a tempo that has a word of its own changes speed by the ratio of the two words (Handel's "Adagio" after
-       "Andante" ♩ = 60 slows to 46, not up to the table's 70); otherwise the table's speed */
+    /* the metre in force at the word's tick (a later 6/8 or 3/8 counts its own beat; Hermes F131) */
+    function feelAt(t) {
+      var ts = sig || { num: 4, den: 4 }; bars.forEach(function (b) { if (b.tick <= t && b.ts) ts = b.ts; });
+      return ts.den === 2 ? 1.2 : ts.den === 8 && ts.num % 3 === 0 && ts.num > 3 ? 1.05 : ts.den === 8 ? 0.5 : 1;
+    }
+    /* a word after a word-only tempo changes speed by the ratio of the two words (Vivace, then Adagio: 160 to 70);
+       otherwise the table's speed */
     Object.keys(textTempos).map(Number).sort(function (a, b) { return a - b; }).forEach(function (t) {
       var tt = textTempos[t]; if (seenTempo[t]) { if (!tt.exact) seenTempo[t].term = tt.q; return; }
       var prev = null; tempos.forEach(function (tp) { if (tp.tick < t && (!prev || tp.tick >= prev.tick)) prev = tp; });
       /* a word only where the file has set no tempo of its own yet: an edition that sets one and then writes "Adagio" for a
          cadence may not mark the return (Bach BWV 1042 bar 121, the written-out da capo after it), so its words stay words */
       if (!tt.exact && tempos.some(function (tp) { return tp.tick <= t && !tp.fromText; })) return;
-      var bp = Math.round(tt.exact ? tt.q : prev && prev.term ? 60e6 / prev.us * tt.q / prev.term : tt.q * feel);
+      var bp = Math.round(tt.exact ? tt.q : prev && prev.term ? 60e6 / prev.us * tt.q / prev.term : tt.q * feelAt(t));
       tempos.push(seenTempo[t] = { tick: t, us: 60e6 / bp, term: tt.exact ? 0 : tt.q, fromText: !tt.exact });
       if (t > 0 && !tmarks[t]) tmarks[t] = { w: '', bpm: bp };
     });
@@ -765,17 +769,22 @@
   /* the violin note's loudness from its velocity, around the part's usual level (so the mixer level holds) */
   function lvlOf(n) { return song && song.velMid ? Math.max(0.3, Math.min(1.8, Math.pow((n.vel || song.velMid) / song.velMid, 1.2))) : 1; }
   function toneOf(n) { return n.harm ? 'pure' : n.pz ? 'pizz' : ''; }
-  /* a written trill (tr) as sound (Trix): the upper note is the next one up in the key at that beat, changed by an accidental
-     written on the tr; it alternates every 1/12 s of real time (about a 32nd at 160), or a 32nd at slow tempos if slower */
+  /* a written trill (tr) as sound (Trix): the upper note is the next letter up, as the key at that beat has it, changed by an
+     accidental written on the tr (D natural in F minor trills to E flat; Hermes F128); it alternates every 1/12 s of real time
+     (about a 32nd at 160), or a 32nd at slow tempos if slower */
+  var NAT = [0, 2, 4, 5, 7, 9, 11], OACC = { sharp: 1, flat: -1, natural: 0, 'double-sharp': 2, 'flat-flat': -2 };
   function trillOf(n) {
     if (!(n.art || []).some(function (a) { return a === 'trill-mark'; })) return null;
-    var k = song.keyAt ? song.keyAt(n.b) : { sf: song.sf || 0 }, tonic = ((7 * k.sf) % 12 + 12) % 12;
-    var inKey = function (m) { var pc = ((m - tonic) % 12 + 12) % 12; return [0, 2, 4, 5, 7, 9, 11].indexOf(pc) >= 0; };
-    var u = inKey(n.m + 1) && inKey(n.m) ? n.m + 1 : n.m + 2;
-    var white = function (m) { return [0, 2, 4, 5, 7, 9, 11].indexOf(((m % 12) + 12) % 12) >= 0; };
-    if (n.oacc === 'sharp' && white(u)) u += 1;
-    else if (n.oacc === 'flat' && white(u)) u -= 1;
-    else if (n.oacc === 'natural' && !white(u)) u += k.sf >= 0 ? -1 : 1;
+    var k = song.keyAt ? song.keyAt(n.b) : { sf: song.sf || 0 }, u;
+    if (n.wsp && n.wsp[0] >= 0) {
+      var s = n.wsp[0], s2 = (s + 1) % 7, keyAlt = 0;
+      for (var j = 0; j < Math.abs(k.sf); j++) if ((k.sf > 0 ? [3, 0, 4, 1, 5, 2, 6] : [6, 2, 5, 1, 4, 0, 3])[j] === s2) keyAlt = k.sf > 0 ? 1 : -1;
+      var alt = OACC[n.oacc] !== undefined ? OACC[n.oacc] : keyAlt;
+      u = n.m + (NAT[s2] + (s === 6 ? 12 : 0) + alt) - (NAT[s] + n.wsp[1]);   /* the written interval, so a transposed part keeps it */
+    } else {   /* MIDI: no written letter; the semitone above if both are in the key, else a whole tone */
+      var tonic = ((7 * k.sf) % 12 + 12) % 12, inKey = function (m) { return NAT.indexOf(((m - tonic) % 12 + 12) % 12) >= 0; };
+      u = inKey(n.m + 1) && inKey(n.m) ? n.m + 1 : n.m + 2;
+    }
     var dur = (n.e - n.t) / speed, beatSec = song.beatSec ? (song.beatSec(n.b + 1) - song.beatSec(n.b)) / speed : 0.5;
     if (u <= n.m || dur < 0.15) return null;
     return { up: u - n.m, dur: dur, step: Math.max(1 / 12, beatSec > 0 ? beatSec / 8 : 0) };
@@ -3649,7 +3658,7 @@
       if (!r) { line('Not recorded.'); return; }
       if (r.missed) { line('Not heard.'); return; }
       var dbl = !r.idx || r.idx.length === 2, cname = dbl ? 'Double stop' : 'Chord';   /* by count (Hermes F113) */
-      if (r.noPitch) { line(r.far ? cname + ': started too far from its place for the pitch to be measured.' : cname + ': pitch not measured (' + (dbl ? 'two' : r.idx.length) + ' notes at once).'); if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r)); if (r.exit !== undefined) line(ms(r.exit, 'End', r)); return; }
+      if (r.noPitch) { line(r.trill ? 'Trill: pitch not measured.' : r.far ? cname + ': started too far from its place for the pitch to be measured.' : cname + ': pitch not measured (' + (dbl ? 'two' : r.idx.length) + ' notes at once).'); if (r.timing !== null && r.timing !== undefined) line(ms(r.timing, 'Start', r)); if (r.exit !== undefined) line(ms(r.exit, 'End', r)); return; }
       if (r.each) line(cname + ':');
       if (r.chord && r.m !== undefined && !r.each) line(cname + ': measured on ' + APP.board.name(r.m) + '.');
       if (r.each) {   /* each note of the double stop, top first */

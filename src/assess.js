@@ -208,8 +208,8 @@
     song.notes.forEach(function (n, k) {
       if (n.grace) return;
       var last = ev[ev.length - 1];
-      if (last && Math.abs(last.t - n.t) < 1e-4) { last.idx.push(k); last.ms.push(n.m); last.chord = true; last.e = Math.max(last.e, n.e); return; }
-      ev.push({ t: n.t, e: n.e, m: n.m, ms: [n.m], idx: [k], chord: false, b: n.b });
+      if (last && Math.abs(last.t - n.t) < 1e-4) { last.idx.push(k); last.ms.push(n.m); last.chord = true; last.e = Math.max(last.e, n.e); last.orn = last.orn || (n.art || []).indexOf('trill-mark') >= 0; return; }
+      ev.push({ t: n.t, e: n.e, m: n.m, ms: [n.m], idx: [k], chord: false, b: n.b, orn: (n.art || []).indexOf('trill-mark') >= 0 });
     });
     return ev;
   }
@@ -317,6 +317,8 @@
       if (endT !== null) r.exit = Math.round((endT - (e.e + r.warp)) * 1000);
       /* the window: from the onset to the next onset (an open string ringing on is not measured past it), and no
          longer than the note's own length allows; attack 80 ms and release 120 ms left out (less for short notes) */
+      /* a trill alternates with the note above, so its pitch reads between the two: its start and end are still judged (Hermes F129) */
+      if (e.orn) { r.noPitch = true; r.trill = true; return r; }
       var dur = (e.e - e.t), end = Math.min(nextT, o.t + dur * 1.25 + 0.1), L = end - o.t;
       var a = o.t + Math.min(0.08, 0.2 * L), b = end - Math.min(0.12, 0.2 * L);
       /* a double stop (Trix: they were all shown as missed): one pitch is heard at a time, so it is measured against the note of
