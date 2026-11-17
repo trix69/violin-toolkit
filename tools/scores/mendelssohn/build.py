@@ -8,6 +8,7 @@ ENDINGS [(first bar, last bar, '1', 'stop' or 'discontinue')] volta brackets. Pa
 MARKS [(part, bar, crotchets into the bar, kind, value)]: kind 'dyn' (p, f, ff ...), 'cresc' / 'dim' (a hairpin from there; value = where it
 ends, in crotchets into the same bar), 'bow' ('down' / 'up', on the note starting there), 'fing' (the printed fingering '0'-'4' on the note starting there),
 'acc' / 'stacc' (accent / staccato on the note there), 'slur' (value = (end bar, end crotchets): from this note to that one),
+'orn' (value 'tr', 'turn', 'inverted-turn', 'mordent' or 'inverted-mordent': the ornament over the note there),
 'harm' (value = (stopped pitch, touching pitch): an artificial harmonic's stopped note and diamond, drawn under this note, never played) (Trix: the scan's f, ff and bowings)."""
 import sys, zipfile, re
 from xml.sax.saxutils import escape as esc
@@ -111,7 +112,7 @@ for pn in range(1, len(NAMES) + 1):
                 gr = d[-1] if d[-1] in 'gG' else ''
                 v, ty, dot, tm = dur(d)
                 if gr: v = 0
-                bow = ''; fing = ''; arts = []; sl = []; harm = None
+                bow = ''; fing = ''; arts = []; sl = []; harm = None; orns = []
                 if vi == 0 and not gr:
                     x += marks_at(pn, b, tot)
                     bow = next((val for (mp, mb, mo, kind, val) in MARKS if kind == 'bow' and mp == pn and mb == b and round(mo * DIV) == tot and p != 'r'), '')
@@ -121,6 +122,7 @@ for pn in range(1, len(NAMES) + 1):
                     sl = [('stop', SLURN[i]) for i, (mp, mb, mo, kind, val) in enumerate(MARKS) if kind == 'slur' and mp == pn and val[0] == b and round(val[1] * DIV) == tot and p != 'r']
                     sl += [('start', SLURN[i]) for i, kind, val in here if kind == 'slur']
                     harm = next((val for i, kind, val in here if kind == 'harm'), None)
+                    orns = [{'tr': 'trill-mark'}.get(val, val) for i, kind, val in here if kind == 'orn']
                 if vi == 0 and C.get('GRACE_SLURS') and pn in C['GRACE_SLURS'] and p != 'r':   # a slur from the grace notes into their note (number 3)
                     pg = ti > 0 and toks[ti - 1].split(':')[1].rstrip('~')[-1:] in ('g', 'G')
                     if gr and not pg: sl.append(('start', 3))
@@ -141,6 +143,7 @@ for pn in range(1, len(NAMES) + 1):
                         if st_ % DIV == 0: nt += '<tuplet type="start" bracket="no"/>'
                         elif (st_ + DIV // 3) % DIV == 0: nt += '<tuplet type="stop"/>'
                     if not k: nt += ''.join('<slur type="%s" number="%d"/>' % x for x in sl)
+                    if orns and not k: nt += '<ornaments>%s</ornaments>' % ''.join('<%s/>' % o for o in orns)
                     if (bow or fing) and not k: nt += '<technical>%s%s</technical>' % ('<%s-bow/>' % bow if bow else '', '<fingering>%s</fingering>' % fing if fing else '')
                     if arts and not k: nt += '<articulations>%s</articulations>' % ''.join('<%s/>' % a for a in arts)
                     if key in tied: nt += '<tied type="stop"/>'

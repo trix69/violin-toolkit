@@ -1426,7 +1426,7 @@ nav_js = """(function () {
     /* the update's progress (Trix: show 0-100 % so people see it working): the service worker's own download is not
        reported, so that stage eases towards 40 %; the page itself is read in chunks against its expected size (40-90 %);
        saving and tidying the copies 90-100 %, then the reload */
-    var prog = function () {};
+    var prog = function () {}, progDone = function () { return Promise.resolve(); };
     function install(j) {
       busy = true; say('Updating to ' + j.version + '…'); prog(0);
       var ease = 0, easeT = setInterval(function () { ease += (40 - ease) * 0.08; prog(ease); }, 120);
@@ -1458,7 +1458,7 @@ nav_js = """(function () {
             return Promise.all(ks.filter(function (k) { return mine.test(k) && k < want; }).map(function (k) { return caches.delete(k); }));
           });
         }).catch(function () {});
-      }).then(function () { prog(100); return new Promise(function (ok) { setTimeout(ok, 350); }); }).then(function () { location.reload(); });
+      }).then(function () { prog(100); return progDone(); }).then(function () { return new Promise(function (ok) { setTimeout(ok, 350); }); }).then(function () { location.reload(); });
     }
     btn.addEventListener('click', function () {
       if (busy) return;
@@ -1520,9 +1520,19 @@ nav_js = """(function () {
         document.getElementById('updTitle').textContent = 'Updating…';
         document.getElementById('updMsg').textContent = 'Version ' + pending.version;
         document.getElementById('updProg').hidden = false;
-        var fill = document.getElementById('updFill'), pct = document.getElementById('updPct'), bar = document.getElementById('updBar'), shown = 0;
-        prog = function (v) { v = Math.max(shown, Math.min(100, v)); shown = v; fill.style.width = v.toFixed(1) + '%'; pct.textContent = Math.floor(v) + '%'; bar.setAttribute('aria-valuenow', Math.floor(v)); };
-        prog(0);
+        /* the bar moves at most 100 % in 1.5 s (Trix: not seen): the new release is usually saved already, so the work itself
+           takes a few dozen ms; the reload waits until the bar has reached 100 % */
+        var fill = document.getElementById('updFill'), pct = document.getElementById('updPct'), bar = document.getElementById('updBar'), shown = 0, target = 0, tick = null, onFull = null;
+        var draw = function () { fill.style.width = shown.toFixed(1) + '%'; pct.textContent = Math.floor(shown) + '%'; bar.setAttribute('aria-valuenow', Math.floor(shown)); };
+        prog = function (v) {
+          target = Math.max(target, Math.min(100, v));
+          if (!tick) tick = setInterval(function () {
+            shown = Math.min(target, shown + 2); draw();
+            if (shown >= 100) { clearInterval(tick); tick = null; if (onFull) onFull(); }
+          }, 30);
+        };
+        progDone = function () { return new Promise(function (ok) { if (shown >= 100) ok(); else onFull = ok; }); };
+        draw();
         install(pending).catch(function () { location.reload(); });
       }
     });

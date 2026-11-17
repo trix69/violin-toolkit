@@ -68,3 +68,5 @@ MARKS += [(1, 31, o, 'harm', h) for o, h in [(0.5, ('F#5', 'B5')), (1, ('F#5', '
           (2, ('E5', 'A5')), (2.25, ('D5', 'G5')), (2.5, ('C#5', 'F#5')), (2.75, ('B4', 'E5'))]]
 MARKS += [(1, 32, 0, 'harm', ('A#4', 'D#5'))] + [(1, 32, o, 'harm', ('F#5', 'B5')) for o in (0.5, 1, 1.5, 2)]
 MARKS += [(1, 33, o, 'harm', ('F#5', 'B5')) for o in (1, 1.5, 2)]
+# bar 27 (Hermes F121, Trix: include tr): a slashed F#5 grace into the E5, and tr over that E5 (the small 3 under it is the printed fingering)
+MARKS += [(1, 27, 1.5, 'orn', 'tr')]
