@@ -286,6 +286,7 @@ html.fg-printing .pa-bt { display: none !important; } @media print { .pa-bt { di
 .pa-tip-body.has-fb:has(.fg-txt) { align-items: stretch; }
 .pa-tip-body.has-fb:has(.fg-txt) > svg { align-self: start; }
 .fg-txt { display: flex; flex-direction: column; min-height: 100%; }
+.fg-txt > p { text-align: center; }   /* the note's lines centred in the space left of the board (Trix) */
 .fg-syms { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 10px; padding-top: 12px; }
 .fg-sym { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 10px 8px 12px; border: 1px solid var(--line); border-radius: 12px; text-align: center; }
 .fg-sym .sym { display: grid; place-items: center; height: 56px; color: var(--fg); font: italic 600 30px/1 var(--font-note); }
