@@ -3093,6 +3093,7 @@
       if (playing) { seekTo(Math.max(0, t - 0.001)); accStart(); return; }   /* playing: on from the note, the accompaniment with it */
       if (t < 0.01) { seekTo(0); showAt(true); }   /* the first note: at the top (the count-in still comes), shown */
       else seekTo(t + 0.001);   /* just inside the note, so it shows lit and resumes sounding */
+      var cy = e.clientY; fgCardOpen(k, { getBoundingClientRect: function () { return { top: cy - 12, bottom: cy + 12, height: 24 }; } });   /* paused: what the note is and where it lies (Trix) */
     });
     /* Ctrl + mouse wheel zooms the pages (Trix), 50 % to 300 %, keeping the point under the pointer still; the PDF is not affected */
     var fgZoom = 1;
@@ -3753,6 +3754,34 @@
     var d = mm(na) - mm(ne), p0 = document.createElement('p'); p0.className = 'pa-fb-say';
     p0.textContent = Math.abs(r.cents) <= ASSESS.IN_TUNE ? 'Finger in place.' : 'Finger about ' + Math.max(0.1, Math.abs(d)).toFixed(1) + ' mm too close to the ' + (d > 0 ? 'bridge' : 'scroll') + '.';
     return { svg: w.firstChild, say: p0 };
+  }
+  /* Fingerings, paused (Trix): a tapped note's card, as Play-along's, without a result: its name, string, finger and position,
+     and the fingerboard with the note lit (and the other note of a double stop) */
+  function fgCardOpen(k, from) {
+    if (!song || !paCardEl || paOn) return;
+    var n0 = song.notes[k]; if (!n0) return;
+    if (paCardEl.parentNode !== document.body) document.body.appendChild(paCardEl);   /* it lives in Play-along's view, hidden here */
+    var bars = song.bars || [], bi = -1; bars.forEach(function (b, i) { if (b.beat <= n0.b + 1e-6) bi = i; });
+    $('paCardN').textContent = APP.board.name(n0.m);
+    $('paCardT').textContent = bars[bi] ? (bars[bi].num === '0' ? 'Upbeat' : 'Bar ' + bars[bi].num) : '';
+    var box = $('paCardB'); box.textContent = ''; box.classList.remove('has-fb');
+    function line(t) { var p0 = document.createElement('p'); p0.textContent = t; box.appendChild(p0); }
+    var ORD = function (i) { return i + (i % 10 === 1 && i !== 11 ? 'st' : i % 10 === 2 && i !== 12 ? 'nd' : i % 10 === 3 && i !== 13 ? 'rd' : 'th'); };
+    if (n0.si >= 0) line(n0.fg === 0 ? 'Open ' + PA_SNAME[n0.si] + ' string' : PA_SNAME[n0.si] + ' string, finger ' + n0.fg);
+    if (n0.si >= 0 && n0.fg !== 0) { if (n0.half) line('Half position'); else if (n0.hand >= 0) line(ORD(n0.hand + 1) + ' position'); }
+    var oth = song.notes.filter(function (q, i) { return i !== k && !q.grace && Math.abs(q.t - n0.t) < 1e-4; });
+    if (oth.length) line('Double stop with ' + oth.map(function (q) { return APP.board.name(q.m); }).join(', '));
+    if (n0.si >= 0) {
+      var fb = paFingerSvg(n0, { cents: 0 }, k, oth.filter(function (q) { return q.si >= 0; }).map(function (q) { return { n: q, cents: 0 }; }));
+      var txt = document.createElement('div'); txt.className = 'pa-fb-txt';
+      while (box.firstChild) txt.appendChild(box.firstChild);
+      box.appendChild(txt); box.appendChild(fb.svg); box.classList.add('has-fb');
+    }
+    var rr = from && from.getBoundingClientRect ? from.getBoundingClientRect() : null, up = rr ? rr.top + rr.height / 2 > window.innerHeight / 2 : false;
+    paCardEl.classList.toggle('up', up);
+    $('paCardC').style.maxHeight = rr ? Math.max(160, up ? rr.top - 30 : window.innerHeight - rr.bottom - 30) + 'px' : '';
+    paCardEl.hidden = false;
+    try { $('paCardC').focus({ preventScroll: true }); } catch (e) {}
   }
   APP.paForget = function () { if (paTake || !paRes) return; paRes = null; paBrowse = null; paClearTints(); paSay(''); paCardClose(); paUi(); };
   function paCardClose() { if (paCardEl.hidden) return; paCardEl.hidden = true; APP.board.off('pa-card'); APP.board.heard(null); }
