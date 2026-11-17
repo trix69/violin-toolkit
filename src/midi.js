@@ -1368,7 +1368,7 @@
     W = cx + 30;
     rests.forEach(function (r) {
       var x = r.whole ? (xAt(r.b) + xAt(r.b + r.v)) / 2 - 8 : xAt(r.b);   /* a whole-bar rest in the middle of its bar */
-      items.push([x, '<g class="mp-rest">' + restSvg(r, x) + '</g>']);
+      items.push([x, '<g class="mp-rest" data-rb="' + r.b + '" data-rv="' + (r.whole ? 4 : r.v) + '">' + restSvg(r, x) + '</g>']);   /* tapped on the pages: its card (Trix) */
     });
     var endX = cx - 8;
     items.push([endX - 4, '<path class="bl" d="M' + (endX - 4) + ' ' + Y0 + 'V' + BOT + '"/><path class="bl end" d="M' + endX + ' ' + Y0 + 'V' + BOT + '"/>']);
@@ -3084,9 +3084,27 @@
       });
       return k;
     }
+    function fgSmallAt(e) {   /* the rest or grace note drawn under the tap (8 px of slack round it) */
+      var svg = e.target.closest && e.target.closest('svg.fg-page'); if (!svg) return null;
+      var best = null, bd = Infinity;
+      Array.prototype.forEach.call(svg.querySelectorAll('.mp-rest, .mp-grace'), function (g) {
+        var r = g.getBoundingClientRect(); if (!r.width && !r.height) return;
+        if (e.clientX < r.left - 8 || e.clientX > r.right + 8 || e.clientY < r.top - 8 || e.clientY > r.bottom + 8) return;
+        var d = Math.abs(e.clientX - (r.left + r.right) / 2) + Math.abs(e.clientY - (r.top + r.bottom) / 2);
+        if (d < bd) { bd = d; best = g; }
+      });
+      return best;
+    }
     fgPages.addEventListener('click', function (e) {
       if (!song || !fgDown || Math.abs(e.clientX - fgDown[0]) > 6 || Math.abs(e.clientY - fgDown[1]) > 6) return;
       if (window.getSelection && String(window.getSelection())) return;
+      var hit = !playing && !counting ? fgSmallAt(e) : null;   /* paused: a rest or a grace note under the tap opens its card (Trix) */
+      if (hit) {
+        var cy0 = e.clientY, at0 = { getBoundingClientRect: function () { return { top: cy0 - 12, bottom: cy0 + 12, height: 24 }; } };
+        if (hit.getAttribute('data-k') !== null) fgCardOpen(+hit.getAttribute('data-k'), at0);
+        else fgRestOpen(+hit.getAttribute('data-rb'), +hit.getAttribute('data-rv'), at0);
+        return;
+      }
       var k = fgNoteAt(e); if (k < 0) return;
       var t = song.notes[k].t;
       if (counting) { stopCount(); seekTo(Math.max(0, t - 0.001)); go(); return; }   /* during the count-in: straight on from the note */
@@ -3820,6 +3838,7 @@
       for (var j = 0; j < Math.abs(kk.sf); j++) if ((kk.sf > 0 ? [3, 0, 4, 1, 5, 2, 6] : [6, 2, 5, 1, 4, 0, 3])[j] === n.wsp[0]) ka = kk.sf > 0 ? 1 : -1;
       if (n.wsp[1] !== ka) want.push({ '2': 'Double sharp', '1': 'Sharp', '0': 'Natural', '-1': 'Flat', '-2': 'Double flat' }[String(n.wsp[1])]);
     }
+    if (n.grace) want.push(n.grace === 'app' ? 'Appoggiatura' : 'Acciaccatura');
     var depth = 0; for (var i = 0; i < k; i++) (song.notes[i].slur || []).forEach(function (x) { depth += x.t === 'start' ? 1 : x.t === 'stop' && depth > 0 ? -1 : 0; });
     if (depth > 0 || (n.slur || []).some(function (x) { return x.t === 'start' || x.t === 'stop'; })) want.push('Slur');
     (n.art || []).forEach(function (a) { if (SYM_ART[a]) want.push(SYM_ART[a]); });
@@ -3839,6 +3858,32 @@
       var li = document.querySelector('#symbols li[data-sym="' + w + '"]'); if (li) out.push(li);
     });
     return out;
+  }
+  /* a tapped rest on the Fingerings pages (Trix): its Symbols card, with its bar and length */
+  function fgRestOpen(b, v, from) {
+    if (!song || !paCardEl || paOn) return;
+    if (paCardEl.parentNode !== document.body) document.body.appendChild(paCardEl);
+    var base = v === 3 ? 2 : v === 1.5 ? 1 : v === 0.75 ? 0.5 : v;
+    var name = { 4: 'Semibreve rest', 2: 'Minim rest', 1: 'Crotchet rest', 0.5: 'Quaver rest', 0.25: 'Semiquaver rest' }[base];
+    var bars = song.bars || [], bi = -1; bars.forEach(function (x, i) { if (x.beat <= b + 1e-6) bi = i; });
+    $('paCardN').textContent = 'Rest';
+    $('paCardT').textContent = bars[bi] ? (bars[bi].num === '0' ? 'Upbeat' : 'Bar ' + bars[bi].num) : '';
+    var box = $('paCardB'); box.textContent = ''; box.classList.remove('has-fb');
+    if (base !== v) { var p0 = document.createElement('p'); p0.textContent = 'Dotted: half as long again'; box.appendChild(p0); }
+    var li = name && document.querySelector('#symbols li[data-sym="' + name + '"]');
+    if (li) {
+      var sb = document.createElement('div'), d = document.createElement('div'); sb.className = 'fg-syms'; d.className = 'fg-sym';
+      var g = li.querySelector('.sym'); if (g) d.appendChild(g.cloneNode(true));
+      var bb = document.createElement('b'); bb.textContent = name; d.appendChild(bb);
+      var sm = li.querySelector('small'); if (sm) { var s2 = document.createElement('small'); s2.textContent = sm.textContent; d.appendChild(s2); }
+      var p1 = document.createElement('p'); p1.textContent = li.getAttribute('data-tip'); d.appendChild(p1);
+      sb.appendChild(d); box.appendChild(sb);
+    }
+    var rr = from.getBoundingClientRect(), up = rr.top + rr.height / 2 > window.innerHeight / 2;
+    paCardEl.classList.toggle('up', up);
+    $('paCardC').style.maxHeight = Math.max(160, up ? rr.top - 30 : window.innerHeight - rr.bottom - 30) + 'px';
+    paCardEl.hidden = false;
+    try { $('paCardC').focus({ preventScroll: true }); } catch (e) {}
   }
   APP.paForget = function () { if (paTake || !paRes) return; paRes = null; paBrowse = null; paClearTints(); paSay(''); paCardClose(); paUi(); };
   function paCardClose() { if (paCardEl.hidden) return; paCardEl.hidden = true; APP.board.off('pa-card'); APP.board.heard(null); }
