@@ -780,7 +780,9 @@
       var s = n.wsp[0], s2 = (s + 1) % 7, keyAlt = 0;
       for (var j = 0; j < Math.abs(k.sf); j++) if ((k.sf > 0 ? [3, 0, 4, 1, 5, 2, 6] : [6, 2, 5, 1, 4, 0, 3])[j] === s2) keyAlt = k.sf > 0 ? 1 : -1;
       var alt = OACC[n.oacc] !== undefined ? OACC[n.oacc] : keyAlt;
-      u = n.m + (NAT[s2] + (s === 6 ? 12 : 0) + alt) - (NAT[s] + n.wsp[1]);   /* the written interval, so a transposed part keeps it */
+      var iv = (NAT[s2] + (s === 6 ? 12 : 0) + alt) - (NAT[s] + n.wsp[1]);   /* the written interval, so a transposed part keeps it */
+      if (iv === 3) iv = 2;   /* a flat in a sharp key (Borodin Nocturne bars 51, 53: E flat against the key's F sharp): the bar has the natural, not an augmented second (Hermes F132) */
+      u = n.m + iv;
     } else {   /* MIDI: no written letter; the semitone above if both are in the key, else a whole tone */
       var tonic = ((7 * k.sf) % 12 + 12) % 12, inKey = function (m) { return NAT.indexOf(((m - tonic) % 12 + 12) % 12) >= 0; };
       u = inKey(n.m + 1) && inKey(n.m) ? n.m + 1 : n.m + 2;
