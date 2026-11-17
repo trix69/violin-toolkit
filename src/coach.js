@@ -8,6 +8,8 @@
   var TOURS = {
     tuner: [
       { sel: '#go', title: 'Start tuning', text: 'Tap here, then bow or pluck an open string. The tuner listens through the microphone.' },
+      { sel: '#turnBtn', title: 'Turn sideways', when: function () { var b = document.getElementById('turnBtn'); return !!(b && b.getClientRects().length); },
+        text: 'The tuner also works with the phone on its side: the gauge and the strings on one screen. Tap here for how.' },
       { sel: '#gauge', title: 'Read the needle', text: 'In the middle and green means in tune. Left of centre is flat, right is sharp.' },
       { sel: '#strings', title: 'Hear a string', text: 'Tap a string name on the scroll to play its pitch. Tap it again to stop.' },
       { sel: '#view-tuner .seg', title: 'Violin or Chromatic', text: 'Violin finds the nearest open string. Chromatic shows any note you play.' }
@@ -29,6 +31,12 @@
       { sel: '#view-metronome .sig', title: 'Time signature', text: 'Tap the top number to change the beats per bar, and the bottom number to change the note value.' },
       { sel: '#mBeats', title: 'Accents', text: 'Tap a beat to change how loudly it clicks: accent, medium, normal or muted.' },
       { sel: '#mTap', title: 'Tap tempo', text: 'Tap in time a few times to set the tempo from your own beat.' }
+    ],
+    /* Symbols (Trix, 2026-11-17) */
+    symbols: [
+      { sel: '#view-symbols .symsearch', title: 'Search', text: 'Type a word such as slur, forte or repeat to find a symbol.' },
+      { sel: '#symbols .sym-grid li', one: true, title: 'Tap a symbol', text: 'Tap or hold any symbol for a card: what it means and how to play it on the violin.' },
+      { sel: '#symbols h3', one: true, title: 'Grouped by kind', text: 'Notes, bowing, accidentals, rests, dynamics, ornaments, repeats and more. Scroll down to browse them all.' }
     ],
     midi: [
       { sel: '#mpSong', title: 'Pick a tune', text: 'Choose a built-in tune or one you imported.' },
