@@ -1645,6 +1645,8 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
   }
   if (window.APP) APP.board = {
     toTop: function () { stage.scrollTop = 0; },
+    /* semitones a stopped note sits from its equal-tempered place on a string (Settings > Intonation), for drawings elsewhere (Trix: the note card's board) */
+    tempN: function (midi, openMidi) { return midi === openMidi ? 0 : (stopCents(midi) - openCents({ midi: openMidi })) / 100; },
     relayout: function () { layout(); },   /* sizes only, no redraw (full screen settling: a redraw flashed the notes) */   /* a newly chosen tune starts at the open strings (Hermes F14) */
     /* on: player mode; top(): height of the player's own part above the board, so the board fits below it */
     player: function (on, top, n, key, flat, rot) {   /* rot(): full screen, the box { L, T, W, H } the turned board fills */

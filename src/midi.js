@@ -3731,16 +3731,18 @@
      the finger should be (the written note, with its finger), a disc where it was (from the pitch played), and how far apart
      they are on a real violin (328 mm string) */
   var PA_OPEN = [55, 62, 69, 76], PA_SNAME = ['G', 'D', 'A', 'E'], PA_LEN = 328;
-  function paFingerSvg(n, r, k, oth) {
+  function paFingerSvg(n, r, k, oth, minTop) {
     oth = (oth || []).filter(function (q) { return q.n.si !== n.si; });   /* the rest of a double stop, each on its own string */
     /* drawn like the MIDI player's board (Trix): all four strings, every note place from the open string up, the key's notes
        tinted, the written note lit in its string colour with its finger, and a disc where the played pitch puts the finger */
-    var si = n.si, open = PA_OPEN[si], ne = n.m - open, na = ne + r.cents / 100, sa = si;
-    while (na < -0.4 && sa > 0) { sa--; na = n.m + r.cents / 100 - PA_OPEN[sa]; }   /* lower than this open string: where it is played, a string down (Trix) */
+    /* where each note sits with Settings > Intonation (Trix: the card's board did not follow it) */
+    var TN = function (m, s) { return APP.board.tempN ? APP.board.tempN(m, PA_OPEN[s]) : 0; };
+    var si = n.si, open = PA_OPEN[si], ne = n.m - open + TN(n.m, si), na = ne + r.cents / 100, sa = si;
+    while (na < -0.4 && sa > 0) { sa--; na = n.m + r.cents / 100 - PA_OPEN[sa] + TN(n.m, sa); }   /* lower than this open string: where it is played, a string down (Trix) */
     na = Math.max(-0.4, na);
     function mm(x) { return PA_LEN * (1 - Math.pow(2, -x / 12)); }
-    oth.forEach(function (q) { q.ne = q.n.m - PA_OPEN[q.n.si]; q.na = Math.max(-0.4, q.ne + q.cents / 100); });
-    var top = Math.max(7, Math.ceil(Math.max.apply(null, [ne, na].concat(oth.map(function (q) { return Math.max(q.ne, q.na); })))) + 1), COL = ['#66AEE6', '#74C493', '#E3A24C', '#EE6A5E'];
+    oth.forEach(function (q) { q.ne = q.n.m - PA_OPEN[q.n.si] + TN(q.n.m, q.n.si); q.na = Math.max(-0.4, q.ne + q.cents / 100); });
+    var top = Math.max(7, minTop || 0, Math.ceil(Math.max.apply(null, [ne, na].concat(oth.map(function (q) { return Math.max(q.ne, q.na); })))) + 1), COL = ['#66AEE6', '#74C493', '#E3A24C', '#EE6A5E'];
     var W = 150, X0 = 22, DX = (W - 2 * X0) / 3, Y0 = 26, H = Math.max(210, 22 * top + 40), K = (H - Y0 - 14) / mm(top), R = Math.min(10, K * (mm(1) - mm(0)) / 2 - 1);
     function Y(x) { return Y0 + K * mm(x); }
     var kn = song.keyAt ? song.keyAt(n.b || 0) : { sf: song.sf || 0 }, root = ((kn.sf * 7) % 12 + 12) % 12, inKey = {};
@@ -3754,8 +3756,8 @@
       o.push('<text x="' + x + '" y="12" class="pa-fb-lab" fill="' + COL[s4] + '">' + PA_SNAME[s4] + '</text>');
       o.push('<line x1="' + x + '" y1="' + (Y0 - 6) + '" x2="' + x + '" y2="' + (H - 6) + '" stroke="' + COL[s4] + '" class="pa-fb-str"/>');
       for (var j = 0; j <= top; j++) {
-        var oq = oth.filter(function (q) { return q.n.si === s4 && q.ne === j; })[0];
-        var m = PA_OPEN[s4] + j, y = Y(j), lit = (s4 === si && j === ne) || !!oq, key = inKey[m % 12];
+        var oq = oth.filter(function (q) { return q.n.si === s4 && q.n.m - PA_OPEN[s4] === j; })[0];
+        var m = PA_OPEN[s4] + j, y = Y(j + TN(m, s4)), lit = (s4 === si && j === n.m - open) || !!oq, key = inKey[m % 12];
         var nm = APP.board.name(m).replace(/-?\d+$/, '');
         o.push('<circle cx="' + x + '" cy="' + y.toFixed(1) + '" r="' + R.toFixed(1) + '" class="pa-fb-n' + (lit ? ' lit' : key ? ' key' : '') + '" style="--c:' + COL[s4] + '"/>');
         if (R >= 7) o.push('<text x="' + x + '" y="' + (y + 3).toFixed(1) + '" class="pa-fb-t' + (lit ? ' lit' : '') + '">' + (lit && (oq ? oq.n.fg : n.fg) > 0 ? (oq ? oq.n.fg : n.fg) : nm) + '</text>');
@@ -3780,13 +3782,14 @@
     var n0 = song.notes[k]; if (!n0) return;
     if (paCardEl.parentNode !== document.body) document.body.appendChild(paCardEl);   /* it lives in Play-along's view, hidden here */
     var bars = song.bars || [], bi = -1; bars.forEach(function (b, i) { if (b.beat <= n0.b + 1e-6) bi = i; });
-    $('paCardN').textContent = APP.board.name(n0.m);
+    $('paCardN').textContent = n0.wsp && n0.wsp[0] >= 0 && Math.abs(n0.wsp[1]) <= 2 ? 'CDEFGAB'[n0.wsp[0]] + ['𝄫', '♭', '', '♯', '𝄪'][n0.wsp[1] + 2] + n0.wsp[2] : APP.board.name(n0.m);   /* as written (E♭, not D♯) */
     $('paCardT').textContent = bars[bi] ? (bars[bi].num === '0' ? 'Upbeat' : 'Bar ' + bars[bi].num) : '';
     var box = $('paCardB'); box.textContent = ''; box.classList.remove('has-fb');
     function line(t) { var p0 = document.createElement('p'); p0.textContent = t; box.appendChild(p0); }
     var ORD = function (i) { return i + (i % 10 === 1 && i !== 11 ? 'st' : i % 10 === 2 && i !== 12 ? 'nd' : i % 10 === 3 && i !== 13 ? 'rd' : 'th'); };
     if (n0.si >= 0) line(n0.fg === 0 ? 'Open ' + PA_SNAME[n0.si] + ' string' : PA_SNAME[n0.si] + ' string, finger ' + n0.fg);
     if (n0.si >= 0 && n0.fg !== 0) { if (n0.half) line('Half position'); else if (n0.hand >= 0) line(ORD(n0.hand + 1) + ' position'); }
+    if (n0.tup) line(n0.tup === 3 ? 'Triplet: three in the time of two' : n0.tup + ' notes in the time of ' + (n0.tup === 5 || n0.tup === 6 ? 4 : n0.tup === 7 ? 4 : 2));
     var oth = song.notes.filter(function (q, i) { return i !== k && !q.grace && Math.abs(q.t - n0.t) < 1e-4; });
     if (oth.length) line('Double stop with ' + oth.map(function (q) { return APP.board.name(q.m); }).join(', '));
     var syms = fgSymbols(n0, k), symBox = null;
@@ -3801,8 +3804,9 @@
         symBox.appendChild(d);
       });
     }
+    var othB = oth.filter(function (q) { return q.si >= 0; }).map(function (q) { return { n: q, cents: 0 }; });
     if (n0.si >= 0) {
-      var fb = paFingerSvg(n0, { cents: 0 }, k, oth.filter(function (q) { return q.si >= 0; }).map(function (q) { return { n: q, cents: 0 }; }));
+      var fb = paFingerSvg(n0, { cents: 0 }, k, othB);
       var txt = document.createElement('div'); txt.className = 'pa-fb-txt fg-txt';
       while (box.firstChild) txt.appendChild(box.firstChild);
       var more = null;
@@ -3818,6 +3822,16 @@
     paCardEl.classList.toggle('up', up);
     $('paCardC').style.maxHeight = rr ? Math.max(160, up ? rr.top - 30 : window.innerHeight - rr.bottom - 30) + 'px' : '';
     paCardEl.hidden = false;
+    /* the board as tall as the lines and card beside it (Trix: no blank space under it): more of the string, further up */
+    var fsv = box.querySelector('svg.pa-fb'), ftx = box.querySelector('.fg-txt');
+    if (fsv && ftx) {
+      var rs = fsv.getBoundingClientRect(), need = ftx.scrollHeight;
+      if (rs.width && need > rs.height + 12) {
+        var rows = Math.min(24, Math.floor((need * 150 / rs.width - 40) / 22));
+        var fb2 = paFingerSvg(n0, { cents: 0 }, k, othB, rows);
+        if (fb2.svg) fsv.parentNode.replaceChild(fb2.svg, fsv);
+      }
+    }
     try { $('paCardC').focus({ preventScroll: true }); } catch (e) {}
   }
   /* the written marks on a note, as the Symbols page names them: its length, accidental, slur, articulations, bowing, ornaments,
@@ -3829,9 +3843,9 @@
     sf: 'Sudden accent', sfz: 'Sudden accent', fz: 'Sudden accent', fp: 'Loud, then soft', sfp: 'Accent, then soft' };
   function fgSymbols(n, k) {
     var want = [];
-    if (!n.tup && !n.grace) {
+    if (!n.grace) {   /* the written value (a triplet quaver is a quaver; Trix: its card was missing) */
       var L = { 0.25: 'Semiquaver (16th note)', 0.5: 'Quaver (eighth note)', 1: 'Crotchet (quarter note)', 1.5: 'Dotted crotchet', 2: 'Minim (half note)', 3: 'Dotted minim', 4: 'Semibreve (whole note)' };
-      var own = Math.round((n.own || 0) * 4) / 4; if (L[own]) want.push(L[own]);
+      var own = Math.round((n.tup ? n.wl || 0 : n.wl || n.own || 0) * 4) / 4; if (L[own]) want.push(L[own]);
     }
     if (n.wsp && n.wsp[0] >= 0) {   /* an accidental the key does not give */
       var kk = song.keyAt ? song.keyAt(n.b) : { sf: song.sf || 0 }, ka = 0;
