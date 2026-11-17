@@ -3771,19 +3771,31 @@
     if (n0.si >= 0 && n0.fg !== 0) { if (n0.half) line('Half position'); else if (n0.hand >= 0) line(ORD(n0.hand + 1) + ' position'); }
     var oth = song.notes.filter(function (q, i) { return i !== k && !q.grace && Math.abs(q.t - n0.t) < 1e-4; });
     if (oth.length) line('Double stop with ' + oth.map(function (q) { return APP.board.name(q.m); }).join(', '));
-    fgSymbols(n0, k).forEach(function (li) {   /* the Symbols page's cards for what is written on this note (Trix) */
-      var d = document.createElement('div'); d.className = 'fg-sym';
-      var g = li.querySelector('.sym'); if (g) d.appendChild(g.cloneNode(true));
-      var tx = document.createElement('div'), b = document.createElement('b'), p1 = document.createElement('p');
-      b.textContent = li.getAttribute('data-sym'); p1.textContent = li.getAttribute('data-tip');
-      tx.appendChild(b); tx.appendChild(p1); d.appendChild(tx); box.appendChild(d);
-    });
+    var syms = fgSymbols(n0, k), symBox = null;
+    if (syms.length) {   /* the Symbols page's cards for what is written on this note, centred in the space under the lines (Trix) */
+      symBox = document.createElement('div'); symBox.className = 'fg-syms';
+      syms.forEach(function (li) {
+        var d = document.createElement('div'); d.className = 'fg-sym';
+        var g = li.querySelector('.sym'); if (g) d.appendChild(g.cloneNode(true));
+        var b = document.createElement('b'); b.textContent = li.getAttribute('data-sym'); d.appendChild(b);
+        var sm = li.querySelector('small'); if (sm) { var s2 = document.createElement('small'); s2.textContent = sm.textContent; d.appendChild(s2); }
+        var p1 = document.createElement('p'); p1.textContent = li.getAttribute('data-tip'); d.appendChild(p1);
+        symBox.appendChild(d);
+      });
+    }
     if (n0.si >= 0) {
       var fb = paFingerSvg(n0, { cents: 0 }, k, oth.filter(function (q) { return q.si >= 0; }).map(function (q) { return { n: q, cents: 0 }; }));
-      var txt = document.createElement('div'); txt.className = 'pa-fb-txt';
+      var txt = document.createElement('div'); txt.className = 'pa-fb-txt fg-txt';
       while (box.firstChild) txt.appendChild(box.firstChild);
+      var more = null;
+      if (symBox && syms.length > 1) {   /* the first card centred in the space under the lines (Trix), the rest side by side under both */
+        more = document.createElement('div'); more.className = 'fg-syms wide';
+        while (symBox.children.length > 1) more.appendChild(symBox.children[1]);
+      }
+      if (symBox) txt.appendChild(symBox);
       box.appendChild(txt); box.appendChild(fb.svg); box.classList.add('has-fb');
-    }
+      if (more) box.appendChild(more);
+    } else if (symBox) box.appendChild(symBox);
     var rr = from && from.getBoundingClientRect ? from.getBoundingClientRect() : null, up = rr ? rr.top + rr.height / 2 > window.innerHeight / 2 : false;
     paCardEl.classList.toggle('up', up);
     $('paCardC').style.maxHeight = rr ? Math.max(160, up ? rr.top - 30 : window.innerHeight - rr.bottom - 30) + 'px' : '';
