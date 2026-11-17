@@ -3334,6 +3334,7 @@
       show: function () { fgShown = true; fgOptions(); if (fgDirty) fgRender(); fgSys = -1; fgHead(true); if (APP.fgZoomUi) APP.fgZoomUi(); },
       hide: function () {
         partsOff();   /* the Violin/Accompaniment note leaves with its tool (Hermes F122: it lay over the Tuner) */
+        paCardClose();   /* and the note card (Hermes F135: Back left it over the next tool, its keys dead) */
         fgShown = false;
         if (bg && APP.nextView !== 'midi') { bg = false; pause(); APP.board.player(false); }   /* playing on from the player: it stops when neither tool shows */
       }
@@ -3788,6 +3789,7 @@
     function line(t) { var p0 = document.createElement('p'); p0.textContent = t; box.appendChild(p0); }
     var ORD = function (i) { return i + (i % 10 === 1 && i !== 11 ? 'st' : i % 10 === 2 && i !== 12 ? 'nd' : i % 10 === 3 && i !== 13 ? 'rd' : 'th'); };
     if (n0.si >= 0) line(n0.fg === 0 ? 'Open ' + PA_SNAME[n0.si] + ' string' : PA_SNAME[n0.si] + ' string, finger ' + n0.fg);
+    else line('Above the fingerboard shown: heard, not lit.');   /* no string planned (Hermes F136: an empty card) */
     if (n0.si >= 0 && n0.fg !== 0) { if (n0.half) line('Half position'); else if (n0.hand >= 0) line(ORD(n0.hand + 1) + ' position'); }
     if (n0.tup) line(n0.tup === 3 ? 'Triplet: three in the time of two' : n0.tup + ' notes in the time of ' + (n0.tup === 5 || n0.tup === 6 ? 4 : n0.tup === 7 ? 4 : 2));
     var oth = song.notes.filter(function (q, i) { return i !== k && !q.grace && Math.abs(q.t - n0.t) < 1e-4; });
