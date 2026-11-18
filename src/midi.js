@@ -398,7 +398,7 @@
             var tmo = kid(el, 'time-modification');
             if (tmo) {
               var WV = { whole: 4, half: 2, quarter: 1, eighth: 0.5, '16th': 0.25, '32nd': 0.125, '64th': 0.0625 }[txt(el, 'type')];
-              if (WV) { n.tup = +txt(tmo, 'actual-notes') || 3; n.wl = WV * (kids(el, 'dot').length ? 1.5 : 1); }
+              if (WV) { n.tup = +txt(tmo, 'actual-notes') || 3; n.tn = +txt(tmo, 'normal-notes') || 0; n.wl = WV * (kids(el, 'dot').length ? 1.5 : 1); }
             }
             if (!chord) chordTrem = n.trem || 0; else if (!n.trem && chordTrem) n.trem = chordTrem;   /* a chord's tremolo, often written on its first note only */
             if (art.length) n.art = art;
@@ -658,7 +658,7 @@
       var t = toSec(n.t0), e = toSec(Math.max(n.t1, n.t0 + 1));
       /* a short break before the next note, like a bow change (Trix: notes sounded too long and ran together) */
       var sb = n.sb !== undefined ? n.sb : n.t0;
-      return { m: n.m, t: t, e: n.grace ? e : e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, gs: n.gs, gty: n.gty, gsl: n.gsl, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, tup: n.tup, wl: n.wl, oacc: n.oacc, wsp: n.wsp, slur: n.slur, vel: n.v || 80, grace: n.grace };
+      return { m: n.m, t: t, e: n.grace ? e : e - Math.min(0.05, (e - t) * 0.15), b: sb / tpq, own: (n.t1 - sb) / tpq, xb: n.xb, gi: n.gi, gn: n.gn, gs: n.gs, gty: n.gty, gsl: n.gsl, xfg: n.xfg, xs: n.xs, harm: n.harm, pz: n.pz, art: n.art, trem: n.trem, tup: n.tup, tn: n.tn, wl: n.wl, oacc: n.oacc, wsp: n.wsp, slur: n.slur, vel: n.v || 80, grace: n.grace };
     }).filter(function (n) { return n.m >= 55; });   /* below the G string: left out */
     if (!notes.length) throw fail('Every note in this file is below the violin’s G string.');
     /* whole empty bars before the first note are skipped (Trix): the song starts in the bar of its first note */
@@ -3084,12 +3084,24 @@
       });
       return k;
     }
-    function fgSmallAt(e) {   /* the rest or grace note drawn under the tap (8 px of slack round it) */
+    function fgHeadAt(e) {   /* the (non-grace) note whose head is under the tap, 2 px of slack; -1 if none (Hermes F137) */
+      var svg = e.target.closest && e.target.closest('svg.fg-page'); if (!svg) return -1;
+      var k = -1, bd = Infinity;
+      Array.prototype.forEach.call(svg.querySelectorAll('.mp-n[data-k]:not(.mp-grace) .head'), function (h) {
+        var r = h.getBoundingClientRect(); if (!r.width && !r.height) return;
+        if (e.clientX < r.left - 2 || e.clientX > r.right + 2 || e.clientY < r.top - 2 || e.clientY > r.bottom + 2) return;
+        var d = Math.abs(e.clientX - (r.left + r.right) / 2) + Math.abs(e.clientY - (r.top + r.bottom) / 2);
+        if (d < bd) { bd = d; k = +h.parentNode.getAttribute('data-k'); }
+      });
+      return k;
+    }
+    function fgSmallAt(e) {   /* the rest or grace note drawn under the tap (8 px of slack round a rest, 4 round a grace: it sits beside its note, Hermes F137) */
       var svg = e.target.closest && e.target.closest('svg.fg-page'); if (!svg) return null;
       var best = null, bd = Infinity;
       Array.prototype.forEach.call(svg.querySelectorAll('.mp-rest, .mp-grace'), function (g) {
         var r = g.getBoundingClientRect(); if (!r.width && !r.height) return;
-        if (e.clientX < r.left - 8 || e.clientX > r.right + 8 || e.clientY < r.top - 8 || e.clientY > r.bottom + 8) return;
+        var sl = g.classList.contains('mp-grace') ? 4 : 8;
+        if (e.clientX < r.left - sl || e.clientX > r.right + sl || e.clientY < r.top - sl || e.clientY > r.bottom + sl) return;
         var d = Math.abs(e.clientX - (r.left + r.right) / 2) + Math.abs(e.clientY - (r.top + r.bottom) / 2);
         if (d < bd) { bd = d; best = g; }
       });
@@ -3098,14 +3110,14 @@
     fgPages.addEventListener('click', function (e) {
       if (!song || !fgDown || Math.abs(e.clientX - fgDown[0]) > 6 || Math.abs(e.clientY - fgDown[1]) > 6) return;
       if (window.getSelection && String(window.getSelection())) return;
-      var hit = !playing && !counting ? fgSmallAt(e) : null;   /* paused: a rest or a grace note under the tap opens its card (Trix) */
+      var kh = fgHeadAt(e), hit = !playing && !counting && kh < 0 ? fgSmallAt(e) : null;   /* paused: a rest or a grace note under the tap opens its card (Trix); a notehead under it wins (Hermes F137) */
       if (hit) {
         var cy0 = e.clientY, at0 = { getBoundingClientRect: function () { return { top: cy0 - 12, bottom: cy0 + 12, height: 24 }; } };
         if (hit.getAttribute('data-k') !== null) fgCardOpen(+hit.getAttribute('data-k'), at0);
         else fgRestOpen(+hit.getAttribute('data-rb'), +hit.getAttribute('data-rv'), at0);
         return;
       }
-      var k = fgNoteAt(e); if (k < 0) return;
+      var k = kh >= 0 ? kh : fgNoteAt(e); if (k < 0) return;
       var t = song.notes[k].t;
       if (counting) { stopCount(); seekTo(Math.max(0, t - 0.001)); go(); return; }   /* during the count-in: straight on from the note */
       if (playing) { seekTo(Math.max(0, t - 0.001)); accStart(); return; }   /* playing: on from the note, the accompaniment with it */
@@ -3791,7 +3803,11 @@
     if (n0.si >= 0) line(n0.fg === 0 ? 'Open ' + PA_SNAME[n0.si] + ' string' : PA_SNAME[n0.si] + ' string, finger ' + n0.fg);
     else line('Above the fingerboard shown: heard, not lit.');   /* no string planned (Hermes F136: an empty card) */
     if (n0.si >= 0 && n0.fg !== 0) { if (n0.half) line('Half position'); else if (n0.hand >= 0) line(ORD(n0.hand + 1) + ' position'); }
-    if (n0.tup) line(n0.tup === 3 ? 'Triplet: three in the time of two' : n0.tup + ' notes in the time of ' + (n0.tup === 5 || n0.tup === 6 ? 4 : n0.tup === 7 ? 4 : 2));
+    if (n0.tup) {   /* the ratio the file gives (Hermes F139: Caprice 24's 4:6, 3:4, 8:4, 9:4); a guess only when it gives none */
+      var tn = n0.tn || (n0.tup === 5 || n0.tup === 6 || n0.tup === 7 ? 4 : 2);
+      line(n0.tup === 3 && tn === 2 ? 'Triplet: three in the time of two' : n0.tup + ' notes in the time of ' + tn);
+    }
+    var lenV = fgLenUnnamed(n0); if (lenV !== null) line(lenV < 0.25 ? 'Shorter than a semiquaver' : 'Lasts ' + fgBeats(lenV) + ' beats (crotchets)');   /* a value with no Symbols card (Hermes F138) */
     var oth = song.notes.filter(function (q, i) { return i !== k && !q.grace && Math.abs(q.t - n0.t) < 1e-4; });
     if (oth.length) line('Double stop with ' + oth.map(function (q) { return APP.board.name(q.m); }).join(', '));
     var syms = fgSymbols(n0, k), symBox = null;
@@ -3843,11 +3859,19 @@
     'inverted-mordent': 'Mordent', 'inverted-mordent-long': 'Mordent', mordent: 'Lower mordent', 'mordent-long': 'Lower mordent' };
   var SYM_DYN = { ppp: 'Softest', pp: 'Very soft', p: 'Soft', mp: 'Fairly soft', mf: 'Fairly loud', f: 'Loud', ff: 'Very loud', fff: 'Loudest',
     sf: 'Sudden accent', sfz: 'Sudden accent', fz: 'Sudden accent', fp: 'Loud, then soft', sfp: 'Accent, then soft' };
+  var FG_LEN = { 0.25: 'Semiquaver (16th note)', 0.5: 'Quaver (eighth note)', 0.75: 'Dotted quaver', 1: 'Crotchet (quarter note)', 1.5: 'Dotted crotchet', 2: 'Minim (half note)', 3: 'Dotted minim', 4: 'Semibreve (whole note)' };
+  function fgOwn(n) { return Math.round((n.tup ? n.wl || 0 : n.wl || n.own || 0) * 4) / 4; }   /* the written value, in crotchets, to a ¼ */
+  function fgLenUnnamed(n) {   /* the value when no Symbols card names it (Hermes F138), else null */
+    if (n.grace) return null;
+    var own = fgOwn(n); if (FG_LEN[own]) return null;
+    return own > 0 ? own : Math.round((n.tup ? n.wl || 0 : n.wl || n.own || 0) * 8) / 8;
+  }
+  function fgBeats(v) { var w = Math.floor(v), f = { 0: '', 0.25: '¼', 0.5: '½', 0.75: '¾' }[v - w]; return f === undefined ? String(v) : (w ? w : '') + f || '0'; }
   function fgSymbols(n, k) {
     var want = [];
     if (!n.grace) {   /* the written value (a triplet quaver is a quaver; Trix: its card was missing) */
-      var L = { 0.25: 'Semiquaver (16th note)', 0.5: 'Quaver (eighth note)', 1: 'Crotchet (quarter note)', 1.5: 'Dotted crotchet', 2: 'Minim (half note)', 3: 'Dotted minim', 4: 'Semibreve (whole note)' };
-      var own = Math.round((n.tup ? n.wl || 0 : n.wl || n.own || 0) * 4) / 4; if (L[own]) want.push(L[own]);
+      var L = FG_LEN;
+      var own = fgOwn(n); if (L[own]) want.push(L[own]);
     }
     if (n.wsp && n.wsp[0] >= 0) {   /* an accidental the key does not give */
       var kk = song.keyAt ? song.keyAt(n.b) : { sf: song.sf || 0 }, ka = 0;
