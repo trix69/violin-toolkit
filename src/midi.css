@@ -246,4 +246,7 @@ html.mp-fs-on, html.mp-fs-on body { overflow: hidden; }
   .shell:not(.mp-fs) #mpFull .i-in { transform-origin: 50% 50%; animation: mpTurnNudge 1.6s ease-in-out 1s 2; }
 }
 @keyframes mpTurnNudge { 0%, 100% { transform: rotate(0); } 40%, 60% { transform: rotate(-90deg); } }
-@media (prefers-reduced-motion: reduce) { #mpFull .i-in { animation: none; } }
+@media (prefers-reduced-motion: reduce) {   /* as specific as the rules they stop (Hermes F140) */
+  .shell:not(.mp-fs) #mpFull .i-in { animation: none; }
+  .slide-l, .slide-r { animation: none; }
+}
