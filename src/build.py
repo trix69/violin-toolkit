@@ -1665,15 +1665,18 @@ nav_js = """(function () {
   document.getElementById('ppLink').addEventListener('click', function (e) {   /* offline: say so rather than open a dead page */
     if (navigator.onLine === false) { e.preventDefault(); ppMsg.textContent = 'You are offline. The full policy opens when you are online; the summary above covers it.'; ppMsg.hidden = false; }
   });
-  /* Settings > Help > Report an issue (Trix): GitHub's new-issue form, with the version and kind of app filled in (nothing
-     personal; the user sees it all before sending) */
+  /* Settings > Help > Report an issue (Trix): GitHub's new-issue form, with the version and kind of app filled in and the device's
+     random id (nothing personal; the user sees it all before sending) */
   document.getElementById('reportIssue').addEventListener('click', function () {
     var kind = window.VTPlay ? 'Android app (Google Play)' : window.VTiOSApp ? 'iPhone app' : location.hostname === 'appassets.androidplatform.net' ? 'Android app (website download)' : (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone ? 'Installed web app' : 'Website';
     var v = document.getElementById('verBtn').getAttribute('data-version') || '', bd = document.getElementById('verBtn').getAttribute('data-build') || '';   /* Hermes F58 */
     var zh = window.I18N && I18N.lang === 'zh', tpl = zh   /* a template that says the issue is public (Trix) */
       ? '发生了什么：\\n\\n你期望的结果：\\n\\n（公开问题——请不要写姓名、邮箱或其他个人信息。）'
       : 'What happened:\\n\\nWhat you expected:\\n\\n(Public issue — please don\\'t include names, e-mail addresses or other personal details.)';
-    this.href = 'https://github.com/trix69/violin-toolkit/issues/new?body=' + encodeURIComponent(tpl + '\\n\\n---\\nViolin Toolkit ' + v + (bd ? ' (' + bd + ')' : '') + ', ' + kind);
+    var id = ''; try { id = localStorage.getItem('vt-id') || ''; } catch (e) {}   /* the random id the version check sends (Trix): lets an issue be matched to its device's checks; none when not made yet */
+    if (!/^[0-9a-f]{16}$/.test(id)) id = '';
+    this.href = 'https://github.com/trix69/violin-toolkit/issues/new?body=' + encodeURIComponent(tpl + '\\n\\n---\\nViolin Toolkit ' + v + (bd ? ' (' + bd + ')' : '') + ', ' + kind
+      + (id ? '\\n' + (zh ? '设备 ID（本设备生成的随机数）：' : 'Device ID (a random number made on this device): ') + id : ''));
   }, true);
   /* any link that leaves the app asks first (Trix): what opens and where; Google Play and the App Store go straight
      there (the store is where the app lives). Our own site's pages, read in the website, are not leaving it. Links
